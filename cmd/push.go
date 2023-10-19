@@ -24,8 +24,6 @@ var pushCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
-	pushCmd.Flags().StringP("manufacturer", "m", "", "override manufacturer defined in ThingModel")
-	pushCmd.Flags().StringP("mpn", "p", "", "override manufacturer part number defined in ThingModel")
 }
 
 func executePush(cmd *cobra.Command, args []string) {
@@ -52,9 +50,7 @@ func executePush(cmd *cobra.Command, args []string) {
 		log.Error("error reading import file", "filename", abs, "error", err)
 		os.Exit(1)
 	}
-	if len(bytes) > 2 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf {
-		bytes = bytes[3:]
-	}
+	bytes = removeBOM(bytes)
 	log.Debug(fmt.Sprintf("read %d bytes from %s beginning with %s", len(bytes), abs, string(bytes[:100])))
 	var content map[string]any
 	err = json.Unmarshal(bytes, &content)
@@ -67,6 +63,13 @@ func executePush(cmd *cobra.Command, args []string) {
 		}
 		os.Exit(1)
 	}
+	log.Info("TM is a valid JSON")
+
+	manufacturer, mpn, err := getManufacturerData(cmd, content)
+	if err != nil {
+		log.Error("manufacturer data could not be determined", "filename", abs, "error", err)
+		os.Exit(1)
+	}
 
 	validator, err := validation.NewTMValidator()
 	if err != nil {
@@ -76,14 +79,9 @@ func executePush(cmd *cobra.Command, args []string) {
 	err = validator.ValidateTM(bytes)
 	if err != nil {
 		log.Error("validation failed", "error", err)
-
-	}
-
-	manufacturer, mpn, err := getManufacturerData(cmd, content)
-	if err != nil {
-		log.Error("manufacturer data could not be determined", "filename", abs, "error", err)
 		os.Exit(1)
 	}
+	log.Info("passed validation against JSON schema for ThingModels")
 
 	err = remote.Push(manufacturer, mpn, filepath.Base(abs), content)
 	if err != nil {
@@ -93,46 +91,40 @@ func executePush(cmd *cobra.Command, args []string) {
 	log.Info("pushed successfully")
 }
 
+func removeBOM(bytes []byte) []byte {
+	if len(bytes) > 2 && bytes[0] == 0xef && bytes[1] == 0xbb && bytes[2] == 0xbf {
+		bytes = bytes[3:]
+	}
+	return bytes
+}
+
 func getManufacturerData(cmd *cobra.Command, content map[string]any) (string, string, error) {
 	var mpn string
-	mpnf := cmd.Flag("mpn").Value.String()
-	if mpnf != "" {
-		mpn = mpnf
+	if mpni, ok := content["schema:mpn"]; !ok {
+		return "", "", fmt.Errorf("the TM must contain schema:npm property")
 	} else {
-		if mpni, ok := content["schema:mpn"]; !ok {
-			return "", "", fmt.Errorf("mpn is not defined neither in the TM, nor via --npm flag")
-		} else {
-			mpn, ok = mpni.(string)
-			if !ok {
-				return "", "", fmt.Errorf("unexpected type of schema:mpn value")
-			}
+		mpn, ok = mpni.(string)
+		if !ok {
+			return "", "", fmt.Errorf("unexpected type of schema:mpn value")
 		}
 	}
 
 	var manufacturer string
-	manuff := cmd.Flag("manufacturer").Value.String()
-	if manuff != "" {
-		manufacturer = manuff
+	if manufi, ok := content["schema:manufacturer"]; !ok {
+		return "", "", fmt.Errorf("the TM must contain schema:manufacturer property")
 	} else {
-		if manufi, ok := content["schema:manufacturer"]; !ok {
-			return "", "", fmt.Errorf("manufacturer is not defined neither in the TM, nor via --manufacturer flag")
-		} else {
-			manufs, ok := manufi.(string)
-			if ok {
-				manufacturer = manufs
-			} else if manufm, ok := manufi.(map[string]any); ok {
-				if name, ok := manufm["name"]; !ok {
-					return "", "", fmt.Errorf("unexpected type of schema:manufacturer value")
-				} else {
-					if names, ok := name.(string); !ok {
-						return "", "", fmt.Errorf("unexpected type of schema:manufacturer value")
-					} else {
-						manufacturer = names
-					}
-				}
+		if manufm, ok := manufi.(map[string]any); ok {
+			if name, ok := manufm["name"]; !ok {
+				return "", "", fmt.Errorf("manufacturer name is missing in schema:manufacturer property")
 			} else {
-				return "", "", fmt.Errorf("unexpected type of schema:manufacturer value")
+				if names, ok := name.(string); !ok {
+					return "", "", fmt.Errorf("unexpected type of schema:manufacturer name value")
+				} else {
+					manufacturer = names
+				}
 			}
+		} else {
+			return "", "", fmt.Errorf("unexpected type of schema:manufacturer value")
 		}
 	}
 	return manufacturer, mpn, nil

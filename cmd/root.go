@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/spf13/viper"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -30,17 +29,5 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	viper.SetDefault("remotes", map[string]any{
-		"localFS": map[string]any{
-			"type": "file",
-			"url":  "file:~/tm-catalog",
-		},
-	})
-	viper.AddConfigPath(".")
-
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tm-catalog-cli.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	//rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
