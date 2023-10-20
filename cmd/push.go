@@ -78,7 +78,7 @@ func executePush(cmd *cobra.Command, args []string) {
 	}
 	err = validator.ValidateTM(bytes)
 	if err != nil {
-		log.Error("validation failed", "error", err)
+		log.Error("JSON schema validation failed", "error", err)
 		os.Exit(1)
 	}
 	log.Info("passed validation against JSON schema for ThingModels")
