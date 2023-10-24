@@ -1,8 +1,8 @@
 package remotes
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"log/slog"
 	url2 "net/url"
 	"os"
@@ -39,18 +39,16 @@ func NewFileRemote(config map[string]any) (*FileRemote, error) {
 	}, nil
 }
 
-func (f *FileRemote) Push(manufacturer string, mpn string, filename string, tm map[string]any) error {
+func (f *FileRemote) Push(model *model.ThingModel, filename string, raw []byte) error {
+	manufacturer := model.Manufacturer.Name
+	mpn := model.Mpn
 	fullPath := filepath.Join(f.root, manufacturer, mpn, filename)
-	bytes, err := json.Marshal(tm)
-	if err != nil {
-		return fmt.Errorf("could not marshal TM: %v", err)
-	}
 	dir := filepath.Dir(fullPath)
-	err = os.MkdirAll(dir, os.ModePerm) //fixme: review permissions
+	err := os.MkdirAll(dir, os.ModePerm) //fixme: review permissions
 	if err != nil {
 		return fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
-	err = os.WriteFile(fullPath, bytes, os.ModePerm) //fixme: review permissions
+	err = os.WriteFile(fullPath, raw, os.ModePerm) //fixme: review permissions
 	if err != nil {
 		return fmt.Errorf("could not write TM to catalog: %v", err)
 	}
