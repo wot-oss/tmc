@@ -5,6 +5,9 @@
 *.so
 *.dylib
 
+# Binary 
+tm-catalog-cli
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -18,3 +21,6 @@
 go.work
 
 .idea/
+
+# Emacs tmp files
+*~

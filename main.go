@@ -4,10 +4,11 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package main
 
 import (
-	"github.com/spf13/viper"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
 	"log/slog"
 	"os"
+
+	"github.com/spf13/viper"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
 )
 
 func main() {
