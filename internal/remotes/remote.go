@@ -3,12 +3,13 @@ package remotes
 import (
 	"fmt"
 	"github.com/spf13/viper"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"log/slog"
 	"os"
 )
 
 type Remote interface {
-	Push(manufacturer string, mpn string, filename string, tm map[string]any) error
+	Push(model *model.ThingModel, filename string, raw []byte) error
 }
 
 func Get(name string) (Remote, error) {
