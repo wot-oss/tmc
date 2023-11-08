@@ -8,38 +8,34 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 const TMExt = ".tm.jsonld"
 const TOCFilename = "tm-catalog.toc.json"
 
 type toc struct {
-	Meta     tocMeta              `json:"meta"`
-	Contents map[string]thingMeta `json:"contents"`
+	Meta     tocMeta                            `json:"meta"`
+	Contents map[string]model.CatalogThingModel `json:"contents"`
 }
 
 type tocMeta struct {
 	Created time.Time `json:"created"`
 }
 
-type thingMeta struct {
-	Path         string `json:"path"`
-	Manufacturer string `json:"schema:manufacturer"`
-	Mpn          string `json:"schema:mpn"`
-	ID           string `json:"id,omitempty"`
-	Author       string `json:"schema:author"`
-}
-
-func Create(catalogPath string) error {
+func Create(path string) error {
+	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
+
 	newTOC := toc{
 		Meta:     tocMeta{Created: time.Now()},
-		Contents: map[string]thingMeta{},
+		Contents: map[string]model.CatalogThingModel{},
 	}
 
-	err := filepath.Walk(catalogPath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -77,24 +73,26 @@ func Create(catalogPath string) error {
 	return nil
 }
 
-func getThingMetadata(path string) (thingMeta, error) {
+// getThingMetadata reads the file at path and returns its contents
+// unmarshalled into the CatalogThingModel struct
+func getThingMetadata(path string) (model.CatalogThingModel, error) {
 	// Read TM file as bytes
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return thingMeta{}, err
+		return model.CatalogThingModel{}, err
 	}
 
 	// Try to decode bytes into thingMeta struct
-	var meta thingMeta
+	var meta model.CatalogThingModel
 	meta.Path = path
 	err = json.Unmarshal(data, &meta)
 	if err != nil {
-		return thingMeta{}, err
+		return model.CatalogThingModel{}, err
 	}
 
 	if meta.ID == "" {
 		msg := "Thing Model does not have the required 'id' field"
-		return thingMeta{}, fmt.Errorf(msg)
+		return model.CatalogThingModel{}, fmt.Errorf(msg)
 	}
 
 	return meta, nil
