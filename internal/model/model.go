@@ -20,14 +20,19 @@ type SchemaManufacturer struct {
 // cataloged Thing Model. A cataloged Thing Model includes supplementary
 // fields beyond the essential ones required for import, which have been
 // introduced during the importing process.
-type CatalogThingModel struct {
-	ThingModel
-	Path     string      `json:"path"`
-	ID       string      `json:"id,omitempty"`
-	Original string      `json:"original"`
-	Version  VersionInfo `json:"version"`
+type ExtendedFields struct {
+	Path        string      `json:"path"`
+	ID          string      `json:"id,omitempty"`
+	Original    string      `json:"original"`
+	Version     VersionInfo `json:"version"`
+	Description string      `json:"description"`
 }
 
 type VersionInfo struct {
 	Model string `json:"model"`
+}
+
+type CatalogThingModel struct {
+	ThingModel
+	ExtendedFields
 }

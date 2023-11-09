@@ -15,24 +15,15 @@ import (
 const TMExt = ".tm.jsonld"
 const TOCFilename = "tm-catalog.toc.json"
 
-type toc struct {
-	Meta     tocMeta                            `json:"meta"`
-	Contents map[string]model.CatalogThingModel `json:"contents"`
-}
-
-type tocMeta struct {
-	Created time.Time `json:"created"`
-}
-
 func Create(path string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
 
-	newTOC := toc{
-		Meta:     tocMeta{Created: time.Now()},
-		Contents: map[string]model.CatalogThingModel{},
+	newTOC := model.Toc{
+		Meta:     model.TocMeta{Created: time.Now()},
+		Contents: map[string]model.TocThing{},
 	}
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
@@ -41,7 +32,7 @@ func Create(path string) error {
 		}
 		if !info.IsDir() {
 			if strings.HasSuffix(info.Name(), TMExt) {
-				thingMeta, err := getThingMetadata(path)
+				thingModel, err := getThingMetadata(path)
 				if err != nil {
 					msg := "Failed to extract metadata from file %s with error:"
 					msg = fmt.Sprintf(msg, path)
@@ -50,10 +41,7 @@ func Create(path string) error {
 					log.Error("The file will be excluded from the table of contents.")
 					return nil
 				}
-				// Use id as index, but don't repeat inside object
-				id := thingMeta.ID
-				thingMeta.ID = ""
-				newTOC.Contents[id] = thingMeta
+				insert(newTOC, thingModel)
 				fileCount++
 			}
 		}
@@ -73,33 +61,29 @@ func Create(path string) error {
 	return nil
 }
 
-// getThingMetadata reads the file at path and returns its contents
-// unmarshalled into the CatalogThingModel struct
 func getThingMetadata(path string) (model.CatalogThingModel, error) {
-	// Read TM file as bytes
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return model.CatalogThingModel{}, err
 	}
 
-	// Try to decode bytes into thingMeta struct
-	var meta model.CatalogThingModel
-	meta.Path = path
-	err = json.Unmarshal(data, &meta)
+	var ctm model.CatalogThingModel
+	ctm.Path = path
+	err = json.Unmarshal(data, &ctm)
 	if err != nil {
 		return model.CatalogThingModel{}, err
 	}
 
-	if meta.ID == "" {
+	if ctm.ID == "" {
 		msg := "Thing Model does not have the required 'id' field"
 		return model.CatalogThingModel{}, fmt.Errorf(msg)
 	}
 
-	return meta, nil
+	return ctm, nil
 }
 
 func saveToc(tocBytes []byte) error {
-	// Check for an existing toc file
+	// Create or open toc file
 	file, err := os.Create(TOCFilename)
 	if err != nil {
 		return err
@@ -108,4 +92,18 @@ func saveToc(tocBytes []byte) error {
 
 	_, err = file.Write(tocBytes)
 	return nil
+}
+
+func insert(table model.Toc, ctm model.CatalogThingModel) {
+	// TODO: extract timestamp from ID and add to tocEntry
+	name := filepath.Dir(ctm.Path)
+	tocEntry, ok := table.Contents[name]
+	if !ok {
+		tocEntry.ThingModel = ctm.ThingModel
+	}
+	// TODO: remove stopgap
+	now := time.Now()
+	tv := model.TocVersion{ExtendedFields: ctm.ExtendedFields, TimeStamp: &now}
+	tocEntry.Versions = append(tocEntry.Versions, tv)
+	table.Contents[name] = tocEntry
 }
