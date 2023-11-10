@@ -4,21 +4,18 @@ import (
 	"fmt"
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"log/slog"
-	"os"
 )
 
 type Remote interface {
-	Push(model *model.ThingModel, filename string, raw []byte) error
+	Push(model *model.ThingModel, id model.TMID, raw []byte) error
+	Fetch(id model.TMID) ([]byte, error)
 }
 
 func Get(name string) (Remote, error) {
-	//fixme: read viper config instead
 	remotesConfig := viper.Get("remotes")
 	remotes, ok := remotesConfig.(map[string]any)
 	if !ok {
-		slog.Default().Error("invalid remotes config")
-		os.Exit(1)
+		return nil, fmt.Errorf("invalid remotes contig")
 	}
 	rc, ok := remotes[name]
 	if !ok && name == "" && len(remotes) == 1 {
@@ -29,8 +26,7 @@ func Get(name string) (Remote, error) {
 
 	remoteConfig, ok := rc.(map[string]any)
 	if !ok {
-		slog.Default().Error("invalid remotes config")
-		os.Exit(1)
+		return nil, fmt.Errorf("invalid config of remote \"%s\"", name)
 	}
 
 	switch t := remoteConfig["type"]; t {

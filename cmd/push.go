@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"log/slog"
+	"os"
 )
 
 // pushCmd represents the push command
@@ -26,5 +27,9 @@ func executePush(cmd *cobra.Command, args []string) {
 	log.Debug("executing push", "args", args)
 	remoteName := cmd.Flag("remote").Value.String()
 
-	commands.PushToRemote(remoteName, args[0])
+	err := commands.PushToRemote(remoteName, args[0])
+	if err != nil {
+		log.Error("push failed", "error", err)
+		os.Exit(1)
+	}
 }

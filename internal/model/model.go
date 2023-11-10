@@ -7,6 +7,7 @@ type ThingModel struct {
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
+	Version      Version            `json:"version"`
 }
 
 type SchemaAuthor struct {
@@ -21,18 +22,17 @@ type SchemaManufacturer struct {
 // fields beyond the essential ones required for import, which have been
 // introduced during the importing process.
 type ExtendedFields struct {
-	Path        string      `json:"path"`
-	ID          string      `json:"id,omitempty"`
-	Original    string      `json:"original"`
-	Version     VersionInfo `json:"version"`
-	Description string      `json:"description"`
-}
-
-type VersionInfo struct {
-	Model string `json:"model"`
+	Path        string `json:"path"`
+	ID          string `json:"id,omitempty"`
+	Original    string `json:"original"`
+	Description string `json:"description"`
 }
 
 type CatalogThingModel struct {
 	ThingModel
 	ExtendedFields
+}
+
+type Version struct {
+	Model string `json:"model"`
 }

@@ -1,0 +1,155 @@
+﻿{
+  "@context": [
+    "https://www.w3.org/2019/wot/td/v1",
+    {
+      "modbus": "https://www.w3.org/2019/wot/modbus"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "SomeCom",
+  "id": "urn:12345",
+  "base": "modbus+tcp://{{IP}}:{{PORT}}",
+  "securityDefinitions": {
+    "nosec_sc": {
+      "scheme": "nosec"
+    }
+  },
+  "schema:mpn": "senseall",
+  "schema:manufacturer": {
+    "name": "omnicorp"
+  },
+  "schema:author": {
+    "name": "omnicorp"
+  },
+  "security": "nosec_sc",
+  "properties": {
+    "MANUFACTURER_ID": {
+      "title": "Manufacturer ID",
+      "observable": false,
+      "readOnly": true,
+      "writeOnly": false,
+      "type": "integer",
+      "forms": [
+        {
+          "op": [
+            "readproperty"
+          ],
+          "href": "/",
+          "modbus:unitID": "42",
+          "modbus:quantity": 1,
+          "modbus:address": 2,
+          "modbus:type": "integer",
+          "modbus:entity": "HoldingRegister",
+          "modbus:zeroBasedAddressing": false
+        }
+      ]
+    },
+    "ORDER_ID": {
+      "title": "Order Number",
+      "observable": false,
+      "readOnly": true,
+      "writeOnly": false,
+      "type": "string",
+      "forms": [
+        {
+          "op": [
+            "readproperty"
+          ],
+          "href": "/",
+          "modbus:unitID": 42,
+          "modbus:quantity": 10,
+          "modbus:address": 3,
+          "modbus:type": "string",
+          "modbus:entity": "HoldingRegister",
+          "modbus:zeroBasedAddressing": false
+        }
+      ]
+    },
+    "SERIAL_NUMBER": {
+      "title": "Serial Number",
+      "observable": false,
+      "readOnly": true,
+      "writeOnly": false,
+      "type": "string",
+      "forms": [
+        {
+          "op": [
+            "readproperty"
+          ],
+          "href": "/",
+          "modbus:unitID": 42,
+          "modbus:quantity": 8,
+          "modbus:address": 13,
+          "modbus:type": "string",
+          "modbus:entity": "HoldingRegister",
+          "modbus:zeroBasedAddressing": false
+        }
+      ]
+    },
+    "HARDWARE_REVISION": {
+      "title": "Hardware Revision",
+      "observable": false,
+      "readOnly": true,
+      "writeOnly": false,
+      "type": "integer",
+      "forms": [
+        {
+          "op": [
+            "readproperty"
+          ],
+          "href": "/",
+          "modbus:unitID": 42,
+          "modbus:quantity": 1,
+          "modbus:address": 21,
+          "modbus:type": "integer",
+          "modbus:entity": "HoldingRegister",
+          "modbus:zeroBasedAddressing": false
+        }
+      ]
+    },
+    "SOFTWARE_REVISION": {
+      "title": "Software Revision",
+      "observable": false,
+      "readOnly": true,
+      "writeOnly": false,
+      "type": "string",
+      "forms": [
+        {
+          "op": [
+            "readproperty"
+          ],
+          "href": "/",
+          "modbus:unitID": 42,
+          "modbus:quantity": 2,
+          "modbus:address": 22,
+          "modbus:type": "string",
+          "modbus:entity": "HoldingRegister",
+          "modbus:zeroBasedAddressing": false
+        }
+      ]
+    },
+    "REVISION_COUNTER": {
+      "title": "Revision Counter",
+      "observable": false,
+      "readOnly": true,
+      "writeOnly": false,
+      "type": "integer",
+      "forms": [
+        {
+          "op": [
+            "readproperty"
+          ],
+          "href": "/",
+          "modbus:unitID": 42,
+          "modbus:quantity": 1,
+          "modbus:address": 24,
+          "modbus:type": "integer",
+          "modbus:entity": "HoldingRegister",
+          "modbus:zeroBasedAddressing": false
+        }
+      ]
+    }
+  },
+  "actions": {},
+  "events": {}
+}

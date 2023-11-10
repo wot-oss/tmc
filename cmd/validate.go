@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"log/slog"
 	"os"
@@ -16,9 +17,13 @@ var validateCmd = &cobra.Command{
 		var log = slog.Default()
 
 		log.Debug("executing validate", "args", args)
-		_, raw := commands.ReadRequiredFile(args[0])
+		_, raw, err := internal.ReadRequiredFile(args[0])
+		if err != nil {
+			log.Error("could not read file", "error", err)
+			os.Exit(1)
+		}
 
-		_, err := commands.ValidateThingModel(raw)
+		_, err = commands.ValidateThingModel(raw)
 		if err != nil {
 			log.Error("validation failed", "error", err)
 			os.Exit(1)

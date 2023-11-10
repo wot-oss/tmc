@@ -1,25 +1,36 @@
 package commands
 
 import (
-	"fmt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/validation"
 	"log/slog"
-	"os"
 )
 
+// ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.
+// Returns parsed *model.ThingModel
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
-	var log = slog.Default()
+	log := slog.Default()
 
-	tmValidator, err := validation.NewTMValidator()
+	tm, err := validation.ParseRequiredMetadata(raw)
 	if err != nil {
-		log.Error("could not create TM validator", "error", err)
-		return nil, fmt.Errorf("could not create TM validator: %w", err)
+		return nil, err
 	}
-	tm, err := tmValidator.ValidateTM(raw)
+	log.Info("required Thing Model metadata is present")
+
+	err = validation.ValidateAsTM(raw)
 	if err != nil {
-		log.Error("validation failed", "error", err)
-		os.Exit(1)
+		return tm, err
 	}
+	log.Info("passed validation against JSON schema for Thing Models")
+
+	validated, err := validation.ValidateAsModbus(raw)
+	if validated {
+		if err != nil {
+			log.Info("failed [optional] validation against JSON schema for Modbus protocol binding", "error", err)
+		} else {
+			log.Info("passed validation against JSON schema for Modbus protocol binding")
+		}
+	}
+
 	return tm, nil
 }
