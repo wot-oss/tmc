@@ -50,6 +50,11 @@ func PushToRemote(remoteName string, filename string) error {
 }
 
 func prepareToImport(tm *model.ThingModel, raw []byte) ([]byte, model.TMID, error) {
+	manuf := tm.Manufacturer.Name
+	auth := tm.Author.Name
+	if tm == nil || len(auth) == 0 || len(manuf) == 0 || len(tm.Mpn) == 0 {
+		return nil, model.TMID{}, errors.New("ThingModel cannot be nil or have empty mandatory fields")
+	}
 	value, dataType, _, err := jsonparser.Get(raw, "id")
 	if err != nil && dataType != jsonparser.NotExist {
 		return nil, model.TMID{}, err
@@ -60,16 +65,15 @@ func prepareToImport(tm *model.ThingModel, raw []byte) ([]byte, model.TMID, erro
 	switch dataType {
 	case jsonparser.String:
 		origId := string(value)
-		idFromFile, err = model.ParseTMID(origId, tm)
+		idFromFile, err = model.ParseTMID(origId, tm.Author.Name == tm.Manufacturer.Name)
 		if err != nil {
-			if errors.Is(err, model.ErrInvalidId) {
-				// fixme: move id to "original" in prepared
-			} else if errors.Is(err, model.ErrVersionDiffers) {
-				// version changed - continue to generating new id
+			if errors.Is(err, model.ErrInvalidId) || idFromFile.AssertValidFor(tm) != nil {
+				prepared = moveIdToOriginalLink(prepared, origId)
 			} else {
-				// unexpected error
 				return nil, model.TMID{}, err
 			}
+		} else {
+
 		}
 	}
 
@@ -85,6 +89,10 @@ func prepareToImport(tm *model.ThingModel, raw []byte) ([]byte, model.TMID, erro
 	}
 
 	return prepared, finalId, nil
+}
+
+func moveIdToOriginalLink(raw []byte, id string) []byte {
+	return raw // fixme: implement
 }
 
 func generateNewId(tm *model.ThingModel, raw []byte) model.TMID {

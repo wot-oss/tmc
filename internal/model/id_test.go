@@ -8,12 +8,7 @@ import (
 
 func TestParseId(t *testing.T) {
 	i1 := "author/manufacturer/mpn/v1.2.3-pre1-20231109150513-e86784632bf6.tm.json"
-	id, err := ParseTMID(i1, &ThingModel{
-		Manufacturer: SchemaManufacturer{"manufacturer"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{"author"},
-		Version:      Version{"1.2.3-pre1"},
-	})
+	id, err := ParseTMID(i1, false)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "author", id.Author)
@@ -23,12 +18,7 @@ func TestParseId(t *testing.T) {
 	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
 
 	i2 := "author/manufacturer/mpn/byfirmware/v1/v1.2.3-pre1-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i2, &ThingModel{
-		Manufacturer: SchemaManufacturer{"manufacturer"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{"author"},
-		Version:      Version{"1.2.3-pre1"},
-	})
+	id, err = ParseTMID(i2, false)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "author", id.Author)
@@ -38,12 +28,7 @@ func TestParseId(t *testing.T) {
 	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
 
 	i3 := "manufacturer/mpn/byfirmware/v1/v1.2.3-pre1-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i3, &ThingModel{
-		Manufacturer: SchemaManufacturer{"manufacturer"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{"manufacturer"},
-		Version:      Version{"1.2.3-pre1"},
-	})
+	id, err = ParseTMID(i3, true)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "manufacturer", id.Author)
@@ -53,12 +38,7 @@ func TestParseId(t *testing.T) {
 	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
 
 	i4 := "manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i4, &ThingModel{
-		Manufacturer: SchemaManufacturer{"manufacturer"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{"manufacturer"},
-		Version:      Version{"v1.2.3"},
-	})
+	id, err = ParseTMID(i4, true)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "manufacturer", id.Author)
@@ -69,41 +49,45 @@ func TestParseId(t *testing.T) {
 
 	ids := []string{
 		"author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.js",
-		"authr/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
-		"author/manuf/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
-		"author/manufacturer/mpn2/v1.2.3-20231109150513-e86784632bf6.tm.json",
 		"author/manufacturer/mpn/v1.2.3.tm.json",
 	}
 	for i, v := range ids {
-		id, err = ParseTMID(v, &ThingModel{
-			Manufacturer: SchemaManufacturer{"manufacturer"},
-			Mpn:          "mpn",
-			Author:       SchemaAuthor{"author"},
-			Version:      Version{"1.2.3"},
-		})
+		id, err = ParseTMID(v, false)
 		assert.ErrorIs(t, err, ErrInvalidId, "incorrect error at %d", i)
 	}
 
 	i5 := "author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i5, &ThingModel{
-		Manufacturer: SchemaManufacturer{"manufacturer"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{"author"},
-		Version:      Version{"abc"},
-	})
-
-	i6 := "author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i6, &ThingModel{
-		Manufacturer: SchemaManufacturer{"manufacturer"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{"author"},
-		Version:      Version{"v1.3"},
-	})
-
-	assert.ErrorIs(t, err, ErrVersionDiffers)
+	id, err = ParseTMID(i5, false)
 
 }
 
+func TestTMID_AssertValidFor(t *testing.T) {
+	tm := &ThingModel{
+		Manufacturer: SchemaManufacturer{"manufacturer"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{"author"},
+		Version:      Version{"1.2.3"},
+	}
+	ids := []string{
+		"authr/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
+		"author/manuf/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
+		"author/manufacturer/mpn2/v1.2.3-20231109150513-e86784632bf6.tm.json",
+	}
+	for i, v := range ids {
+		id, err := ParseTMID(v, false)
+		assert.NoError(t, err)
+		err = id.AssertValidFor(tm)
+		assert.ErrorIs(t, err, ErrInvalidId, "incorrect error at %d", i)
+	}
+
+	i1 := "author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
+	id, err := ParseTMID(i1, false)
+	assert.NoError(t, err)
+	tm.Version.Model = "v1.3"
+	err = id.AssertValidFor(tm)
+	assert.ErrorIs(t, err, ErrVersionDiffers)
+
+}
 func TestParseTMVersion(t *testing.T) {
 	v1 := "v1.2.3-pre1-20231109150513-e86784632bf6"
 	tv1, err := ParseTMVersion(v1)
