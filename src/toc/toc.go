@@ -12,7 +12,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
-const TMExt = ".tm.jsonld"
+const TMExt = ".tm.json"
 const TOCFilename = "tm-catalog.toc.json"
 
 func Create(path string) error {
