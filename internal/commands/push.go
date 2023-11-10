@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var now = time.Now
+
 const pseudoVersionTimestampFormat = "20060102150405"
 
 func PushToRemote(remoteName string, filename string) error {
@@ -92,7 +94,46 @@ func prepareToImport(tm *model.ThingModel, raw []byte) ([]byte, model.TMID, erro
 }
 
 func moveIdToOriginalLink(raw []byte, id string) []byte {
-	return raw // fixme: implement
+	linksValue, dataType, _, err := jsonparser.Get(raw, "links")
+	if err != nil && dataType != jsonparser.NotExist {
+		return raw
+	}
+
+	link := map[string]any{"href": id, "rel": "original"}
+	var linksArray []map[string]any
+
+	switch dataType {
+	case jsonparser.NotExist:
+		// put "links" : [{"href": "{{id}}", "rel": "original"}]
+		linksArray = []map[string]any{link}
+	case jsonparser.Array:
+		err := json.Unmarshal(linksValue, &linksArray)
+		if err != nil {
+			slog.Default().Error("error unmarshalling links", "error", err)
+			return raw
+		}
+		for _, eLink := range linksArray {
+			if rel, ok := eLink["rel"]; ok && rel == "original" {
+				// link to original found => abort
+				return raw
+			}
+		}
+		linksArray = append(linksArray, link)
+
+	default:
+		// unexpected type of "links"
+		slog.Default().Warn(fmt.Sprintf("unexpected type of links %v", dataType))
+		return raw
+	}
+
+	linksBytes, err := json.Marshal(linksArray)
+	if err != nil {
+		slog.Default().Error("unexpected marshal error", "error", err)
+		return raw
+	}
+	raw, err = jsonparser.Set(raw, linksBytes, "links")
+
+	return raw
 }
 
 func generateNewId(tm *model.ThingModel, raw []byte) model.TMID {
@@ -103,7 +144,7 @@ func generateNewId(tm *model.ThingModel, raw []byte) model.TMID {
 	hashStr := fmt.Sprintf("%x", hash[:6])
 	ver := model.TMVersionFromOriginal(tm.Version.Model)
 	ver.Hash = hashStr
-	ver.Timestamp = time.Now().UTC().Format(pseudoVersionTimestampFormat)
+	ver.Timestamp = now().UTC().Format(pseudoVersionTimestampFormat)
 	return model.TMID{
 		OptionalPath: "", // fixme: pass it down from the command line args
 		Author:       tm.Author.Name,
