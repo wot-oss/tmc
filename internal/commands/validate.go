@@ -6,6 +6,8 @@ import (
 	"log/slog"
 )
 
+// ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.
+// Returns parsed *model.ThingModel
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
 	log := slog.Default()
 

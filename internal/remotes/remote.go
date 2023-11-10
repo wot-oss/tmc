@@ -7,7 +7,8 @@ import (
 )
 
 type Remote interface {
-	Push(model *model.ThingModel, filename string, raw []byte) error
+	Push(model *model.ThingModel, id model.TMID, raw []byte) error
+	Fetch(id model.TMID) ([]byte, error)
 }
 
 func Get(name string) (Remote, error) {

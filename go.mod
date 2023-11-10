@@ -3,6 +3,7 @@ module github.com/web-of-things-open-source/tm-catalog-cli
 go 1.21.3
 
 require (
+	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/alexbrdn/go-jsonschema v0.0.0-20231107145722-e86784632bf6
 	github.com/go-playground/validator/v10 v10.15.5
 	github.com/spf13/cobra v1.7.0
