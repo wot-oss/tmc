@@ -11,7 +11,7 @@ import (
 var (
 	ErrInvalidVersion       = errors.New("invalid version string")
 	ErrInvalidPseudoVersion = errors.New("no valid pseudo-version found")
-	ErrInvalidId            = errors.New("id invalid [for given ThingModel]")
+	ErrInvalidId            = errors.New("id invalid")
 	ErrVersionDiffers       = errors.New("id has a differing version from given ThingModel")
 )
 
@@ -85,36 +85,27 @@ func init() {
 	pseudoVersionRegex = regexp.MustCompile("^" + pseudoVersionRegexString + "$")
 }
 
-func ParseTMID(s string, tm *ThingModel) (TMID, error) {
-	manuf := tm.Manufacturer.Name
-	auth := tm.Author.Name
-	if tm == nil || len(auth) == 0 || len(manuf) == 0 || len(tm.Mpn) == 0 {
-		return TMID{}, errors.New("ThingModel cannot be nil or have empty mandatory fields")
-	}
+func ParseTMID(s string, official bool) (TMID, error) {
 	if !strings.HasSuffix(s, TMFileExtension) {
 		return TMID{}, ErrInvalidId
 	}
 	s = strings.TrimSuffix(s, TMFileExtension)
-	official := auth == manuf
 	parts := strings.Split(s, "/")
 	if len(parts) < 3 {
 		return TMID{}, ErrInvalidId
 	}
 	filename := parts[len(parts)-1]
 	parts = parts[0 : len(parts)-1]
+	auth := parts[0]
+	var manuf, mpn string
 	optPathStart := 3
 	if official {
 		optPathStart = 2
-		if parts[0] != manuf {
-			return TMID{}, ErrInvalidId
-		}
+		manuf = auth
+		mpn = parts[1]
 	} else {
-		if parts[0] != auth || parts[1] != manuf {
-			return TMID{}, ErrInvalidId
-		}
-	}
-	if parts[optPathStart-1] != tm.Mpn {
-		return TMID{}, ErrInvalidId
+		manuf = parts[1]
+		mpn = parts[2]
 	}
 	optPath := ""
 	if len(parts) > optPathStart {
@@ -126,15 +117,11 @@ func ParseTMID(s string, tm *ThingModel) (TMID, error) {
 		return TMID{}, ErrInvalidId
 	}
 
-	if ver.Base.Original() != TMVersionFromOriginal(tm.Version.Model).Base.Original() {
-		return TMID{}, ErrVersionDiffers
-	}
-
 	return TMID{
 		OptionalPath: optPath,
 		Author:       auth,
 		Manufacturer: manuf,
-		Mpn:          tm.Mpn,
+		Mpn:          mpn,
 		Version:      ver,
 	}, nil
 
@@ -193,4 +180,15 @@ func (id TMID) Equals(other TMID) bool {
 		id.Mpn == other.Mpn &&
 		id.Version.BaseString() == other.Version.BaseString() &&
 		id.Version.Hash == other.Version.Hash
+}
+
+func (id TMID) AssertValidFor(tm *ThingModel) error {
+	if id.Mpn != tm.Mpn || id.Author != tm.Author.Name || id.Manufacturer != tm.Manufacturer.Name {
+		return ErrInvalidId
+	}
+	if id.Version.Base.Original() != TMVersionFromOriginal(tm.Version.Model).Base.Original() {
+		return ErrVersionDiffers
+	}
+
+	return nil
 }

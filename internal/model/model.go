@@ -8,10 +8,10 @@ type ThingModel struct {
 }
 
 type SchemaAuthor struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name" validate:"required"` // fixme: make url-friendly where used, esp. escape / and \
 }
 type SchemaManufacturer struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name" validate:"required"` // fixme: make url-friendly where used
 }
 
 type Version struct {
