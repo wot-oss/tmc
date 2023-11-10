@@ -1,6 +1,6 @@
 module github.com/web-of-things-open-source/tm-catalog-cli
 
-go 1.21.3
+go 1.21
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
