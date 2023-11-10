@@ -40,3 +40,19 @@ func TestValidateAsModbus(t *testing.T) {
 	assert.Contains(t, err.Error(), "$.properties.SERIAL_NUMBER.forms.0.modbus:zeroBasedAddressing")
 
 }
+
+func TestParseRequiredMetadata(t *testing.T) {
+	tmFile := `{  "schema:manufacturer": {
+    "name": "omnicorp GmbH & Co. KG"
+  },
+  "schema:mpn": "sense&all",
+  "schema:author": {
+    "name": "omnicorp R&D/research"
+  }
+}`
+	tm, err := ParseRequiredMetadata([]byte(tmFile))
+	assert.NoError(t, err)
+	assert.Equal(t, "omnicorp-GmbH-Co-KG", tm.Manufacturer.Name)
+	assert.Equal(t, "omnicorp-R-D-research", tm.Author.Name)
+	assert.Equal(t, "sense-all", tm.Mpn)
+}
