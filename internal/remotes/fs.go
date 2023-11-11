@@ -3,17 +3,18 @@ package remotes
 import (
 	"errors"
 	"fmt"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"log/slog"
 	url2 "net/url"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 type FileRemote struct {
-	root string
+	Root string
 }
 
 func NewFileRemote(config map[string]any) (*FileRemote, error) {
@@ -37,7 +38,7 @@ func NewFileRemote(config map[string]any) (*FileRemote, error) {
 		rootPath = strings.Replace(rootPath, "~", home, 1)
 	}
 	return &FileRemote{
-		root: rootPath,
+		Root: rootPath,
 	}, nil
 }
 
@@ -65,7 +66,7 @@ func (f *FileRemote) Push(_ *model.ThingModel, id model.TMID, raw []byte) error 
 }
 
 func (f *FileRemote) filenames(id model.TMID) (string, string) {
-	fullPath := filepath.Join(f.root, id.String())
+	fullPath := filepath.Join(f.Root, id.String())
 	dir := filepath.Dir(fullPath)
 	return fullPath, dir
 }

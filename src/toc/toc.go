@@ -2,6 +2,7 @@ package toc
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -10,38 +11,59 @@ import (
 	"time"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 const TMExt = ".tm.json"
 const TOCFilename = "tm-catalog.toc.json"
 
-func Create(path string) error {
+func Create(remoteName string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
+
+	remote, err := remotes.Get(remoteName)
+	if err != nil {
+		log.Error(fmt.Sprintf("could not ìnitialize a remote instance for %s. check config", remoteName), "error", err)
+		return err
+	}
+
+	// TODO: check if it is a file remote by type assertion?
+	fileRemote, ok := remote.(*remotes.FileRemote)
+	if !ok {
+		log.Error("table of contents creation only supported for remotes of type 'file'")
+	}
+
+	rootPath := fileRemote.Root
 
 	newTOC := model.Toc{
 		Meta:     model.TocMeta{Created: time.Now()},
 		Contents: map[string]model.TocThing{},
 	}
 
-	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(rootPath, func(absPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if !info.IsDir() {
 			if strings.HasSuffix(info.Name(), TMExt) {
-				thingModel, err := getThingMetadata(path)
+				thingModel, err := getThingMetadata(rootPath, absPath)
 				if err != nil {
 					msg := "Failed to extract metadata from file %s with error:"
-					msg = fmt.Sprintf(msg, path)
+					msg = fmt.Sprintf(msg, absPath)
 					log.Error(msg)
 					log.Error(err.Error())
 					log.Error("The file will be excluded from the table of contents.")
 					return nil
 				}
-				insert(newTOC, thingModel)
+				err = insert(newTOC, thingModel)
+				if err != nil {
+					log.Error(fmt.Sprintf("Failed to insert %s into toc:", absPath))
+					log.Error(err.Error())
+					log.Error("The file will be excluded from the table of contents.")
+					return nil
+				}
 				fileCount++
 			}
 		}
@@ -54,21 +76,25 @@ func Create(path string) error {
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
 	newTOCJson, _ := json.MarshalIndent(newTOC, "", "  ")
-	err = saveToc(newTOCJson)
+	err = saveToc(rootPath, newTOCJson)
 	msg := "Created table of content with %d entries in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
 	return nil
 }
 
-func getThingMetadata(path string) (model.CatalogThingModel, error) {
-	data, err := os.ReadFile(path)
+func getThingMetadata(rootPath, absPath string) (model.CatalogThingModel, error) {
+	data, err := os.ReadFile(absPath)
 	if err != nil {
 		return model.CatalogThingModel{}, err
 	}
 
 	var ctm model.CatalogThingModel
-	ctm.Path = path
+	ctm.Path, err = filepath.Rel(rootPath, absPath)
+	if err != nil {
+		msg := "unable to compute relative path to root %s"
+		return model.CatalogThingModel{}, errors.New(fmt.Sprintf(msg, absPath))
+	}
 	err = json.Unmarshal(data, &ctm)
 	if err != nil {
 		return model.CatalogThingModel{}, err
@@ -82,9 +108,9 @@ func getThingMetadata(path string) (model.CatalogThingModel, error) {
 	return ctm, nil
 }
 
-func saveToc(tocBytes []byte) error {
-	// Create or open toc file
-	file, err := os.Create(TOCFilename)
+func saveToc(rootPath string, tocBytes []byte) error {
+	// TODO: is it ok to bypass the remote?
+	file, err := os.Create(filepath.Join(rootPath, TOCFilename))
 	if err != nil {
 		return err
 	}
@@ -94,16 +120,21 @@ func saveToc(tocBytes []byte) error {
 	return nil
 }
 
-func insert(table model.Toc, ctm model.CatalogThingModel) {
-	// TODO: extract timestamp from ID and add to tocEntry
+func insert(table model.Toc, ctm model.CatalogThingModel) error {
+	tmid, err := model.ParseTMID(ctm.ID, &ctm.ThingModel)
+	if err != nil {
+		return err
+	}
 	name := filepath.Dir(ctm.Path)
 	tocEntry, ok := table.Contents[name]
+	// TODO: provide copy method for CatalogThingModel in TocThing
 	if !ok {
-		tocEntry.ThingModel = ctm.ThingModel
+		tocEntry.Manufacturer = ctm.Manufacturer
+		tocEntry.Mpn = ctm.Mpn
+		tocEntry.Author = ctm.Author
 	}
-	// TODO: remove stopgap
-	now := time.Now()
-	tv := model.TocVersion{ExtendedFields: ctm.ExtendedFields, TimeStamp: &now}
+	tv := model.TocVersion{ExtendedFields: ctm.ExtendedFields, TimeStamp: tmid.Version.Timestamp, Version: ctm.Version}
 	tocEntry.Versions = append(tocEntry.Versions, tv)
 	table.Contents[name] = tocEntry
+	return nil
 }

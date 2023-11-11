@@ -12,11 +12,14 @@ type TocMeta struct {
 }
 
 type TocThing struct {
-	ThingModel
-	Versions []TocVersion `json:"versions"`
+	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
+	Mpn          string             `json:"schema:mpn" validate:"required"`
+	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
+	Versions     []TocVersion       `json:"versions"`
 }
 
 type TocVersion struct {
 	ExtendedFields
-	TimeStamp *time.Time `json:"timestamp,omitempty"`
+	TimeStamp string  `json:"timestamp,omitempty"`
+	Version   Version `json:"version"`
 }

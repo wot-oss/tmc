@@ -17,22 +17,18 @@ type SchemaManufacturer struct {
 	Name string `json:"name" validate:"required"`
 }
 
-// CatalogThingModel is a model designed for the unmarshalling of a
-// cataloged Thing Model. A cataloged Thing Model includes supplementary
-// fields beyond the essential ones required for import, which have been
-// introduced during the importing process.
+type Version struct {
+	Model string `json:"model"`
+}
+
 type ExtendedFields struct {
-	Path        string `json:"path"`
 	ID          string `json:"id,omitempty"`
 	Original    string `json:"original"`
 	Description string `json:"description"`
+	Path        string `json:"path"`
 }
 
 type CatalogThingModel struct {
 	ThingModel
 	ExtendedFields
-}
-
-type Version struct {
-	Model string `json:"model"`
 }
