@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"fmt"
 	"log/slog"
+	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/src/toc"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 var createTOCCmd = &cobra.Command{
@@ -22,8 +24,17 @@ func init() {
 func executeCreateTOC(cmd *cobra.Command, args []string) {
 	var log = slog.Default()
 
-	log.Debug("creating toc", "args", args)
 	remoteName := cmd.Flag("remote").Value.String()
+	log.Debug(fmt.Sprintf("creating table of contents for remote %s", remoteName))
 
-	toc.Create(remoteName)
+	remote, err := remotes.Get(remoteName)
+	if err != nil {
+		log.Error(fmt.Sprintf("could not ìnitialize a remote instance for %s. check config", remoteName), "error", err)
+	}
+
+	err = remote.CreateToC()
+	if err != nil {
+		log.Error(err.Error())
+		os.Exit(1)
+	}
 }

@@ -2,6 +2,7 @@ package remotes
 
 import (
 	"fmt"
+
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
@@ -9,6 +10,7 @@ import (
 type Remote interface {
 	Push(model *model.ThingModel, id model.TMID, raw []byte) error
 	Fetch(id model.TMID) ([]byte, error)
+	CreateToC() error
 }
 
 func Get(name string) (Remote, error) {

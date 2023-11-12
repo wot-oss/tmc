@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/src/toc"
 )
 
 type FileRemote struct {
-	Root string
+	root string
 }
 
 func NewFileRemote(config map[string]any) (*FileRemote, error) {
@@ -38,7 +39,7 @@ func NewFileRemote(config map[string]any) (*FileRemote, error) {
 		rootPath = strings.Replace(rootPath, "~", home, 1)
 	}
 	return &FileRemote{
-		Root: rootPath,
+		root: rootPath,
 	}, nil
 }
 
@@ -66,7 +67,7 @@ func (f *FileRemote) Push(_ *model.ThingModel, id model.TMID, raw []byte) error 
 }
 
 func (f *FileRemote) filenames(id model.TMID) (string, string) {
-	fullPath := filepath.Join(f.Root, id.String())
+	fullPath := filepath.Join(f.root, id.String())
 	dir := filepath.Dir(fullPath)
 	return fullPath, dir
 }
@@ -125,4 +126,9 @@ func (f *FileRemote) Fetch(id model.TMID) ([]byte, error) {
 	}
 	actualFilename, _ := f.filenames(actualId)
 	return os.ReadFile(actualFilename)
+}
+
+func (f *FileRemote) CreateToC() error {
+	toc.Create(f.root)
+	return nil
 }

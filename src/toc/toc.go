@@ -11,38 +11,23 @@ import (
 	"time"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 const TMExt = ".tm.json"
 const TOCFilename = "tm-catalog.toc.json"
 
-func Create(remoteName string) error {
+func Create(rootPath string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
-
-	remote, err := remotes.Get(remoteName)
-	if err != nil {
-		log.Error(fmt.Sprintf("could not ìnitialize a remote instance for %s. check config", remoteName), "error", err)
-		return err
-	}
-
-	// TODO: check if it is a file remote by type assertion?
-	fileRemote, ok := remote.(*remotes.FileRemote)
-	if !ok {
-		log.Error("table of contents creation only supported for remotes of type 'file'")
-	}
-
-	rootPath := fileRemote.Root
 
 	newTOC := model.Toc{
 		Meta:     model.TocMeta{Created: time.Now()},
 		Contents: map[string]model.TocThing{},
 	}
 
-	err = filepath.Walk(rootPath, func(absPath string, info os.FileInfo, err error) error {
+	err := filepath.Walk(rootPath, func(absPath string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
