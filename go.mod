@@ -1,6 +1,6 @@
 module github.com/web-of-things-open-source/tm-catalog-cli
 
-go 1.21.3
+go 1.21
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -20,6 +20,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/kennygrant/sanitize v1.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

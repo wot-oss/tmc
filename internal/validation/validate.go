@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/alexbrdn/go-jsonschema"
 	"github.com/go-playground/validator/v10"
+	"github.com/kennygrant/sanitize"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
@@ -66,5 +67,8 @@ func ParseRequiredMetadata(raw []byte) (*model.ThingModel, error) {
 	if err != nil {
 		return nil, err
 	}
+	tm.Author.Name = sanitize.BaseName(tm.Author.Name)
+	tm.Manufacturer.Name = sanitize.BaseName(tm.Manufacturer.Name)
+	tm.Mpn = sanitize.BaseName(tm.Mpn)
 	return tm, nil
 }

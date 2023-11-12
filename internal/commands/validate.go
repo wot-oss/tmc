@@ -7,7 +7,7 @@ import (
 )
 
 // ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.
-// Returns parsed *model.ThingModel
+// Returns parsed *model.ThingModel, where the author name, manufacturer name, and mpn have been sanitized for use in filenames
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
 	log := slog.Default()
 
