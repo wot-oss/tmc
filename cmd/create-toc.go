@@ -29,7 +29,7 @@ func executeCreateTOC(cmd *cobra.Command, args []string) {
 
 	remote, err := remotes.Get(remoteName)
 	if err != nil {
-		log.Error(fmt.Sprintf("could not ìnitialize a remote instance for %s. check config", remoteName), "error", err)
+		log.Error(fmt.Sprintf("could not initialize a remote instance for %s. check config", remoteName), "error", err)
 	}
 
 	err = remote.CreateToC()

@@ -1,6 +1,7 @@
 package remotes
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -131,4 +132,25 @@ func (f *FileRemote) Fetch(id model.TMID) ([]byte, error) {
 func (f *FileRemote) CreateToC() error {
 	toc.Create(f.root)
 	return nil
+}
+
+func (f *FileRemote) List(filter string) (model.Toc, error) {
+	log := slog.Default()
+	if len(filter) == 0 {
+		log.Debug("Creating list")
+	} else {
+		log.Debug(fmt.Sprintf("Creating list with filter '%s'", filter))
+	}
+
+	data, err := os.ReadFile(filepath.Join(f.root, toc.TOCFilename))
+	if err != nil {
+		return model.Toc{}, errors.New("Not toc found. Run `create-toc` for this remote.")
+	}
+
+	var toc model.Toc
+	err = json.Unmarshal(data, &toc)
+	if err != nil {
+		return model.Toc{}, err
+	}
+	return toc, nil
 }
