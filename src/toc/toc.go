@@ -69,6 +69,7 @@ func Create(rootPath string) error {
 }
 
 func getThingMetadata(rootPath, absPath string) (model.CatalogThingModel, error) {
+	// TODO: should internal.ReadRequiredFiles be used here?
 	data, err := os.ReadFile(absPath)
 	if err != nil {
 		return model.CatalogThingModel{}, err
@@ -94,7 +95,6 @@ func getThingMetadata(rootPath, absPath string) (model.CatalogThingModel, error)
 }
 
 func saveToc(rootPath string, tocBytes []byte) error {
-	// TODO: is it ok to bypass the remote?
 	file, err := os.Create(filepath.Join(rootPath, TOCFilename))
 	if err != nil {
 		return err
@@ -106,7 +106,8 @@ func saveToc(rootPath string, tocBytes []byte) error {
 }
 
 func insert(table model.Toc, ctm model.CatalogThingModel) error {
-	tmid, err := model.ParseTMID(ctm.ID, &ctm.ThingModel)
+	// TODO: if author and manufacturer are equal, it is offical, right?
+	tmid, err := model.ParseTMID(ctm.ID, false)
 	if err != nil {
 		return err
 	}
