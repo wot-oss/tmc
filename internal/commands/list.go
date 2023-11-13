@@ -3,16 +3,21 @@ package commands
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
+// TODO: figure out how to use viper
+const columnWidthName = "TMC_COLUMNWIDTH"
+const columnWidthDefault = 40
+
 // TODO: use better table writer with eliding etc.
 func PrintToC(toc model.Toc, filter string) {
 	filter = prep(filter)
-	colWidth := 40
+	colWidth := columnWidth()
 	contents := toc.Contents
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
@@ -63,4 +68,12 @@ func prep(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)
 	return s
+}
+
+func columnWidth() int {
+	cw, err := strconv.Atoi(os.Getenv(columnWidthName))
+	if err != nil {
+		cw = columnWidthDefault
+	}
+	return cw
 }
