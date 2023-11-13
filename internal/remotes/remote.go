@@ -11,6 +11,7 @@ type Remote interface {
 	Push(model *model.ThingModel, id model.TMID, raw []byte) error
 	Fetch(id model.TMID) ([]byte, error)
 	CreateToC() error
+	List(filter string) (model.Toc, error)
 }
 
 func Get(name string) (Remote, error) {
