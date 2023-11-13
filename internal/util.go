@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -12,14 +13,22 @@ import (
 func ReadRequiredFile(name string) (string, []byte, error) {
 	var log = slog.Default()
 
-	filename := name
-	abs, err := filepath.Abs(filename)
+	abs, err := filepath.Abs(name)
 	if err != nil {
-		log.Error("error expanding file name", "filename", filename, "error", err)
+		log.Error("error expanding file name", "filename", name, "error", err)
 		return "", nil, err
 	}
-	log.Debug("importing file", "filename", abs)
+	log.Debug("reading file", "filename", abs)
 
+	stat, err := os.Stat(abs)
+	if err != nil {
+		log.Error("error reading file", "filename", abs, "error", err)
+		return "", nil, err
+	}
+	if stat.IsDir() {
+		err = errors.New("not a file")
+		return "", nil, err
+	}
 	raw, err := os.ReadFile(abs)
 	if err != nil {
 		log.Error("error reading file", "filename", abs, "error", err)
