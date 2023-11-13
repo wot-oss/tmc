@@ -63,6 +63,7 @@ func (f *FileRemote) Push(_ *model.ThingModel, id model.TMID, raw []byte) error 
 	if err != nil {
 		return fmt.Errorf("could not write TM to catalog: %v", err)
 	}
+	slog.Default().Info("saved Thing Model file", "filename", fullPath)
 
 	return nil
 }
