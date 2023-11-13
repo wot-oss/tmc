@@ -12,6 +12,7 @@ type Remote interface {
 	Fetch(id model.TMID) ([]byte, error)
 	CreateToC() error
 	List(filter string) (model.Toc, error)
+	Versions(name string) (model.TocThing, error)
 }
 
 func Get(name string) (Remote, error) {

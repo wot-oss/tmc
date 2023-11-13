@@ -155,3 +155,25 @@ func (f *FileRemote) List(filter string) (model.Toc, error) {
 	}
 	return toc, nil
 }
+
+func (f *FileRemote) Versions(name string) (model.TocThing, error) {
+	log := slog.Default()
+	if len(name) == 0 {
+		log.Error("Please specify a name to show the TM.")
+		return model.TocThing{}, errors.New("Please specify a name to show the TM")
+	}
+	toc, err := f.List("")
+	if err != nil {
+		return model.TocThing{}, err
+	}
+	name = strings.TrimSpace(name)
+
+	tocThing, ok := toc.Contents[name]
+	if !ok {
+		msg := fmt.Sprintf("No thing model found for name: %s", name)
+		log.Error(msg)
+		return model.TocThing{}, errors.New(msg)
+	}
+
+	return tocThing, nil
+}
