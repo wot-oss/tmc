@@ -2,8 +2,12 @@ package commands
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"io/fs"
+	"log"
+	"os"
 	"testing"
 	"time"
 )
@@ -101,7 +105,19 @@ func TestGenerateNewID(t *testing.T) {
 		Mpn:          "senseall",
 		Author:       model.SchemaAuthor{"author"},
 		Version:      model.Version{"v3.2.1"},
-	}, []byte("{}"))
+	}, []byte("{}"), "opt/dir")
 
-	assert.Equal(t, "author/omnicorp/senseall/v3.2.1-20231110123243-bf21a9e8fbc5.tm.json", id.String())
+	assert.Equal(t, "author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-bf21a9e8fbc5.tm.json", id.String())
+}
+
+func TestName(t *testing.T) {
+	root, _ := os.Getwd()
+	fileSystem := os.DirFS(root)
+	_ = fs.WalkDir(fileSystem, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println(path + " " + d.Name())
+		return nil
+	})
 }
