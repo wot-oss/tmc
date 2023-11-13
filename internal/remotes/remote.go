@@ -8,7 +8,9 @@ import (
 )
 
 type Remote interface {
-	Push(model *model.ThingModel, id model.TMID, raw []byte) error
+	// Push writes the Thing Model file into the path under root that corresponds to id.
+	// Returns ErrTMExists if the same file is already stored with a different timestamp
+	Push(id model.TMID, raw []byte) error
 	Fetch(id model.TMID) ([]byte, error)
 	CreateToC() error
 	List(filter string) (model.Toc, error)
