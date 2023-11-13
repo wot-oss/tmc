@@ -11,7 +11,7 @@ import (
 
 // TODO: use better table writer with eliding etc.
 func PrintToC(toc model.Toc, filter string) {
-	filter = strings.ToLower(filter)
+	filter = prep(filter)
 	colWidth := 40
 	contents := toc.Contents
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
