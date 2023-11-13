@@ -10,20 +10,20 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-var listCmd = &cobra.Command{
-	Use:   "list [pattern]",
-	Short: "List TMs in catalog",
-	Long:  `List TMs and filter for pattern in all mandatory fields`,
-	Args:  cobra.MaximumNArgs(1),
-	Run:   listRemote,
+var versionsCmd = &cobra.Command{
+	Use:   "versions [name]",
+	Short: "List available versions of the TM",
+	Long:  `List available versions of the TM`,
+	Args:  cobra.ExactArgs(1),
+	Run:   Versions,
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
-	listCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
+	rootCmd.AddCommand(versionsCmd)
+	versionsCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
 }
 
-func listRemote(cmd *cobra.Command, args []string) {
+func Versions(cmd *cobra.Command, args []string) {
 	log := slog.Default()
 
 	// TODO: if not specified returns "remote"?
@@ -35,15 +35,11 @@ func listRemote(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	filter := ""
-	if len(args) > 0 {
-		filter = args[0]
-	}
-
-	toc, err := remote.List(filter)
+	name := args[0]
+	tocThing, err := remote.Versions(name)
 	if err != nil {
-		log.Error(err.Error())
+		fmt.Errorf(err.Error())
 		os.Exit(1)
 	}
-	commands.PrintToC(toc, filter)
+	commands.PrintToCThing(name, tocThing)
 }
