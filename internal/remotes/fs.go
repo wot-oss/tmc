@@ -144,7 +144,7 @@ func (f *FileRemote) List(filter string) (model.Toc, error) {
 
 	data, err := os.ReadFile(filepath.Join(f.root, toc.TOCFilename))
 	if err != nil {
-		return model.Toc{}, errors.New("Not toc found. Run `create-toc` for this remote.")
+		return model.Toc{}, errors.New("No toc found. Run `create-toc` for this remote.")
 	}
 
 	var toc model.Toc
