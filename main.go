@@ -6,6 +6,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
@@ -31,8 +32,10 @@ func initViper() {
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
+	dir, err := os.UserHomeDir()
+	viper.AddConfigPath(filepath.Join(dir, ".tm-catalog"))
 	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
+	err = viper.ReadInConfig()
 	if err != nil {
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {

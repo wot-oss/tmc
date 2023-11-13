@@ -5,7 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/kennygrant/sanitize"
+	"io/fs"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -18,7 +23,9 @@ var now = time.Now
 
 const pseudoVersionTimestampFormat = "20060102150405"
 
-func PushToRemote(remoteName string, filename string) error {
+func PushToRemote(filename string, remoteName string, optPath string, optTree bool) error {
+	optPath = sanitizePath(optPath)
+
 	log := slog.Default()
 	remote, err := remotes.Get(remoteName)
 	if err != nil {
@@ -26,6 +33,57 @@ func PushToRemote(remoteName string, filename string) error {
 		return err
 	}
 
+	abs, err := filepath.Abs(filename)
+	if err != nil {
+		log.Error("error expanding file name", "filename", filename, "error", err)
+		return err
+	}
+
+	stat, err := os.Stat(abs)
+	if err != nil {
+		log.Error("cannot read file or directory", "filename", filename, "error", err)
+		return err
+	}
+	if stat.IsDir() {
+		return pushDirectory(abs, remote, optPath, optTree, log)
+	} else {
+		return PushFile(filename, remote, optPath, log)
+	}
+}
+
+func sanitizePath(path string) string {
+	if path == "" {
+		return path
+	}
+	p := sanitize.Path(path)
+	p, _ = strings.CutPrefix(p, "/")
+	p, _ = strings.CutSuffix(p, "/")
+	return p
+}
+
+func pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool, log *slog.Logger) error {
+	err := filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		if optTree {
+			optPath = filepath.Dir(strings.TrimPrefix(path, absDirname))
+		}
+
+		err = PushFile(path, remote, optPath, log)
+
+		return err
+	})
+
+	return err
+
+}
+
+func PushFile(filename string, remote remotes.Remote, optPath string, log *slog.Logger) error {
 	abs, raw, err := internal.ReadRequiredFile(filename)
 	if err != nil {
 		log.Error("couldn't read file", "error", err)
@@ -38,7 +96,7 @@ func PushToRemote(remoteName string, filename string) error {
 		return err
 	}
 
-	versioned, id, err := prepareToImport(tm, raw)
+	versioned, id, err := prepareToImport(tm, raw, optPath)
 	if err != nil {
 		return err
 	}
@@ -52,7 +110,7 @@ func PushToRemote(remoteName string, filename string) error {
 	return nil
 }
 
-func prepareToImport(tm *model.ThingModel, raw []byte) ([]byte, model.TMID, error) {
+func prepareToImport(tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
 	manuf := tm.Manufacturer.Name
 	auth := tm.Author.Name
 	if tm == nil || len(auth) == 0 || len(manuf) == 0 || len(tm.Mpn) == 0 {
@@ -80,7 +138,7 @@ func prepareToImport(tm *model.ThingModel, raw []byte) ([]byte, model.TMID, erro
 		}
 	}
 
-	generatedId := generateNewId(tm, prepared)
+	generatedId := generateNewId(tm, prepared, optPath)
 	finalId := idFromFile
 	if !generatedId.Equals(idFromFile) {
 		finalId = generatedId
@@ -137,7 +195,7 @@ func moveIdToOriginalLink(raw []byte, id string) []byte {
 	return raw
 }
 
-func generateNewId(tm *model.ThingModel, raw []byte) model.TMID {
+func generateNewId(tm *model.ThingModel, raw []byte, optPath string) model.TMID {
 	fileForHashing := jsonparser.Delete(raw, "id")
 	hasher := sha1.New()
 	hasher.Write(fileForHashing)
@@ -147,7 +205,7 @@ func generateNewId(tm *model.ThingModel, raw []byte) model.TMID {
 	ver.Hash = hashStr
 	ver.Timestamp = now().UTC().Format(pseudoVersionTimestampFormat)
 	return model.TMID{
-		OptionalPath: "", // fixme: pass it down from the command line args
+		OptionalPath: optPath,
 		Author:       tm.Author.Name,
 		Manufacturer: tm.Manufacturer.Name,
 		Mpn:          tm.Mpn,
