@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // ReadRequiredFile reads the file. Returns expanded absolute representation of the filename and file contents.
@@ -44,4 +45,22 @@ func removeBOM(bytes []byte) []byte {
 		bytes = bytes[3:]
 	}
 	return bytes
+}
+
+// ExpandHome expands ~ in path with user's home directory, but only if path begins with ~ or /~
+// Otherwise, returns path unchanged
+func ExpandHome(path string) (string, error) {
+	if !strings.HasPrefix(path, "~") && !strings.HasPrefix(path, "/~") {
+		return path, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		slog.Default().Error("cannot expand user home directory", "error", err)
+		return "", fmt.Errorf("cannot expand user home directory: %w", err)
+	}
+	_, rest, found := strings.Cut(path, "~")
+	if !found {
+		panic(errors.New("should have checked for ~ before"))
+	}
+	return filepath.Join(home, rest), nil
 }
