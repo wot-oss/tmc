@@ -11,9 +11,9 @@ import (
 )
 
 var listCmd = &cobra.Command{
-	Use:   "list [pattern]",
+	Use:   "list [PATTERN]",
 	Short: "List TMs in catalog",
-	Long:  `List TMs and filter for pattern in all mandatory fields`,
+	Long:  `List TMs and filter for PATTERN in all mandatory fields`,
 	Args:  cobra.MaximumNArgs(1),
 	Run:   listRemote,
 }
