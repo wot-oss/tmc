@@ -20,7 +20,11 @@ tm-catalog-cli
 # Go workspace file
 go.work
 
+# IntelliJ
 .idea/
 
 # Emacs tmp files
 *~
+
+# tm-catalog-cli configuration
+config.json
