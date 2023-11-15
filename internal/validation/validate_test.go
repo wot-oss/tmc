@@ -1,9 +1,10 @@
 package validation
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
-	"testing"
 )
 
 func TestValidateAsTM(t *testing.T) {

@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"log/slog"
+	"os"
+
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"log/slog"
-	"os"
 )
 
 // validateCmd represents the validate command

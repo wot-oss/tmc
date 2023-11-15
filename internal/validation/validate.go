@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+
 	"github.com/alexbrdn/go-jsonschema"
 	"github.com/go-playground/validator/v10"
 	"github.com/kennygrant/sanitize"
