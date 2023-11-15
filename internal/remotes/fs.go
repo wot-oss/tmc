@@ -14,7 +14,7 @@ import (
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/src/toc"
+	"github.com/web-of-things-open-source/tm-catalog-cli/pkg/toc"
 )
 
 const defaultFilePermissions = os.ModePerm //fixme: review permissions
@@ -152,8 +152,7 @@ func (f *FileRemote) Fetch(id model.TMID) ([]byte, error) {
 }
 
 func (f *FileRemote) CreateToC() error {
-	toc.Create(f.root)
-	return nil
+	return toc.Create(f.root)
 }
 
 func (f *FileRemote) List(filter string) (model.Toc, error) {

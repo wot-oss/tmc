@@ -1,4 +1,4 @@
-package validation
+package validate
 
 import (
 	"testing"
@@ -8,12 +8,12 @@ import (
 )
 
 func TestValidateAsTM(t *testing.T) {
-	_, raw, err := internal.ReadRequiredFile("../../test/data/validation/omnilamp.json")
+	_, raw, err := internal.ReadRequiredFile("../../../test/data/validate/omnilamp.json")
 	assert.NoError(t, err)
 	err = ValidateAsTM(raw)
 	assert.NoError(t, err)
 
-	_, raw, err = internal.ReadRequiredFile("../../test/data/validation/omnilamp-broken.json")
+	_, raw, err = internal.ReadRequiredFile("../../../test/data/validate/omnilamp-broken.json")
 	assert.NoError(t, err)
 	err = ValidateAsTM(raw)
 	assert.Error(t, err)
@@ -21,19 +21,19 @@ func TestValidateAsTM(t *testing.T) {
 
 }
 func TestValidateAsModbus(t *testing.T) {
-	_, raw, err := internal.ReadRequiredFile("../../test/data/validation/omnilamp.json")
+	_, raw, err := internal.ReadRequiredFile("../../../test/data/validate/omnilamp.json")
 	assert.NoError(t, err)
 	v, err := ValidateAsModbus(raw)
 	assert.False(t, v)
 	assert.NoError(t, err)
 
-	_, raw, err = internal.ReadRequiredFile("../../test/data/validation/modbus-senseall.json")
+	_, raw, err = internal.ReadRequiredFile("../../../test/data/validate/modbus-senseall.json")
 	assert.NoError(t, err)
 	v, err = ValidateAsModbus(raw)
 	assert.True(t, v)
 	assert.NoError(t, err)
 
-	_, raw, err = internal.ReadRequiredFile("../../test/data/validation/modbus-senseall-broken.json")
+	_, raw, err = internal.ReadRequiredFile("../../../test/data/validate/modbus-senseall-broken.json")
 	assert.NoError(t, err)
 	v, err = ValidateAsModbus(raw)
 	assert.True(t, v)

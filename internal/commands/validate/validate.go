@@ -1,9 +1,10 @@
-package validation
+package validate
 
 import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"log/slog"
 
 	"github.com/alexbrdn/go-jsonschema"
 	"github.com/go-playground/validator/v10"
@@ -46,7 +47,7 @@ func ValidateAsTM(raw []byte) error {
 
 // ValidateAsModbus validates a file against modbus protocol binding json schema, but only if it determines that
 // the file purports to describe a modbus device.
-// Returns a flag indicating whether validation has been attempted and an error if it was not successful
+// Returns a flag indicating whether validate has been attempted and an error if it was not successful
 func ValidateAsModbus(raw []byte) (bool, error) {
 	if shouldTryModbus(raw) {
 		_, err := modbusValidator.Validate(raw)
@@ -71,5 +72,34 @@ func ParseRequiredMetadata(raw []byte) (*model.ThingModel, error) {
 	tm.Author.Name = sanitize.BaseName(tm.Author.Name)
 	tm.Manufacturer.Name = sanitize.BaseName(tm.Manufacturer.Name)
 	tm.Mpn = sanitize.BaseName(tm.Mpn)
+	return tm, nil
+}
+
+// ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.
+// Returns parsed *model.ThingModel, where the author name, manufacturer name, and mpn have been sanitized for use in filenames
+func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
+	log := slog.Default()
+
+	tm, err := ParseRequiredMetadata(raw)
+	if err != nil {
+		return nil, err
+	}
+	log.Info("required Thing Model metadata is present")
+
+	err = ValidateAsTM(raw)
+	if err != nil {
+		return tm, err
+	}
+	log.Info("passed validate against JSON schema for Thing Models")
+
+	validated, err := ValidateAsModbus(raw)
+	if validated {
+		if err != nil {
+			log.Info("failed [optional] validate against JSON schema for Modbus protocol binding", "error", err)
+		} else {
+			log.Info("passed validate against JSON schema for Modbus protocol binding")
+		}
+	}
+
 	return tm, nil
 }

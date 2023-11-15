@@ -23,7 +23,7 @@ func init() {
 
 func initViper() {
 	viper.SetDefault("remotes", map[string]any{
-		"localFS": map[string]any{
+		"localfs": map[string]any{
 			"type": "file",
 			"url":  "file:~/tm-catalog",
 		},
