@@ -4,15 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"log/slog"
-	url2 "net/url"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/src/toc"
 )
@@ -35,7 +35,7 @@ var winExtraLeadingSlashRegex = regexp.MustCompile("/[a-zA-Z]:.*")
 
 func NewFileRemote(config map[string]any) (*FileRemote, error) {
 	urlString := config["url"].(string)
-	rootUrl, err := url2.Parse(urlString)
+	rootUrl, err := url.Parse(urlString)
 	if err != nil {
 		slog.Default().Error("could not parse root URL for file remote", "url", urlString, "error", err)
 		return nil, fmt.Errorf("could not parse root URL %s for file remote: %w", urlString, err)

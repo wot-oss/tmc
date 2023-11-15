@@ -3,9 +3,10 @@ package model
 import (
 	"errors"
 	"fmt"
-	"github.com/Masterminds/semver/v3"
 	"regexp"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 var (
