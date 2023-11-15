@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/kennygrant/sanitize"
 	"io/fs"
 	"log/slog"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	"github.com/kennygrant/sanitize"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
@@ -45,9 +45,9 @@ func PushToRemote(filename string, remoteName string, optPath string, optTree bo
 		return err
 	}
 	if stat.IsDir() {
-		return pushDirectory(abs, remote, optPath, optTree, log)
+		return pushDirectory(abs, remote, optPath, optTree)
 	} else {
-		return PushFile(filename, remote, optPath, log)
+		return pushFile(filename, remote, optPath)
 	}
 }
 
@@ -61,7 +61,7 @@ func sanitizePath(path string) string {
 	return p
 }
 
-func pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool, log *slog.Logger) error {
+func pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool) error {
 	err := filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
 			return nil
@@ -74,7 +74,7 @@ func pushDirectory(absDirname string, remote remotes.Remote, optPath string, opt
 			optPath = filepath.Dir(strings.TrimPrefix(path, absDirname))
 		}
 
-		err = PushFile(path, remote, optPath, log)
+		err = pushFile(path, remote, optPath)
 
 		return err
 	})
@@ -83,31 +83,44 @@ func pushDirectory(absDirname string, remote remotes.Remote, optPath string, opt
 
 }
 
-func PushFile(filename string, remote remotes.Remote, optPath string, log *slog.Logger) error {
-	abs, raw, err := internal.ReadRequiredFile(filename)
+func pushFile(filename string, remote remotes.Remote, optPath string) error {
+	log := slog.Default()
+	_, raw, err := internal.ReadRequiredFile(filename)
 	if err != nil {
-		log.Error("couldn't read file", "error", err)
+		log.Error("couldn't read file", "filename", filename, "error", err)
 		return err
 	}
-
+	_, err = PushFile(raw, remote, optPath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func PushFile(raw []byte, remote remotes.Remote, optPath string) (model.TMID, error) {
+	log := slog.Default()
 	tm, err := ValidateThingModel(raw)
 	if err != nil {
 		log.Error("validation failed", "error", err)
-		return err
+		return model.TMID{}, err
 	}
 
 	versioned, id, err := prepareToImport(tm, raw, optPath)
 	if err != nil {
-		return err
+		return model.TMID{}, err
 	}
 
-	err = remote.Push(tm, id, versioned)
+	err = remote.Push(id, versioned)
 	if err != nil {
-		log.Error("error pushing to remote", "filename", abs, "error", err)
-		return err
+		var errExists *remotes.ErrTMExists
+		if errors.As(err, &errExists) {
+			log.Info("Thing Model already exists", "existing-id", errExists.ExistingId)
+			return errExists.ExistingId, nil
+		}
+		log.Error("error pushing to remote", "error", err)
+		return id, err
 	}
 	log.Info("pushed successfully")
-	return nil
+	return id, nil
 }
 
 func prepareToImport(tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {

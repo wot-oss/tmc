@@ -1,9 +1,10 @@
 package commands
 
 import (
+	"log/slog"
+
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/validation"
-	"log/slog"
 )
 
 // ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.

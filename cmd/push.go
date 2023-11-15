@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"log/slog"
 	"os"
+
+	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 )
 
 // pushCmd represents the push command

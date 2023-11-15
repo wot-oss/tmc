@@ -5,61 +5,82 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	url2 "net/url"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/src/toc"
 )
+
+const defaultFilePermissions = os.ModePerm //fixme: review permissions
 
 type FileRemote struct {
 	root string
 }
 
+type ErrTMExists struct {
+	ExistingId model.TMID
+}
+
+func (e *ErrTMExists) Error() string {
+	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
+}
+
+var winExtraLeadingSlashRegex = regexp.MustCompile("/[a-zA-Z]:.*")
+
 func NewFileRemote(config map[string]any) (*FileRemote, error) {
 	urlString := config["url"].(string)
-	rootUrl, err := url2.Parse(urlString)
+	rootUrl, err := url.Parse(urlString)
 	if err != nil {
 		slog.Default().Error("could not parse root URL for file remote", "url", urlString, "error", err)
 		return nil, fmt.Errorf("could not parse root URL %s for file remote: %w", urlString, err)
 	}
 	if rootUrl.Scheme != "file" {
-		slog.Default().Error("root URL for file remote must begin with file:", "url", urlString)
+		slog.Default().Error("root URL for file remote must begin with 'file:'", "url", urlString)
 		return nil, fmt.Errorf("root URL for file remote must begin with file: %s", urlString)
 	}
-	rootPath := rootUrl.Opaque
-	if strings.HasPrefix(rootPath, "~") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			slog.Default().Error("cannot expand user home directory", "error", err)
-			return nil, fmt.Errorf("cannot expand user home directory: %w", err)
-		}
-		rootPath = strings.Replace(rootPath, "~", home, 1)
+	rootPath := rootUrl.Path
+	if rootPath == "" {
+		rootPath = rootUrl.Opaque // maybe the user just forgot a slash in the url and it's been parsed as opaque
 	}
+	rootPath, err = internal.ExpandHome(rootPath)
+	if err != nil {
+		return nil, err
+	}
+	//err = os.MkdirAll(rootPath, defaultFilePermissions)
+	//if err != nil {
+	//	return nil, err
+	//}
+	if winExtraLeadingSlashRegex.MatchString(rootPath) {
+		rootPath = strings.TrimPrefix(rootPath, "/")
+	}
+	slog.Default().Info("created FileRemote", "root", rootPath)
 	return &FileRemote{
 		root: rootPath,
 	}, nil
 }
 
-func (f *FileRemote) Push(_ *model.ThingModel, id model.TMID, raw []byte) error {
+func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	if len(raw) == 0 {
 		return errors.New("nothing to write")
 	}
 	fullPath, dir := f.filenames(id)
-	err := os.MkdirAll(dir, os.ModePerm) //fixme: review permissions
+	err := os.MkdirAll(dir, defaultFilePermissions)
 	if err != nil {
 		return fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
 
 	if found, existingId := f.getExistingID(id); found {
 		slog.Default().Info(fmt.Sprintf("TM already exists under ID %v", existingId))
-		return nil
+		return &ErrTMExists{ExistingId: existingId}
 	}
 
-	err = os.WriteFile(fullPath, raw, os.ModePerm) //fixme: review permissions
+	err = os.WriteFile(fullPath, raw, defaultFilePermissions)
 	if err != nil {
 		return fmt.Errorf("could not write TM to catalog: %v", err)
 	}

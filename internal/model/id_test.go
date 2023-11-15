@@ -1,9 +1,10 @@
 package model
 
 import (
+	"testing"
+
 	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestParseId(t *testing.T) {

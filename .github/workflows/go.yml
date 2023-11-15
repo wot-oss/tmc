@@ -21,6 +21,9 @@ jobs:
       with:
         go-version: '1.21'
 
+    - name: Check Golang imports order and formatting
+      uses: Jerome1337/goimports-action@v1.0.3
+
     - name: Build
       run: go build -v ./...
 
