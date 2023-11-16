@@ -170,6 +170,7 @@ func (f *FileRemote) List(filter string) (model.Toc, error) {
 
 	var toc model.Toc
 	err = json.Unmarshal(data, &toc)
+	toc.Filter(filter)
 	if err != nil {
 		return model.Toc{}, err
 	}

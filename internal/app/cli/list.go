@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
@@ -32,16 +31,12 @@ func ListRemote(remoteName, filter string) error {
 
 // TODO: use better table writer with eliding etc.
 func printToC(toc model.Toc, filter string) {
-	filter = prep(filter)
 	colWidth := columnWidth()
 	contents := toc.Contents
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	_, _ = fmt.Fprintf(table, "NAME\tMANUFACTURER\tMODEL\n")
 	for name, value := range contents {
-		if !matchFilter(name, value, filter) {
-			continue
-		}
 		name := elideString(name, colWidth)
 		man := elideString(value.Manufacturer.Name, colWidth)
 		mdl := elideString(value.Mpn, colWidth)
@@ -63,27 +58,6 @@ func elideString(value string, colWidth int) string {
 		}
 	}
 	return value + "..."
-}
-
-func matchFilter(name string, thing model.TocThing, filter string) bool {
-	if strings.Contains(prep(thing.Manufacturer.Name), filter) {
-		return true
-	}
-	if strings.Contains(prep(thing.Mpn), filter) {
-		return true
-	}
-	for _, version := range thing.Versions {
-		if strings.Contains(prep(version.Description), filter) {
-			return true
-		}
-	}
-	return false
-}
-
-func prep(s string) string {
-	s = strings.TrimSpace(s)
-	s = strings.ToLower(s)
-	return s
 }
 
 func columnWidth() int {

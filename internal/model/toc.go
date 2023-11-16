@@ -1,6 +1,11 @@
 package model
 
-import "time"
+import (
+	"strings"
+	"time"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
+)
 
 type Toc struct {
 	Meta     TocMeta             `json:"meta"`
@@ -22,4 +27,28 @@ type TocVersion struct {
 	ExtendedFields
 	TimeStamp string  `json:"timestamp,omitempty"`
 	Version   Version `json:"version"`
+}
+
+func (toc *Toc) Filter(filter string) {
+	for name, value := range toc.Contents {
+		if !matchFilter(name, value, filter) {
+			delete(toc.Contents, name)
+		}
+	}
+}
+
+func matchFilter(name string, thing TocThing, filter string) bool {
+	filter = internal.Prep(filter)
+	if strings.Contains(internal.Prep(thing.Manufacturer.Name), filter) {
+		return true
+	}
+	if strings.Contains(internal.Prep(thing.Mpn), filter) {
+		return true
+	}
+	for _, version := range thing.Versions {
+		if strings.Contains(internal.Prep(version.Description), filter) {
+			return true
+		}
+	}
+	return false
 }
