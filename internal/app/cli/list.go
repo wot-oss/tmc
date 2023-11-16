@@ -14,7 +14,7 @@ import (
 const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
-func ListRemote(remoteName, filter string) error {
+func List(remoteName, filter string) error {
 	remote, err := remotes.Get(remoteName)
 	if err != nil {
 		Stderrf("Could not ìnitialize a remote instance for %s: %v\ncheck config", remoteName, err)

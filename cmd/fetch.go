@@ -22,7 +22,7 @@ func init() {
 
 func executeFetch(cmd *cobra.Command, args []string) {
 	remoteName := cmd.Flag("remote").Value.String()
-	err := cli.FetchThingModelByName(args[0], remoteName)
+	err := cli.Fetch(args[0], remoteName)
 	if err != nil {
 		cli.Stderrf("fetch failed")
 		os.Exit(1)

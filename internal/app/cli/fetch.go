@@ -7,7 +7,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func FetchThingModelByName(name, remoteName string) error {
+func Fetch(fetchName, remoteName string) error {
 	remote, err := remotes.Get(remoteName)
 	if err != nil {
 		Stderrf("Could not ìnitialize a remote instance for %s: %v\ncheck config", remoteName, err)
@@ -15,9 +15,9 @@ func FetchThingModelByName(name, remoteName string) error {
 	}
 
 	fn := &commands.FetchName{}
-	err = fn.Parse(name)
+	err = fn.Parse(fetchName)
 	if err != nil {
-		Stderrf("Could not parse name %s: %v", name, err)
+		Stderrf("Could not parse name %s: %v", fetchName, err)
 		return err
 	}
 

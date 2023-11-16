@@ -28,7 +28,7 @@ func executeList(cmd *cobra.Command, args []string) {
 		filter = args[0]
 	}
 
-	err := cli.ListRemote(remoteName, filter)
+	err := cli.List(remoteName, filter)
 	if err != nil {
 		os.Exit(1)
 	}
