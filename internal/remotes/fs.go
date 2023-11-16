@@ -14,7 +14,7 @@ import (
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/pkg/toc"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/toc"
 )
 
 const defaultFilePermissions = os.ModePerm //fixme: review permissions
