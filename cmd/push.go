@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"log/slog"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
 // pushCmd represents the push command
@@ -40,15 +40,15 @@ func init() {
 }
 
 func executePush(cmd *cobra.Command, args []string) {
-	var log = slog.Default()
-
-	log.Debug("executing push", "args", args)
 	remoteName := cmd.Flag("remote").Value.String()
 	optPath := cmd.Flag("opt-path").Value.String()
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
-	err := commands.PushToRemote(args[0], remoteName, optPath, optTree)
+	results, err := cli.Push(args[0], remoteName, optPath, optTree)
+	for _, res := range results {
+		fmt.Println(res)
+	}
 	if err != nil {
-		log.Error("push failed", "error", err)
+		fmt.Println("push failed")
 		os.Exit(1)
 	}
 }

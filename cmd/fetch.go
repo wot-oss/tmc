@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
 var fetchCmd = &cobra.Command{
@@ -24,25 +21,10 @@ func init() {
 }
 
 func executeFetch(cmd *cobra.Command, args []string) {
-	log := slog.Default()
-
 	remoteName := cmd.Flag("remote").Value.String()
-	remote, err := remotes.Get(remoteName)
+	err := cli.Fetch(args[0], remoteName)
 	if err != nil {
-		log.Error(fmt.Sprintf("could not initialize a remote instance for %s. check config", remoteName), "error", err)
+		cli.Stderrf("fetch failed")
 		os.Exit(1)
 	}
-
-	fn := &commands.FetchName{}
-	err = fn.Parse(args[0])
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-	thing, err := commands.FetchThingByName(fn, remote)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(1)
-	}
-	fmt.Println(string(thing))
 }

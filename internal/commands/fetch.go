@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -18,14 +18,11 @@ type FetchName struct {
 	SemVerOrDigest string
 }
 
+var fetchNameRegex = regexp.MustCompile(`^([^:]+)(:(.+))?$`)
+
 func (fn *FetchName) Parse(fetchName string) error {
-	pattern := `^([^:]+)(:(.+))?$`
-
-	// Compile the regular expression
-	re := regexp.MustCompile(pattern)
-
 	// Find submatches in the input string
-	matches := re.FindStringSubmatch(fetchName)
+	matches := fetchNameRegex.FindStringSubmatch(fetchName)
 
 	// Check if there are enough submatches
 	if len(matches) < 2 {
@@ -45,8 +42,7 @@ func (fn *FetchName) Parse(fetchName string) error {
 func FetchThingByName(fn *FetchName, remote remotes.Remote) ([]byte, error) {
 	tocThing, err := remote.Versions(fn.Name)
 	if err != nil {
-		fmt.Errorf(err.Error())
-		os.Exit(1)
+		return nil, err
 	}
 
 	var id string
@@ -182,4 +178,10 @@ func findDigest(versions []model.TocVersion, digest string) (id string, err erro
 	msg := fmt.Sprintf("No thing model found for digest %s", digest)
 	log.Error(msg)
 	return "", errors.New(msg)
+}
+
+func prep(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ToLower(s)
+	return s
 }
