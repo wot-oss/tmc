@@ -12,7 +12,7 @@ var listCmd = &cobra.Command{
 	Short: "List TMs in catalog",
 	Long:  `List TMs and filter for PATTERN in all mandatory fields`,
 	Args:  cobra.MaximumNArgs(1),
-	Run:   listRemote,
+	Run:   executeList,
 }
 
 func init() {
@@ -20,7 +20,7 @@ func init() {
 	listCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
 }
 
-func listRemote(cmd *cobra.Command, args []string) {
+func executeList(cmd *cobra.Command, args []string) {
 	remoteName := cmd.Flag("remote").Value.String()
 
 	filter := ""

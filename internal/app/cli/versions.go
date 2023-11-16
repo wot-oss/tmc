@@ -25,6 +25,7 @@ func ListVersions(remoteName, name string) error {
 	printToCThing(name, tocThing)
 	return nil
 }
+
 func printToCThing(name string, tocThing model.TocThing) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
