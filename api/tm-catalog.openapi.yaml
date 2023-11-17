@@ -1,0 +1,389 @@
+openapi: 3.0.3
+info:
+  title: Thing Model Catalog - OpenAPI 3.0
+  version: 0.0.1
+externalDocs:
+  description: Find out more about Thing Model Catalog
+  url: https://github.com/web-of-things-open-source/tm-catalog-cli
+servers:
+  - url: ''
+tags:
+  - name: inventory
+    description: Access to the inventory of the catalog
+  - name: thing-models
+    description: Access to Thing Model content
+paths:
+  /inventory:
+    get:
+      tags:
+        - inventory
+      summary: Get the inventory of the catalog
+      description: Returns the catalogs inventory
+      operationId: getInventory
+      parameters:
+        - name: filter[author]
+          in: query
+          description: Filters the catalog by an author.
+          schema:
+            type: string
+        - name: filter[manufacturer]
+          in: query
+          description: Filters the catalog by a manufacturer.
+          schema:
+            type: string
+        - name: filter[mpn]
+          in: query
+          description: Filters the catalog by a mpn (manufacturer part number).
+          schema:
+            type: string
+        - name: filter[original]
+          in: query
+          description: Filters the catalog by an original ID of a Thing Model.
+          schema:
+            type: string
+        - name: filter[content]
+          in: query
+          description: >-
+            Filters the catalog by its content with the help of an awesome query
+            language
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+              examples:
+                inventory:
+                  $ref: '#/components/examples/InventoryExample'  
+        '404':
+          description: Inventory not found
+      security:
+        - api_key: []
+  /inventory/{inventoryId}:
+    get:
+      tags:
+        - inventory
+      summary: Get an inventory entry by inventory ID
+      description: Returns a single inventory entry
+      operationId: getInventoryById
+      parameters:
+        - name: inventoryId
+          in: path
+          description: ID of the inventory entry
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryEntryResponse'
+              examples:
+                inventoryEntry:
+                  $ref: '#/components/examples/InventoryEntryExample'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Inventory entry not found
+      security:
+        - api_key: []
+  /inventory/{inventoryId}/versions:
+    get:
+      tags:
+        - inventory
+      summary: Get the versions of an inventory entry
+      description: Returns the versions of an inventory entry by it`s ID
+      operationId: getInventoryVersionsById
+      parameters:
+        - name: inventoryId
+          in: path
+          description: ID of the inventory entry
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryEntryVersionsResponse'
+              examples:
+                versionsExample:
+                  $ref: '#/components/examples/InventoryEntryVersionsExample'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Inventory entry not found
+      security:
+        - api_key: []
+  /thing-models/{tmId}:
+    get:
+      tags:
+        - thing-models
+      summary: Get the content of a Thing Model by it's ID
+      description: Returns the actual content of a Thing Model
+      operationId: getThingModelById
+      parameters:
+        - name: tmId
+          in: path
+          description: ID of the Thing Model
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+              example: the Thingmodel as JSON
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: Thing Model not found
+      security:
+        - api_key: []
+components:
+  schemas:
+    Inventory:
+      required:
+        - meta
+        - contents
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            created:
+              type: string
+              example: '2023-11-16T11:06:18.8213578+01:00'
+        contents:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/InventoryEntry'
+    InventoryEntry:
+      required:
+        - name
+        - photoUrls
+      type: object
+      properties:
+        schema:author:
+          type: object
+          properties:
+            name:
+              type: string
+              example: My Company
+        schema:manufacturer:
+          type: object
+          properties:
+            name:
+              type: string
+              example: ABB
+        schema:mpn:
+          type: string
+          example: B21
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntryVersion'
+    InventoryEntryVersion:
+      required:
+        - id
+        - timestamp
+        - version
+        - digest
+      type: object
+      properties:
+        tmId:
+          type: string
+          example: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+        original:
+          type: string
+          example: e7f19370-84a3-11ee-b962-0242ac120002
+        description:
+          type: string
+          example: Some description of the thing
+        version:
+          type: object
+          properties:
+            id:
+              type: string
+              example: v1.0.1
+        timestamp:
+          type: string
+          example: 20231116091345
+        digest:
+          type: string
+          example: 7256fc6baeec
+        links:
+          type: array
+          items:
+            type: object
+            properties:
+              rel:
+                type: string
+                enum:
+                  - content
+              href:
+                type: string
+                example: >-
+                  /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+    InventoryResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/Inventory'
+    InventoryEntryResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/InventoryEntry'
+    InventoryEntryVersionsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntryVersion'
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
+  examples:
+    InventoryEntryVersionsExample:
+      value:
+        data:
+          - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+            original: e7f19370-84a3-11ee-b962-0242ac120002
+            description: Some new description of the device
+            timestamp: 20231116091345
+            digest: 7256fc6baeec
+            version:
+              model: v1.0.1
+            links:
+              - rel: content
+                href: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          - tmId: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            original: e7f19370-84a3-11ee-b962-0242ac120002
+            description: Some description of the device
+            timestamp: 20231017080730
+            digest: 4832ab7bbeac
+            version:
+              model: v1.0.0
+            links:
+              - rel: content
+                href: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+          - tmId: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+            original: e7f19370-84a3-11ee-b962-0242ac120002
+            description: Some description of the device
+            timestamp: 20231015102132
+            digest: 6391fe4bcefc
+            version:
+              model: v1.0.0
+            links:
+              - rel: content
+                href: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+    InventoryEntryExample:
+      value:
+        data:
+          schema:author:
+            name: My Company
+          schema:manufacturer:
+            name: ABB
+          schema:mpn: B21
+          versions: 
+            - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+              original: e7f19370-84a3-11ee-b962-0242ac120002
+              description: Some new description of the device
+              timestamp: 20231116091345
+              digest: 7256fc6baeec
+              version:
+                model: v1.0.1
+              links:
+                - rel: content
+                  href: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+            - tmId: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+              original: e7f19370-84a3-11ee-b962-0242ac120002
+              description: Some description of the device
+              timestamp: 20231017080730
+              digest: 4832ab7bbeac
+              version:
+                model: v1.0.0
+              links:
+                - rel: content
+                  href: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            - tmId: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+              original: e7f19370-84a3-11ee-b962-0242ac120002
+              description: Some description of the device
+              timestamp: 20231015102132
+              digest: 6391fe4bcefc
+              version:
+                model: v1.0.0
+              links:
+                - rel: content
+                  href: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+    InventoryExample:
+      value:
+        data:
+          contents:
+            meta:
+              created: "2023-11-16T18:07:18.8213578+01:00"
+            mycompany/abb/B21:   
+              schema:author:
+                name: My Company
+              schema:manufacturer:
+                name: ABB
+              schema:mpn: B21
+              versions: 
+                - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+                  original: e7f19370-84a3-11ee-b962-0242ac120002
+                  description: Some new description of the device
+                  timestamp: 20231116091345
+                  digest: 7256fc6baeec
+                  version:
+                    model: v1.0.1
+                  links:
+                    - rel: content
+                      href: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+                - tmId: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+                  original: e7f19370-84a3-11ee-b962-0242ac120002
+                  description: Some description of the device
+                  timestamp: 20231017080730
+                  digest: 4832ab7bbeac
+                  version:
+                    model: v1.0.0
+                  links:
+                    - rel: content
+                      href: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            yourcompany/danfoss/FC102:   
+              schema:author:
+                name: Your Company
+              schema:manufacturer:
+                name: Danfoss
+              schema:mpn: FC 102
+              versions:
+                - tmId: yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
+                  original: danfoss-kxf19370
+                  description: Some description of the device
+                  timestamp: 20230821121030
+                  digest: 2522cf7bbead
+                  version:
+                    model: v1.0.0
+                  links:
+                    - rel: content
+                      href: /thing-models/yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
+            
