@@ -39,6 +39,9 @@ func (toc *Toc) Filter(filter string) {
 
 func matchFilter(name string, thing TocThing, filter string) bool {
 	filter = internal.Prep(filter)
+	if strings.Contains(internal.Prep(name), filter) {
+		return true
+	}
 	if strings.Contains(internal.Prep(thing.Manufacturer.Name), filter) {
 		return true
 	}
