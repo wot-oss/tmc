@@ -116,11 +116,12 @@ func insert(table model.Toc, ctm model.CatalogThingModel) error {
 	tocEntry, ok := table.Contents[name]
 	// TODO: provide copy method for CatalogThingModel in TocThing
 	if !ok {
-		tocEntry.Manufacturer = ctm.Manufacturer
-		tocEntry.Mpn = ctm.Mpn
-		tocEntry.Author = ctm.Author
+		tocEntry.Manufacturer.Name = tmid.Manufacturer
+		tocEntry.Mpn = tmid.Mpn
+		tocEntry.Author.Name = tmid.Author
 	}
-	tv := model.TocVersion{ExtendedFields: ctm.ExtendedFields, TimeStamp: tmid.Version.Timestamp, Version: ctm.Version}
+	version := model.Version{Model: tmid.Version.Base.String()}
+	tv := model.TocVersion{ExtendedFields: ctm.ExtendedFields, TimeStamp: tmid.Version.Timestamp, Version: version}
 	tocEntry.Versions = append(tocEntry.Versions, tv)
 	table.Contents[name] = tocEntry
 	return nil
