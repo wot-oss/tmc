@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
@@ -106,8 +107,8 @@ func saveToc(rootPath string, tocBytes []byte) error {
 }
 
 func insert(table model.Toc, ctm model.CatalogThingModel) error {
-	// TODO: if author and manufacturer are equal, it is offical, right?
-	tmid, err := model.ParseTMID(ctm.ID, false)
+	official := internal.Prep(ctm.Manufacturer.Name) == internal.Prep(ctm.Author.Name)
+	tmid, err := model.ParseTMID(ctm.ID, official)
 	if err != nil {
 		return err
 	}
