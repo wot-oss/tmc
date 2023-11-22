@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	"github.com/alexbrdn/go-jsonschema"
 	"github.com/go-playground/validator/v10"
 	"github.com/kennygrant/sanitize"
+	"github.com/web-of-things-open-source/go-jsonschema"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
