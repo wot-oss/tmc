@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
@@ -106,8 +107,8 @@ func saveToc(rootPath string, tocBytes []byte) error {
 }
 
 func insert(table model.Toc, ctm model.CatalogThingModel) error {
-	// TODO: if author and manufacturer are equal, it is offical, right?
-	tmid, err := model.ParseTMID(ctm.ID, false)
+	official := internal.Prep(ctm.Manufacturer.Name) == internal.Prep(ctm.Author.Name)
+	tmid, err := model.ParseTMID(ctm.ID, official)
 	if err != nil {
 		return err
 	}
@@ -115,11 +116,12 @@ func insert(table model.Toc, ctm model.CatalogThingModel) error {
 	tocEntry, ok := table.Contents[name]
 	// TODO: provide copy method for CatalogThingModel in TocThing
 	if !ok {
-		tocEntry.Manufacturer = ctm.Manufacturer
-		tocEntry.Mpn = ctm.Mpn
-		tocEntry.Author = ctm.Author
+		tocEntry.Manufacturer.Name = tmid.Manufacturer
+		tocEntry.Mpn = tmid.Mpn
+		tocEntry.Author.Name = tmid.Author
 	}
-	tv := model.TocVersion{ExtendedFields: ctm.ExtendedFields, TimeStamp: tmid.Version.Timestamp, Version: ctm.Version}
+	version := model.Version{Model: tmid.Version.Base.String()}
+	tv := model.TocVersion{ExtendedFields: ctm.ExtendedFields, TimeStamp: tmid.Version.Timestamp, Version: version}
 	tocEntry.Versions = append(tocEntry.Versions, tv)
 	table.Contents[name] = tocEntry
 	return nil

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -65,8 +66,9 @@ func FetchThingByName(fn *FetchName, remote remotes.Remote) ([]byte, error) {
 		}
 	}
 
-	// TODO: how to know if it is official?
-	tmid, err := model.ParseTMID(id, false)
+	official := internal.Prep(tocThing.Author.Name) == internal.Prep(tocThing.Manufacturer.Name)
+
+	tmid, err := model.ParseTMID(id, official)
 	thing, err = remote.Fetch(tmid)
 	if err != nil {
 		msg := fmt.Sprintf("No thing model found for %s", fn)
