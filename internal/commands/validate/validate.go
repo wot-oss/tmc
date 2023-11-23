@@ -90,14 +90,14 @@ func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
 	if err != nil {
 		return tm, err
 	}
-	log.Info("passed validate against JSON schema for Thing Models")
+	log.Info("passed validation against JSON schema for Thing Models")
 
 	validated, err := ValidateAsModbus(raw)
 	if validated {
 		if err != nil {
-			log.Info("failed [optional] validate against JSON schema for Modbus protocol binding", "error", err)
+			return tm, err
 		} else {
-			log.Info("passed validate against JSON schema for Modbus protocol binding")
+			log.Info("passed validation against JSON schema for Modbus protocol binding")
 		}
 	}
 
