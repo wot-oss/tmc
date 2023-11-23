@@ -1,0 +1,56 @@
+{
+  "description": "JSON Schema for validating Thing Models for importing into Thing Model Catalog",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tm-mandatory.schema.json",
+  "definitions": {
+    "context": {
+      "type": "array",
+      "contains": {
+        "type": "object",
+        "properties": {
+          "schema": {
+            "const": "https://schema.org/"
+          }
+        },
+        "required": [
+          "schema"
+        ]
+      }
+    },
+    "objWithSchemaName": {
+      "type": "object",
+      "properties": {
+        "schema:name": {
+          "type": "string",
+          "pattern": "\\w+"
+        }
+      },
+      "required": [
+        "schema:name"
+      ]
+    }
+  },
+  "type": "object",
+  "properties": {
+    "@context": {
+      "$ref": "#/definitions/context"
+    },
+    "schema:mpn": {
+      "type": "string",
+      "pattern": "\\w+"
+    },
+    "schema:author": {
+      "$ref": "#/definitions/objWithSchemaName"
+    },
+    "schema:manufacturer": {
+      "$ref": "#/definitions/objWithSchemaName"
+    }
+  },
+  "additionalProperties": true,
+  "required": [
+    "@context",
+    "schema:author",
+    "schema:manufacturer",
+    "schema:mpn"
+  ]
+}

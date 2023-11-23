@@ -11,10 +11,10 @@ type ThingModel struct {
 }
 
 type SchemaAuthor struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"schema:name" validate:"required"`
 }
 type SchemaManufacturer struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"schema:name" validate:"required"`
 }
 
 type Version struct {
