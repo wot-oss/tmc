@@ -43,17 +43,50 @@ func TestValidateAsModbus(t *testing.T) {
 }
 
 func TestParseRequiredMetadata(t *testing.T) {
-	tmFile := `{  "schema:manufacturer": {
-    "name": "omnicorp GmbH & Co. KG"
+	tmFile := `{
+  "@context": [{
+    "schema":"https://schema.org/"
+  }],
+  "schema:manufacturer": {
+    "schema:name": "omnicorp GmbH & Co. KG"
   },
   "schema:mpn": "sense&all",
   "schema:author": {
-    "name": "omnicorp R&D/research"
+    "schema:name": "omnicorp R&D/research"
   }
 }`
-	tm, err := ParseRequiredMetadata([]byte(tmFile))
+	tm, err := ValidateAsTmcImportable([]byte(tmFile))
 	assert.NoError(t, err)
 	assert.Equal(t, "omnicorp-GmbH-Co-KG", tm.Manufacturer.Name)
 	assert.Equal(t, "omnicorp-R-D-research", tm.Author.Name)
 	assert.Equal(t, "sense-all", tm.Mpn)
+
+	tmFile = `{
+ "@context": [{
+   "schema":"https://schema.org/"
+ }],
+ "schema:manufacturer": {
+   "schema:name": "omnicorp GmbH & Co. KG"
+ },
+ "schema:mpn": "sense&all",
+ "schema:author": {
+   "schema:name": " .-"
+ }
+}`
+	tm, err = ValidateAsTmcImportable([]byte(tmFile))
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "$.schema:author.schema:name")
+
+	tmFile = `{
+  "@context": [{
+    "schema":"https://schema.org/"
+  }],
+  "schema:mpn": "sense&all",
+  "schema:author": {
+    "schema:name": "omnicorp"
+  }
+}`
+	_, err = ValidateAsTmcImportable([]byte(tmFile))
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "schema:manufacturer at \"$\"")
 }

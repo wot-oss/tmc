@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"log/slog"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/kennygrant/sanitize"
 	"github.com/web-of-things-open-source/go-jsonschema"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
@@ -18,12 +17,20 @@ var tmValidationSchema []byte
 //go:embed modbus.schema.json
 var modbusValidationSchema []byte
 
+//go:embed tmc-mandatory.schema.json
+var tmcMandatorySchema []byte
+
+var tmcMandatoryValidator *jsonschema.Schema
 var tmValidator *jsonschema.Schema
 var modbusValidator *jsonschema.Schema
-var structValidator *validator.Validate
 
 func init() {
 	var err error
+	tmcMandatoryValidator, err = jsonschema.New(tmcMandatorySchema)
+	if err != nil {
+		panic(err)
+	}
+
 	tmValidator, err = jsonschema.New(tmValidationSchema)
 	if err != nil {
 		panic(err)
@@ -37,7 +44,6 @@ func init() {
 		panic(err)
 	}
 
-	structValidator = validator.New(validator.WithRequiredStructEnabled())
 }
 
 func ValidateAsTM(raw []byte) error {
@@ -59,13 +65,13 @@ func shouldTryModbus(raw []byte) bool {
 	return bytes.Index(raw, []byte("\"modbus:")) != -1
 }
 
-func ParseRequiredMetadata(raw []byte) (*model.ThingModel, error) {
-	tm := &model.ThingModel{}
-	err := json.Unmarshal(raw, tm)
+func ValidateAsTmcImportable(raw []byte) (*model.ThingModel, error) {
+	_, err := tmcMandatoryValidator.Validate(raw)
 	if err != nil {
 		return nil, err
 	}
-	err = structValidator.Struct(tm)
+	tm := &model.ThingModel{}
+	err = json.Unmarshal(raw, tm)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +86,7 @@ func ParseRequiredMetadata(raw []byte) (*model.ThingModel, error) {
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
 	log := slog.Default()
 
-	tm, err := ParseRequiredMetadata(raw)
+	tm, err := ValidateAsTmcImportable(raw)
 	if err != nil {
 		return nil, err
 	}
