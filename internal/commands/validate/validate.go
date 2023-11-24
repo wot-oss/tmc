@@ -5,59 +5,59 @@ import (
 	_ "embed"
 	"encoding/json"
 	"log/slog"
+	"strings"
 
 	"github.com/kennygrant/sanitize"
-	"github.com/web-of-things-open-source/go-jsonschema"
+	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 //go:embed tm-json-schema-validation.json
-var tmValidationSchema []byte
+var tmValidationSchema string
 
 //go:embed modbus.schema.json
-var modbusValidationSchema []byte
+var modbusValidationSchema string
 
 //go:embed tmc-mandatory.schema.json
-var tmcMandatorySchema []byte
+var tmcMandatorySchema string
 
 var tmcMandatoryValidator *jsonschema.Schema
 var tmValidator *jsonschema.Schema
 var modbusValidator *jsonschema.Schema
 
-func init() {
-	var err error
-	tmcMandatoryValidator, err = jsonschema.New(tmcMandatorySchema)
-	if err != nil {
-		panic(err)
-	}
+const (
+	tmcMandatorySchemaUrl = "tmc-mandatory.schema.json"
+	tmSchemaUrl           = "https://raw.githubusercontent.com/w3c/wot-thing-description/main/validation/tm-json-schema-validation.json"
+	modbusSchemaUrl       = "modbus.schema.json"
+)
 
-	tmValidator, err = jsonschema.New(tmValidationSchema)
+func init() {
+	tmcMandatoryValidator = jsonschema.MustCompileString(tmcMandatorySchemaUrl, tmcMandatorySchema)
+	tmValidator = jsonschema.MustCompileString(tmSchemaUrl, tmValidationSchema)
+
+	modbusCompiler := jsonschema.NewCompiler()
+	err := modbusCompiler.AddResource(tmSchemaUrl, strings.NewReader(tmValidationSchema))
 	if err != nil {
 		panic(err)
 	}
-	modbusValidator, err = jsonschema.New(modbusValidationSchema)
+	err = modbusCompiler.AddResource(modbusSchemaUrl, strings.NewReader(modbusValidationSchema))
 	if err != nil {
 		panic(err)
 	}
-	err = modbusValidator.AddSchemaString(string(tmValidationSchema))
-	if err != nil {
-		panic(err)
-	}
+	modbusValidator = modbusCompiler.MustCompile(modbusSchemaUrl)
 
 }
 
-func ValidateAsTM(raw []byte) error {
-	_, err := tmValidator.Validate(raw)
-	return err
+func ValidateAsTM(_ []byte, parsed any) error {
+	return tmValidator.Validate(parsed)
 }
 
 // ValidateAsModbus validates a file against modbus protocol binding json schema, but only if it determines that
 // the file purports to describe a modbus device.
 // Returns a flag indicating whether validate has been attempted and an error if it was not successful
-func ValidateAsModbus(raw []byte) (bool, error) {
+func ValidateAsModbus(raw []byte, parsed any) (bool, error) {
 	if shouldTryModbus(raw) {
-		_, err := modbusValidator.Validate(raw)
-		return true, err
+		return true, modbusValidator.Validate(parsed)
 	}
 	return false, nil
 }
@@ -65,8 +65,8 @@ func shouldTryModbus(raw []byte) bool {
 	return bytes.Index(raw, []byte("\"modbus:")) != -1
 }
 
-func ValidateAsTmcImportable(raw []byte) (*model.ThingModel, error) {
-	_, err := tmcMandatoryValidator.Validate(raw)
+func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) {
+	err := tmcMandatoryValidator.Validate(parsed)
 	if err != nil {
 		return nil, err
 	}
@@ -86,19 +86,25 @@ func ValidateAsTmcImportable(raw []byte) (*model.ThingModel, error) {
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
 	log := slog.Default()
 
-	tm, err := ValidateAsTmcImportable(raw)
+	var parsed any
+	err := json.Unmarshal(raw, &parsed)
+	if err != nil {
+		return nil, err
+	}
+
+	tm, err := ValidateAsTmcImportable(raw, parsed)
 	if err != nil {
 		return nil, err
 	}
 	log.Info("required Thing Model metadata is present")
 
-	err = ValidateAsTM(raw)
+	err = ValidateAsTM(raw, parsed)
 	if err != nil {
 		return tm, err
 	}
 	log.Info("passed validation against JSON schema for Thing Models")
 
-	validated, err := ValidateAsModbus(raw)
+	validated, err := ValidateAsModbus(raw, parsed)
 	if validated {
 		if err != nil {
 			return tm, err
