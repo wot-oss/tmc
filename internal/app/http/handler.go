@@ -7,8 +7,8 @@ import (
 	"net/http"
 )
 
-// //go:generate oapi-codegen -package http -generate types -o models.gen.go ../../api/tm-catalog.openapi.yaml
-// //go:generate oapi-codegen -package http -generate gorilla-server -o server.gen.go ../../api/tm-catalog.openapi.yaml
+// //go:generate oapi-codegen -package http -generate types -o models.gen.go ../../../api/tm-catalog.openapi.yaml
+// //go:generate oapi-codegen -package http -generate gorilla-server -o server.gen.go ../../../api/tm-catalog.openapi.yaml
 
 type TmcHandler struct {
 }

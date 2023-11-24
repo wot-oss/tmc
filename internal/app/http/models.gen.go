@@ -17,6 +17,13 @@ const (
 	Self    LinkRel = "self"
 )
 
+// Defines values for GetInventoryParamsSort.
+const (
+	Author       GetInventoryParamsSort = "author"
+	Manufacturer GetInventoryParamsSort = "manufacturer"
+	Mpn          GetInventoryParamsSort = "mpn"
+)
+
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
 	Detail   *string `json:"detail,omitempty"`
@@ -84,28 +91,34 @@ type ModelVersion struct {
 
 // SchemaAuthor defines model for SchemaAuthor.
 type SchemaAuthor struct {
-	Name string `json:"name"`
+	SchemaName string `json:"schema:name"`
 }
 
 // SchemaManufacturer defines model for SchemaManufacturer.
 type SchemaManufacturer struct {
-	Name string `json:"name"`
+	SchemaName string `json:"schema:name"`
 }
 
 // GetInventoryParams defines parameters for GetInventory.
 type GetInventoryParams struct {
-	// FilterAuthor Filters the catalog by an author.
+	// FilterAuthor Filters the inventory by one or more authors having exact match. The filter works additive to other filters.
 	FilterAuthor *string `form:"filter[author],omitempty" json:"filter[author],omitempty"`
 
-	// FilterManufacturer Filters the catalog by a manufacturer.
+	// FilterManufacturer Filters the inventory by one or more manufacturers having exact match. The filter works additive to other filters.
 	FilterManufacturer *string `form:"filter[manufacturer],omitempty" json:"filter[manufacturer],omitempty"`
 
-	// FilterMpn Filters the catalog by a mpn (manufacturer part number).
+	// FilterMpn Filters the inventory by one ore more mpn (manufacturer part number) having exact match. The filter works additive to other filters.
 	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
 
-	// FilterOriginal Filters the catalog by an original ID of a Thing Model.
+	// FilterOriginal Filters the inventory by one or more original ID of a Thing Model. The filter works additive to other filters.
 	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
 
-	// SearchContent Filters the catalog by its content with the help of an awesome query language
+	// SearchContent Filters the inventory by content search with the help of an awesome query language
 	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
+
+	// Sort Sorts the inventory by one or more fields. The sort is applied in the order of the fields.  The sorting is done ascending per field by default. If a field needs to be sorted descending, prefix it with a HYPHEN-MINUS "-")
+	Sort *GetInventoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
+
+// GetInventoryParamsSort defines parameters for GetInventory.
+type GetInventoryParamsSort string

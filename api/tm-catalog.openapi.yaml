@@ -23,25 +23,25 @@ paths:
       parameters:
         - name: filter[author]
           in: query
-          description: Filters the inventory by one or more authors. The filter works additive to other filters.
+          description: Filters the inventory by one or more authors having exact match. The filter works additive to other filters.
           schema:
             type: string
           example: filter[author]=MyCompany,YourCompany
         - name: filter[manufacturer]
           in: query
-          description: Filters the inventory by one or more manufacturers. The filter works additive to other filters.
+          description: Filters the inventory by one or more manufacturers having exact match. The filter works additive to other filters.
           schema:
             type: string
-          example: filter[manufacturer]=abb,danfoss
+          example: filter[manufacturer]=ABB,Danfoss
         - name: filter[mpn]
           in: query
-          description: Filters the inventory by one ore more mpn (manufacturer part number). The filter works additive to other filters.
+          description: Filters the inventory by one ore more mpn (manufacturer part number) having exact match. The filter works additive to other filters.
           schema:
             type: string
           example: filter[mpn]=B21,FC102
         - name: filter[original]
           in: query
-          description: Filters the inventory by one or more original ID of a Thing Model. The filter works additive to other filters.
+          description: Filters the inventory by one or more original ID having exact match. The filter works additive to other filters.
           schema:
             type: string
           example: filter[original]=12345
@@ -52,6 +52,7 @@ paths:
             language
           schema:
             type: string
+          example: search[content]=
         - name: sort
           in: query
           description: >-
@@ -315,18 +316,18 @@ components:
             $ref: '#/components/schemas/InventoryEntryVersion'
     SchemaAuthor:
       required:
-        - name
+        - schema:name
       type: object
       properties:
-        name:
+        schema:name:
           type: string
           example: MyCompany
     SchemaManufacturer:
       required:
-        - name
+        - schema:name
       type: object
       properties:
-        name:
+        schema:name:
           type: string
           example: ABB
     Link:
@@ -406,9 +407,9 @@ components:
       value:
         data:
           schema:author:
-            name: MyCompany
+            schema:name: MyCompany
           schema:manufacturer:
-            name: ABB
+            schema:name: ABB
           schema:mpn: B21
           versions:
             - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
@@ -449,9 +450,9 @@ components:
               created: "2023-11-16T18:07:18.8213578+01:00"
             mycompany/abb/B21:
               schema:author:
-                name: MyCompany
+                schema:name: MyCompany
               schema:manufacturer:
-                name: ABB
+                schema:name: ABB
               schema:mpn: B21
               versions:
                 - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
@@ -477,9 +478,9 @@ components:
                   href: /inventory/mycompany/abb/B21
             yourcompany/danfoss/FC102:
               schema:author:
-                name: YourCompany
+                schema:name: YourCompany
               schema:manufacturer:
-                name: Danfoss
+                schema:name: Danfoss
               schema:mpn: FC 102
               versions:
                 - tmId: yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json

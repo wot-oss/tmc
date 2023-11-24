@@ -24,8 +24,8 @@ func mapInventoryContents(tocContent map[string]model.TocThing) map[string]Inven
 
 func mapInventoryEntry(tocEntryId string, tocThing model.TocThing) InventoryEntry {
 	invEntry := InventoryEntry{}
-	invEntry.SchemaAuthor.Name = tocThing.Author.Name
-	invEntry.SchemaManufacturer.Name = tocThing.Manufacturer.Name
+	invEntry.SchemaAuthor.SchemaName = tocThing.Author.Name
+	invEntry.SchemaManufacturer.SchemaName = tocThing.Manufacturer.Name
 	invEntry.SchemaMpn = tocThing.Mpn
 	invEntry.Versions = mapInvtoryEntryVersions(tocThing.Versions)
 
