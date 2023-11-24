@@ -33,14 +33,6 @@ type ErrorResponse struct {
 	Type     *string `json:"type,omitempty"`
 }
 
-// Inventory defines model for Inventory.
-type Inventory struct {
-	Contents map[string]InventoryEntry `json:"contents"`
-	Meta     struct {
-		Created time.Time `json:"created"`
-	} `json:"meta"`
-}
-
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
 	Links              *[]Link                 `json:"links,omitempty"`
@@ -72,7 +64,8 @@ type InventoryEntryVersionsResponse struct {
 
 // InventoryResponse defines model for InventoryResponse.
 type InventoryResponse struct {
-	Data Inventory `json:"data"`
+	Data map[string]InventoryEntry `json:"data"`
+	Meta *Meta                     `json:"meta,omitempty"`
 }
 
 // Link defines model for Link.
@@ -83,6 +76,11 @@ type Link struct {
 
 // LinkRel defines model for Link.Rel.
 type LinkRel string
+
+// Meta defines model for Meta.
+type Meta struct {
+	Created time.Time `json:"created"`
+}
 
 // ModelVersion defines model for ModelVersion.
 type ModelVersion struct {
@@ -110,7 +108,7 @@ type GetInventoryParams struct {
 	// FilterMpn Filters the inventory by one ore more mpn (manufacturer part number) having exact match. The filter works additive to other filters.
 	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
 
-	// FilterOriginal Filters the inventory by one or more original ID of a Thing Model. The filter works additive to other filters.
+	// FilterOriginal Filters the inventory by one or more original ID having exact match. The filter works additive to other filters.
 	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
 
 	// SearchContent Filters the inventory by content search with the help of an awesome query language

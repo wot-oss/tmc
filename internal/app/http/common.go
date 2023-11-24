@@ -19,6 +19,9 @@ const (
 	mimeJSON                  = "application/json"
 	mimeProblemJSON           = "application/problem+json"
 	noSniff                   = "nosniff"
+
+	basePathInventory   = "/inventory"
+	basePathThingModels = "/thing-models"
 )
 
 func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
@@ -161,10 +164,13 @@ func toSearchParams(params GetInventoryParams) *SearchParams {
 }
 
 func toInventoryResponse(toc model.Toc) InventoryResponse {
-	inv := mapInventory(toc)
+	meta := mapInventoryMeta(toc)
+	inv := mapInventoryContents(toc.Contents)
 	resp := InventoryResponse{
+		Meta: &meta,
 		Data: inv,
 	}
+	resp.Meta.Created = toc.Meta.Created
 	return resp
 }
 

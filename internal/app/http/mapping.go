@@ -5,12 +5,11 @@ import (
 	"net/url"
 )
 
-func mapInventory(toc model.Toc) Inventory {
-	inv := Inventory{}
-	inv.Meta.Created = toc.Meta.Created
-	inv.Contents = mapInventoryContents(toc.Contents)
-
-	return inv
+func mapInventoryMeta(toc model.Toc) Meta {
+	meta := Meta{
+		Created: toc.Meta.Created,
+	}
+	return meta
 }
 
 func mapInventoryContents(tocContent map[string]model.TocThing) map[string]InventoryEntry {
@@ -30,7 +29,7 @@ func mapInventoryEntry(tocEntryId string, tocThing model.TocThing) InventoryEntr
 	invEntry.Versions = mapInvtoryEntryVersions(tocThing.Versions)
 
 	var links []Link
-	hrefSelf, _ := url.JoinPath("/inventory", tocEntryId)
+	hrefSelf, _ := url.JoinPath(basePathInventory, tocEntryId)
 	linkSelf := Link{
 		Rel:  Self,
 		Href: hrefSelf,
@@ -61,7 +60,7 @@ func mapInventoryEntryVersion(tocVersion model.TocVersion) InventoryEntryVersion
 	invVersion.Timestamp = &tocVersion.TimeStamp
 
 	var links []Link
-	hrefContent, _ := url.JoinPath("/thing-models", tocVersion.ID)
+	hrefContent, _ := url.JoinPath(basePathThingModels, tocVersion.ID)
 	linkContent := Link{
 		Rel:  Content,
 		Href: hrefContent,
