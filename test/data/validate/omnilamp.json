@@ -1,16 +1,18 @@
 {
   "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",
-    "https://schema.org/docs/jsonldcontext.json"
+    {
+      "schema": "https://schema.org/"
+    }
   ],
   "@type": "tm:ThingModel",
   "title": "Lamp Thing Model",
   "schema:manufacturer": {
-    "name": "omnicorp"
+    "schema:name": "omnicorp"
   },
   "schema:mpn": "omnilamp",
   "schema:author": {
-    "name": "omnicorp TM department"
+    "schema:name": "omnicorp TM department"
   },
   "properties": {
     "status": {

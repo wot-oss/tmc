@@ -2,6 +2,7 @@
   "@context": [
     "https://www.w3.org/2019/wot/td/v1",
     {
+      "schema": "https://schema.org/",
       "modbus": "https://www.w3.org/2019/wot/modbus"
     }
   ],
@@ -16,10 +17,10 @@
   },
   "schema:mpn": "senseall",
   "schema:manufacturer": {
-    "name": "omnicorp"
+    "schema:name": "omnicorp"
   },
   "schema:author": {
-    "name": "omnicorp"
+    "schema:name": "omnicorp"
   },
   "security": "nosec_sc",
   "properties": {
