@@ -12,6 +12,12 @@ tags:
     description: Access to the inventory of the catalog
   - name: thing-models
     description: Access to Thing Model content
+  - name: authors
+    description: Access to authors information
+  - name: manufacturers
+    description: Access to manufacturers information
+  - name: mpns
+    description: Access to mpns (manufacturer part numbers) information
 paths:
   /inventory:
     get:
@@ -23,41 +29,49 @@ paths:
       parameters:
         - name: filter[author]
           in: query
-          description: Filters the inventory by one or more authors having exact match. The filter works additive to other filters.
+          description: |
+            Filters the inventory by one or more authors having exact match.  
+            The filter works additive to other filters.
           schema:
             type: string
           example: filter[author]=MyCompany,YourCompany
         - name: filter[manufacturer]
           in: query
-          description: Filters the inventory by one or more manufacturers having exact match. The filter works additive to other filters.
+          description: |
+            Filters the inventory by one or more manufacturers having exact match.  
+            The filter works additive to other filters.
           schema:
             type: string
           example: filter[manufacturer]=ABB,Danfoss
         - name: filter[mpn]
           in: query
-          description: Filters the inventory by one ore more mpn (manufacturer part number) having exact match. The filter works additive to other filters.
+          description: |
+            Filters the inventory by one ore more mpn (manufacturer part number) having exact match.   
+            The filter works additive to other filters.
           schema:
             type: string
           example: filter[mpn]=B21,FC102
         - name: filter[original]
           in: query
-          description: Filters the inventory by one or more original ID having exact match. The filter works additive to other filters.
+          description: |
+            Filters the inventory by one or more original ID having exact match.   
+            The filter works additive to other filters.
           schema:
             type: string
-          example: filter[original]=12345
+          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: search[content]
           in: query
-          description: >-
-            Filters the inventory by content search with the help of an awesome query
-            language
+          description: |
+            Filters the inventory according to whether the content of the inventory entries matches the given search.    
+            The search works additive to other filters.
           schema:
             type: string
           example: search[content]=
         - name: sort
           in: query
-          description: >-
-            Sorts the inventory by one or more fields. The sort is applied in the order of the fields. 
-            The sorting is done ascending per field by default. If a field needs to be sorted descending,
+          description: | 
+            Sorts the inventory by one or more fields. The sort is applied in the order of the fields.   
+            The sorting is done ascending per field by default. If a field needs to be sorted descending,  
             prefix it with a HYPHEN-MINUS "-")
           schema:
             type: string
@@ -219,6 +233,203 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - api_key: []
+  /authors:
+    get:
+      tags:
+        - authors
+      summary: Get the contained authors of the inventory
+      description: Returns the contained authors of the inventory
+      operationId: getAuthors
+      parameters:
+        - name: filter[manufacturer]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries  
+            which belong to at least one of the given manufacturers with an exact match.  
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[manufacturer]=ABB,Danfoss
+        - name: filter[mpn]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries    
+            which belong to at least one of the given mpn (manufacturer part number) with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[mpn]=B21,FC102
+        - name: filter[original]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries   
+            which belong to at least one of the given original ID's with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: search[content]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries  
+            where their content matches the given search.      
+            The search works additive to other filters.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorsResponse'
+              examples:
+                authors:
+                  $ref: '#/components/examples/AuthorsResponseExample'
+        '400':
+          description: Invalid filter parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
+  /manufacturers:
+    get:
+      tags:
+        - manufacturers
+      summary: Get the contained manufacturers of the inventory
+      description: Returns the contained manufacturers of the inventory
+      operationId: getManufacturers
+      parameters:
+        - name: filter[author]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they belong to at least one of the given authors with an exact match.       
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[author]=MyCompany,YourCompany
+        - name: filter[mpn]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they have inventory entries    
+            which belong to at least one of the given mpn (manufacturer part number) with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[mpn]=B21,FC102
+        - name: filter[original]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they have inventory entries   
+            which belong to at least one of the given original ID's with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: search[content]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they have inventory entries  
+            where their content matches the given search.      
+            The search works additive to other filters.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManufacturersResponse'
+              examples:
+                authors:
+                  $ref: '#/components/examples/ManufacturersResponseExample'
+        '400':
+          description: Invalid filter parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
+  /mpns:
+    get:
+      tags:
+        - mpns
+      summary: Get the contained mpns (manufacturer part numbers) of the inventory
+      description: Returns the mpns (manufacturer part numbers) of the inventory
+      operationId: getMpns
+      parameters:
+        - name: filter[author]
+          in: query
+          description: |
+            Filters the mpns according to whether they belong to at least one of the given authors with an exact match.     
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[author]=MyCompany,YourCompany
+        - name: filter[manufacturer]
+          in: query
+          description: |
+            Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.     
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[manufacturer]=ABB,Danfoss
+        - name: filter[original]
+          in: query
+          description: |
+            Filters the mpns according to whether their inventory entry   
+            belongs to at least one of the given original ID's with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: search[content]
+          in: query
+          description: |
+            Filters the mpns according to whether their inventory entry content matches the given search.        
+            The search works additive to other filters.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MpnsResponse'
+              examples:
+                authors:
+                  $ref: '#/components/examples/MpnsResponseExample'
+        '400':
+          description: Invalid filter parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
 components:
   schemas:
     InventoryEntry:
@@ -298,6 +509,33 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InventoryEntryVersion'
+    AuthorsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
+    ManufacturersResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
+    MpnsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
     SchemaAuthor:
       required:
         - schema:name
@@ -487,3 +725,21 @@ components:
             links:
               - rel: self
                 href: /inventory/yourcompany/danfoss/FC102
+    AuthorsResponseExample:
+      value:
+        data:
+          - My Company
+          - Your Company
+          - Another Company
+    ManufacturersResponseExample:
+      value:
+        data:
+          - ABB
+          - Antarc
+          - Siemens
+    MpnsResponseExample:
+      value:
+        data:
+          - B21
+          - FC102
+          - PAC4200

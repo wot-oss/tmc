@@ -121,46 +121,61 @@ func NewBadRequestError(err error, detail string, args ...any) error {
 	}
 }
 
-func hasFilterQuerySet(params GetInventoryParams) bool {
-	return params.FilterAuthor != nil || params.FilterManufacturer != nil ||
-		params.FilterMpn != nil || params.FilterOriginal != nil
-}
+func convertParams(params any) (*FilterParams, *SearchParams) {
 
-func hasSearchQuerySet(params GetInventoryParams) bool {
-	return params.SearchContent != nil
-}
+	var filterAuthor *string
+	var filterManufacturer *string
+	var filterMpn *string
+	var filterOriginal *string
+	var searchContent *string
 
-func toFilterParams(params GetInventoryParams) *FilterParams {
-	if !hasFilterQuerySet(params) {
-		return nil
-	}
-
-	filter := &FilterParams{}
-	if params.FilterAuthor != nil {
-		filter.Author = strings.Split(*params.FilterAuthor, ",")
-	}
-	if params.FilterManufacturer != nil {
-		filter.Manufacturer = strings.Split(*params.FilterManufacturer, ",")
-	}
-	if params.FilterMpn != nil {
-		filter.Mpn = strings.Split(*params.FilterMpn, ",")
-	}
-	if params.FilterOriginal != nil {
-		filter.Original = strings.Split(*params.FilterOriginal, ",")
-	}
-	return filter
-}
-
-func toSearchParams(params GetInventoryParams) *SearchParams {
-	if !hasSearchQuerySet(params) {
-		return nil
+	if invParams, ok := params.(GetInventoryParams); ok {
+		filterAuthor = invParams.FilterAuthor
+		filterManufacturer = invParams.FilterManufacturer
+		filterMpn = invParams.FilterMpn
+		filterOriginal = invParams.FilterOriginal
+		searchContent = invParams.SearchContent
+	} else if authorsParams, ok := params.(GetAuthorsParams); ok {
+		filterManufacturer = authorsParams.FilterManufacturer
+		filterMpn = authorsParams.FilterMpn
+		filterOriginal = authorsParams.FilterOriginal
+		searchContent = authorsParams.SearchContent
+	} else if manParams, ok := params.(GetManufacturersParams); ok {
+		filterAuthor = manParams.FilterAuthor
+		filterMpn = manParams.FilterMpn
+		filterOriginal = manParams.FilterOriginal
+		searchContent = manParams.SearchContent
+	} else if mpnsParams, ok := params.(GetMpnsParams); ok {
+		filterAuthor = mpnsParams.FilterAuthor
+		filterManufacturer = mpnsParams.FilterManufacturer
+		filterOriginal = mpnsParams.FilterOriginal
+		searchContent = mpnsParams.SearchContent
 	}
 
-	search := &SearchParams{}
-	if params.SearchContent != nil {
-		search.query = *params.SearchContent
+	var filter FilterParams
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterOriginal != nil {
+		filter = FilterParams{}
+		if filterAuthor != nil {
+			filter.Author = strings.Split(*filterAuthor, ",")
+		}
+		if filterManufacturer != nil {
+			filter.Manufacturer = strings.Split(*filterManufacturer, ",")
+		}
+		if filterMpn != nil {
+			filter.Mpn = strings.Split(*filterMpn, ",")
+		}
+		if filterOriginal != nil {
+			filter.Original = strings.Split(*filterOriginal, ",")
+		}
 	}
-	return search
+
+	var search SearchParams
+	if searchContent != nil {
+		search = SearchParams{
+			query: *searchContent,
+		}
+	}
+	return &filter, &search
 }
 
 func toInventoryResponse(toc model.Toc) InventoryResponse {
@@ -186,6 +201,27 @@ func toInventoryEntryVersionsResponse(tocVersions []model.TocVersion) InventoryE
 	invEntryVersions := mapInvtoryEntryVersions(tocVersions)
 	resp := InventoryEntryVersionsResponse{
 		Data: invEntryVersions,
+	}
+	return resp
+}
+
+func toAuthorsResponse(authors []string) AuthorsResponse {
+	resp := AuthorsResponse{
+		Data: authors,
+	}
+	return resp
+}
+
+func toManufacturersResponse(manufacturers []string) ManufacturersResponse {
+	resp := ManufacturersResponse{
+		Data: manufacturers,
+	}
+	return resp
+}
+
+func toMpnsResponse(mpns []string) MpnsResponse {
+	resp := MpnsResponse{
+		Data: mpns,
 	}
 	return resp
 }
