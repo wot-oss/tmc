@@ -32,12 +32,7 @@ func printToCThing(name string, tocThing model.TOCEntry) {
 
 	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tTIME\tDESCRIPTION\tPATH\n")
 	for _, v := range tocThing.Versions {
-		contentLink := v.Links.FindLink(model.RelContent)
-		if contentLink == nil {
-			Stderrf("%s did not contain a path to the file. Skipping", name)
-			continue
-		}
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.TimeStamp, v.Description, contentLink.HRef)
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.TimeStamp, v.Description, v.Links["content"])
 	}
 	_ = table.Flush()
 }

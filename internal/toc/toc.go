@@ -2,7 +2,6 @@ package toc
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -34,7 +33,7 @@ func Create(rootPath string) error {
 		}
 		if !info.IsDir() {
 			if strings.HasSuffix(info.Name(), TMExt) {
-				thingModel, err := getThingMetadata(rootPath, absPath)
+				thingMeta, err := getThingMetadata(rootPath, absPath)
 				if err != nil {
 					msg := "Failed to extract metadata from file %s with error:"
 					msg = fmt.Sprintf(msg, absPath)
@@ -43,7 +42,10 @@ func Create(rootPath string) error {
 					log.Error("The file will be excluded from the table of contents.")
 					return nil
 				}
-				err = insert(&newTOC, thingModel)
+				// rootPath/relPath provided by walker, can ignore error
+				relPath, _ := filepath.Rel(rootPath, absPath)
+
+				err = insert(relPath, &newTOC, thingMeta)
 				if err != nil {
 					log.Error(fmt.Sprintf("Failed to insert %s into toc:", absPath))
 					log.Error(err.Error())
@@ -82,13 +84,6 @@ func getThingMetadata(rootPath, absPath string) (model.CatalogThingModel, error)
 		return model.CatalogThingModel{}, err
 	}
 
-	relPath, err := filepath.Rel(rootPath, absPath)
-	if err != nil {
-		msg := "unable to compute relative path to root %s"
-		return model.CatalogThingModel{}, errors.New(fmt.Sprintf(msg, absPath))
-	}
-	ctm.Links = append(ctm.Links, model.Link{Rel: model.RelContent, Type: model.ThingModelMediaType, HRef: relPath})
-
 	return ctm, nil
 }
 
@@ -103,17 +98,13 @@ func saveToc(rootPath string, tocBytes []byte) error {
 	return nil
 }
 
-func insert(toc *model.TOC, ctm model.CatalogThingModel) error {
+func insert(relPath string, toc *model.TOC, ctm model.CatalogThingModel) error {
 	official := internal.Prep(ctm.Manufacturer.Name) == internal.Prep(ctm.Author.Name)
 	tmid, err := model.ParseTMID(ctm.ID, official)
 	if err != nil {
 		return err
 	}
-	contentLink := ctm.Links.FindLink(model.RelContent)
-	if contentLink == nil {
-		return errors.New("no relative path provided in content link.")
-	}
-	name := filepath.Dir(contentLink.HRef)
+	name := filepath.Dir(relPath)
 	tocEntry, ok := toc.FindByName(name)
 	// TODO: provide copy method for CatalogThingModel in TocThing
 	if !ok {
@@ -123,14 +114,20 @@ func insert(toc *model.TOC, ctm model.CatalogThingModel) error {
 		tocEntry.Author.Name = tmid.Author
 	}
 	version := model.Version{Model: tmid.Version.Base.String()}
-	id := ctm.ID
-	ctm.ID = ""
+	externalID := ""
+	original := ctm.Links.FindLink("original")
+	if original != nil {
+		externalID = original.HRef
+	}
+
 	tv := model.TOCVersion{
-		ExtendedFields: ctm.ExtendedFields,
-		TimeStamp:      tmid.Version.Timestamp,
-		Version:        version,
-		ID:             id,
-		Digest:         tmid.Version.Hash,
+		Description: ctm.Description,
+		TimeStamp:   tmid.Version.Timestamp,
+		Version:     version,
+		TMID:        ctm.ID,
+		ExternalID:  externalID,
+		Digest:      tmid.Version.Hash,
+		Links:       map[string]string{"content": relPath},
 	}
 	tocEntry.Versions = append(tocEntry.Versions, tv)
 	toc.Data = append(toc.Data, tocEntry)

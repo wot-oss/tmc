@@ -24,12 +24,16 @@ type TOCEntry struct {
 	Versions     []TOCVersion       `json:"versions"`
 }
 
+const TMLinkRel = "content"
+
 type TOCVersion struct {
-	ExtendedFields
-	ID        string  `json:"tmid"`
-	Digest    string  `json:"digest"`
-	TimeStamp string  `json:"timestamp,omitempty"`
-	Version   Version `json:"version"`
+	Description string            `json:"description"`
+	Links       map[string]string `json:"links"`
+	TMID        string            `json:"tmID"`
+	ExternalID  string            `json:"externalID"`
+	Digest      string            `json:"digest"`
+	TimeStamp   string            `json:"timestamp,omitempty"`
+	Version     Version           `json:"version"`
 }
 
 func (toc *TOC) Filter(filter string) {

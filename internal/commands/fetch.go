@@ -99,7 +99,7 @@ func findMostRecentVersion(versions []model.TOCVersion) (id string, err error) {
 		if currentVersion.GreaterThan(latestVersion) {
 			latestVersion = currentVersion
 			latestTimeStamp, err = time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
-			id = version.ID
+			id = version.TMID
 			continue
 		}
 		if currentVersion.Equal(latestVersion) {
@@ -110,7 +110,7 @@ func findMostRecentVersion(versions []model.TOCVersion) (id string, err error) {
 			}
 			if currentTimeStamp.After(latestTimeStamp) {
 				latestTimeStamp = currentTimeStamp
-				id = version.ID
+				id = version.TMID
 				continue
 			}
 		}
@@ -145,7 +145,7 @@ func findMostRecentTimeStamp(versions []model.TOCVersion, ver *semver.Version) (
 		}
 		if currentTimeStamp.After(latestTimeStamp) {
 			latestTimeStamp = currentTimeStamp
-			id = version.ID
+			id = version.TMID
 			continue
 		}
 	}
@@ -168,13 +168,13 @@ func findDigest(versions []model.TOCVersion, digest string) (id string, err erro
 	digest = prep(digest)
 	for _, version := range versions {
 		// TODO: how to know if it is official?
-		tmid, err := model.ParseTMID(version.ID, false)
+		tmid, err := model.ParseTMID(version.TMID, false)
 		if err != nil {
-			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.ID))
+			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.TMID))
 			return "", err
 		}
 		if tmid.Version.Hash == digest {
-			return version.ID, nil
+			return version.TMID, nil
 		}
 	}
 	msg := fmt.Sprintf("No thing model found for digest %s", digest)
