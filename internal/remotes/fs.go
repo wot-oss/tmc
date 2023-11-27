@@ -34,7 +34,7 @@ func (e *ErrTMExists) Error() string {
 var winExtraLeadingSlashRegex = regexp.MustCompile("/[a-zA-Z]:.*")
 
 func NewFileRemote(config map[string]any) (*FileRemote, error) {
-	urlString := config["url"].(string)
+	urlString := config[KeyRemoteUrl].(string)
 	rootUrl, err := url.Parse(urlString)
 	if err != nil {
 		slog.Default().Error("could not parse root URL for file remote", "url", urlString, "error", err)
@@ -197,4 +197,60 @@ func (f *FileRemote) Versions(name string) (model.TOCEntry, error) {
 	}
 
 	return *tocThing, nil
+}
+func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error) {
+	if dirName != "" {
+		dirName, err := dirNameToExpandedUrl(dirName)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]any{
+			KeyRemoteType: RemoteTypeFile,
+			KeyRemoteUrl:  dirName,
+		}, nil
+	} else {
+		var js any
+		err := json.Unmarshal(bytes, &js)
+		if err != nil {
+			return nil, fmt.Errorf("invalid json config: %w", err)
+		}
+		rc, ok := js.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("invalid json config. must be a map")
+		}
+		rc[KeyRemoteType] = RemoteTypeFile
+		u, ok := rc[KeyRemoteUrl]
+		if !ok {
+			return nil, fmt.Errorf("invalid json config. must have key \"url\"")
+		}
+		us, ok := u.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid json config. url must be a string")
+		}
+		ur, err := dirNameToExpandedUrl(us)
+		if err != nil {
+			return nil, err
+		}
+		rc[KeyRemoteUrl] = ur
+		return rc, nil
+
+	}
+}
+
+func dirNameToExpandedUrl(dir string) (string, error) {
+	if !strings.HasPrefix(dir, "file:/") {
+		if filepath.IsAbs(dir) {
+			return "file:" + dir, nil
+		} else {
+			if !strings.HasPrefix(dir, "~") {
+				var err error
+				dir, err = filepath.Abs(dir)
+				if err != nil {
+					return "", err
+				}
+			}
+			return "file:/" + dir, nil
+		}
+	}
+	return dir, nil
 }
