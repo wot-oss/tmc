@@ -30,14 +30,13 @@ func List(remoteName, filter string) error {
 }
 
 // TODO: use better table writer with eliding etc.
-func printToC(toc model.Toc, filter string) {
+func printToC(toc model.TOC, filter string) {
 	colWidth := columnWidth()
-	contents := toc.Contents
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	_, _ = fmt.Fprintf(table, "NAME\tMANUFACTURER\tMODEL\n")
-	for name, value := range contents {
-		name := elideString(name, colWidth)
+	for _, value := range toc.Data {
+		name := elideString(value.Name, colWidth)
 		man := elideString(value.Manufacturer.Name, colWidth)
 		mdl := elideString(value.Mpn, colWidth)
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\n", name, man, mdl)

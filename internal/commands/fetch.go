@@ -78,7 +78,7 @@ func FetchThingByName(fn *FetchName, remote remotes.Remote) ([]byte, error) {
 	return thing, nil
 }
 
-func findMostRecentVersion(versions []model.TocVersion) (id string, err error) {
+func findMostRecentVersion(versions []model.TOCVersion) (id string, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
@@ -118,7 +118,7 @@ func findMostRecentVersion(versions []model.TocVersion) (id string, err error) {
 	return id, nil
 }
 
-func findMostRecentTimeStamp(versions []model.TocVersion, ver *semver.Version) (id string, err error) {
+func findMostRecentTimeStamp(versions []model.TOCVersion, ver *semver.Version) (id string, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
@@ -157,7 +157,7 @@ func findMostRecentTimeStamp(versions []model.TocVersion, ver *semver.Version) (
 	return id, nil
 }
 
-func findDigest(versions []model.TocVersion, digest string) (id string, err error) {
+func findDigest(versions []model.TOCVersion, digest string) (id string, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"

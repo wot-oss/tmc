@@ -26,13 +26,18 @@ func ListVersions(remoteName, name string) error {
 	return nil
 }
 
-func printToCThing(name string, tocThing model.TocThing) {
+func printToCThing(name string, tocThing model.TOCEntry) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tTIME\tDESCRIPTION\tPATH\n")
 	for _, v := range tocThing.Versions {
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.TimeStamp, v.Description, v.Path)
+		contentLink := v.Links.FindLink(model.RelContent)
+		if contentLink == nil {
+			Stderrf("%s did not contain a path to the file. Skipping", name)
+			continue
+		}
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.TimeStamp, v.Description, contentLink.HRef)
 	}
 	_ = table.Flush()
 }

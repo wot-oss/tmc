@@ -155,7 +155,7 @@ func (f *FileRemote) CreateToC() error {
 	return toc.Create(f.root)
 }
 
-func (f *FileRemote) List(filter string) (model.Toc, error) {
+func (f *FileRemote) List(filter string) (model.TOC, error) {
 	log := slog.Default()
 	if len(filter) == 0 {
 		log.Debug("Creating list")
@@ -165,35 +165,35 @@ func (f *FileRemote) List(filter string) (model.Toc, error) {
 
 	data, err := os.ReadFile(filepath.Join(f.root, toc.TOCFilename))
 	if err != nil {
-		return model.Toc{}, errors.New("No toc found. Run `create-toc` for this remote.")
+		return model.TOC{}, errors.New("No toc found. Run `create-toc` for this remote.")
 	}
 
-	var toc model.Toc
+	var toc model.TOC
 	err = json.Unmarshal(data, &toc)
 	toc.Filter(filter)
 	if err != nil {
-		return model.Toc{}, err
+		return model.TOC{}, err
 	}
 	return toc, nil
 }
 
-func (f *FileRemote) Versions(name string) (model.TocThing, error) {
+func (f *FileRemote) Versions(name string) (model.TOCEntry, error) {
 	log := slog.Default()
 	if len(name) == 0 {
 		log.Error("Please specify a name to show the TM.")
-		return model.TocThing{}, errors.New("Please specify a name to show the TM")
+		return model.TOCEntry{}, errors.New("Please specify a name to show the TM")
 	}
 	toc, err := f.List("")
 	if err != nil {
-		return model.TocThing{}, err
+		return model.TOCEntry{}, err
 	}
 	name = strings.TrimSpace(name)
 
-	tocThing, ok := toc.Contents[name]
+	tocThing, ok := toc.FindByName(name)
 	if !ok {
 		msg := fmt.Sprintf("No thing model found for name: %s", name)
 		log.Error(msg)
-		return model.TocThing{}, errors.New(msg)
+		return model.TOCEntry{}, errors.New(msg)
 	}
 
 	return tocThing, nil
