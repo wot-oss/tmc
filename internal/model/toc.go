@@ -28,12 +28,12 @@ const TMLinkRel = "content"
 
 type TOCVersion struct {
 	Description string            `json:"description"`
+	Version     Version           `json:"version"`
 	Links       map[string]string `json:"links"`
 	TMID        string            `json:"tmID"`
-	ExternalID  string            `json:"externalID"`
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
-	Version     Version           `json:"version"`
+	ExternalID  string            `json:"externalID"`
 }
 
 func (toc *TOC) Filter(filter string) {

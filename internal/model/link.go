@@ -2,10 +2,6 @@ package model
 
 type LinkType string
 
-const (
-	ThingModelMediaType LinkType = "application/tm+json"
-)
-
 type RelType string
 
 const (
@@ -13,9 +9,8 @@ const (
 )
 
 type Link struct {
-	Rel  RelType  `json:"rel"`
-	HRef string   `json:"href"`
-	Type LinkType `json:"type,omitempty"`
+	Rel  RelType `json:"rel"`
+	HRef string  `json:"href"`
 }
 
 type Links []Link
