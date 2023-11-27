@@ -2,6 +2,7 @@ package http
 
 import (
 	"github.com/gorilla/mux"
+	"io"
 	"net/http"
 )
 
@@ -78,6 +79,33 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, t
 	}
 
 	HandleByteResponse(w, r, http.StatusOK, mimeJSON, data)
+}
+
+func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get(headerContentType)
+
+	if contentType != mimeJSON {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "Invalid Content-Type header: %s", contentType))
+		return
+	}
+
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
+	err = r.Body.Close()
+
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	tmID, err := pushThingModel(b)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	resp := toPushThingModelResponse(*tmID)
+
+	HandleJsonResponse(w, r, 200, resp)
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams) {

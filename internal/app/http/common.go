@@ -4,13 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"net/http"
 	"strings"
 )
 
 const (
-	error400Title  = "Malformed request"
+	error400Title  = "Bad request"
 	error404Title  = "Not found"
+	error409Title  = "Conflict"
 	error500Title  = "Internal Server Error"
 	error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
 
@@ -57,13 +59,21 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errTitle = sErr.Title
 		errDetail = sErr.Detail
 		errStatus = sErr.Status
+	} else if sErr, ok := err.(*remotes.ErrTMExists); ok {
+		errTitle = error409Title
+		errDetail = sErr.Error()
+		errStatus = http.StatusConflict
+	} else if strings.HasPrefix(err.Error(), "value does not match one of the schemas") {
+		errTitle = error400Title
+		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
 	} else {
 		switch err.(type) {
 		case *InvalidParamFormatError, *RequiredParamError, *RequiredHeaderError,
 			*UnmarshalingParamError, *TooManyValuesForParamError, *UnescapedCookieParamError:
 			errTitle = error400Title
 			errDetail = err.Error()
-			errStatus = 400
+			errStatus = http.StatusBadRequest
 		default:
 		}
 	}
@@ -224,4 +234,10 @@ func toMpnsResponse(mpns []string) MpnsResponse {
 		Data: mpns,
 	}
 	return resp
+}
+
+func toPushThingModelResponse(tmID model.TMID) PushThingModelResponse {
+	return PushThingModelResponse{
+		TmID: tmID.String(),
+	}
 }

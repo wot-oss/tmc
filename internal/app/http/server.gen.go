@@ -14,7 +14,7 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
-	// Get the contained authors of the catalog
+	// Get the contained authors of the inventory
 	// (GET /authors)
 	GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams)
 	// Get the inventory of the catalog
@@ -26,12 +26,15 @@ type ServerInterface interface {
 	// Get the versions of an inventory entry
 	// (GET /inventory/{inventoryId}/versions)
 	GetInventoryVersionsById(w http.ResponseWriter, r *http.Request, inventoryId string)
-	// Get the contained manufacturers of the catalog
+	// Get the contained manufacturers of the inventory
 	// (GET /manufacturers)
 	GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams)
-	// Get the contained mpns (manufacturer part numbers) of the catalog
+	// Get the contained mpns (manufacturer part numbers) of the inventory
 	// (GET /mpns)
 	GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams)
+	// Add a new Thing Model
+	// (POST /thing-models)
+	PushThingModel(w http.ResponseWriter, r *http.Request)
 	// Get the content of a Thing Model by it's ID
 	// (GET /thing-models/{tmId})
 	GetThingModelById(w http.ResponseWriter, r *http.Request, tmId string)
@@ -334,6 +337,23 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// PushThingModel operation middleware
+func (siw *ServerInterfaceWrapper) PushThingModel(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, Api_keyScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PushThingModel(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetThingModelById operation middleware
 func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -477,17 +497,19 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/authors", wrapper.GetAuthors).Methods("GET")
 
+	r.HandleFunc(options.BaseURL+"/inventory", wrapper.GetInventory).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId}", wrapper.GetInventoryById).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId}/versions", wrapper.GetInventoryVersionsById).Methods("GET")
+
 	r.HandleFunc(options.BaseURL+"/manufacturers", wrapper.GetManufacturers).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/mpns", wrapper.GetMpns).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/inventory", wrapper.GetInventory).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.PushThingModel).Methods("POST")
 
-	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId:.+}/versions", wrapper.GetInventoryVersionsById).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId:.+}", wrapper.GetInventoryById).Methods("GET")
-
-	r.HandleFunc(options.BaseURL+"/thing-models/{tmId:.+}", wrapper.GetThingModelById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmId}", wrapper.GetThingModelById).Methods("GET")
 
 	return r
 }

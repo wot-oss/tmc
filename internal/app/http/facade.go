@@ -1,6 +1,7 @@
 package http
 
 import (
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"sort"
@@ -100,4 +101,22 @@ func fetchThingModel(tmId string) ([]byte, error) {
 		return nil, err
 	}
 	return data, nil
+}
+
+func pushThingModel(file []byte) (tmid *model.TMID, err error) {
+	remote, err := remotes.Get("")
+	if err != nil {
+		return nil, err
+	}
+
+	tmID, err := commands.PushFile(file, remote, "")
+	if err != nil {
+		return nil, err
+	}
+	err = remote.CreateToC()
+	if err != nil {
+		return nil, err
+	}
+
+	return &tmID, nil
 }

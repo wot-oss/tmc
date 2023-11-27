@@ -207,12 +207,14 @@ paths:
             type: string
       responses:
         '200':
-          description: Successful operation
+          description: |
+            Successful operation 
+
+            **For the schema of the returned Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
           content:
             application/json:
               schema:
-                type: string
-              example: the Thingmodel as JSON
+                type: object
         '400':
           description: Invalid ID supplied
           content:
@@ -233,6 +235,51 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - api_key: []
+  /thing-models:
+    post:
+      tags:
+        - thing-models
+      summary: Push a new Thing Model
+      description: Push a new Thing Model
+      operationId: pushThingModel
+      requestBody:
+        description: |
+          Push a new Thing Model  
+          
+          **For the schema of a Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
+        content:
+          application/json:
+            schema:
+              type: object
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushThingModelResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict, Thing Model already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
+
   /authors:
     get:
       tags:
@@ -509,6 +556,15 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InventoryEntryVersion'
+    PushThingModelResponse:
+      type: object
+      required:
+        - tmID
+      properties:
+        tmID:
+          type: string
+      example:
+        tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
     AuthorsResponse:
       type: object
       required:

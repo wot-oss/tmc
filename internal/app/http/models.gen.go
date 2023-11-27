@@ -102,6 +102,11 @@ type MpnsResponse struct {
 	Data []string `json:"data"`
 }
 
+// PushThingModelResponse defines model for PushThingModelResponse.
+type PushThingModelResponse struct {
+	TmID string `json:"tmID"`
+}
+
 // SchemaAuthor defines model for SchemaAuthor.
 type SchemaAuthor struct {
 	SchemaName string `json:"schema:name"`
@@ -114,19 +119,23 @@ type SchemaManufacturer struct {
 
 // GetAuthorsParams defines parameters for GetAuthors.
 type GetAuthorsParams struct {
-	// FilterManufacturer Filters the authors according to whether they contain at least one of the given manufacturers with an exact match.
+	// FilterManufacturer Filters the authors according to whether they have inventory entries
+	// which belong to at least one of the given manufacturers with an exact match.
 	// The filter works additive to other filters.
 	FilterManufacturer *string `form:"filter[manufacturer],omitempty" json:"filter[manufacturer],omitempty"`
 
-	// FilterMpn Filters the authors according to whether they contain at least one of the given mpn (manufacturer part number) with an exact match.
+	// FilterMpn Filters the authors according to whether they have inventory entries
+	// which belong to at least one of the given mpn (manufacturer part number) with an exact match.
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
 
-	// FilterOriginal Filters the authors according to whether their inventory contains at least one of the given original ID's with an exact match.
+	// FilterOriginal Filters the authors according to whether they have inventory entries
+	// which belong to at least one of the given original ID's with an exact match.
 	// The filter works additive to other filters.
 	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
 
-	// SearchContent Filters the authors according to whether their inventory Thing Models contain the search string.
+	// SearchContent Filters the authors according to whether they have inventory entries
+	// where their content matches the given search.
 	// The search works additive to other filters.
 	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
 }
@@ -149,7 +158,7 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
 
-	// SearchContent Filters the inventory according to whether the inventory Thing Models contain the search string.
+	// SearchContent Filters the inventory according to whether the content of the inventory entries matches the given search.
 	// The search works additive to other filters.
 	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
 
@@ -168,15 +177,18 @@ type GetManufacturersParams struct {
 	// The filter works additive to other filters.
 	FilterAuthor *string `form:"filter[author],omitempty" json:"filter[author],omitempty"`
 
-	// FilterMpn Filters the manufacturers according to whether they contain at least one of the given mpn (manufacturer part number) with an exact match.
+	// FilterMpn Filters the manufacturers according to whether they have inventory entries
+	// which belong to at least one of the given mpn (manufacturer part number) with an exact match.
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
 
-	// FilterOriginal Filters the manufacturers according to whether their inventory contains at least one of the given original ID's with an exact match.
+	// FilterOriginal Filters the manufacturers according to whether they have inventory entries
+	// which belong to at least one of the given original ID's with an exact match.
 	// The filter works additive to other filters.
 	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
 
-	// SearchContent Filters the manufacturers according to whether their inventory Thing Models contain the search string.
+	// SearchContent Filters the manufacturers according to whether they have inventory entries
+	// where their content matches the given search.
 	// The search works additive to other filters.
 	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
 }
@@ -191,11 +203,18 @@ type GetMpnsParams struct {
 	// The filter works additive to other filters.
 	FilterManufacturer *string `form:"filter[manufacturer],omitempty" json:"filter[manufacturer],omitempty"`
 
-	// FilterOriginal Filters the mpns according to whether their inventory contains at least one of the given original ID's with an exact match.
+	// FilterOriginal Filters the mpns according to whether their inventory entry
+	// belongs to at least one of the given original ID's with an exact match.
 	// The filter works additive to other filters.
 	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
 
-	// SearchContent Filters the mpns according to whether their inventory Thing Models contain the search string.
+	// SearchContent Filters the mpns according to whether their inventory entry content matches the given search.
 	// The search works additive to other filters.
 	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
 }
+
+// PushThingModelJSONBody defines parameters for PushThingModel.
+type PushThingModelJSONBody = map[string]interface{}
+
+// PushThingModelJSONRequestBody defines body for PushThingModel for application/json ContentType.
+type PushThingModelJSONRequestBody = PushThingModelJSONBody
