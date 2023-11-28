@@ -5,10 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -17,7 +15,8 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/toc"
 )
 
-const defaultFilePermissions = os.ModePerm //fixme: review permissions
+const defaultDirPermissions = 0775
+const defaultFilePermissions = 0664
 
 type FileRemote struct {
 	root string
@@ -31,35 +30,16 @@ func (e *ErrTMExists) Error() string {
 	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
 }
 
-var winExtraLeadingSlashRegex = regexp.MustCompile("/[a-zA-Z]:.*")
-
 func NewFileRemote(config map[string]any) (*FileRemote, error) {
-	urlString := config[KeyRemoteUrl].(string)
-	rootUrl, err := url.Parse(urlString)
-	if err != nil {
-		slog.Default().Error("could not parse root URL for file remote", "url", urlString, "error", err)
-		return nil, fmt.Errorf("could not parse root URL %s for file remote: %w", urlString, err)
+	loc := config[KeyRemoteLoc]
+	locString, ok := loc.(string)
+	if !ok {
+		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string: %v", loc)
 	}
-	if rootUrl.Scheme != "file" {
-		slog.Default().Error("root URL for file remote must begin with 'file:'", "url", urlString)
-		return nil, fmt.Errorf("root URL for file remote must begin with file: %s", urlString)
-	}
-	rootPath := rootUrl.Path
-	if rootPath == "" {
-		rootPath = rootUrl.Opaque // maybe the user just forgot a slash in the url and it's been parsed as opaque
-	}
-	rootPath, err = internal.ExpandHome(rootPath)
+	rootPath, err := internal.ExpandHome(locString)
 	if err != nil {
 		return nil, err
 	}
-	//err = os.MkdirAll(rootPath, defaultFilePermissions)
-	//if err != nil {
-	//	return nil, err
-	//}
-	if winExtraLeadingSlashRegex.MatchString(rootPath) {
-		rootPath = strings.TrimPrefix(rootPath, "/")
-	}
-	slog.Default().Info("created FileRemote", "root", rootPath)
 	return &FileRemote{
 		root: rootPath,
 	}, nil
@@ -70,7 +50,7 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 		return errors.New("nothing to write")
 	}
 	fullPath, dir := f.filenames(id)
-	err := os.MkdirAll(dir, defaultFilePermissions)
+	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
 		return fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
@@ -181,7 +161,7 @@ func (f *FileRemote) Versions(name string) (model.TOCEntry, error) {
 	log := slog.Default()
 	if len(name) == 0 {
 		log.Error("Please specify a name to show the TM.")
-		return model.TOCEntry{}, errors.New("Please specify a name to show the TM")
+		return model.TOCEntry{}, errors.New("please specify a name to show the TM")
 	}
 	toc, err := f.List("")
 	if err != nil {
@@ -200,57 +180,53 @@ func (f *FileRemote) Versions(name string) (model.TOCEntry, error) {
 }
 func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error) {
 	if dirName != "" {
-		dirName, err := dirNameToExpandedUrl(dirName)
+		absDir, err := makeAbs(dirName)
 		if err != nil {
 			return nil, err
 		}
 		return map[string]any{
 			KeyRemoteType: RemoteTypeFile,
-			KeyRemoteUrl:  dirName,
+			KeyRemoteLoc:  absDir,
 		}, nil
 	} else {
-		var js any
-		err := json.Unmarshal(bytes, &js)
-		if err != nil {
-			return nil, fmt.Errorf("invalid json config: %w", err)
-		}
-		rc, ok := js.(map[string]any)
-		if !ok {
-			return nil, fmt.Errorf("invalid json config. must be a map")
-		}
-		rc[KeyRemoteType] = RemoteTypeFile
-		u, ok := rc[KeyRemoteUrl]
-		if !ok {
-			return nil, fmt.Errorf("invalid json config. must have key \"url\"")
-		}
-		us, ok := u.(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid json config. url must be a string")
-		}
-		ur, err := dirNameToExpandedUrl(us)
+		rc, err := AsRemoteConfig(bytes)
 		if err != nil {
 			return nil, err
 		}
-		rc[KeyRemoteUrl] = ur
+		if rType, ok := rc[KeyRemoteType]; ok {
+			if rType != RemoteTypeFile {
+				return nil, fmt.Errorf("invalid json config. type must be \"file\" or absent")
+			}
+		}
+		rc[KeyRemoteType] = RemoteTypeFile
+		l, ok := rc[KeyRemoteLoc]
+		if !ok {
+			return nil, fmt.Errorf("invalid json config. must have key \"loc\"")
+		}
+		ls, ok := l.(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid json config. url must be a string")
+		}
+		la, err := makeAbs(ls)
+		if err != nil {
+			return nil, err
+		}
+		rc[KeyRemoteLoc] = la
 		return rc, nil
-
 	}
 }
 
-func dirNameToExpandedUrl(dir string) (string, error) {
-	if !strings.HasPrefix(dir, "file:/") {
-		if filepath.IsAbs(dir) {
-			return "file:" + dir, nil
-		} else {
-			if !strings.HasPrefix(dir, "~") {
-				var err error
-				dir, err = filepath.Abs(dir)
-				if err != nil {
-					return "", err
-				}
+func makeAbs(dir string) (string, error) {
+	if filepath.IsAbs(dir) {
+		return dir, nil
+	} else {
+		if !strings.HasPrefix(dir, "~") {
+			var err error
+			dir, err = filepath.Abs(dir)
+			if err != nil {
+				return "", err
 			}
-			return "file:/" + dir, nil
 		}
+		return dir, nil
 	}
-	return dir, nil
 }

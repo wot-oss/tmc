@@ -1,9 +1,10 @@
-package cmd
+package remote
 
 import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
@@ -22,7 +23,7 @@ When no subcommand is given, defaults to list.`,
 }
 
 func init() {
-	rootCmd.AddCommand(remoteCmd)
+	cmd.RootCmd.AddCommand(remoteCmd)
 
 	// Here you will define your flags and configuration settings.
 

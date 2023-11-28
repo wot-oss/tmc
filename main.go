@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
+	_ "github.com/web-of-things-open-source/tm-catalog-cli/cmd/remote"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 )
 
@@ -23,9 +24,9 @@ func init() {
 
 func initViper() {
 	viper.SetDefault("remotes", map[string]any{
-		"localfs": map[string]any{
+		"local": map[string]any{
 			"type": "file",
-			"url":  "file:~/tm-catalog",
+			"loc":  "~/tm-catalog",
 		},
 	})
 	viper.SetDefault("logLevel", "INFO")

@@ -22,10 +22,10 @@ func RemoteList() error {
 	}
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tURL\n")
+	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tLOCATION\n")
 	for name, value := range config {
 		typ := elideString(fmt.Sprintf("%v", value[remotes.KeyRemoteType]), colWidth)
-		u := elideString(fmt.Sprintf("%v", value[remotes.KeyRemoteUrl]), colWidth)
+		u := elideString(fmt.Sprintf("%v", value[remotes.KeyRemoteLoc]), colWidth)
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\n", elideString(name, colWidth), typ, u)
 	}
 	_ = table.Flush()
@@ -33,24 +33,17 @@ func RemoteList() error {
 }
 
 func RemoteAdd(name, typ, confStr, confFile string) error {
-	if name == "" {
+	return remoteSaveConfig(name, typ, confStr, confFile, remotes.Add)
+}
+func RemoteSetConfig(name, typ, confStr, confFile string) error {
+	return remoteSaveConfig(name, typ, confStr, confFile, remotes.SetConfig)
+}
+
+func remoteSaveConfig(name, typ, confStr, confFile string, saver func(name, typ, confStr string, confFile []byte) error) error {
+	if !remotes.ValidRemoteNameRegex.MatchString(name) {
 		Stderrf("invalid name: %v", name)
 		return ErrInvalidArgs
 	}
-	if !isValidType(typ) {
-		Stderrf("invalid type: %v. Valid types are: %v", typ, remotes.SupportedTypes)
-		return ErrInvalidArgs
-	}
-
-	if confStr != "" && confFile != "" {
-		Stderrf("specify either <config> or <configFileName>, not both")
-		return ErrInvalidArgs
-	}
-	if confStr == "" && confFile == "" {
-		Stderrf("must specify either <config> or <configFileName>")
-		return ErrInvalidArgs
-	}
-
 	var bytes []byte
 	if confFile != "" {
 		var err error
@@ -61,7 +54,43 @@ func RemoteAdd(name, typ, confStr, confFile string) error {
 		}
 	}
 
-	return remotes.Add(name, typ, confStr, bytes)
+	typ = inferType(typ, bytes)
+
+	if !isValidType(typ) {
+		Stderrf("invalid type: %v. Valid types are: %v", typ, remotes.SupportedTypes)
+		return ErrInvalidArgs
+	}
+
+	if confStr != "" && confFile != "" {
+		Stderrf("specify either <config> or --file=<configFileName>, not both")
+		return ErrInvalidArgs
+	}
+	if confStr == "" && confFile == "" {
+		Stderrf("must specify either <config> or --file=<configFileName>")
+		return ErrInvalidArgs
+	}
+	err := saver(name, typ, confStr, bytes)
+	if err != nil {
+		Stderrf("error saving remote config: %v", err)
+	}
+	return err
+}
+func inferType(typ string, bytes []byte) string {
+	if typ != "" {
+		return typ
+	}
+	if len(bytes) > 0 {
+		config, err := remotes.AsRemoteConfig(bytes)
+		if err == nil {
+			t := config[remotes.KeyRemoteType]
+			if t != nil {
+				if ts, ok := t.(string); ok {
+					return ts
+				}
+			}
+		}
+	}
+	return ""
 }
 func RemoteSetDefault(name string) error {
 	err := remotes.SetDefault(name)
@@ -94,8 +123,25 @@ func RemoteShow(name string) error {
 		fmt.Println(string(bytes))
 	} else {
 		fmt.Printf("no remote named %s\n", name)
+		return remotes.ErrRemoteNotFound
 	}
 	return nil
+}
+
+func RemoteRename(oldName, newName string) (err error) {
+	err = remotes.Rename(oldName, newName)
+	if err != nil {
+		if errors.Is(err, remotes.ErrRemoteNotFound) {
+			Stderrf("remote %s not found", oldName)
+			return
+		}
+		if errors.Is(err, remotes.ErrInvalidRemoteName) {
+			Stderrf("invalid remote name: %s", newName)
+			return
+		}
+		Stderrf("error renaming a remote: %v", err)
+	}
+	return
 }
 
 func isValidType(typ string) bool {

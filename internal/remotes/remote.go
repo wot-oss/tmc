@@ -1,10 +1,12 @@
 package remotes
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
@@ -14,16 +16,19 @@ import (
 const (
 	KeyRemotes       = "remotes"
 	KeyRemoteType    = "type"
-	KeyRemoteUrl     = "url"
+	KeyRemoteLoc     = "loc"
 	KeyRemoteDefault = "default"
 
 	RemoteTypeFile = "file"
 )
 
+var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
+
 type Config map[string]map[string]any
 
 var ErrNoDefault = errors.New("no default remote config found")
 var ErrRemoteNotFound = errors.New("named remote not found")
+var ErrInvalidRemoteName = errors.New("invalid remote name")
 var ErrRemoteExists = errors.New("named remote already exists")
 var SupportedTypes = []string{RemoteTypeFile}
 
@@ -132,6 +137,18 @@ func Add(name, typ, confStr string, confFile []byte) error {
 		return ErrRemoteExists
 	}
 
+	return setRemoteConfig(name, typ, confStr, confFile, err)
+}
+func SetConfig(name, typ, confStr string, confFile []byte) error {
+	_, err := Get(name)
+	if err != nil && errors.Is(err, ErrRemoteNotFound) {
+		return ErrRemoteNotFound
+	}
+
+	return setRemoteConfig(name, typ, confStr, confFile, err)
+}
+
+func setRemoteConfig(name string, typ string, confStr string, confFile []byte, err error) error {
 	var rc map[string]any
 	switch typ {
 	case RemoteTypeFile:
@@ -153,6 +170,22 @@ func Add(name, typ, confStr string, confFile []byte) error {
 	return saveConfig(conf)
 }
 
+func Rename(oldName, newName string) error {
+	if !ValidRemoteNameRegex.MatchString(newName) {
+		return ErrInvalidRemoteName
+	}
+	conf, err := ReadConfig()
+	if err != nil {
+		return err
+	}
+	if rc, ok := conf[oldName]; ok {
+		conf[newName] = rc
+		delete(conf, oldName)
+		return saveConfig(conf)
+	} else {
+		return ErrRemoteNotFound
+	}
+}
 func saveConfig(conf Config) error {
 	dc := 0
 	for _, rc := range conf {
@@ -170,9 +203,22 @@ func saveConfig(conf Config) error {
 	if configFile == "" {
 		configFile = filepath.Join(config.DefaultConfigDir, "config.json")
 	}
-	err := os.MkdirAll(config.DefaultConfigDir, 0700)
+	err := os.MkdirAll(config.DefaultConfigDir, 0770)
 	if err != nil {
 		return err
 	}
 	return viper.WriteConfigAs(configFile)
+}
+
+func AsRemoteConfig(bytes []byte) (map[string]any, error) {
+	var js any
+	err := json.Unmarshal(bytes, &js)
+	if err != nil {
+		return nil, fmt.Errorf("invalid json config: %w", err)
+	}
+	rc, ok := js.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid json config. must be a map")
+	}
+	return rc, nil
 }

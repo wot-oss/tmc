@@ -13,7 +13,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err := NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 	assert.Equal(t, root, remote.root)
@@ -22,7 +22,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file://" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 	assert.Equal(t, root, remote.root)
@@ -31,7 +31,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:/" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 	home, _ := os.UserHomeDir()
@@ -41,7 +41,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
@@ -50,7 +50,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:///" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
@@ -59,7 +59,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:/" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.ToSlash("c:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(remote.root))
@@ -68,7 +68,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:///" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(remote.root))
@@ -84,19 +84,20 @@ func TestCreateFileRemoteConfig(t *testing.T) {
 		expRoot  string
 		expErr   bool
 	}{
-		{"../dir/name", "", "file:/" + filepath.Join(filepath.Dir(wd), "/dir/name"), false},
-		{"./dir/name", "", "file:/" + filepath.Join(wd, "dir/name"), false},
-		{"dir/name", "", "file:/" + filepath.Join(wd, "dir/name"), false},
-		{".", "", "file:/" + filepath.Join(wd), false},
-		{filepath.Join(wd, "dir/name"), "", "file:" + filepath.Join(wd, "dir/name"), false},
-		{"~/dir/name", "", "file:/~/dir/name", false},
+		{"../dir/name", "", filepath.Join(filepath.Dir(wd), "/dir/name"), false},
+		{"./dir/name", "", filepath.Join(wd, "dir/name"), false},
+		{"dir/name", "", filepath.Join(wd, "dir/name"), false},
+		{"/dir/name", "", filepath.Join(filepath.VolumeName(wd), "/dir/name"), false},
+		{".", "", filepath.Join(wd), false},
+		{filepath.Join(wd, "dir/name"), "", filepath.Join(wd, "dir/name"), false},
+		{"~/dir/name", "", "~/dir/name", false},
 		{"", ``, "", true},
 		{"", `[]`, "", true},
 		{"", `{}`, "", true},
-		//{"", `{"url":{}}`, "", true},
-		//{"", `{"url":"dir/name"}`, "file:/dir/name", false},
-		//{"", `{"url":"/dir/name"}`, "file:/dir/name", false},
-		//{"", `{"url":"dir/name", "type":"http"}`, "file:dir/name", false},
+		{"", `{"loc":{}}`, "", true},
+		{"", `{"loc":"dir/name"}`, filepath.Join(wd, "dir/name"), false},
+		{"", `{"loc":"/dir/name"}`, filepath.Join(filepath.VolumeName(wd), "/dir/name"), false},
+		{"", `{"loc":"dir/name", "type":"http"}`, "", true},
 	}
 
 	for i, test := range tests {
@@ -108,7 +109,7 @@ func TestCreateFileRemoteConfig(t *testing.T) {
 			assert.NoError(t, err, "no error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 		}
 		assert.Equalf(t, "file", cf[KeyRemoteType], "in test %d for %s %s", i, test.strConf, test.fileConf)
-		assert.Equalf(t, test.expRoot, cf[KeyRemoteUrl], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, test.expRoot, cf[KeyRemoteLoc], "in test %d for %s %s", i, test.strConf, test.fileConf)
 
 	}
 }
