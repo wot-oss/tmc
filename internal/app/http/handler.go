@@ -40,25 +40,25 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetInventoryById Get an inventory entry by inventory ID
-// (GET /inventory/{inventoryId})
-func (h *TmcHandler) GetInventoryById(w http.ResponseWriter, r *http.Request, inventoryId string) {
+// GetInventoryByName Get an inventory entry by inventory name
+// (GET /inventory/{name})
+func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, name string) {
 
-	tocEntry, err := findTocEntry(inventoryId)
+	tocEntry, err := findTocEntry(name)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
-	resp := toInventoryEntryResponse(inventoryId, *tocEntry)
+	resp := toInventoryEntryResponse(*tocEntry)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
 // GetInventoryVersionsById Get the versions of an inventory entry
 // (GET /inventory/{inventoryId}/versions)
-func (h *TmcHandler) GetInventoryVersionsById(w http.ResponseWriter, r *http.Request, inventoryId string) {
-	tocEntry, err := findTocEntry(inventoryId)
+func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
+	tocEntry, err := findTocEntry(name)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -70,9 +70,9 @@ func (h *TmcHandler) GetInventoryVersionsById(w http.ResponseWriter, r *http.Req
 }
 
 // GetThingModelById Get the content of a Thing Model by it's ID
-// (GET /thing-models/{tmId})
-func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmId string) {
-	data, err := fetchThingModel(tmId)
+// (GET /thing-models/{tmID})
+func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string) {
+	data, err := fetchThingModel(tmID)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return

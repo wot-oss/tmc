@@ -7,7 +7,7 @@ import (
 	"sort"
 )
 
-func listToc(filter *FilterParams, search *SearchParams) (*model.Toc, error) {
+func listToc(filter *FilterParams, search *SearchParams) (*model.TOC, error) {
 	remote, err := remotes.Get("")
 	if err != nil {
 		return nil, err
@@ -28,10 +28,10 @@ func listToc(filter *FilterParams, search *SearchParams) (*model.Toc, error) {
 	return &toc, nil
 }
 
-func listTocAuthors(toc *model.Toc) []string {
+func listTocAuthors(toc *model.TOC) []string {
 	authors := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Contents {
+	for _, v := range toc.Data {
 		if _, ok := check[v.Author.Name]; !ok {
 			check[v.Author.Name] = true
 			authors = append(authors, v.Author.Name)
@@ -41,10 +41,10 @@ func listTocAuthors(toc *model.Toc) []string {
 	return authors
 }
 
-func listTocManufacturers(toc *model.Toc) []string {
+func listTocManufacturers(toc *model.TOC) []string {
 	mans := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Contents {
+	for _, v := range toc.Data {
 		if _, ok := check[v.Manufacturer.Name]; !ok {
 			check[v.Manufacturer.Name] = true
 			mans = append(mans, v.Manufacturer.Name)
@@ -54,10 +54,10 @@ func listTocManufacturers(toc *model.Toc) []string {
 	return mans
 }
 
-func listTocMpns(toc *model.Toc) []string {
+func listTocMpns(toc *model.TOC) []string {
 	mpns := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Contents {
+	for _, v := range toc.Data {
 		if _, ok := check[v.Mpn]; !ok {
 			check[v.Mpn] = true
 			mpns = append(mpns, v.Mpn)
@@ -67,34 +67,34 @@ func listTocMpns(toc *model.Toc) []string {
 	return mpns
 }
 
-func findTocEntry(id string) (*model.TocThing, error) {
-	//todo: check if iventoryId is valid format
+func findTocEntry(name string) (*model.TOCEntry, error) {
+	//todo: check if name is valid format
 	toc, err := listToc(nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	tocEntry, ok := toc.Contents[id]
-	if !ok {
-		return nil, NewNotFoundError(nil, "Inventory with Id %s not found", id)
+	tocEntry := toc.FindByName(name)
+	if tocEntry == nil {
+		return nil, NewNotFoundError(nil, "Inventory with name %s not found", name)
 	}
-	return &tocEntry, nil
+	return tocEntry, nil
 }
 
-func fetchThingModel(tmId string) ([]byte, error) {
+func fetchThingModel(tmID string) ([]byte, error) {
 	remote, err := remotes.Get("")
 	if err != nil {
 		return nil, err
 	}
 
-	mTmId, err := model.ParseTMID(tmId, false)
+	mTmID, err := model.ParseTMID(tmID, false)
 	if err == model.ErrInvalidId {
-		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmId)
+		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmID)
 	} else if err != nil {
 		return nil, err
 	}
 
-	data, err := remote.Fetch(mTmId)
+	data, err := remote.Fetch(mTmID)
 	if err != nil && err.Error() == "file does not exist" {
 		return nil, NewNotFoundError(err, "File does not exists")
 	} else if err != nil {
@@ -103,7 +103,7 @@ func fetchThingModel(tmId string) ([]byte, error) {
 	return data, nil
 }
 
-func pushThingModel(file []byte) (tmid *model.TMID, err error) {
+func pushThingModel(file []byte) (*model.TMID, error) {
 	remote, err := remotes.Get("")
 	if err != nil {
 		return nil, err

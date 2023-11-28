@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"net/http"
@@ -63,16 +64,12 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errTitle = error409Title
 		errDetail = sErr.Error()
 		errStatus = http.StatusConflict
-	} else if strings.HasPrefix(err.Error(), "value does not match one of the schemas") {
-		errTitle = error400Title
-		errDetail = err.Error()
-		errStatus = http.StatusBadRequest
-	} else if strings.HasPrefix(err.Error(), "empty document is not valid JSON") {
-		errTitle = error400Title
-		errDetail = err.Error()
-		errStatus = http.StatusBadRequest
 	} else {
 		switch err.(type) {
+		case *jsonschema.ValidationError, *json.SyntaxError:
+			errTitle = error400Title
+			errDetail = err.Error()
+			errStatus = http.StatusBadRequest
 		case *InvalidParamFormatError, *RequiredParamError, *RequiredHeaderError,
 			*UnmarshalingParamError, *TooManyValuesForParamError, *UnescapedCookieParamError:
 			errTitle = error400Title
@@ -140,34 +137,34 @@ func convertParams(params any) (*FilterParams, *SearchParams) {
 	var filterAuthor *string
 	var filterManufacturer *string
 	var filterMpn *string
-	var filterOriginal *string
+	var filterExternalID *string
 	var searchContent *string
 
 	if invParams, ok := params.(GetInventoryParams); ok {
 		filterAuthor = invParams.FilterAuthor
 		filterManufacturer = invParams.FilterManufacturer
 		filterMpn = invParams.FilterMpn
-		filterOriginal = invParams.FilterOriginal
+		filterExternalID = invParams.FilterExternalID
 		searchContent = invParams.SearchContent
 	} else if authorsParams, ok := params.(GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
-		filterOriginal = authorsParams.FilterOriginal
+		filterExternalID = authorsParams.FilterExternalID
 		searchContent = authorsParams.SearchContent
 	} else if manParams, ok := params.(GetManufacturersParams); ok {
 		filterAuthor = manParams.FilterAuthor
 		filterMpn = manParams.FilterMpn
-		filterOriginal = manParams.FilterOriginal
+		filterExternalID = manParams.FilterExternalID
 		searchContent = manParams.SearchContent
 	} else if mpnsParams, ok := params.(GetMpnsParams); ok {
 		filterAuthor = mpnsParams.FilterAuthor
 		filterManufacturer = mpnsParams.FilterManufacturer
-		filterOriginal = mpnsParams.FilterOriginal
+		filterExternalID = mpnsParams.FilterExternalID
 		searchContent = mpnsParams.SearchContent
 	}
 
 	var filter FilterParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterOriginal != nil {
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil {
 		filter = FilterParams{}
 		if filterAuthor != nil {
 			filter.Author = strings.Split(*filterAuthor, ",")
@@ -178,8 +175,8 @@ func convertParams(params any) (*FilterParams, *SearchParams) {
 		if filterMpn != nil {
 			filter.Mpn = strings.Split(*filterMpn, ",")
 		}
-		if filterOriginal != nil {
-			filter.Original = strings.Split(*filterOriginal, ",")
+		if filterExternalID != nil {
+			filter.ExternalID = strings.Split(*filterExternalID, ",")
 		}
 	}
 
@@ -192,9 +189,9 @@ func convertParams(params any) (*FilterParams, *SearchParams) {
 	return &filter, &search
 }
 
-func toInventoryResponse(toc model.Toc) InventoryResponse {
+func toInventoryResponse(toc model.TOC) InventoryResponse {
 	meta := mapInventoryMeta(toc)
-	inv := mapInventoryContents(toc.Contents)
+	inv := mapInventoryData(toc.Data)
 	resp := InventoryResponse{
 		Meta: &meta,
 		Data: inv,
@@ -203,16 +200,16 @@ func toInventoryResponse(toc model.Toc) InventoryResponse {
 	return resp
 }
 
-func toInventoryEntryResponse(tocEntryId string, tocThing model.TocThing) InventoryEntryResponse {
-	invEntry := mapInventoryEntry(tocEntryId, tocThing)
+func toInventoryEntryResponse(tocEntry model.TOCEntry) InventoryEntryResponse {
+	invEntry := mapInventoryEntry(tocEntry)
 	resp := InventoryEntryResponse{
 		Data: invEntry,
 	}
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(tocVersions []model.TocVersion) InventoryEntryVersionsResponse {
-	invEntryVersions := mapInvtoryEntryVersions(tocVersions)
+func toInventoryEntryVersionsResponse(tocVersions []model.TOCVersion) InventoryEntryVersionsResponse {
+	invEntryVersions := mapInventoryEntryVersions(tocVersions)
 	resp := InventoryEntryVersionsResponse{
 		Data: invEntryVersions,
 	}

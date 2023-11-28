@@ -20,12 +20,12 @@ type ServerInterface interface {
 	// Get the inventory of the catalog
 	// (GET /inventory)
 	GetInventory(w http.ResponseWriter, r *http.Request, params GetInventoryParams)
-	// Get an inventory entry by inventory ID
-	// (GET /inventory/{inventoryId})
-	GetInventoryById(w http.ResponseWriter, r *http.Request, inventoryId string)
+	// Get an inventory entry by it's name
+	// (GET /inventory/{name})
+	GetInventoryByName(w http.ResponseWriter, r *http.Request, name string)
 	// Get the versions of an inventory entry
-	// (GET /inventory/{inventoryId}/versions)
-	GetInventoryVersionsById(w http.ResponseWriter, r *http.Request, inventoryId string)
+	// (GET /inventory/{name}/versions)
+	GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string)
 	// Get the contained manufacturers of the inventory
 	// (GET /manufacturers)
 	GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams)
@@ -36,8 +36,8 @@ type ServerInterface interface {
 	// (POST /thing-models)
 	PushThingModel(w http.ResponseWriter, r *http.Request)
 	// Get the content of a Thing Model by it's ID
-	// (GET /thing-models/{tmId})
-	GetThingModelById(w http.ResponseWriter, r *http.Request, tmId string)
+	// (GET /thing-models/{tmID})
+	GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -76,11 +76,11 @@ func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// ------------- Optional query parameter "filter[original]" -------------
+	// ------------- Optional query parameter "filter[externalID]" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "filter[original]", r.URL.Query(), &params.FilterOriginal)
+	err = runtime.BindQueryParameter("form", true, false, "filter[externalID]", r.URL.Query(), &params.FilterExternalID)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[original]", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[externalID]", Err: err})
 		return
 	}
 
@@ -138,11 +138,11 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// ------------- Optional query parameter "filter[original]" -------------
+	// ------------- Optional query parameter "filter[externalID]" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "filter[original]", r.URL.Query(), &params.FilterOriginal)
+	err = runtime.BindQueryParameter("form", true, false, "filter[externalID]", r.URL.Query(), &params.FilterExternalID)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[original]", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[externalID]", Err: err})
 		return
 	}
 
@@ -173,25 +173,25 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetInventoryById operation middleware
-func (siw *ServerInterfaceWrapper) GetInventoryById(w http.ResponseWriter, r *http.Request) {
+// GetInventoryByName operation middleware
+func (siw *ServerInterfaceWrapper) GetInventoryByName(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "inventoryId" -------------
-	var inventoryId string
+	// ------------- Path parameter "name" -------------
+	var name string
 
-	err = runtime.BindStyledParameter("simple", false, "inventoryId", mux.Vars(r)["inventoryId"], &inventoryId)
+	err = runtime.BindStyledParameter("simple", false, "name", mux.Vars(r)["name"], &name)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "inventoryId", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
 		return
 	}
 
 	ctx = context.WithValue(ctx, Api_keyScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetInventoryById(w, r, inventoryId)
+		siw.Handler.GetInventoryByName(w, r, name)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -201,25 +201,25 @@ func (siw *ServerInterfaceWrapper) GetInventoryById(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetInventoryVersionsById operation middleware
-func (siw *ServerInterfaceWrapper) GetInventoryVersionsById(w http.ResponseWriter, r *http.Request) {
+// GetInventoryVersionsByName operation middleware
+func (siw *ServerInterfaceWrapper) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "inventoryId" -------------
-	var inventoryId string
+	// ------------- Path parameter "name" -------------
+	var name string
 
-	err = runtime.BindStyledParameter("simple", false, "inventoryId", mux.Vars(r)["inventoryId"], &inventoryId)
+	err = runtime.BindStyledParameter("simple", false, "name", mux.Vars(r)["name"], &name)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "inventoryId", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
 		return
 	}
 
 	ctx = context.WithValue(ctx, Api_keyScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetInventoryVersionsById(w, r, inventoryId)
+		siw.Handler.GetInventoryVersionsByName(w, r, name)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -256,11 +256,11 @@ func (siw *ServerInterfaceWrapper) GetManufacturers(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// ------------- Optional query parameter "filter[original]" -------------
+	// ------------- Optional query parameter "filter[externalID]" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "filter[original]", r.URL.Query(), &params.FilterOriginal)
+	err = runtime.BindQueryParameter("form", true, false, "filter[externalID]", r.URL.Query(), &params.FilterExternalID)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[original]", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[externalID]", Err: err})
 		return
 	}
 
@@ -310,11 +310,11 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// ------------- Optional query parameter "filter[original]" -------------
+	// ------------- Optional query parameter "filter[externalID]" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "filter[original]", r.URL.Query(), &params.FilterOriginal)
+	err = runtime.BindQueryParameter("form", true, false, "filter[externalID]", r.URL.Query(), &params.FilterExternalID)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[original]", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter[externalID]", Err: err})
 		return
 	}
 
@@ -360,19 +360,19 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 
 	var err error
 
-	// ------------- Path parameter "tmId" -------------
-	var tmId string
+	// ------------- Path parameter "tmID" -------------
+	var tmID string
 
-	err = runtime.BindStyledParameter("simple", false, "tmId", mux.Vars(r)["tmId"], &tmId)
+	err = runtime.BindStyledParameter("simple", false, "tmID", mux.Vars(r)["tmID"], &tmID)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmId", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmID", Err: err})
 		return
 	}
 
 	ctx = context.WithValue(ctx, Api_keyScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetThingModelById(w, r, tmId)
+		siw.Handler.GetThingModelById(w, r, tmID)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -499,9 +499,9 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/inventory", wrapper.GetInventory).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId:.+}/versions", wrapper.GetInventoryVersionsById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/versions", wrapper.GetInventoryVersionsByName).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId:.+}", wrapper.GetInventoryById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}", wrapper.GetInventoryByName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/manufacturers", wrapper.GetManufacturers).Methods("GET")
 
@@ -509,7 +509,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.PushThingModel).Methods("POST")
 
-	r.HandleFunc(options.BaseURL+"/thing-models/{tmId:.+}", wrapper.GetThingModelById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.GetThingModelById).Methods("GET")
 
 	return r
 }

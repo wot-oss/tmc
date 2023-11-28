@@ -15,7 +15,7 @@ var serveCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(serveCmd)
+	RootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().StringP("host", "", "0.0.0.0", "serve with this host name")
 	serveCmd.Flags().StringP("port", "", "8080", "serve with this port")
 }

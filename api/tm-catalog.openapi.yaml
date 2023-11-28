@@ -51,14 +51,14 @@ paths:
           schema:
             type: string
           example: filter[mpn]=B21,FC102
-        - name: filter[original]
+        - name: filter[externalID]
           in: query
           description: |
-            Filters the inventory by one or more original ID having exact match.   
+            Filters the inventory by one or more external ID having exact match.   
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: search[content]
           in: query
           description: |
@@ -69,7 +69,7 @@ paths:
           example: search[content]=
         - name: sort
           in: query
-          description: | 
+          description: |
             Sorts the inventory by one or more fields. The sort is applied in the order of the fields.   
             The sorting is done ascending per field by default. If a field needs to be sorted descending,  
             prefix it with a HYPHEN-MINUS "-")
@@ -101,17 +101,17 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - api_key: []
-  /inventory/{inventoryId}:
+  /inventory/{name}:
     get:
       tags:
         - inventory
-      summary: Get an inventory entry by inventory ID
+      summary: Get an inventory entry by it's name
       description: Returns a single inventory entry
-      operationId: getInventoryById
+      operationId: getInventoryByName
       parameters:
-        - name: inventoryId
+        - name: name
           in: path
-          description: ID of the inventory entry
+          description: Name of the inventory entry
           required: true
           schema:
             type: string
@@ -146,17 +146,17 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - api_key: []
-  /inventory/{inventoryId}/versions:
+  /inventory/{name}/versions:
     get:
       tags:
         - inventory
       summary: Get the versions of an inventory entry
-      description: Returns the versions of an inventory entry by it`s ID
-      operationId: getInventoryVersionsById
+      description: Returns the versions of an inventory entry by it`s name
+      operationId: getInventoryVersionsByName
       parameters:
-        - name: inventoryId
+        - name: name
           in: path
-          description: ID of the inventory entry
+          description: Name of the inventory entry
           required: true
           schema:
             type: string
@@ -191,7 +191,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
       security:
         - api_key: []
-  /thing-models/{tmId}:
+  /thing-models/{tmID}:
     get:
       tags:
         - thing-models
@@ -199,7 +199,7 @@ paths:
       description: Returns the actual content of a Thing Model
       operationId: getThingModelById
       parameters:
-        - name: tmId
+        - name: tmID
           in: path
           description: ID of the Thing Model
           required: true
@@ -306,15 +306,15 @@ paths:
           schema:
             type: string
           example: filter[mpn]=B21,FC102
-        - name: filter[original]
+        - name: filter[externalID]
           in: query
           description: |
             Filters the authors according to whether they have inventory entries   
-            which belong to at least one of the given original ID's with an exact match.    
+            which belong to at least one of the given external ID's with an exact match.    
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: search[content]
           in: query
           description: |
@@ -372,15 +372,15 @@ paths:
           schema:
             type: string
           example: filter[mpn]=B21,FC102
-        - name: filter[original]
+        - name: filter[externalID]
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries   
-            which belong to at least one of the given original ID's with an exact match.    
+            which belong to at least one of the given external ID's with an exact match.    
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: search[content]
           in: query
           description: |
@@ -437,15 +437,15 @@ paths:
           schema:
             type: string
           example: filter[manufacturer]=ABB,Danfoss
-        - name: filter[original]
+        - name: filter[externalID]
           in: query
           description: |
             Filters the mpns according to whether their inventory entry   
-            belongs to at least one of the given original ID's with an exact match.    
+            belongs to at least one of the given external ID's with an exact match.    
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[original]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: search[content]
           in: query
           description: |
@@ -481,12 +481,16 @@ components:
   schemas:
     InventoryEntry:
       required:
+        - name
         - schema:author
         - schema:manufacturer
         - schema:mpn
         - versions
       type: object
       properties:
+        name:
+          type: string
+          example: mycompany/abb/B21
         schema:author:
           $ref: '#/components/schemas/SchemaAuthor'
         schema:manufacturer:
@@ -499,37 +503,54 @@ components:
           items:
             $ref: '#/components/schemas/InventoryEntryVersion'
         links:
-          type: array
-          items:
-            $ref: '#/components/schemas/Link'
+          $ref: '#/components/schemas/InventoryEntryLinks'
     InventoryEntryVersion:
       required:
-        - tmId
-        - original
+        - tmID
+        - externalID
         - description
+        - timestamp
+        - digest
         - version
       type: object
       properties:
-        tmId:
+        tmID:
           type: string
           example: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-        original:
+        externalID:
           type: string
           example: e7f19370-84a3-11ee-b962-0242ac120002
         description:
           type: string
           example: Some description of the thing
+        digest:
+          type: string
+          example: 7256fc6baeec
         version:
           $ref: '#/components/schemas/ModelVersion'
         timestamp:
           type: string
           example: 20231116091345
         links:
-          type: array
-          items:
-            $ref: '#/components/schemas/Link'
-      example: >-
-        /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          $ref: '#/components/schemas/InventoryEntryVersionLinks'
+    InventoryEntryLinks:
+      type: object
+      required:
+        - self
+      properties:
+        self:
+          type: string
+          format: uri
+          example: /inventory/mycompany/abb/B21
+    InventoryEntryVersionLinks:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          format: uri
+          example: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
     InventoryResponse:
       type: object
       required:
@@ -538,7 +559,8 @@ components:
         meta:
           $ref: '#/components/schemas/Meta'
         data:
-          additionalProperties:
+          type: array
+          items:
             $ref: '#/components/schemas/InventoryEntry'
     InventoryEntryResponse:
       type: object
@@ -606,19 +628,6 @@ components:
         schema:name:
           type: string
           example: ABB
-    Link:
-      type: object
-      required:
-        - rel
-        - href
-      properties:
-        rel:
-          type: string
-          enum:
-            - content
-            - self
-        href:
-          type: string
     Meta:
       required:
         - created
@@ -669,124 +678,122 @@ components:
     InventoryEntryVersionsResponseExample:
       value:
         data:
-          - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-            original: e7f19370-84a3-11ee-b962-0242ac120002
+          - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+            externalID: e7f19370-84a3-11ee-b962-0242ac120002
             description: Some new description of the device
             timestamp: 20231116091345
+            digest: 7256fc6baeec
             version:
               model: 1.0.1
             links:
-              - rel: content
-                href: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-          - tmId: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            original: e7f19370-84a3-11ee-b962-0242ac120002
+              content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            externalID: e7f19370-84a3-11ee-b962-0242ac120002
             description: Some description of the device
             timestamp: 20231017080730
+            digest: 4832ab7bbeac
             version:
               model: 1.0.0
             links:
-              - rel: content
-                href: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-          - tmId: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-            original: e7f19370-84a3-11ee-b962-0242ac120002
+              content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+          - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+            externalID: e7f19370-84a3-11ee-b962-0242ac120002
             description: Some description of the device
             timestamp: 20231015102132
+            digest: 6391fe4bcefc
             version:
               model: 1.0.0
             links:
-              - rel: content
-                href: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+              content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
     InventoryEntryResponseExample:
       value:
         data:
+          name: mycompany/abb/B21
           schema:author:
             schema:name: MyCompany
           schema:manufacturer:
             schema:name: ABB
           schema:mpn: B21
           versions:
-            - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-              original: e7f19370-84a3-11ee-b962-0242ac120002
+            - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+              externalID: e7f19370-84a3-11ee-b962-0242ac120002
               description: Some new description of the device
               timestamp: 20231116091345
+              digest: 7256fc6baeec
               version:
                 model: 1.0.1
               links:
-                - rel: content
-                  href: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-            - tmId: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-              original: e7f19370-84a3-11ee-b962-0242ac120002
+                content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+            - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+              externalID: e7f19370-84a3-11ee-b962-0242ac120002
               description: Some description of the device
               timestamp: 20231017080730
+              digest: 4832ab7bbeac
               version:
                 model: 1.0.0
               links:
-                - rel: content
-                  href: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            - tmId: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-              original: e7f19370-84a3-11ee-b962-0242ac120002
+                content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+              externalID: e7f19370-84a3-11ee-b962-0242ac120002
               description: Some description of the device
               timestamp: 20231015102132
+              digest: 6391fe4bcefc
               version:
                 model: 1.0.0
               links:
-                - rel: content
-                  href: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+                content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
           links:
-            - rel: self
-              href: /inventory/mycompany/abb/B21
+            self: /inventory/mycompany/abb/B21
     InventoryResponseExample:
       value:
         meta:
           created: "2023-11-16T18:07:18.8213578+01:00"
         data:
-          mycompany/abb/B21:
+          - name: mycompany/abb/B21
             schema:author:
               schema:name: MyCompany
             schema:manufacturer:
               schema:name: ABB
             schema:mpn: B21
             versions:
-              - tmId: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-                original: e7f19370-84a3-11ee-b962-0242ac120002
+              - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+                externalID: e7f19370-84a3-11ee-b962-0242ac120002
                 description: Some new description of the device
                 timestamp: 20231116091345
+                digest: 7256fc6baeec
                 version:
                   model: 1.0.1
                 links:
-                  - rel: content
-                    href: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-              - tmId: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-                original: e7f19370-84a3-11ee-b962-0242ac120002
+                  content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+              - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+                externalID: e7f19370-84a3-11ee-b962-0242ac120002
                 description: Some description of the device
                 timestamp: 20231017080730
+                digest: 4832ab7bbeac
                 version:
                   model: 1.0.0
                 links:
-                  - rel: content
-                    href: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+                  content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
             links:
-              - rel: self
-                href: /inventory/mycompany/abb/B21
-          yourcompany/danfoss/FC102:
+              self: /inventory/mycompany/abb/B21
+          - name: yourcompany/danfoss/FC102
             schema:author:
               schema:name: YourCompany
             schema:manufacturer:
               schema:name: Danfoss
             schema:mpn: FC 102
             versions:
-              - tmId: yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
-                original: danfoss-kxf19370
+              - tmID: yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
+                externalID: danfoss-kxf19370
                 description: Some description of the device
                 timestamp: 2023082112103
+                digest: 2522cf7bbead
                 version:
                   model: 1.0.0
                 links:
-                  - rel: content
-                    href: /thing-models/yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
+                  content: /thing-models/yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
             links:
-              - rel: self
-                href: /inventory/yourcompany/danfoss/FC102
+              self: /inventory/yourcompany/danfoss/FC102
     AuthorsResponseExample:
       value:
         data:

@@ -5,42 +5,41 @@ import (
 	"net/url"
 )
 
-func mapInventoryMeta(toc model.Toc) Meta {
+func mapInventoryMeta(toc model.TOC) Meta {
 	meta := Meta{
 		Created: toc.Meta.Created,
 	}
 	return meta
 }
 
-func mapInventoryContents(tocContent map[string]model.TocThing) map[string]InventoryEntry {
-	content := map[string]InventoryEntry{}
-	for k, v := range tocContent {
-		content[k] = mapInventoryEntry(k, v)
+func mapInventoryData(tocData []*model.TOCEntry) []InventoryEntry {
+	data := []InventoryEntry{}
+	for _, v := range tocData {
+		data = append(data, mapInventoryEntry(*v))
 	}
 
-	return content
+	return data
 }
 
-func mapInventoryEntry(tocEntryId string, tocThing model.TocThing) InventoryEntry {
+func mapInventoryEntry(tocEntry model.TOCEntry) InventoryEntry {
 	invEntry := InventoryEntry{}
-	invEntry.SchemaAuthor.SchemaName = tocThing.Author.Name
-	invEntry.SchemaManufacturer.SchemaName = tocThing.Manufacturer.Name
-	invEntry.SchemaMpn = tocThing.Mpn
-	invEntry.Versions = mapInvtoryEntryVersions(tocThing.Versions)
+	invEntry.Name = tocEntry.Name
+	invEntry.SchemaAuthor.SchemaName = tocEntry.Author.Name
+	invEntry.SchemaManufacturer.SchemaName = tocEntry.Manufacturer.Name
+	invEntry.SchemaMpn = tocEntry.Mpn
+	invEntry.Versions = mapInventoryEntryVersions(tocEntry.Versions)
 
-	var links []Link
-	hrefSelf, _ := url.JoinPath(basePathInventory, tocEntryId)
-	linkSelf := Link{
-		Rel:  Self,
-		Href: hrefSelf,
+	hrefSelf, _ := url.JoinPath(basePathInventory, tocEntry.Name)
+	links := InventoryEntryLinks{
+		Self: hrefSelf,
 	}
-	links = append(links, linkSelf)
+
 	invEntry.Links = &links
 
 	return invEntry
 }
 
-func mapInvtoryEntryVersions(tocVersions []model.TocVersion) []InventoryEntryVersion {
+func mapInventoryEntryVersions(tocVersions []model.TOCVersion) []InventoryEntryVersion {
 	invVersions := []InventoryEntryVersion{}
 	for _, v := range tocVersions {
 		invVersion := mapInventoryEntryVersion(v)
@@ -50,22 +49,20 @@ func mapInvtoryEntryVersions(tocVersions []model.TocVersion) []InventoryEntryVer
 	return invVersions
 }
 
-func mapInventoryEntryVersion(tocVersion model.TocVersion) InventoryEntryVersion {
+func mapInventoryEntryVersion(tocVersion model.TOCVersion) InventoryEntryVersion {
 	invVersion := InventoryEntryVersion{}
 
-	invVersion.TmId = tocVersion.ID
+	invVersion.TmID = tocVersion.TMID
 	invVersion.Version.Model = tocVersion.Version.Model
-	invVersion.Original = tocVersion.Original
+	invVersion.ExternalID = tocVersion.ExternalID
 	invVersion.Description = tocVersion.Description
-	invVersion.Timestamp = &tocVersion.TimeStamp
+	invVersion.Timestamp = tocVersion.TimeStamp
+	invVersion.Digest = tocVersion.Digest
 
-	var links []Link
-	hrefContent, _ := url.JoinPath(basePathThingModels, tocVersion.ID)
-	linkContent := Link{
-		Rel:  Content,
-		Href: hrefContent,
+	hrefContent, _ := url.JoinPath(basePathThingModels, tocVersion.TMID)
+	links := InventoryEntryVersionLinks{
+		Content: hrefContent,
 	}
-	links = append(links, linkContent)
 
 	invVersion.Links = &links
 

@@ -11,12 +11,6 @@ const (
 	Api_keyScopes = "api_key.Scopes"
 )
 
-// Defines values for LinkRel.
-const (
-	Content LinkRel = "content"
-	Self    LinkRel = "self"
-)
-
 // Defines values for GetInventoryParamsSort.
 const (
 	Author       GetInventoryParamsSort = "author"
@@ -40,11 +34,17 @@ type ErrorResponse struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
-	Links              *[]Link                 `json:"links,omitempty"`
+	Name               string                  `json:"name"`
 	SchemaAuthor       SchemaAuthor            `json:"schema:author"`
 	SchemaManufacturer SchemaManufacturer      `json:"schema:manufacturer"`
 	SchemaMpn          string                  `json:"schema:mpn"`
 	Versions           []InventoryEntryVersion `json:"versions"`
+	Links              *InventoryEntryLinks    `json:"links,omitempty"`
+}
+
+// InventoryEntryLinks defines model for InventoryEntryLinks.
+type InventoryEntryLinks struct {
+	Self string `json:"self"`
 }
 
 // InventoryEntryResponse defines model for InventoryEntryResponse.
@@ -54,12 +54,18 @@ type InventoryEntryResponse struct {
 
 // InventoryEntryVersion defines model for InventoryEntryVersion.
 type InventoryEntryVersion struct {
-	Description string       `json:"description"`
-	Links       *[]Link      `json:"links,omitempty"`
-	Original    string       `json:"original"`
-	Timestamp   *string      `json:"timestamp,omitempty"`
-	TmId        string       `json:"tmId"`
-	Version     ModelVersion `json:"version"`
+	Description string                      `json:"description"`
+	Version     ModelVersion                `json:"version"`
+	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
+	TmID        string                      `json:"tmID"`
+	Digest      string                      `json:"digest"`
+	Timestamp   string                      `json:"timestamp"`
+	ExternalID  string                      `json:"externalID"`
+}
+
+// InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.
+type InventoryEntryVersionLinks struct {
+	Content string `json:"content"`
 }
 
 // InventoryEntryVersionsResponse defines model for InventoryEntryVersionsResponse.
@@ -69,18 +75,9 @@ type InventoryEntryVersionsResponse struct {
 
 // InventoryResponse defines model for InventoryResponse.
 type InventoryResponse struct {
-	Data map[string]InventoryEntry `json:"data"`
-	Meta *Meta                     `json:"meta,omitempty"`
+	Data []InventoryEntry `json:"data"`
+	Meta *Meta            `json:"meta,omitempty"`
 }
-
-// Link defines model for Link.
-type Link struct {
-	Href string  `json:"href"`
-	Rel  LinkRel `json:"rel"`
-}
-
-// LinkRel defines model for Link.Rel.
-type LinkRel string
 
 // ManufacturersResponse defines model for ManufacturersResponse.
 type ManufacturersResponse struct {
@@ -134,10 +131,10 @@ type GetAuthorsParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
 
-	// FilterOriginal Filters the authors according to whether they have inventory entries
-	// which belong to at least one of the given original ID's with an exact match.
+	// FilterExternalID Filters the authors according to whether they have inventory entries
+	// which belong to at least one of the given external ID's with an exact match.
 	// The filter works additive to other filters.
-	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
+	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
 
 	// SearchContent Filters the authors according to whether they have inventory entries
 	// where their content matches the given search.
@@ -159,9 +156,9 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
 
-	// FilterOriginal Filters the inventory by one or more original ID having exact match.
+	// FilterExternalID Filters the inventory by one or more external ID having exact match.
 	// The filter works additive to other filters.
-	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
+	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
 
 	// SearchContent Filters the inventory according to whether the content of the inventory entries matches the given search.
 	// The search works additive to other filters.
@@ -187,10 +184,10 @@ type GetManufacturersParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
 
-	// FilterOriginal Filters the manufacturers according to whether they have inventory entries
-	// which belong to at least one of the given original ID's with an exact match.
+	// FilterExternalID Filters the manufacturers according to whether they have inventory entries
+	// which belong to at least one of the given external ID's with an exact match.
 	// The filter works additive to other filters.
-	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
+	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
 
 	// SearchContent Filters the manufacturers according to whether they have inventory entries
 	// where their content matches the given search.
@@ -208,10 +205,10 @@ type GetMpnsParams struct {
 	// The filter works additive to other filters.
 	FilterManufacturer *string `form:"filter[manufacturer],omitempty" json:"filter[manufacturer],omitempty"`
 
-	// FilterOriginal Filters the mpns according to whether their inventory entry
-	// belongs to at least one of the given original ID's with an exact match.
+	// FilterExternalID Filters the mpns according to whether their inventory entry
+	// belongs to at least one of the given external ID's with an exact match.
 	// The filter works additive to other filters.
-	FilterOriginal *string `form:"filter[original],omitempty" json:"filter[original],omitempty"`
+	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
 
 	// SearchContent Filters the mpns according to whether their inventory entry content matches the given search.
 	// The search works additive to other filters.
