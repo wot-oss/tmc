@@ -65,7 +65,7 @@ func ExpandHome(path string) (string, error) {
 	return filepath.Join(home, rest), nil
 }
 
-func Prep(s string) string {
+func ToTrimmedLower(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)
 	return s

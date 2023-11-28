@@ -22,10 +22,9 @@ type Version struct {
 }
 
 type ExtendedFields struct {
+	Links       `json:"links"`
 	ID          string `json:"id,omitempty"`
-	Original    string `json:"original"`
 	Description string `json:"description"`
-	Path        string `json:"path"`
 }
 
 type CatalogThingModel struct {

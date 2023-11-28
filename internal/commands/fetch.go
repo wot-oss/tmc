@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -66,7 +65,7 @@ func FetchThingByName(fn *FetchName, remote remotes.Remote) ([]byte, error) {
 		}
 	}
 
-	official := internal.Prep(tocThing.Author.Name) == internal.Prep(tocThing.Manufacturer.Name)
+	official := internal.ToTrimmedLower(tocThing.Author.Name) == internal.ToTrimmedLower(tocThing.Manufacturer.Name)
 
 	tmid, err := model.ParseTMID(id, official)
 	thing, err = remote.Fetch(tmid)
@@ -78,7 +77,7 @@ func FetchThingByName(fn *FetchName, remote remotes.Remote) ([]byte, error) {
 	return thing, nil
 }
 
-func findMostRecentVersion(versions []model.TocVersion) (id string, err error) {
+func findMostRecentVersion(versions []model.TOCVersion) (id string, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
@@ -99,7 +98,7 @@ func findMostRecentVersion(versions []model.TocVersion) (id string, err error) {
 		if currentVersion.GreaterThan(latestVersion) {
 			latestVersion = currentVersion
 			latestTimeStamp, err = time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
-			id = version.ID
+			id = version.TMID
 			continue
 		}
 		if currentVersion.Equal(latestVersion) {
@@ -110,7 +109,7 @@ func findMostRecentVersion(versions []model.TocVersion) (id string, err error) {
 			}
 			if currentTimeStamp.After(latestTimeStamp) {
 				latestTimeStamp = currentTimeStamp
-				id = version.ID
+				id = version.TMID
 				continue
 			}
 		}
@@ -118,7 +117,7 @@ func findMostRecentVersion(versions []model.TocVersion) (id string, err error) {
 	return id, nil
 }
 
-func findMostRecentTimeStamp(versions []model.TocVersion, ver *semver.Version) (id string, err error) {
+func findMostRecentTimeStamp(versions []model.TOCVersion, ver *semver.Version) (id string, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
@@ -145,7 +144,7 @@ func findMostRecentTimeStamp(versions []model.TocVersion, ver *semver.Version) (
 		}
 		if currentTimeStamp.After(latestTimeStamp) {
 			latestTimeStamp = currentTimeStamp
-			id = version.ID
+			id = version.TMID
 			continue
 		}
 	}
@@ -157,7 +156,7 @@ func findMostRecentTimeStamp(versions []model.TocVersion, ver *semver.Version) (
 	return id, nil
 }
 
-func findDigest(versions []model.TocVersion, digest string) (id string, err error) {
+func findDigest(versions []model.TOCVersion, digest string) (id string, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
@@ -165,25 +164,19 @@ func findDigest(versions []model.TocVersion, digest string) (id string, err erro
 		return "", errors.New(msg)
 	}
 
-	digest = prep(digest)
+	digest = internal.ToTrimmedLower(digest)
 	for _, version := range versions {
 		// TODO: how to know if it is official?
-		tmid, err := model.ParseTMID(version.ID, false)
+		tmid, err := model.ParseTMID(version.TMID, false)
 		if err != nil {
-			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.ID))
+			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.TMID))
 			return "", err
 		}
 		if tmid.Version.Hash == digest {
-			return version.ID, nil
+			return version.TMID, nil
 		}
 	}
 	msg := fmt.Sprintf("No thing model found for digest %s", digest)
 	log.Error(msg)
 	return "", errors.New(msg)
-}
-
-func prep(s string) string {
-	s = strings.TrimSpace(s)
-	s = strings.ToLower(s)
-	return s
 }
