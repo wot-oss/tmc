@@ -24,7 +24,7 @@ func Create(rootPath string) error {
 
 	newTOC := model.TOC{
 		Meta: model.TOCMeta{Created: time.Now()},
-		Data: []model.TOCEntry{},
+		Data: []*model.TOCEntry{},
 	}
 
 	err := filepath.Walk(rootPath, func(absPath string, info os.FileInfo, err error) error {
@@ -106,9 +106,11 @@ func insert(relPath string, toc *model.TOC, ctm model.CatalogThingModel) error {
 		return err
 	}
 	name := filepath.Dir(relPath)
-	tocEntry, ok := toc.FindByName(name)
+	tocEntry := toc.FindByName(name)
 	// TODO: provide copy method for CatalogThingModel in TocThing
-	if !ok {
+	if tocEntry == nil {
+		tocEntry = &model.TOCEntry{}
+		toc.Data = append(toc.Data, tocEntry)
 		tocEntry.Name = name
 		tocEntry.Manufacturer.Name = tmid.Manufacturer
 		tocEntry.Mpn = tmid.Mpn
@@ -131,6 +133,5 @@ func insert(relPath string, toc *model.TOC, ctm model.CatalogThingModel) error {
 		Links:       map[string]string{"content": relPath},
 	}
 	tocEntry.Versions = append(tocEntry.Versions, tv)
-	toc.Data = append(toc.Data, tocEntry)
 	return nil
 }

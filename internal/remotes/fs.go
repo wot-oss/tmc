@@ -189,12 +189,12 @@ func (f *FileRemote) Versions(name string) (model.TOCEntry, error) {
 	}
 	name = strings.TrimSpace(name)
 
-	tocThing, ok := toc.FindByName(name)
-	if !ok {
+	tocThing := toc.FindByName(name)
+	if tocThing == nil {
 		msg := fmt.Sprintf("No thing model found for name: %s", name)
 		log.Error(msg)
 		return model.TOCEntry{}, errors.New(msg)
 	}
 
-	return tocThing, nil
+	return *tocThing, nil
 }

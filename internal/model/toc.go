@@ -8,8 +8,8 @@ import (
 )
 
 type TOC struct {
-	Meta TOCMeta    `json:"meta"`
-	Data []TOCEntry `json:"data"`
+	Meta TOCMeta     `json:"meta"`
+	Data []*TOCEntry `json:"data"`
 }
 
 type TOCMeta struct {
@@ -38,9 +38,9 @@ type TOCVersion struct {
 
 func (toc *TOC) Filter(filter string) {
 	for index, value := range toc.Data {
-		if !matchFilter(value, filter) {
+		if !matchFilter(*value, filter) {
 			// zero the reference to make it garbage collected
-			toc.Data[index] = TOCEntry{}
+			toc.Data[index] = &TOCEntry{}
 			toc.Data = append(toc.Data[:index], toc.Data[index+1:]...)
 		}
 	}
@@ -65,11 +65,12 @@ func matchFilter(entry TOCEntry, filter string) bool {
 	return false
 }
 
-func (toc *TOC) FindByName(name string) (ent TOCEntry, ok bool) {
+// FindByName searches by name and returns a reference to the TOCEnry if found
+func (toc *TOC) FindByName(name string) *TOCEntry {
 	for _, value := range toc.Data {
 		if value.Name == name {
-			return value, true
+			return value
 		}
 	}
-	return TOCEntry{}, false
+	return nil
 }
