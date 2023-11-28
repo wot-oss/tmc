@@ -6,10 +6,10 @@ require (
 	github.com/Masterminds/semver/v3 v3.2.1
 	github.com/buger/jsonparser v1.1.1
 	github.com/kennygrant/sanitize v1.2.4
+	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.17.0
 	github.com/stretchr/testify v1.8.4
-	github.com/web-of-things-open-source/go-jsonschema v0.0.0-20231123170049-1c3cab186d29
 )
 
 require (
