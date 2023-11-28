@@ -253,8 +253,8 @@ paths:
               type: object
         required: true
       responses:
-        '200':
-          description: Successful operation
+        '201':
+          description: Successfully pushed
           content:
             application/json:
               schema:
@@ -397,7 +397,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ManufacturersResponse'
               examples:
-                authors:
+                manufacturers:
                   $ref: '#/components/examples/ManufacturersResponseExample'
         '400':
           description: Invalid filter parameter supplied
@@ -461,7 +461,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/MpnsResponse'
               examples:
-                authors:
+                mpns:
                   $ref: '#/components/examples/MpnsResponseExample'
         '400':
           description: Invalid filter parameter supplied
@@ -557,14 +557,12 @@ components:
           items:
             $ref: '#/components/schemas/InventoryEntryVersion'
     PushThingModelResponse:
-      type: object
       required:
-        - tmID
+        - data
+      type: object
       properties:
-        tmID:
-          type: string
-      example:
-        tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+        data:
+          $ref: '#/components/schemas/PushThingModelResult'
     AuthorsResponse:
       type: object
       required:
@@ -638,6 +636,14 @@ components:
         model:
           type: string
           example: 1.0.1
+    PushThingModelResult:
+      required:
+        - tmID
+      type: object
+      properties:
+        tmID:
+          type: string
+          example: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
     ErrorResponse:
       required:
         - title

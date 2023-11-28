@@ -104,6 +104,11 @@ type MpnsResponse struct {
 
 // PushThingModelResponse defines model for PushThingModelResponse.
 type PushThingModelResponse struct {
+	Data PushThingModelResult `json:"data"`
+}
+
+// PushThingModelResult defines model for PushThingModelResult.
+type PushThingModelResult struct {
 	TmID string `json:"tmID"`
 }
 

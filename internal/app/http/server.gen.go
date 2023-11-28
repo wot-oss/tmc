@@ -32,7 +32,7 @@ type ServerInterface interface {
 	// Get the contained mpns (manufacturer part numbers) of the inventory
 	// (GET /mpns)
 	GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams)
-	// Add a new Thing Model
+	// Push a new Thing Model
 	// (POST /thing-models)
 	PushThingModel(w http.ResponseWriter, r *http.Request)
 	// Get the content of a Thing Model by it's ID
@@ -499,9 +499,9 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/inventory", wrapper.GetInventory).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId}", wrapper.GetInventoryById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId:.+}/versions", wrapper.GetInventoryVersionsById).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId}/versions", wrapper.GetInventoryVersionsById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/inventory/{inventoryId:.+}", wrapper.GetInventoryById).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/manufacturers", wrapper.GetManufacturers).Methods("GET")
 
@@ -509,7 +509,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.PushThingModel).Methods("POST")
 
-	r.HandleFunc(options.BaseURL+"/thing-models/{tmId}", wrapper.GetThingModelById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmId:.+}", wrapper.GetThingModelById).Methods("GET")
 
 	return r
 }

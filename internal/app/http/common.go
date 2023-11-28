@@ -67,6 +67,10 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errTitle = error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
+	} else if strings.HasPrefix(err.Error(), "empty document is not valid JSON") {
+		errTitle = error400Title
+		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
 	} else {
 		switch err.(type) {
 		case *InvalidParamFormatError, *RequiredParamError, *RequiredHeaderError,
@@ -237,7 +241,10 @@ func toMpnsResponse(mpns []string) MpnsResponse {
 }
 
 func toPushThingModelResponse(tmID model.TMID) PushThingModelResponse {
-	return PushThingModelResponse{
+	data := PushThingModelResult{
 		TmID: tmID.String(),
+	}
+	return PushThingModelResponse{
+		Data: data,
 	}
 }

@@ -105,7 +105,7 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 
 	resp := toPushThingModelResponse(*tmID)
 
-	HandleJsonResponse(w, r, 200, resp)
+	HandleJsonResponse(w, r, 201, resp)
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams) {
