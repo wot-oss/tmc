@@ -33,7 +33,7 @@ file-or-dirname
 }
 
 func init() {
-	rootCmd.AddCommand(pushCmd)
+	RootCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
 	pushCmd.Flags().StringP("opt-path", "p", "", "append optional path to mandatory target directory structure")
 	pushCmd.Flags().BoolP("opt-tree", "t", false, "use original directory tree as optional path for each file. Has no effect with a single file. Overrides -p")

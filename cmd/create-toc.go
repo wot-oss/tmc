@@ -17,7 +17,7 @@ var createTOCCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(createTOCCmd)
+	RootCmd.AddCommand(createTOCCmd)
 	createTOCCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
 }
 

@@ -7,51 +7,70 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 )
 
-type Toc struct {
-	Meta     TocMeta             `json:"meta"`
-	Contents map[string]TocThing `json:"contents"`
+type TOC struct {
+	Meta TOCMeta     `json:"meta"`
+	Data []*TOCEntry `json:"data"`
 }
 
-type TocMeta struct {
+type TOCMeta struct {
 	Created time.Time `json:"created"`
 }
 
-type TocThing struct {
+type TOCEntry struct {
+	Name         string             `json:"name"`
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
-	Versions     []TocVersion       `json:"versions"`
+	Versions     []TOCVersion       `json:"versions"`
 }
 
-type TocVersion struct {
-	ExtendedFields
-	TimeStamp string  `json:"timestamp,omitempty"`
-	Version   Version `json:"version"`
+const TMLinkRel = "content"
+
+type TOCVersion struct {
+	Description string            `json:"description"`
+	Version     Version           `json:"version"`
+	Links       map[string]string `json:"links"`
+	TMID        string            `json:"tmID"`
+	Digest      string            `json:"digest"`
+	TimeStamp   string            `json:"timestamp,omitempty"`
+	ExternalID  string            `json:"externalID"`
 }
 
-func (toc *Toc) Filter(filter string) {
-	for name, value := range toc.Contents {
-		if !matchFilter(name, value, filter) {
-			delete(toc.Contents, name)
+func (toc *TOC) Filter(filter string) {
+	for index, value := range toc.Data {
+		if !matchFilter(*value, filter) {
+			// zero the reference to make it garbage collected
+			toc.Data[index] = &TOCEntry{}
+			toc.Data = append(toc.Data[:index], toc.Data[index+1:]...)
 		}
 	}
 }
 
-func matchFilter(name string, thing TocThing, filter string) bool {
-	filter = internal.Prep(filter)
-	if strings.Contains(internal.Prep(name), filter) {
+func matchFilter(entry TOCEntry, filter string) bool {
+	filter = internal.ToTrimmedLower(filter)
+	if strings.Contains(internal.ToTrimmedLower(entry.Name), filter) {
 		return true
 	}
-	if strings.Contains(internal.Prep(thing.Manufacturer.Name), filter) {
+	if strings.Contains(internal.ToTrimmedLower(entry.Manufacturer.Name), filter) {
 		return true
 	}
-	if strings.Contains(internal.Prep(thing.Mpn), filter) {
+	if strings.Contains(internal.ToTrimmedLower(entry.Mpn), filter) {
 		return true
 	}
-	for _, version := range thing.Versions {
-		if strings.Contains(internal.Prep(version.Description), filter) {
+	for _, version := range entry.Versions {
+		if strings.Contains(internal.ToTrimmedLower(version.Description), filter) {
 			return true
 		}
 	}
 	return false
+}
+
+// FindByName searches by name and returns a reference to the TOCEnry if found
+func (toc *TOC) FindByName(name string) *TOCEntry {
+	for _, value := range toc.Data {
+		if value.Name == name {
+			return value
+		}
+	}
+	return nil
 }

@@ -16,7 +16,7 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
+	RootCmd.AddCommand(listCmd)
 	listCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
 }
 
