@@ -16,7 +16,7 @@ var versionsCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(versionsCmd)
+	RootCmd.AddCommand(versionsCmd)
 	versionsCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
 }
 

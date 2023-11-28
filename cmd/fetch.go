@@ -16,7 +16,7 @@ var fetchCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(fetchCmd)
+	RootCmd.AddCommand(fetchCmd)
 	fetchCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
 }
 
