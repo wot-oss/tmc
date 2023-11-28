@@ -47,18 +47,18 @@ func (toc *TOC) Filter(filter string) {
 }
 
 func matchFilter(entry TOCEntry, filter string) bool {
-	filter = internal.Prep(filter)
-	if strings.Contains(internal.Prep(entry.Name), filter) {
+	filter = internal.ToTrimmedLower(filter)
+	if strings.Contains(internal.ToTrimmedLower(entry.Name), filter) {
 		return true
 	}
-	if strings.Contains(internal.Prep(entry.Manufacturer.Name), filter) {
+	if strings.Contains(internal.ToTrimmedLower(entry.Manufacturer.Name), filter) {
 		return true
 	}
-	if strings.Contains(internal.Prep(entry.Mpn), filter) {
+	if strings.Contains(internal.ToTrimmedLower(entry.Mpn), filter) {
 		return true
 	}
 	for _, version := range entry.Versions {
-		if strings.Contains(internal.Prep(version.Description), filter) {
+		if strings.Contains(internal.ToTrimmedLower(version.Description), filter) {
 			return true
 		}
 	}

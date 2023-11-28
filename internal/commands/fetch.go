@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/Masterminds/semver/v3"
@@ -66,7 +65,7 @@ func FetchThingByName(fn *FetchName, remote remotes.Remote) ([]byte, error) {
 		}
 	}
 
-	official := internal.Prep(tocThing.Author.Name) == internal.Prep(tocThing.Manufacturer.Name)
+	official := internal.ToTrimmedLower(tocThing.Author.Name) == internal.ToTrimmedLower(tocThing.Manufacturer.Name)
 
 	tmid, err := model.ParseTMID(id, official)
 	thing, err = remote.Fetch(tmid)
@@ -165,7 +164,7 @@ func findDigest(versions []model.TOCVersion, digest string) (id string, err erro
 		return "", errors.New(msg)
 	}
 
-	digest = prep(digest)
+	digest = internal.ToTrimmedLower(digest)
 	for _, version := range versions {
 		// TODO: how to know if it is official?
 		tmid, err := model.ParseTMID(version.TMID, false)
@@ -180,10 +179,4 @@ func findDigest(versions []model.TOCVersion, digest string) (id string, err erro
 	msg := fmt.Sprintf("No thing model found for digest %s", digest)
 	log.Error(msg)
 	return "", errors.New(msg)
-}
-
-func prep(s string) string {
-	s = strings.TrimSpace(s)
-	s = strings.ToLower(s)
-	return s
 }

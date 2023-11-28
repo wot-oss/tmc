@@ -100,7 +100,7 @@ func saveToc(rootPath string, tocBytes []byte) error {
 }
 
 func insert(relPath string, toc *model.TOC, ctm model.CatalogThingModel) error {
-	official := internal.Prep(ctm.Manufacturer.Name) == internal.Prep(ctm.Author.Name)
+	official := internal.ToTrimmedLower(ctm.Manufacturer.Name) == internal.ToTrimmedLower(ctm.Author.Name)
 	tmid, err := model.ParseTMID(ctm.ID, official)
 	if err != nil {
 		return err
