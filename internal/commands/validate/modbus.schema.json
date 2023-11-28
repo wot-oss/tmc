@@ -24,11 +24,11 @@
                     "enum": [
                         "readCoil",
                         "readDiscreteInput",
-                        "readHoldingRegister",
+                        "readHoldingRegisters",
                         "readInputRegister",
                         "writeSingleCoil",
                         "writeMultipleCoils",
-                        "writeMultipleHoldingRegister",
+                        "writeMultipleHoldingRegisters",
                         "writeSingleHoldingRegister"
                     ]
                 },
