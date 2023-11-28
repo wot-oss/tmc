@@ -122,7 +122,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	remote, err := remotes.NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 
@@ -175,7 +175,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	remote, err := remotes.NewFileRemote(
 		map[string]any{
 			"type": "file",
-			"url":  "file:" + root,
+			"loc":  root,
 		})
 	assert.NoError(t, err)
 
