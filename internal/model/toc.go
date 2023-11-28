@@ -1,6 +1,7 @@
 package model
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -37,13 +38,9 @@ type TOCVersion struct {
 }
 
 func (toc *TOC) Filter(filter string) {
-	for index, value := range toc.Data {
-		if !matchFilter(*value, filter) {
-			// zero the reference to make it garbage collected
-			toc.Data[index] = &TOCEntry{}
-			toc.Data = append(toc.Data[:index], toc.Data[index+1:]...)
-		}
-	}
+	toc.Data = slices.DeleteFunc(toc.Data, func(tocEntry *TOCEntry) bool {
+		return !matchFilter(*tocEntry, filter)
+	})
 }
 
 func matchFilter(entry TOCEntry, filter string) bool {
