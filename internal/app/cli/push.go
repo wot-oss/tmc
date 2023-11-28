@@ -99,7 +99,7 @@ func pushFile(filename string, remote remotes.Remote, optPath string) (PushResul
 	_, raw, err := internal.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
-		return PushResult{PushErr, err.Error()}, err
+		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
 	}
 	id, err := commands.PushFile(raw, remote, optPath)
 	if err != nil {
@@ -107,7 +107,7 @@ func pushFile(filename string, remote remotes.Remote, optPath string) (PushResul
 		if errors.As(err, &errExists) {
 			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, id.String())}, nil
 		}
-		return PushResult{PushErr, err.Error()}, err
+		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
 	}
 
 	return PushResult{PushOK, fmt.Sprintf("file %s pushed as %s", filename, id.String())}, nil
