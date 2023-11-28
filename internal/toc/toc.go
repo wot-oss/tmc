@@ -33,6 +33,8 @@ func Create(rootPath string) error {
 		}
 		if !info.IsDir() {
 			if strings.HasSuffix(info.Name(), TMExt) {
+				absPath = filepath.ToSlash(absPath)
+				rootPath = filepath.ToSlash(rootPath)
 				thingMeta, err := getThingMetadata(rootPath, absPath)
 				if err != nil {
 					msg := "Failed to extract metadata from file %s with error:"
@@ -44,7 +46,6 @@ func Create(rootPath string) error {
 				}
 				// rootPath/relPath provided by walker, can ignore error
 				relPath, _ := filepath.Rel(rootPath, absPath)
-
 				err = insert(relPath, &newTOC, thingMeta)
 				if err != nil {
 					log.Error(fmt.Sprintf("Failed to insert %s into toc:", absPath))
