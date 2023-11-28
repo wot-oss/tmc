@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -46,6 +47,8 @@ func Create(rootPath string) error {
 				}
 				// rootPath/relPath provided by walker, can ignore error
 				relPath, _ := filepath.Rel(rootPath, absPath)
+				//TODO: check if slashes are handled correctly (consider windows paths)
+				relPath = filepath.ToSlash(relPath)
 				err = insert(relPath, &newTOC, thingMeta)
 				if err != nil {
 					log.Error(fmt.Sprintf("Failed to insert %s into toc:", absPath))
@@ -105,7 +108,8 @@ func insert(relPath string, toc *model.TOC, ctm model.CatalogThingModel) error {
 	if err != nil {
 		return err
 	}
-	name := filepath.Dir(relPath)
+	//TODO: check if slashes are handled correctly (consider windows paths)
+	name := path.Dir(relPath)
 	tocEntry := toc.FindByName(name)
 	// TODO: provide copy method for CatalogThingModel in TocThing
 	if tocEntry == nil {

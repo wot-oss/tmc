@@ -6,10 +6,11 @@ package main
 import (
 	"log/slog"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
+	_ "github.com/web-of-things-open-source/tm-catalog-cli/cmd/remote"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 )
 
 func main() {
@@ -23,19 +24,18 @@ func init() {
 
 func initViper() {
 	viper.SetDefault("remotes", map[string]any{
-		"localfs": map[string]any{
+		"local": map[string]any{
 			"type": "file",
-			"url":  "file:~/tm-catalog",
+			"loc":  "~/tm-catalog",
 		},
 	})
 	viper.SetDefault("logLevel", "INFO")
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
-	dir, err := os.UserHomeDir()
-	viper.AddConfigPath(filepath.Join(dir, ".tm-catalog"))
+	viper.AddConfigPath(config.DefaultConfigDir)
 	viper.AddConfigPath(".")
-	err = viper.ReadInConfig()
+	err := viper.ReadInConfig()
 	if err != nil {
 		if err := viper.ReadInConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -45,6 +45,7 @@ func initViper() {
 			}
 		}
 	}
+	viper.WatchConfig()
 }
 func setUpLogger() {
 	logLevel := viper.GetString("logLevel")
