@@ -32,7 +32,10 @@ func executeCreateTOC(cmd *cobra.Command, args []string) {
 		log.Error(fmt.Sprintf("could not initialize a remote instance for %s. check config", remoteName), "error", err)
 	}
 
-	err = remote.CreateToC()
+	if err == nil {
+		err = remote.CreateToC()
+	}
+
 	if err != nil {
 		log.Error(err.Error())
 		os.Exit(1)
