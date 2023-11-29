@@ -7,8 +7,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 var ErrInvalidArgs = errors.New("invalid arguments")
@@ -47,7 +47,7 @@ func remoteSaveConfig(name, typ, confStr, confFile string, saver func(name, typ,
 	var bytes []byte
 	if confFile != "" {
 		var err error
-		_, bytes, err = internal.ReadRequiredFile(confFile)
+		_, bytes, err = utils.ReadRequiredFile(confFile)
 		if err != nil {
 			Stderrf("cannot read file: %v", confFile)
 			return err

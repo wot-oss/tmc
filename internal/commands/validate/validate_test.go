@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 func parseJsonFile(name string) ([]byte, any, error) {
-	_, raw, err := internal.ReadRequiredFile(name)
+	_, raw, err := utils.ReadRequiredFile(name)
 	if err != nil {
 		return raw, nil, err
 	}

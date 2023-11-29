@@ -5,6 +5,7 @@ import (
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 func Fetch(fetchName, remoteName string) error {
@@ -26,6 +27,7 @@ func Fetch(fetchName, remoteName string) error {
 		Stderrf("Could not fetch from remote: %v", err)
 		return err
 	}
+	thing = utils.ConvertToNativeLineEndings(thing)
 	fmt.Println(string(thing))
 	return nil
 }

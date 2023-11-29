@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 const TMExt = ".tm.json"
@@ -103,7 +103,7 @@ func saveToc(rootPath string, tocBytes []byte) error {
 }
 
 func insert(relPath string, toc *model.TOC, ctm model.CatalogThingModel) error {
-	official := internal.ToTrimmedLower(ctm.Manufacturer.Name) == internal.ToTrimmedLower(ctm.Author.Name)
+	official := utils.ToTrimmedLower(ctm.Manufacturer.Name) == utils.ToTrimmedLower(ctm.Author.Name)
 	tmid, err := model.ParseTMID(ctm.ID, official)
 	if err != nil {
 		return err
