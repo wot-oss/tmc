@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 type PushResultType int
@@ -96,7 +96,7 @@ func pushDirectory(absDirname string, remote remotes.Remote, optPath string, opt
 }
 
 func pushFile(filename string, remote remotes.Remote, optPath string) (PushResult, error) {
-	_, raw, err := internal.ReadRequiredFile(filename)
+	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
