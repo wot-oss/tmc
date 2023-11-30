@@ -71,3 +71,41 @@ func (toc *TOC) FindByName(name string) *TOCEntry {
 	}
 	return nil
 }
+
+// Insert uses CatalogThingModel to add a version, either to an existing
+// entry or as a new entry.
+func (toc *TOC) Insert(ctm *CatalogThingModel) error {
+	tmid, err := ParseTMID(ctm.ID, ctm.IsOfficial())
+	if err != nil {
+		return err
+	}
+	// find the right entry, or create if it doesn't exist
+	tocEntry := toc.FindByName(tmid.Name)
+	if tocEntry == nil {
+		tocEntry = &TOCEntry{
+			Name:         tmid.Name,
+			Manufacturer: SchemaManufacturer{Name: tmid.Manufacturer},
+			Mpn:          tmid.Mpn,
+			Author:       SchemaAuthor{Name: tmid.Author},
+		}
+		toc.Data = append(toc.Data, tocEntry)
+	}
+	// TODO: check if id already exists?
+	// Append version information to entry
+	externalID := ""
+	original := ctm.Links.FindLink("original")
+	if original != nil {
+		externalID = original.HRef
+	}
+	tv := TOCVersion{
+		Description: ctm.Description,
+		TimeStamp:   tmid.Version.Timestamp,
+		Version:     Version{Model: tmid.Version.Base.String()},
+		TMID:        ctm.ID,
+		ExternalID:  externalID,
+		Digest:      tmid.Version.Hash,
+		Links:       map[string]string{"content": tmid.String()},
+	}
+	tocEntry.Versions = append(tocEntry.Versions, tv)
+	return nil
+}
