@@ -30,6 +30,8 @@ var ErrNoDefault = errors.New("no default remote config found")
 var ErrRemoteNotFound = errors.New("named remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote name")
 var ErrRemoteExists = errors.New("named remote already exists")
+var ErrEntryNotFound = errors.New("entry not found")
+
 var SupportedTypes = []string{RemoteTypeFile}
 
 type Remote interface {
@@ -40,6 +42,7 @@ type Remote interface {
 	CreateToC() error
 	List(filter string) (model.TOC, error)
 	Versions(name string) (model.TOCEntry, error)
+	Name() string
 }
 
 // Get returns the Remote built from config with the given name
@@ -52,15 +55,17 @@ func Get(name string) (Remote, error) {
 	rc, ok := remotes[name]
 	if name == "" {
 		if len(remotes) == 1 {
-			for _, v := range remotes {
+			for n, v := range remotes {
 				rc = v
+				name = n
 			}
 		} else {
 			found := false
-			for _, v := range remotes {
+			for n, v := range remotes {
 				if def, ok := v[KeyRemoteDefault]; ok {
 					if d, ok := def.(bool); ok && d {
 						rc = v
+						name = n
 						found = true
 						break
 					}
@@ -76,13 +81,33 @@ func Get(name string) (Remote, error) {
 		}
 	}
 
+	return createRemote(rc, name)
+}
+
+func createRemote(rc map[string]any, name string) (Remote, error) {
 	switch t := rc[KeyRemoteType]; t {
 	case RemoteTypeFile:
-		return NewFileRemote(rc)
+		return NewFileRemote(rc, name)
 	default:
 		return nil, fmt.Errorf("unsupported remote type: %v. Supported types are %v", t, SupportedTypes)
 	}
+}
 
+func All() ([]Remote, error) {
+	conf, err := ReadConfig()
+	if err != nil {
+		return nil, err
+	}
+	var rs []Remote
+
+	for n, rc := range conf {
+		r, err := createRemote(rc, n)
+		if err != nil {
+			return rs, err
+		}
+		rs = append(rs, r)
+	}
+	return rs, err
 }
 
 func ReadConfig() (Config, error) {

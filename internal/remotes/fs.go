@@ -20,6 +20,7 @@ const defaultFilePermissions = 0664
 
 type FileRemote struct {
 	root string
+	name string
 }
 
 type ErrTMExists struct {
@@ -30,7 +31,7 @@ func (e *ErrTMExists) Error() string {
 	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
 }
 
-func NewFileRemote(config map[string]any) (*FileRemote, error) {
+func NewFileRemote(config map[string]any, name string) (*FileRemote, error) {
 	loc := config[KeyRemoteLoc]
 	locString, ok := loc.(string)
 	if !ok {
@@ -42,6 +43,7 @@ func NewFileRemote(config map[string]any) (*FileRemote, error) {
 	}
 	return &FileRemote{
 		root: rootPath,
+		name: name,
 	}, nil
 }
 
@@ -135,13 +137,13 @@ func (f *FileRemote) CreateToC() error {
 	return createTOC(f.root)
 }
 
+func (f *FileRemote) Name() string {
+	return f.name
+}
+
 func (f *FileRemote) List(filter string) (model.TOC, error) {
 	log := slog.Default()
-	if len(filter) == 0 {
-		log.Debug("Creating list")
-	} else {
-		log.Debug(fmt.Sprintf("Creating list with filter '%s'", filter))
-	}
+	log.Debug(fmt.Sprintf("Creating list with filter '%s'", filter))
 
 	data, err := os.ReadFile(filepath.Join(f.root, TOCFilename))
 	if err != nil {
@@ -150,10 +152,10 @@ func (f *FileRemote) List(filter string) (model.TOC, error) {
 
 	var toc model.TOC
 	err = json.Unmarshal(data, &toc)
-	toc.Filter(filter)
 	if err != nil {
 		return model.TOC{}, err
 	}
+	toc.Filter(filter)
 	return toc, nil
 }
 
@@ -171,9 +173,8 @@ func (f *FileRemote) Versions(name string) (model.TOCEntry, error) {
 
 	tocThing := toc.FindByName(name)
 	if tocThing == nil {
-		msg := fmt.Sprintf("No thing model found for name: %s", name)
-		log.Error(msg)
-		return model.TOCEntry{}, errors.New(msg)
+		log.Error(fmt.Sprintf("No thing model found for name: %s", name))
+		return model.TOCEntry{}, ErrEntryNotFound
 	}
 
 	return *tocThing, nil
