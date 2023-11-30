@@ -1,6 +1,6 @@
 package model
 
-import "github.com/web-of-things-open-source/tm-catalog-cli/internal"
+import "github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
 // ThingModel is a model for unmarshalling a Thing Model to be
 // imported. It contains only the fields required to be accepted into
@@ -13,8 +13,8 @@ type ThingModel struct {
 }
 
 func (tm *ThingModel) IsOfficial() bool {
-	compareMan := internal.ToTrimmedLower(tm.Manufacturer.Name)
-	compareAuthor := internal.ToTrimmedLower(tm.Author.Name)
+	compareMan := utils.ToTrimmedLower(tm.Manufacturer.Name)
+	compareAuthor := utils.ToTrimmedLower(tm.Author.Name)
 	return compareMan == compareAuthor
 }
 

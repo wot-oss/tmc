@@ -14,6 +14,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands/validate"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 var now = time.Now
@@ -79,6 +80,7 @@ func prepareToImport(tm *model.ThingModel, raw []byte, optPath string) ([]byte, 
 		}
 	}
 
+	prepared = utils.NormalizeLineEndings(prepared)
 	generatedId := generateNewId(tm, prepared, optPath)
 	finalId := idFromFile
 	if !generatedId.Equals(idFromFile) {
@@ -89,10 +91,8 @@ func prepareToImport(tm *model.ThingModel, raw []byte, optPath string) ([]byte, 
 			return nil, model.TMID{}, err
 		}
 	}
-
 	return prepared, finalId, nil
 }
-
 func moveIdToOriginalLink(raw []byte, id string) []byte {
 	linksValue, dataType, _, err := jsonparser.Get(raw, "links")
 	if err != nil && dataType != jsonparser.NotExist {

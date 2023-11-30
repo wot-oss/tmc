@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 func TestMoveIdToOriginalLink(t *testing.T) {
@@ -104,13 +104,33 @@ func TestGenerateNewID(t *testing.T) {
 	}()
 
 	id := generateNewId(&model.ThingModel{
-		Manufacturer: model.SchemaManufacturer{"omnicorp"},
+		Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 		Mpn:          "senseall",
-		Author:       model.SchemaAuthor{"author"},
-		Version:      model.Version{"v3.2.1"},
-	}, []byte("{}"), "opt/dir")
+		Author:       model.SchemaAuthor{Name: "author"},
+		Version:      model.Version{Model: "v3.2.1"},
+	}, []byte("{\n\"title\":\"test\"\n}"), "opt/dir")
 
-	assert.Equal(t, "author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-bf21a9e8fbc5.tm.json", id.String())
+	assert.Equal(t, "author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-863e9f0f950a.tm.json", id.String())
+}
+
+func TestPrepareToImport(t *testing.T) {
+	now = func() time.Time {
+		return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC)
+	}
+	defer func() {
+		now = time.Now
+	}()
+
+	b, _, err := prepareToImport(&model.ThingModel{
+		Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
+		Mpn:          "senseall",
+		Author:       model.SchemaAuthor{Name: "author"},
+		Version:      model.Version{Model: "v3.2.1"},
+	}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir")
+	assert.NoError(t, err)
+	assert.False(t, bytes.Contains(b, []byte{'\r'})) // make sure line endings were normalized
+	assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-863e9f0f950a.tm.json")))
+
 }
 
 func TestPushToRemoteUnversioned(t *testing.T) {
@@ -127,7 +147,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	assert.NoError(t, err)
 
 	// write first TM
-	_, raw, err := internal.ReadRequiredFile("../../test/data/push/omnilamp.json")
+	_, raw, err := utils.ReadRequiredFile("../../test/data/push/omnilamp.json")
 	assert.NoError(t, err)
 	id, err := PushFile(raw, remote, "")
 	assert.NoError(t, err)
@@ -180,7 +200,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	assert.NoError(t, err)
 
 	// write first TM
-	_, raw, err := internal.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
+	_, raw, err := utils.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
 	assert.NoError(t, err)
 
 	id, err := PushFile(raw, remote, "")
@@ -199,7 +219,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	assert.True(t, strings.HasPrefix(entries[1].Name(), "v4.0.0"))
 
 	// change an older version and push - saves new version
-	_, raw, err = internal.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
+	_, raw, err = utils.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
 	time.Sleep(1050 * time.Millisecond)
 	raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
 	id, err = PushFile(raw, remote, "")

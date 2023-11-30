@@ -1,4 +1,4 @@
-package internal
+package utils
 
 import (
 	"errors"
@@ -69,4 +69,23 @@ func ToTrimmedLower(s string) string {
 	s = strings.TrimSpace(s)
 	s = strings.ToLower(s)
 	return s
+}
+
+func NormalizeLineEndings(bytes []byte) []byte {
+	res := make([]byte, 0, len(bytes))
+	var prevB byte
+	for _, b := range bytes {
+		switch b {
+		case '\n':
+			if prevB != '\r' {
+				res = append(res, '\n')
+			}
+		case '\r':
+			res = append(res, '\n')
+		default:
+			res = append(res, b)
+		}
+		prevB = b
+	}
+	return res
 }

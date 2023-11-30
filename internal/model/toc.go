@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 type TOC struct {
@@ -44,18 +44,18 @@ func (toc *TOC) Filter(filter string) {
 }
 
 func matchFilter(entry TOCEntry, filter string) bool {
-	filter = internal.ToTrimmedLower(filter)
-	if strings.Contains(internal.ToTrimmedLower(entry.Name), filter) {
+	filter = utils.ToTrimmedLower(filter)
+	if strings.Contains(utils.ToTrimmedLower(entry.Name), filter) {
 		return true
 	}
-	if strings.Contains(internal.ToTrimmedLower(entry.Manufacturer.Name), filter) {
+	if strings.Contains(utils.ToTrimmedLower(entry.Manufacturer.Name), filter) {
 		return true
 	}
-	if strings.Contains(internal.ToTrimmedLower(entry.Mpn), filter) {
+	if strings.Contains(utils.ToTrimmedLower(entry.Mpn), filter) {
 		return true
 	}
 	for _, version := range entry.Versions {
-		if strings.Contains(internal.ToTrimmedLower(version.Description), filter) {
+		if strings.Contains(utils.ToTrimmedLower(version.Description), filter) {
 			return true
 		}
 	}

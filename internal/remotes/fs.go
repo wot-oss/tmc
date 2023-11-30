@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 const defaultDirPermissions = 0775
@@ -36,7 +36,7 @@ func NewFileRemote(config map[string]any) (*FileRemote, error) {
 	if !ok {
 		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string: %v", loc)
 	}
-	rootPath, err := internal.ExpandHome(locString)
+	rootPath, err := utils.ExpandHome(locString)
 	if err != nil {
 		return nil, err
 	}
