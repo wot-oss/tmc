@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/toc"
 )
 
 const defaultDirPermissions = 0775
@@ -132,7 +132,7 @@ func (f *FileRemote) Fetch(id model.TMID) ([]byte, error) {
 }
 
 func (f *FileRemote) CreateToC() error {
-	return toc.Create(f.root)
+	return createTOC(f.root)
 }
 
 func (f *FileRemote) List(filter string) (model.TOC, error) {
@@ -143,7 +143,7 @@ func (f *FileRemote) List(filter string) (model.TOC, error) {
 		log.Debug(fmt.Sprintf("Creating list with filter '%s'", filter))
 	}
 
-	data, err := os.ReadFile(filepath.Join(f.root, toc.TOCFilename))
+	data, err := os.ReadFile(filepath.Join(f.root, TOCFilename))
 	if err != nil {
 		return model.TOC{}, errors.New("No toc found. Run `create-toc` for this remote.")
 	}
@@ -229,4 +229,86 @@ func makeAbs(dir string) (string, error) {
 		}
 		return dir, nil
 	}
+}
+
+const TMExt = ".tm.json"
+const TOCFilename = "tm-catalog.toc.json"
+
+func createTOC(rootPath string) error {
+	// Prepare data collection for logging stats
+	var log = slog.Default()
+	fileCount := 0
+	start := time.Now()
+
+	newTOC := model.TOC{
+		Meta: model.TOCMeta{Created: time.Now()},
+		Data: []*model.TOCEntry{},
+	}
+
+	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			if strings.HasSuffix(info.Name(), TMExt) {
+				thingMeta, err := getThingMetadata(path)
+				if err != nil {
+					msg := "Failed to extract metadata from file %s with error:"
+					msg = fmt.Sprintf(msg, path)
+					log.Error(msg)
+					log.Error(err.Error())
+					log.Error("The file will be excluded from the table of contents.")
+					return nil
+				}
+				err = newTOC.Insert(&thingMeta)
+				if err != nil {
+					log.Error(fmt.Sprintf("Failed to insert %s into toc:", path))
+					log.Error(err.Error())
+					log.Error("The file will be excluded from the table of contents.")
+					return nil
+				}
+				fileCount++
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	duration := time.Now().Sub(start)
+	// Ignore error as we are sure our struct does not contain channel,
+	// complex or function values that would throw an error.
+	newTOCJson, _ := json.MarshalIndent(newTOC, "", "  ")
+	err = saveTOC(rootPath, newTOCJson)
+	msg := "Created table of content with %d entries in %s "
+	msg = fmt.Sprintf(msg, fileCount, duration.String())
+	log.Info(msg)
+	return nil
+}
+
+func getThingMetadata(path string) (model.CatalogThingModel, error) {
+	// TODO: should internal.ReadRequiredFiles be used here?
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return model.CatalogThingModel{}, err
+	}
+
+	var ctm model.CatalogThingModel
+	err = json.Unmarshal(data, &ctm)
+	if err != nil {
+		return model.CatalogThingModel{}, err
+	}
+
+	return ctm, nil
+}
+
+func saveTOC(rootPath string, tocBytes []byte) error {
+	file, err := os.Create(filepath.Join(rootPath, TOCFilename))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.Write(tocBytes)
+	return nil
 }
