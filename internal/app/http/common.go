@@ -3,11 +3,12 @@ package http
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"net/http"
-	"strings"
 )
 
 const (
@@ -28,7 +29,7 @@ const (
 )
 
 func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
-	body, err := json.Marshal(data)
+	body, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
