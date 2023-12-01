@@ -17,6 +17,7 @@ var (
 )
 
 type TMID struct {
+	Name         string
 	OptionalPath string
 	Author       string
 	Manufacturer string
@@ -119,6 +120,7 @@ func ParseTMID(s string, official bool) (TMID, error) {
 	}
 
 	return TMID{
+		Name:         strings.Join(parts, "/"),
 		OptionalPath: optPath,
 		Author:       auth,
 		Manufacturer: manuf,
