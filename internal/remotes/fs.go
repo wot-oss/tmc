@@ -206,7 +206,7 @@ func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error
 		}
 		ls, ok := l.(string)
 		if !ok {
-			return nil, fmt.Errorf("invalid json config. url must be a string")
+			return nil, fmt.Errorf("invalid json config. loc must be a string")
 		}
 		la, err := makeAbs(ls)
 		if err != nil {
