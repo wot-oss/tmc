@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 type FetchName struct {
@@ -65,7 +65,8 @@ func FetchThingByName(fn *FetchName, remote remotes.Remote) ([]byte, error) {
 		}
 	}
 
-	official := internal.ToTrimmedLower(tocThing.Author.Name) == internal.ToTrimmedLower(tocThing.Manufacturer.Name)
+	// TODO: cannot use IsOfficial of ThingModel here
+	official := utils.ToTrimmedLower(tocThing.Author.Name) == utils.ToTrimmedLower(tocThing.Manufacturer.Name)
 
 	tmid, err := model.ParseTMID(id, official)
 	thing, err = remote.Fetch(tmid)
@@ -164,7 +165,7 @@ func findDigest(versions []model.TOCVersion, digest string) (id string, err erro
 		return "", errors.New(msg)
 	}
 
-	digest = internal.ToTrimmedLower(digest)
+	digest = utils.ToTrimmedLower(digest)
 	for _, version := range versions {
 		// TODO: how to know if it is official?
 		tmid, err := model.ParseTMID(version.TMID, false)

@@ -3,13 +3,13 @@ package cli
 import (
 	"fmt"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands/validate"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 func ValidateFile(filename string) error {
 
-	_, raw, err := internal.ReadRequiredFile(filename)
+	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		fmt.Printf("could not read file: %v\n", err)
 		return err
