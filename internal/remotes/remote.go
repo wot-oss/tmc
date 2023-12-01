@@ -20,6 +20,7 @@ const (
 	KeyRemoteDefault = "default"
 
 	RemoteTypeFile = "file"
+	RemoteTypeHttp = "http"
 )
 
 var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -30,7 +31,7 @@ var ErrNoDefault = errors.New("no default remote config found")
 var ErrRemoteNotFound = errors.New("named remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote name")
 var ErrRemoteExists = errors.New("named remote already exists")
-var SupportedTypes = []string{RemoteTypeFile}
+var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp}
 
 type Remote interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
@@ -79,6 +80,8 @@ func Get(name string) (Remote, error) {
 	switch t := rc[KeyRemoteType]; t {
 	case RemoteTypeFile:
 		return NewFileRemote(rc)
+	case RemoteTypeHttp:
+		return NewHttpRemote(rc)
 	default:
 		return nil, fmt.Errorf("unsupported remote type: %v. Supported types are %v", t, SupportedTypes)
 	}
@@ -153,6 +156,11 @@ func setRemoteConfig(name string, typ string, confStr string, confFile []byte, e
 	switch typ {
 	case RemoteTypeFile:
 		rc, err = createFileRemoteConfig(confStr, confFile)
+		if err != nil {
+			return err
+		}
+	case RemoteTypeHttp:
+		rc, err = createHttpRemoteConfig(confStr, confFile)
 		if err != nil {
 			return err
 		}
