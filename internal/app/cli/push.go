@@ -64,12 +64,19 @@ func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, err
 		return nil, err
 	}
 
+	var res []PushResult
 	if stat.IsDir() {
-		return pushDirectory(abs, remote, optPath, optTree)
+		res, err = pushDirectory(abs, remote, optPath, optTree)
 	} else {
-		res, err := pushFile(filename, remote, optPath)
-		return []PushResult{res}, err
+		singleRes, pushErr := pushFile(filename, remote, optPath)
+		res = []PushResult{singleRes}
+		err = pushErr
 	}
+	tocErr := remote.CreateToC()
+	if tocErr != nil {
+		fmt.Fprintf(os.Stderr, err.Error())
+	}
+	return res, err
 }
 
 func pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool) ([]PushResult, error) {
