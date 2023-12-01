@@ -42,18 +42,18 @@ func NewFoundEntryFromTOCEntry(e *TOCEntry, foundIn string) FoundEntry {
 
 func mergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
 	vs1 = append(vs1, vs2...)
-	// whether the TMIDs are official or not is not important for these comparisons
+	// whether the TMIDs are actually official or not is not important for these comparisons
 	slices.SortStableFunc(vs1, func(a, b FoundVersion) int {
-		tmid1, _ := ParseTMID(a.TMID, false)
-		tmid2, _ := ParseTMID(b.TMID, false)
+		tmid1, _ := ParseTMID(a.TMID, true)
+		tmid2, _ := ParseTMID(b.TMID, true)
 		if tmid1.Equals(tmid2) {
 			return -strings.Compare(tmid1.Version.Timestamp, tmid2.Version.Timestamp) // sort in reverse chronological order within the same TMID
 		}
 		return strings.Compare(a.TMID, b.TMID)
 	})
 	return slices.CompactFunc(vs1, func(v1, v2 FoundVersion) bool {
-		tmid1, _ := ParseTMID(v1.TMID, false)
-		tmid2, _ := ParseTMID(v2.TMID, false)
+		tmid1, _ := ParseTMID(v1.TMID, true)
+		tmid2, _ := ParseTMID(v2.TMID, true)
 		return tmid1.Equals(tmid2)
 	})
 }

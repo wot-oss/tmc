@@ -28,12 +28,12 @@ func printToC(toc model.SearchResult, filter string) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tMANUFACTURER\tMODEL\n")
+	_, _ = fmt.Fprintf(table, "MANUFACTURER\tMODEL\tNAME\n")
 	for _, value := range toc.Entries {
-		name := elideString(value.Name, colWidth)
+		name := value.Name
 		man := elideString(value.Manufacturer.Name, colWidth)
 		mdl := elideString(value.Mpn, colWidth)
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\n", name, man, mdl)
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\n", man, mdl, name)
 	}
 	_ = table.Flush()
 }
