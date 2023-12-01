@@ -1,8 +1,9 @@
 package http
 
 import (
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"slices"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 type FilterParams struct {

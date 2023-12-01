@@ -1,10 +1,11 @@
 package http
 
 import (
+	"sort"
+
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"sort"
 )
 
 func listToc(filter *FilterParams, search *SearchParams) (*model.TOC, error) {

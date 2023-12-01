@@ -1,9 +1,10 @@
 package http
 
 import (
-	"github.com/gorilla/mux"
 	"io"
 	"net/http"
+
+	"github.com/gorilla/mux"
 )
 
 // //go:generate oapi-codegen -package http -generate types -o models.gen.go ../../../api/tm-catalog.openapi.yaml

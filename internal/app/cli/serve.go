@@ -2,9 +2,10 @@ package cli
 
 import (
 	"fmt"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"net"
 	nethttp "net/http"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 )
 
 func Serve(host, port string) error {
@@ -27,7 +28,7 @@ func Serve(host, port string) error {
 	fmt.Printf("Start tm-catalog server on %s:%s\n", host, port)
 	err := s.ListenAndServe()
 	if err != nil {
-		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", err)
+		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
 		return err
 	}
 

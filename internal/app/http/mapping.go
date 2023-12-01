@@ -1,8 +1,9 @@
 package http
 
 import (
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"net/url"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 func mapInventoryMeta(toc model.TOC) Meta {
