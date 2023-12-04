@@ -32,12 +32,11 @@ func (e *ErrTMExists) Error() string {
 }
 
 func NewFileRemote(config map[string]any, name string) (*FileRemote, error) {
-	loc := config[KeyRemoteLoc]
-	locString, ok := loc.(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string: %v", loc)
+	loc := utils.JsGetString(config, KeyRemoteLoc)
+	if loc == nil {
+		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string")
 	}
-	rootPath, err := utils.ExpandHome(locString)
+	rootPath, err := utils.ExpandHome(*loc)
 	if err != nil {
 		return nil, err
 	}
@@ -194,21 +193,17 @@ func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error
 		if err != nil {
 			return nil, err
 		}
-		if rType, ok := rc[KeyRemoteType]; ok {
-			if rType != RemoteTypeFile {
+		if rType := utils.JsGetString(rc, KeyRemoteType); rType != nil {
+			if *rType != RemoteTypeFile {
 				return nil, fmt.Errorf("invalid json config. type must be \"file\" or absent")
 			}
 		}
 		rc[KeyRemoteType] = RemoteTypeFile
-		l, ok := rc[KeyRemoteLoc]
-		if !ok {
-			return nil, fmt.Errorf("invalid json config. must have key \"loc\"")
+		l := utils.JsGetString(rc, KeyRemoteLoc)
+		if l == nil {
+			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
 		}
-		ls, ok := l.(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid json config. loc must be a string")
-		}
-		la, err := makeAbs(ls)
+		la, err := makeAbs(*l)
 		if err != nil {
 			return nil, err
 		}

@@ -15,7 +15,7 @@ func TestNewHttpRemote(t *testing.T) {
 			"loc":  root,
 		}, "name")
 	assert.NoError(t, err)
-	assert.Equal(t, root, remote.root.String())
+	assert.Equal(t, root, remote.root)
 	assert.Equal(t, "name", remote.Name())
 }
 

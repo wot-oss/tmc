@@ -22,11 +22,19 @@ func RemoteList() error {
 	}
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tLOCATION\n")
+	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tENBL\tLOCATION\n")
 	for name, value := range config {
-		typ := elideString(fmt.Sprintf("%v", value[remotes.KeyRemoteType]), colWidth)
-		u := elideString(fmt.Sprintf("%v", value[remotes.KeyRemoteLoc]), colWidth)
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\n", elideString(name, colWidth), typ, u)
+		typ := fmt.Sprintf("%v", value[remotes.KeyRemoteType])
+		e := utils.JsGetBool(value, remotes.KeyRemoteEnabled)
+		enbl := e == nil || *e
+		var enblS string
+		if enbl {
+			enblS = "Y"
+		} else {
+			enblS = "N"
+		}
+		u := fmt.Sprintf("%v", value[remotes.KeyRemoteLoc])
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n", elideString(name, colWidth), typ, enblS, u)
 	}
 	_ = table.Flush()
 	return nil
@@ -94,6 +102,14 @@ func inferType(typ string, bytes []byte) string {
 }
 func RemoteSetDefault(name string) error {
 	err := remotes.SetDefault(name)
+	if err != nil {
+		Stderrf("%v", err)
+	}
+	return err
+}
+
+func RemoteToggleEnabled(name string) error {
+	err := remotes.ToggleEnabled(name)
 	if err != nil {
 		Stderrf("%v", err)
 	}

@@ -11,13 +11,16 @@ import (
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 const (
 	KeyRemotes       = "remotes"
 	KeyRemoteType    = "type"
 	KeyRemoteLoc     = "loc"
+	KeyRemoteAuth    = "auth"
 	KeyRemoteDefault = "default"
+	KeyRemoteEnabled = "enabled"
 
 	RemoteTypeFile = "file"
 	RemoteTypeHttp = "http"
@@ -63,13 +66,12 @@ func Get(name string) (Remote, error) {
 		} else {
 			found := false
 			for n, v := range remotes {
-				if def, ok := v[KeyRemoteDefault]; ok {
-					if d, ok := def.(bool); ok && d {
-						rc = v
-						name = n
-						found = true
-						break
-					}
+				def := utils.JsGetBool(v, KeyRemoteDefault)
+				if def != nil && *def {
+					rc = v
+					name = n
+					found = true
+					break
 				}
 			}
 			if !found {
@@ -82,6 +84,10 @@ func Get(name string) (Remote, error) {
 		}
 	}
 
+	enabled := utils.JsGetBool(rc, KeyRemoteEnabled)
+	if enabled != nil && !*enabled {
+		return nil, ErrRemoteNotFound
+	}
 	return createRemote(rc, name)
 }
 
@@ -104,6 +110,10 @@ func All() ([]Remote, error) {
 	var rs []Remote
 
 	for n, rc := range conf {
+		en := utils.JsGetBool(rc, KeyRemoteEnabled)
+		if en != nil && !*en {
+			continue
+		}
 		r, err := createRemote(rc, n)
 		if err != nil {
 			return rs, err
@@ -145,6 +155,27 @@ func SetDefault(name string) error {
 			delete(rc, KeyRemoteDefault)
 		}
 	}
+	return saveConfig(conf)
+}
+func ToggleEnabled(name string) error {
+	conf, err := ReadConfig()
+	if err != nil {
+		return err
+	}
+	c, ok := conf[name]
+	if !ok {
+		return ErrRemoteNotFound
+	}
+	if enabled, ok := c[KeyRemoteEnabled]; ok {
+		if eb, ok := enabled.(bool); ok && !eb {
+			delete(c, KeyRemoteEnabled)
+		} else {
+			c[KeyRemoteEnabled] = false
+		}
+	} else {
+		c[KeyRemoteEnabled] = false
+	}
+	conf[name] = c
 	return saveConfig(conf)
 }
 func Remove(name string) error {

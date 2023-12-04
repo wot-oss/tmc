@@ -18,6 +18,7 @@ func List(remoteName, filter string) error {
 	toc, err := commands.List(remoteName, filter)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
+		return err
 	}
 	printToC(toc, filter)
 	return nil
