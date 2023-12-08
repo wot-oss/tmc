@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"path"
 	"strings"
 	"time"
 
@@ -25,7 +26,6 @@ const pseudoVersionTimestampFormat = "20060102150405"
 // Returns the ID that the TM has been stored under, and error.
 // If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMExists
 func PushFile(raw []byte, remote remotes.Remote, optPath string) (model.TMID, error) {
-	optPath = sanitizePath(optPath)
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
@@ -146,19 +146,26 @@ func generateNewId(tm *model.ThingModel, raw []byte, optPath string) model.TMID 
 	ver.Hash = hashStr
 	ver.Timestamp = now().UTC().Format(pseudoVersionTimestampFormat)
 	return model.TMID{
-		OptionalPath: optPath,
+		OptionalPath: sanitizePathForID(optPath),
 		Author:       tm.Author.Name,
 		Manufacturer: tm.Manufacturer.Name,
 		Mpn:          tm.Mpn,
 		Version:      ver,
 	}
 }
-func sanitizePath(path string) string {
-	if path == "" {
-		return path
+func sanitizePathForID(p string) string {
+	if p == "" {
+		return p
 	}
-	p := sanitize.Path(path)
+	p = strings.Replace(p, "\\", "/", -1)
+	p = path.Clean(p)
 	p, _ = strings.CutPrefix(p, "/")
 	p, _ = strings.CutSuffix(p, "/")
+
+	parts := strings.Split(p, "/")
+	for i, part := range parts {
+		parts[i] = sanitize.BaseName(part)
+	}
+	p = strings.Join(parts, "/")
 	return p
 }
