@@ -4,6 +4,8 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"errors"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 	"log/slog"
 	"strings"
 
@@ -24,6 +26,8 @@ var tmcMandatorySchema string
 var tmcMandatoryValidator *jsonschema.Schema
 var tmValidator *jsonschema.Schema
 var modbusValidator *jsonschema.Schema
+
+var ErrValidation = errors.New("validation failed")
 
 const (
 	tmcMandatorySchemaUrl = "tmc-mandatory.schema.json"
@@ -89,25 +93,25 @@ func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
 	var parsed any
 	err := json.Unmarshal(raw, &parsed)
 	if err != nil {
-		return nil, err
+		return nil, utils.NewClientErr(ErrValidation, err.Error(), err)
 	}
 
 	tm, err := ValidateAsTmcImportable(raw, parsed)
 	if err != nil {
-		return nil, err
+		return nil, utils.NewClientErr(ErrValidation, err.Error(), err)
 	}
 	log.Info("required Thing Model metadata is present")
 
 	err = ValidateAsTM(raw, parsed)
 	if err != nil {
-		return tm, err
+		return tm, utils.NewClientErr(ErrValidation, err.Error(), err)
 	}
 	log.Info("passed validation against JSON schema for Thing Models")
 
 	validated, err := ValidateAsModbus(raw, parsed)
 	if validated {
 		if err != nil {
-			return tm, err
+			return tm, utils.NewClientErr(ErrValidation, err.Error(), err)
 		} else {
 			log.Info("passed validation against JSON schema for Modbus protocol binding")
 		}

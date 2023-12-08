@@ -22,14 +22,6 @@ type FileRemote struct {
 	root string
 }
 
-type ErrTMExists struct {
-	ExistingId model.TMID
-}
-
-func (e *ErrTMExists) Error() string {
-	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
-}
-
 func NewFileRemote(config map[string]any) (*FileRemote, error) {
 	loc := config[KeyRemoteLoc]
 	locString, ok := loc.(string)
@@ -45,28 +37,28 @@ func NewFileRemote(config map[string]any) (*FileRemote, error) {
 	}, nil
 }
 
-func (f *FileRemote) Push(id model.TMID, raw []byte) error {
+func (f *FileRemote) Push(id model.TMID, raw []byte) (model.TMID, error) {
 	if len(raw) == 0 {
-		return errors.New("nothing to write")
+		return id, errors.New("nothing to write")
 	}
 	fullPath, dir := f.filenames(id)
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
-		return fmt.Errorf("could not create directory %s: %w", dir, err)
+		return id, fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
 
 	if found, existingId := f.getExistingID(id); found {
 		slog.Default().Info(fmt.Sprintf("TM already exists under ID %v", existingId))
-		return &ErrTMExists{ExistingId: existingId}
+		return existingId, utils.NewClientErr(ErrTMAlreadyExists, existingId.String(), nil)
 	}
 
 	err = os.WriteFile(fullPath, raw, defaultFilePermissions)
 	if err != nil {
-		return fmt.Errorf("could not write TM to catalog: %v", err)
+		return id, fmt.Errorf("could not write TM to catalog: %v", err)
 	}
 	slog.Default().Info("saved Thing Model file", "filename", fullPath)
 
-	return nil
+	return id, nil
 }
 
 func (f *FileRemote) filenames(id model.TMID) (string, string) {
@@ -125,7 +117,7 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 func (f *FileRemote) Fetch(id model.TMID) ([]byte, error) {
 	exists, actualId := f.getExistingID(id)
 	if !exists {
-		return nil, os.ErrNotExist
+		return nil, utils.NewClientErr(ErrTMNotExists, id.String(), nil)
 	}
 	actualFilename, _ := f.filenames(actualId)
 	return os.ReadFile(actualFilename)

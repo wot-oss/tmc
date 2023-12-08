@@ -162,8 +162,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	// attempt overwriting with the same content - no change
 	time.Sleep(1050 * time.Millisecond)
 	id, err = PushFile(raw, remote, "")
-	var errExists *remotes.ErrTMExists
-	assert.ErrorAs(t, err, &errExists)
+	assert.ErrorIs(t, err, remotes.ErrTMAlreadyExists)
 	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id.String())))
 	assert.Len(t, entries, 1)
 	assert.Equal(t, firstSaved, entries[0].Name())

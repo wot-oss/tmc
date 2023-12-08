@@ -23,7 +23,7 @@ const pseudoVersionTimestampFormat = "20060102150405"
 
 // PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to remote.
 // Returns the ID that the TM has been stored under, and error.
-// If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMExists
+// If the remote already contains the same TM, returns the id of the existing TM and an instance of ErrTMAlreadyExists
 func PushFile(raw []byte, remote remotes.Remote, optPath string) (model.TMID, error) {
 	optPath = sanitizePath(optPath)
 	log := slog.Default()
@@ -38,14 +38,13 @@ func PushFile(raw []byte, remote remotes.Remote, optPath string) (model.TMID, er
 		return model.TMID{}, err
 	}
 
-	err = remote.Push(id, versioned)
+	id, err = remote.Push(id, versioned)
 	if err != nil {
-		var errExists *remotes.ErrTMExists
-		if errors.As(err, &errExists) {
-			log.Info("Thing Model already exists", "existing-id", errExists.ExistingId)
-			return errExists.ExistingId, err
+		if errors.Is(err, remotes.ErrTMAlreadyExists) {
+			log.Info("Thing Model already exists", "existing-id", id)
+		} else {
+			log.Error("error pushing to remote", "error", err)
 		}
-		log.Error("error pushing to remote", "error", err)
 		return id, err
 	}
 	log.Info("pushed successfully")

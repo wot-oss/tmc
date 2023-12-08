@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -27,16 +28,19 @@ var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
 type Config map[string]map[string]any
 
-var ErrNoDefault = errors.New("no default remote config found")
+var ErrNoDefault = errors.New("no default remote found")
 var ErrRemoteNotFound = errors.New("named remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote name")
 var ErrRemoteExists = errors.New("named remote already exists")
+var ErrTMAlreadyExists = errors.New("given Thing Model already exists as")
+var ErrTMNotExists = errors.New("given Thing Model does not exist")
+var ErrNotSupported = errors.New("method not supported")
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp}
 
 type Remote interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
-	// Returns ErrTMExists if the same file is already stored with a different timestamp
-	Push(id model.TMID, raw []byte) error
+	// Returns ErrTMAlreadyExists if the same file is already stored with a different timestamp
+	Push(id model.TMID, raw []byte) (model.TMID, error)
 	Fetch(id model.TMID) ([]byte, error)
 	CreateToC() error
 	List(filter string) (model.TOC, error)
@@ -68,12 +72,12 @@ func Get(name string) (Remote, error) {
 				}
 			}
 			if !found {
-				return nil, ErrNoDefault
+				return nil, utils.NewClientErr(ErrNoDefault, "", nil)
 			}
 		}
 	} else {
 		if !ok {
-			return nil, ErrRemoteNotFound
+			return nil, utils.NewClientErr(ErrRemoteNotFound, name, nil)
 		}
 	}
 
@@ -83,7 +87,8 @@ func Get(name string) (Remote, error) {
 	case RemoteTypeHttp:
 		return NewHttpRemote(rc)
 	default:
-		return nil, fmt.Errorf("unsupported remote type: %v. Supported types are %v", t, SupportedTypes)
+		return nil, utils.NewClientErr(fmt.Errorf("unsupported remote type"),
+			fmt.Sprintf("remote name=%s, type=%s, supported types=%v", name, t, SupportedTypes), nil)
 	}
 
 }
@@ -92,14 +97,14 @@ func ReadConfig() (Config, error) {
 	remotesConfig := viper.Get(KeyRemotes)
 	remotes, ok := remotesConfig.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid remotes contig")
+		return nil, utils.NewClientErr(fmt.Errorf("invalid remotes config"), "", nil)
 	}
 	cp := map[string]map[string]any{}
 	for k, v := range remotes {
 		if cfg, ok := v.(map[string]any); ok {
 			cp[k] = cfg
 		} else {
-			return nil, fmt.Errorf("invalid remote config: %s", k)
+			return nil, utils.NewClientErr(fmt.Errorf("invalid remote config"), k, nil)
 		}
 	}
 	return cp, nil
@@ -111,7 +116,7 @@ func SetDefault(name string) error {
 		return err
 	}
 	if _, ok := conf[name]; !ok {
-		return ErrRemoteNotFound
+		return utils.NewClientErr(ErrRemoteNotFound, name, nil)
 	}
 	for n, rc := range conf {
 		if n == name {
@@ -128,7 +133,7 @@ func Remove(name string) error {
 		return err
 	}
 	if _, ok := conf[name]; !ok {
-		return ErrRemoteNotFound
+		return utils.NewClientErr(ErrRemoteNotFound, name, nil)
 	}
 	delete(conf, name)
 	return saveConfig(conf)
@@ -137,7 +142,7 @@ func Remove(name string) error {
 func Add(name, typ, confStr string, confFile []byte) error {
 	_, err := Get(name)
 	if err == nil || !errors.Is(err, ErrRemoteNotFound) {
-		return ErrRemoteExists
+		return utils.NewClientErr(ErrRemoteExists, name, nil)
 	}
 
 	return setRemoteConfig(name, typ, confStr, confFile, err)
@@ -145,7 +150,7 @@ func Add(name, typ, confStr string, confFile []byte) error {
 func SetConfig(name, typ, confStr string, confFile []byte) error {
 	_, err := Get(name)
 	if err != nil && errors.Is(err, ErrRemoteNotFound) {
-		return ErrRemoteNotFound
+		return utils.NewClientErr(ErrRemoteNotFound, name, nil)
 	}
 
 	return setRemoteConfig(name, typ, confStr, confFile, err)
@@ -165,7 +170,8 @@ func setRemoteConfig(name string, typ string, confStr string, confFile []byte, e
 			return err
 		}
 	default:
-		return fmt.Errorf("unsupported remote type: %v. Supported types are %v", typ, SupportedTypes)
+		return utils.NewClientErr(fmt.Errorf("unsupported remote type"),
+			fmt.Sprintf("remote name=%s, type=%s, supported types=%v", name, typ, SupportedTypes), nil)
 	}
 
 	conf, err := ReadConfig()
@@ -180,7 +186,7 @@ func setRemoteConfig(name string, typ string, confStr string, confFile []byte, e
 
 func Rename(oldName, newName string) error {
 	if !ValidRemoteNameRegex.MatchString(newName) {
-		return ErrInvalidRemoteName
+		return utils.NewClientErr(ErrInvalidRemoteName, newName, nil)
 	}
 	conf, err := ReadConfig()
 	if err != nil {
@@ -191,7 +197,7 @@ func Rename(oldName, newName string) error {
 		delete(conf, oldName)
 		return saveConfig(conf)
 	} else {
-		return ErrRemoteNotFound
+		return utils.NewClientErr(ErrRemoteNotFound, oldName, nil)
 	}
 }
 func saveConfig(conf Config) error {

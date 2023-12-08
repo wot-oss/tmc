@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,8 +13,6 @@ import (
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
-
-var ErrNotSupported = errors.New("method not supported")
 
 type HttpRemote struct {
 	root *url.URL
@@ -32,8 +31,8 @@ func NewHttpRemote(config map[string]any) (*HttpRemote, error) {
 	return &HttpRemote{root: u}, nil
 }
 
-func (h HttpRemote) Push(id model.TMID, raw []byte) error {
-	return ErrNotSupported
+func (h HttpRemote) Push(id model.TMID, raw []byte) (model.TMID, error) {
+	return id, utils.NewClientErr(ErrNotSupported, "push", nil)
 }
 
 func (h HttpRemote) Fetch(id model.TMID) ([]byte, error) {
@@ -46,7 +45,7 @@ func (h HttpRemote) Fetch(id model.TMID) ([]byte, error) {
 }
 
 func (h HttpRemote) CreateToC() error {
-	return ErrNotSupported
+	return utils.NewClientErr(ErrNotSupported, "create toc", nil)
 }
 
 func (h HttpRemote) List(filter string) (model.TOC, error) {

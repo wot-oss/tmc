@@ -110,8 +110,7 @@ func pushFile(filename string, remote remotes.Remote, optPath string) (PushResul
 	}
 	id, err := commands.PushFile(raw, remote, optPath)
 	if err != nil {
-		var errExists *remotes.ErrTMExists
-		if errors.As(err, &errExists) {
+		if errors.Is(err, remotes.ErrTMAlreadyExists) {
 			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, id.String())}, nil
 		}
 		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err

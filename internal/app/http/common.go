@@ -2,7 +2,9 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 	"net/http"
 	"strings"
 
@@ -57,14 +59,21 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errDetail := error500Detail
 	errStatus := http.StatusInternalServerError
 
-	if sErr, ok := err.(*BaseHttpError); ok {
+	var clientErr *utils.ClientErr
+	if errors.As(err, &clientErr) {
+		if errors.Is(err, remotes.ErrTMAlreadyExists) {
+			errTitle = error409Title
+			errDetail = err.Error()
+			errStatus = http.StatusConflict
+		} else {
+			errTitle = error400Title
+			errDetail = err.Error()
+			errStatus = http.StatusBadRequest
+		}
+	} else if sErr, ok := err.(*BaseHttpError); ok {
 		errTitle = sErr.Title
 		errDetail = sErr.Detail
 		errStatus = sErr.Status
-	} else if sErr, ok := err.(*remotes.ErrTMExists); ok {
-		errTitle = error409Title
-		errDetail = sErr.Error()
-		errStatus = http.StatusConflict
 	} else {
 		switch err.(type) {
 		case *jsonschema.ValidationError, *json.SyntaxError:
