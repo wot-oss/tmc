@@ -1,0 +1,814 @@
+openapi: 3.0.3
+info:
+  title: Thing Model Catalog - OpenAPI 3.0
+  version: 0.0.1
+externalDocs:
+  description: Find out more about Thing Model Catalog
+  url: https://github.com/web-of-things-open-source/tm-catalog-cli
+servers:
+  - url: ''
+tags:
+  - name: inventory
+    description: Access to the inventory of the catalog
+  - name: thing-models
+    description: Access to Thing Model content
+  - name: authors
+    description: Access to authors information
+  - name: manufacturers
+    description: Access to manufacturers information
+  - name: mpns
+    description: Access to mpns (manufacturer part numbers) information
+paths:
+  /inventory:
+    get:
+      tags:
+        - inventory
+      summary: Get the inventory of the catalog
+      description: Returns the catalogs inventory
+      operationId: getInventory
+      parameters:
+        - name: filter[author]
+          in: query
+          description: |
+            Filters the inventory by one or more authors having exact match.  
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[author]=MyCompany,YourCompany
+        - name: filter[manufacturer]
+          in: query
+          description: |
+            Filters the inventory by one or more manufacturers having exact match.  
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[manufacturer]=ABB,Danfoss
+        - name: filter[mpn]
+          in: query
+          description: |
+            Filters the inventory by one ore more mpn (manufacturer part number) having exact match.   
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[mpn]=B21,FC102
+        - name: filter[externalID]
+          in: query
+          description: |
+            Filters the inventory by one or more external ID having exact match.   
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: search[content]
+          in: query
+          description: |
+            Filters the inventory according to whether the content of the inventory entries matches the given search.    
+            The search works additive to other filters.
+          schema:
+            type: string
+          example: search[content]=
+        - name: sort
+          in: query
+          description: |
+            Sorts the inventory by one or more fields. The sort is applied in the order of the fields.   
+            The sorting is done ascending per field by default. If a field needs to be sorted descending,  
+            prefix it with a HYPHEN-MINUS "-")
+          schema:
+            type: string
+            enum: [author, manufacturer, mpn]
+          example: sort=author,-manufacturer
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+              examples:
+                inventory:
+                  $ref: '#/components/examples/InventoryResponseExample'
+        '400':
+          description: Invalid filter parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: []
+  /inventory/{name}:
+    get:
+      tags:
+        - inventory
+      summary: Get an inventory entry by it's name
+      description: Returns a single inventory entry
+      operationId: getInventoryByName
+      parameters:
+        - name: name
+          in: path
+          description: Name of the inventory entry
+          required: true
+          schema:
+            type: string
+          example: mycompany/abb/B21
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryEntryResponse'
+              examples:
+                inventoryEntry:
+                  $ref: '#/components/examples/InventoryEntryResponseExample'
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Inventory entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: []
+  /inventory/{name}/versions:
+    get:
+      tags:
+        - inventory
+      summary: Get the versions of an inventory entry
+      description: Returns the versions of an inventory entry by it`s name
+      operationId: getInventoryVersionsByName
+      parameters:
+        - name: name
+          in: path
+          description: Name of the inventory entry
+          required: true
+          schema:
+            type: string
+          example: mycompany/abb/B21
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryEntryVersionsResponse'
+              examples:
+                versionsExample:
+                  $ref: '#/components/examples/InventoryEntryVersionsResponseExample'
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Inventory entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: []
+  /thing-models/{tmID}:
+    get:
+      tags:
+        - thing-models
+      summary: Get the content of a Thing Model by it's ID
+      description: Returns the actual content of a Thing Model
+      operationId: getThingModelById
+      parameters:
+        - name: tmID
+          in: path
+          description: ID of the Thing Model
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: |
+            Successful operation 
+
+            **For the schema of the returned Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Content of the Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: []
+  /thing-models:
+    post:
+      tags:
+        - thing-models
+      summary: Push a new Thing Model
+      description: Push a new Thing Model
+      operationId: pushThingModel
+      requestBody:
+        description: |
+          Push a new Thing Model  
+          
+          **For the schema of a Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
+        content:
+          application/json:
+            schema:
+              type: object
+        required: true
+      responses:
+        '201':
+          description: Successfully pushed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushThingModelResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict, Thing Model already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
+
+  /authors:
+    get:
+      tags:
+        - authors
+      summary: Get the contained authors of the inventory
+      description: Returns the contained authors of the inventory
+      operationId: getAuthors
+      parameters:
+        - name: filter[manufacturer]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries  
+            which belong to at least one of the given manufacturers with an exact match.  
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[manufacturer]=ABB,Danfoss
+        - name: filter[mpn]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries    
+            which belong to at least one of the given mpn (manufacturer part number) with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[mpn]=B21,FC102
+        - name: filter[externalID]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries   
+            which belong to at least one of the given external ID's with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: search[content]
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries  
+            where their content matches the given search.      
+            The search works additive to other filters.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorsResponse'
+              examples:
+                authors:
+                  $ref: '#/components/examples/AuthorsResponseExample'
+        '400':
+          description: Invalid filter parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
+  /manufacturers:
+    get:
+      tags:
+        - manufacturers
+      summary: Get the contained manufacturers of the inventory
+      description: Returns the contained manufacturers of the inventory
+      operationId: getManufacturers
+      parameters:
+        - name: filter[author]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they belong to at least one of the given authors with an exact match.       
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[author]=MyCompany,YourCompany
+        - name: filter[mpn]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they have inventory entries    
+            which belong to at least one of the given mpn (manufacturer part number) with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[mpn]=B21,FC102
+        - name: filter[externalID]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they have inventory entries   
+            which belong to at least one of the given external ID's with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: search[content]
+          in: query
+          description: |
+            Filters the manufacturers according to whether they have inventory entries  
+            where their content matches the given search.      
+            The search works additive to other filters.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManufacturersResponse'
+              examples:
+                manufacturers:
+                  $ref: '#/components/examples/ManufacturersResponseExample'
+        '400':
+          description: Invalid filter parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
+  /mpns:
+    get:
+      tags:
+        - mpns
+      summary: Get the contained mpns (manufacturer part numbers) of the inventory
+      description: Returns the mpns (manufacturer part numbers) of the inventory
+      operationId: getMpns
+      parameters:
+        - name: filter[author]
+          in: query
+          description: |
+            Filters the mpns according to whether they belong to at least one of the given authors with an exact match.     
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[author]=MyCompany,YourCompany
+        - name: filter[manufacturer]
+          in: query
+          description: |
+            Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.     
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[manufacturer]=ABB,Danfoss
+        - name: filter[externalID]
+          in: query
+          description: |
+            Filters the mpns according to whether their inventory entry   
+            belongs to at least one of the given external ID's with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: search[content]
+          in: query
+          description: |
+            Filters the mpns according to whether their inventory entry content matches the given search.        
+            The search works additive to other filters.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MpnsResponse'
+              examples:
+                mpns:
+                  $ref: '#/components/examples/MpnsResponseExample'
+        '400':
+          description: Invalid filter parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+        - api_key: [ ]
+components:
+  schemas:
+    InventoryEntry:
+      required:
+        - name
+        - schema:author
+        - schema:manufacturer
+        - schema:mpn
+        - versions
+      type: object
+      properties:
+        name:
+          type: string
+          example: mycompany/abb/B21
+        schema:author:
+          $ref: '#/components/schemas/SchemaAuthor'
+        schema:manufacturer:
+          $ref: '#/components/schemas/SchemaManufacturer'
+        schema:mpn:
+          type: string
+          example: B21
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntryVersion'
+        links:
+          $ref: '#/components/schemas/InventoryEntryLinks'
+    InventoryEntryVersion:
+      required:
+        - tmID
+        - externalID
+        - description
+        - timestamp
+        - digest
+        - version
+      type: object
+      properties:
+        tmID:
+          type: string
+          example: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+        externalID:
+          type: string
+          example: e7f19370-84a3-11ee-b962-0242ac120002
+        description:
+          type: string
+          example: Some description of the thing
+        digest:
+          type: string
+          example: 7256fc6baeec
+        version:
+          $ref: '#/components/schemas/ModelVersion'
+        timestamp:
+          type: string
+          example: 20231116091345
+        links:
+          $ref: '#/components/schemas/InventoryEntryVersionLinks'
+    InventoryEntryLinks:
+      type: object
+      required:
+        - self
+      properties:
+        self:
+          type: string
+          format: uri
+          example: /inventory/mycompany/abb/B21
+    InventoryEntryVersionLinks:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          format: uri
+          example: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+    InventoryResponse:
+      type: object
+      required:
+        - data
+      properties:
+        meta:
+          $ref: '#/components/schemas/Meta'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntry'
+    InventoryEntryResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/InventoryEntry'
+    InventoryEntryVersionsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntryVersion'
+    PushThingModelResponse:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          $ref: '#/components/schemas/PushThingModelResult'
+    AuthorsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
+    ManufacturersResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
+    MpnsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
+    SchemaAuthor:
+      required:
+        - schema:name
+      type: object
+      properties:
+        schema:name:
+          type: string
+          example: MyCompany
+    SchemaManufacturer:
+      required:
+        - schema:name
+      type: object
+      properties:
+        schema:name:
+          type: string
+          example: ABB
+    Meta:
+      required:
+        - created
+      type: object
+      properties:
+        created:
+          type: string
+          format: date-time
+          example: '2023-11-16T11:06:18.8213578+01:00'
+    ModelVersion:
+      required:
+        - model
+      type: object
+      properties:
+        model:
+          type: string
+          example: 1.0.1
+    PushThingModelResult:
+      required:
+        - tmID
+      type: object
+      properties:
+        tmID:
+          type: string
+          example: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+    ErrorResponse:
+      required:
+        - title
+        - status
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        detail:
+          type: string
+        instance:
+          type: string
+        status:
+          type: integer
+  securitySchemes:
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
+  examples:
+    InventoryEntryVersionsResponseExample:
+      value:
+        data:
+          - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+            externalID: e7f19370-84a3-11ee-b962-0242ac120002
+            description: Some new description of the device
+            timestamp: 20231116091345
+            digest: 7256fc6baeec
+            version:
+              model: 1.0.1
+            links:
+              content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            externalID: e7f19370-84a3-11ee-b962-0242ac120002
+            description: Some description of the device
+            timestamp: 20231017080730
+            digest: 4832ab7bbeac
+            version:
+              model: 1.0.0
+            links:
+              content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+          - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+            externalID: e7f19370-84a3-11ee-b962-0242ac120002
+            description: Some description of the device
+            timestamp: 20231015102132
+            digest: 6391fe4bcefc
+            version:
+              model: 1.0.0
+            links:
+              content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+    InventoryEntryResponseExample:
+      value:
+        data:
+          name: mycompany/abb/B21
+          schema:author:
+            schema:name: MyCompany
+          schema:manufacturer:
+            schema:name: ABB
+          schema:mpn: B21
+          versions:
+            - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+              externalID: e7f19370-84a3-11ee-b962-0242ac120002
+              description: Some new description of the device
+              timestamp: 20231116091345
+              digest: 7256fc6baeec
+              version:
+                model: 1.0.1
+              links:
+                content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+            - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+              externalID: e7f19370-84a3-11ee-b962-0242ac120002
+              description: Some description of the device
+              timestamp: 20231017080730
+              digest: 4832ab7bbeac
+              version:
+                model: 1.0.0
+              links:
+                content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+              externalID: e7f19370-84a3-11ee-b962-0242ac120002
+              description: Some description of the device
+              timestamp: 20231015102132
+              digest: 6391fe4bcefc
+              version:
+                model: 1.0.0
+              links:
+                content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+          links:
+            self: /inventory/mycompany/abb/B21
+    InventoryResponseExample:
+      value:
+        meta:
+          created: "2023-11-16T18:07:18.8213578+01:00"
+        data:
+          - name: mycompany/abb/B21
+            schema:author:
+              schema:name: MyCompany
+            schema:manufacturer:
+              schema:name: ABB
+            schema:mpn: B21
+            versions:
+              - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+                externalID: e7f19370-84a3-11ee-b962-0242ac120002
+                description: Some new description of the device
+                timestamp: 20231116091345
+                digest: 7256fc6baeec
+                version:
+                  model: 1.0.1
+                links:
+                  content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+              - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+                externalID: e7f19370-84a3-11ee-b962-0242ac120002
+                description: Some description of the device
+                timestamp: 20231017080730
+                digest: 4832ab7bbeac
+                version:
+                  model: 1.0.0
+                links:
+                  content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+            links:
+              self: /inventory/mycompany/abb/B21
+          - name: yourcompany/danfoss/FC102
+            schema:author:
+              schema:name: YourCompany
+            schema:manufacturer:
+              schema:name: Danfoss
+            schema:mpn: FC 102
+            versions:
+              - tmID: yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
+                externalID: danfoss-kxf19370
+                description: Some description of the device
+                timestamp: 2023082112103
+                digest: 2522cf7bbead
+                version:
+                  model: 1.0.0
+                links:
+                  content: /thing-models/yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
+            links:
+              self: /inventory/yourcompany/danfoss/FC102
+    AuthorsResponseExample:
+      value:
+        data:
+          - My Company
+          - Your Company
+          - Another Company
+    ManufacturersResponseExample:
+      value:
+        data:
+          - ABB
+          - Antarc
+          - Siemens
+    MpnsResponseExample:
+      value:
+        data:
+          - B21
+          - FC102
+          - PAC4200

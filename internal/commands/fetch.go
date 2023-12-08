@@ -67,6 +67,7 @@ func FetchThingByName(fn *FetchName, remoteName string) ([]byte, error) {
 		}
 	}
 
+	// TODO: cannot use IsOfficial of ThingModel here
 	official := utils.ToTrimmedLower(tocThing.Author.Name) == utils.ToTrimmedLower(tocThing.Manufacturer.Name)
 	tmid, err := model.ParseTMID(id, official)
 

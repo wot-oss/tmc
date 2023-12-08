@@ -23,8 +23,12 @@ go.work
 # IntelliJ
 .idea/
 
-# Emacs tmp files
+# Emacs
+.dir-locals.el
+
+# Various tmp files
 *~
+*.swp
 
 # tm-catalog-cli configuration
 config.json

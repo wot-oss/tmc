@@ -8,9 +8,10 @@ import (
 )
 
 var validateCmd = &cobra.Command{
-	Use:   "validate",
+	Use:   "validate FILENAME",
 	Short: "validate a TM before importing",
 	Long:  `validate a ThingModel to ensure it is ready to be imported into TM catalog`,
+	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cli.ValidateFile(args[0])
 		if err != nil {
