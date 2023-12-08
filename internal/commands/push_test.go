@@ -231,3 +231,26 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	assert.True(t, strings.HasPrefix(entries[2].Name(), "v4.0.0"))
 
 }
+
+func TestSanitizePath(t *testing.T) {
+	tests := []struct {
+		in  string
+		exp string
+	}{
+		{in: "", exp: ""},
+		{in: "/", exp: ""},
+		{in: "//", exp: ""},
+		{in: "\\", exp: ""},
+		{in: "\\\\", exp: ""},
+		{in: "/a/", exp: "a"},
+		{in: "/a/b/", exp: "a/b"},
+		{in: "a\\b", exp: "a/b"},
+		{in: "ä\\b/ôm/før mи", exp: "ae/b/om/foer-m"},
+		{in: "\\a\\b\\", exp: "a/b"},
+	}
+
+	for i, test := range tests {
+		out := sanitizePathForID(test.in)
+		assert.Equal(t, test.exp, out, "failed for %s (test %d)", test.in, i)
+	}
+}
