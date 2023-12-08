@@ -14,6 +14,8 @@ var RootCmd = &cobra.Command{
 ThingModel catalogs.`,
 }
 
+var log bool
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the RootCmd.
 func Execute() {
@@ -24,7 +26,7 @@ func Execute() {
 }
 
 func init() {
-
+	RootCmd.PersistentFlags().BoolVarP(&log, "log", "l", false, "enable logging")
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
