@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"github.com/spf13/viper"
+	"io"
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -26,10 +29,41 @@ func Execute() {
 }
 
 func init() {
-	RootCmd.PersistentFlags().BoolVarP(&log, "log", "l", false, "enable logging")
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-
+	RootCmd.PersistentFlags().BoolVarP(&log, "log", "l", false, "enable logging")
+	RootCmd.PersistentPreRun = preRunAll
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tm-catalog-cli.yaml)")
+}
+
+func preRunAll(cmd *cobra.Command, args []string) {
+	// for "serve" command, enable logging as default
+	if cmd != nil && "serve" == cmd.CalledAs() {
+		viper.SetDefault("log", true)
+	}
+	configureLogger()
+}
+
+func configureLogger() {
+	logEnabled := viper.GetBool("log")
+	var writer = io.Discard
+	if logEnabled {
+		writer = os.Stderr
+	}
+
+	logLevel := viper.GetString("logLevel")
+	var level slog.Level
+	//levelP := &level
+	err := level.UnmarshalText([]byte(logLevel))
+	if err != nil {
+		level = slog.LevelInfo
+	}
+	opts := &slog.HandlerOptions{
+		Level: level,
+	}
+
+	handler := slog.NewTextHandler(writer, opts)
+	log := slog.New(handler)
+	slog.SetDefault(log)
 }

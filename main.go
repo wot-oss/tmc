@@ -4,15 +4,10 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package main
 
 import (
-	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-	"io"
-	"log/slog"
-	"os"
-
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
 	_ "github.com/web-of-things-open-source/tm-catalog-cli/cmd/remote"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 )
 
 func main() {
@@ -20,15 +15,10 @@ func main() {
 }
 
 func init() {
-	cobra.OnInitialize(configureCLI)
+	initViper()
 }
 
-func configureCLI() {
-	configureViper()
-	configureLogger()
-}
-
-func configureViper() {
+func initViper() {
 	viper.SetDefault("log", false)
 	viper.SetDefault("logLevel", "INFO")
 	viper.SetDefault("remotes", map[string]any{
@@ -53,31 +43,13 @@ func configureViper() {
 		}
 	}
 
+	// set prefix "tmc" for environment variables
+	// the environment variables then have to match pattern "tmc_<viper variable>", lower or uppercase
+	viper.SetEnvPrefix("tmc")
+	// bind viper variable "log" to env (tmc_log or TMC_LOG)
 	_ = viper.BindEnv("log")
+	// bind viper variable "log" also to CLI flag --log of root command
 	_ = viper.BindPFlag("log", cmd.RootCmd.PersistentFlags().Lookup("log"))
 
 	viper.WatchConfig()
-}
-
-func configureLogger() {
-	logEnabled := viper.GetBool("log")
-	var writer = io.Discard
-	if logEnabled {
-		writer = os.Stderr
-	}
-
-	logLevel := viper.GetString("logLevel")
-	var level slog.Level
-	//levelP := &level
-	err := level.UnmarshalText([]byte(logLevel))
-	if err != nil {
-		level = slog.LevelInfo
-	}
-	opts := &slog.HandlerOptions{
-		Level: level,
-	}
-
-	handler := slog.NewTextHandler(writer, opts)
-	log := slog.New(handler)
-	slog.SetDefault(log)
 }
