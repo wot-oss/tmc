@@ -7,22 +7,19 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func ListVersions(remoteName, name string) (model.FoundEntry, error) {
-	var rs []remotes.Remote
-	if remoteName != "" {
-		// get versions from a single remote
-		remote, err := remotes.Get(remoteName)
-		if err != nil {
-			return model.FoundEntry{}, err
-		}
-		rs = []remotes.Remote{remote}
-	} else {
-		// get versions from all remotes
-		var err error
-		rs, err = remotes.All()
-		if err != nil {
-			return model.FoundEntry{}, err
-		}
+type VersionsCommand struct {
+	remoteMgr remotes.RemoteManager
+}
+
+func NewVersionsCommand(manager remotes.RemoteManager) *VersionsCommand {
+	return &VersionsCommand{
+		remoteMgr: manager,
+	}
+}
+func (c *VersionsCommand) ListVersions(remoteName, name string) (model.FoundEntry, error) {
+	rs, err := remotes.GetNamedOrAll(c.remoteMgr, remoteName)
+	if err != nil {
+		return model.FoundEntry{}, err
 	}
 	res := model.FoundEntry{}
 	found := false

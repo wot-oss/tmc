@@ -7,10 +7,11 @@ import (
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 func ListVersions(remoteName, name string) error {
-	tocEntry, err := commands.ListVersions(remoteName, name)
+	tocEntry, err := commands.NewVersionsCommand(remotes.DefaultManager()).ListVersions(remoteName, name)
 	if err != nil {
 		Stderrf("Could not list versions for %s: %v\ncheck config", name, err)
 		return err

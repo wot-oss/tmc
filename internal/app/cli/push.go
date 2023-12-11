@@ -46,7 +46,7 @@ func (r PushResult) String() string {
 // Push pushes file or directory to remote repository
 // Returns the list of push results up to the first encountered error, and the error
 func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, error) {
-	remote, err := remotes.Get(remoteName)
+	remote, err := remotes.DefaultManager().Get(remoteName)
 	if err != nil {
 		Stderrf("Could not ìnitialize a remote instance for %s: %v\ncheck config", remoteName, err)
 		return nil, err
@@ -74,7 +74,7 @@ func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, err
 	}
 	tocErr := remote.CreateToC()
 	if tocErr != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		Stderrf("Cannot create TOC: %v", err)
 	}
 	return res, err
 }

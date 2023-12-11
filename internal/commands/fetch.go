@@ -39,9 +39,18 @@ func (fn *FetchName) Parse(fetchName string) error {
 	return nil
 }
 
-func FetchThingByName(fn *FetchName, remoteName string) ([]byte, error) {
+type FetchCommand struct {
+	remoteMgr remotes.RemoteManager
+}
+
+func NewFetchCommand(manager remotes.RemoteManager) *FetchCommand {
+	return &FetchCommand{
+		remoteMgr: manager,
+	}
+}
+func (c *FetchCommand) FetchThingByName(fn *FetchName, remoteName string) ([]byte, error) {
 	log := slog.Default()
-	tocThing, err := ListVersions(remoteName, fn.Name)
+	tocThing, err := NewVersionsCommand(c.remoteMgr).ListVersions(remoteName, fn.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +82,7 @@ func FetchThingByName(fn *FetchName, remoteName string) ([]byte, error) {
 
 	log.Debug(fmt.Sprintf("fetching %v from %s", tmid, foundIn))
 
-	remote, err := remotes.Get(foundIn)
+	remote, err := c.remoteMgr.Get(foundIn)
 	if err != nil {
 		return nil, err
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 func listToc(filter *FilterParams, search *SearchParams) (*model.TOC, error) {
-	remote, err := remotes.Get("")
+	remote, err := remotes.DefaultManager().Get("")
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func findTocEntry(name string) (*model.TOCEntry, error) {
 }
 
 func fetchThingModel(tmID string) ([]byte, error) {
-	remote, err := remotes.Get("")
+	remote, err := remotes.DefaultManager().Get("")
 	if err != nil {
 		return nil, err
 	}
@@ -105,11 +105,10 @@ func fetchThingModel(tmID string) ([]byte, error) {
 }
 
 func pushThingModel(file []byte) (*model.TMID, error) {
-	remote, err := remotes.Get("")
+	remote, err := remotes.DefaultManager().Get("")
 	if err != nil {
 		return nil, err
 	}
-
 	tmID, err := commands.PushFile(file, remote, "")
 	if err != nil {
 		return nil, err
