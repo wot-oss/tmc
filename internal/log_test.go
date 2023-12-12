@@ -2,13 +2,14 @@ package internal
 
 import (
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 )
 
-const envVarLog = config.EnvPrefix + "_" + config.KeyLog
+var envVarLog = strings.ToUpper(config.EnvPrefix + "_" + config.KeyLog) // TMC_LOG
 
 func TestLogDisabledDefault(t *testing.T) {
 	// given: default environment with no env var set that would enable logging
