@@ -1,11 +1,12 @@
 package internal
 
 import (
-	"github.com/spf13/viper"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"io"
 	"log/slog"
 	"os"
+
+	"github.com/spf13/viper"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 )
 
 type DefaultLogHandler struct {

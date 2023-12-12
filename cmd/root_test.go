@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"log/slog"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-	"log/slog"
-	"testing"
 )
 
 func TestLoggingOnSubCommands(t *testing.T) {

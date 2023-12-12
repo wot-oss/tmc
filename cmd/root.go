@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"os"
+	"slices"
+
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-	"os"
-	"slices"
 
 	"github.com/spf13/cobra"
 )
