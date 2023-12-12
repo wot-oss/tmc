@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"github.com/spf13/viper"
-	"io"
-	"log/slog"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"os"
+	"slices"
 
 	"github.com/spf13/cobra"
 )
@@ -18,6 +19,7 @@ ThingModel catalogs.`,
 }
 
 var log bool
+var logEnabledDefaultCmd = []string{"serve"}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the RootCmd.
@@ -32,38 +34,18 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
+
+	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tm-catalog-cli.yaml)")
 	RootCmd.PersistentFlags().BoolVarP(&log, "log", "l", false, "enable logging")
 	RootCmd.PersistentPreRun = preRunAll
-	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tm-catalog-cli.yaml)")
+	// bind viper variable "log" to CLI flag --log of root command
+	_ = viper.BindPFlag(config.KeyLog, RootCmd.PersistentFlags().Lookup("log"))
 }
 
 func preRunAll(cmd *cobra.Command, args []string) {
-	// for "serve" command, enable logging as default
-	if cmd != nil && "serve" == cmd.CalledAs() {
-		viper.SetDefault("log", true)
-	}
-	configureLogger()
-}
+	// set default logging enabled/disabled depending on subcommand
+	logDefault := cmd != nil && slices.Contains(logEnabledDefaultCmd, cmd.CalledAs())
+	viper.SetDefault(config.KeyLog, logDefault)
 
-func configureLogger() {
-	logEnabled := viper.GetBool("log")
-	var writer = io.Discard
-	if logEnabled {
-		writer = os.Stderr
-	}
-
-	logLevel := viper.GetString("logLevel")
-	var level slog.Level
-	//levelP := &level
-	err := level.UnmarshalText([]byte(logLevel))
-	if err != nil {
-		level = slog.LevelInfo
-	}
-	opts := &slog.HandlerOptions{
-		Level: level,
-	}
-
-	handler := slog.NewTextHandler(writer, opts)
-	log := slog.New(handler)
-	slog.SetDefault(log)
+	internal.InitLogging()
 }
