@@ -34,12 +34,12 @@ type ErrorResponse struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
+	Links              *InventoryEntryLinks    `json:"links,omitempty"`
 	Name               string                  `json:"name"`
 	SchemaAuthor       SchemaAuthor            `json:"schema:author"`
 	SchemaManufacturer SchemaManufacturer      `json:"schema:manufacturer"`
 	SchemaMpn          string                  `json:"schema:mpn"`
 	Versions           []InventoryEntryVersion `json:"versions"`
-	Links              *InventoryEntryLinks    `json:"links,omitempty"`
 }
 
 // InventoryEntryLinks defines model for InventoryEntryLinks.
@@ -55,12 +55,12 @@ type InventoryEntryResponse struct {
 // InventoryEntryVersion defines model for InventoryEntryVersion.
 type InventoryEntryVersion struct {
 	Description string                      `json:"description"`
-	Version     ModelVersion                `json:"version"`
-	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
-	TmID        string                      `json:"tmID"`
 	Digest      string                      `json:"digest"`
-	Timestamp   string                      `json:"timestamp"`
 	ExternalID  string                      `json:"externalID"`
+	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
+	Timestamp   string                      `json:"timestamp"`
+	TmID        string                      `json:"tmID"`
+	Version     ModelVersion                `json:"version"`
 }
 
 // InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.
@@ -124,45 +124,45 @@ type GetAuthorsParams struct {
 	// FilterManufacturer Filters the authors according to whether they have inventory entries
 	// which belong to at least one of the given manufacturers with an exact match.
 	// The filter works additive to other filters.
-	FilterManufacturer *string `form:"filter[manufacturer],omitempty" json:"filter[manufacturer],omitempty"`
+	FilterManufacturer *string `form:"filter.manufacturer,omitempty" json:"filter.manufacturer,omitempty"`
 
 	// FilterMpn Filters the authors according to whether they have inventory entries
 	// which belong to at least one of the given mpn (manufacturer part number) with an exact match.
 	// The filter works additive to other filters.
-	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
+	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
 	// FilterExternalID Filters the authors according to whether they have inventory entries
 	// which belong to at least one of the given external ID's with an exact match.
 	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
+	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
 	// SearchContent Filters the authors according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
+	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
 }
 
 // GetInventoryParams defines parameters for GetInventory.
 type GetInventoryParams struct {
 	// FilterAuthor Filters the inventory by one or more authors having exact match.
 	// The filter works additive to other filters.
-	FilterAuthor *string `form:"filter[author],omitempty" json:"filter[author],omitempty"`
+	FilterAuthor *string `form:"filter.author,omitempty" json:"filter.author,omitempty"`
 
 	// FilterManufacturer Filters the inventory by one or more manufacturers having exact match.
 	// The filter works additive to other filters.
-	FilterManufacturer *string `form:"filter[manufacturer],omitempty" json:"filter[manufacturer],omitempty"`
+	FilterManufacturer *string `form:"filter.manufacturer,omitempty" json:"filter.manufacturer,omitempty"`
 
 	// FilterMpn Filters the inventory by one ore more mpn (manufacturer part number) having exact match.
 	// The filter works additive to other filters.
-	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
+	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
 	// FilterExternalID Filters the inventory by one or more external ID having exact match.
 	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
+	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
 	// SearchContent Filters the inventory according to whether the content of the inventory entries matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
+	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
 
 	// Sort Sorts the inventory by one or more fields. The sort is applied in the order of the fields.
 	// The sorting is done ascending per field by default. If a field needs to be sorted descending,
@@ -177,42 +177,42 @@ type GetInventoryParamsSort string
 type GetManufacturersParams struct {
 	// FilterAuthor Filters the manufacturers according to whether they belong to at least one of the given authors with an exact match.
 	// The filter works additive to other filters.
-	FilterAuthor *string `form:"filter[author],omitempty" json:"filter[author],omitempty"`
+	FilterAuthor *string `form:"filter.author,omitempty" json:"filter.author,omitempty"`
 
 	// FilterMpn Filters the manufacturers according to whether they have inventory entries
 	// which belong to at least one of the given mpn (manufacturer part number) with an exact match.
 	// The filter works additive to other filters.
-	FilterMpn *string `form:"filter[mpn],omitempty" json:"filter[mpn],omitempty"`
+	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
 	// FilterExternalID Filters the manufacturers according to whether they have inventory entries
 	// which belong to at least one of the given external ID's with an exact match.
 	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
+	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
 	// SearchContent Filters the manufacturers according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
+	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
 }
 
 // GetMpnsParams defines parameters for GetMpns.
 type GetMpnsParams struct {
 	// FilterAuthor Filters the mpns according to whether they belong to at least one of the given authors with an exact match.
 	// The filter works additive to other filters.
-	FilterAuthor *string `form:"filter[author],omitempty" json:"filter[author],omitempty"`
+	FilterAuthor *string `form:"filter.author,omitempty" json:"filter.author,omitempty"`
 
 	// FilterManufacturer Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.
 	// The filter works additive to other filters.
-	FilterManufacturer *string `form:"filter[manufacturer],omitempty" json:"filter[manufacturer],omitempty"`
+	FilterManufacturer *string `form:"filter.manufacturer,omitempty" json:"filter.manufacturer,omitempty"`
 
 	// FilterExternalID Filters the mpns according to whether their inventory entry
 	// belongs to at least one of the given external ID's with an exact match.
 	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter[externalID],omitempty" json:"filter[externalID],omitempty"`
+	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
 	// SearchContent Filters the mpns according to whether their inventory entry content matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search[content],omitempty" json:"search[content],omitempty"`
+	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
 }
 
 // PushThingModelJSONBody defines parameters for PushThingModel.

@@ -27,46 +27,46 @@ paths:
       description: Returns the catalogs inventory
       operationId: getInventory
       parameters:
-        - name: filter[author]
+        - name: 'filter.author'
           in: query
           description: |
             Filters the inventory by one or more authors having exact match.  
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[author]=MyCompany,YourCompany
-        - name: filter[manufacturer]
+          example: filter.author=MyCompany,YourCompany
+        - name: 'filter.manufacturer'
           in: query
           description: |
             Filters the inventory by one or more manufacturers having exact match.  
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[manufacturer]=ABB,Danfoss
-        - name: filter[mpn]
+          example: filter.manufacturer=ABB,Danfoss
+        - name: 'filter.mpn'
           in: query
           description: |
             Filters the inventory by one ore more mpn (manufacturer part number) having exact match.   
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[mpn]=B21,FC102
-        - name: filter[externalID]
+          example: filter.mpn=B21,FC102
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the inventory by one or more external ID having exact match.   
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the inventory according to whether the content of the inventory entries matches the given search.    
             The search works additive to other filters.
           schema:
             type: string
-          example: search[content]=
+          example: search.content=
         - name: sort
           in: query
           description: |
@@ -288,7 +288,7 @@ paths:
       description: Returns the contained authors of the inventory
       operationId: getAuthors
       parameters:
-        - name: filter[manufacturer]
+        - name: 'filter.manufacturer'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries  
@@ -296,8 +296,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[manufacturer]=ABB,Danfoss
-        - name: filter[mpn]
+          example: filter.manufacturer=ABB,Danfoss
+        - name: 'filter.mpn'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries    
@@ -305,8 +305,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[mpn]=B21,FC102
-        - name: filter[externalID]
+          example: filter.mpn=B21,FC102
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries   
@@ -314,8 +314,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries  
@@ -355,15 +355,15 @@ paths:
       description: Returns the contained manufacturers of the inventory
       operationId: getManufacturers
       parameters:
-        - name: filter[author]
+        - name: 'filter.author'
           in: query
           description: |
             Filters the manufacturers according to whether they belong to at least one of the given authors with an exact match.       
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[author]=MyCompany,YourCompany
-        - name: filter[mpn]
+          example: filter.author=MyCompany,YourCompany
+        - name: 'filter.mpn'
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries    
@@ -371,8 +371,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[mpn]=B21,FC102
-        - name: filter[externalID]
+          example: filter.mpn=B21,FC102
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries   
@@ -380,8 +380,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries  
@@ -421,23 +421,23 @@ paths:
       description: Returns the mpns (manufacturer part numbers) of the inventory
       operationId: getMpns
       parameters:
-        - name: filter[author]
+        - name: 'filter.author'
           in: query
           description: |
             Filters the mpns according to whether they belong to at least one of the given authors with an exact match.     
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[author]=MyCompany,YourCompany
-        - name: filter[manufacturer]
+          example: filter.author=MyCompany,YourCompany
+        - name: 'filter.manufacturer'
           in: query
           description: |
             Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.     
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[manufacturer]=ABB,Danfoss
-        - name: filter[externalID]
+          example: filter.manufacturer=ABB,Danfoss
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the mpns according to whether their inventory entry   
@@ -445,8 +445,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the mpns according to whether their inventory entry content matches the given search.        
