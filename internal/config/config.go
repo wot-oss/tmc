@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	KeyLog      = "log"
-	KeyLogLevel = "logLevel"
-	EnvPrefix   = "tmc"
+	KeyLog         = "log"
+	KeyLogLevel    = "logLevel"
+	KeyContextRoot = "contextRoot"
+	EnvPrefix      = "tmc"
 )
 
 var HomeDir string
@@ -55,8 +56,10 @@ func InitViper() {
 	// set prefix "tmc" for environment variables
 	// the environment variables then have to match pattern "tmc_<viper variable>", lower or uppercase
 	viper.SetEnvPrefix(EnvPrefix)
-	// bind viper variable "log" to env (tmc_log or TMC_LOG)
+	// bind viper variable "log" to env (TMC_LOG)
 	_ = viper.BindEnv(KeyLog)
+	// bind viper variable "contextRoot" to env (TMC_CONTEXTROOT)
+	_ = viper.BindEnv(KeyContextRoot)
 
 	viper.WatchConfig()
 }
