@@ -4,15 +4,26 @@ import (
 	"fmt"
 	"net"
 	nethttp "net/http"
+	"net/url"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 )
 
-func Serve(host, port string) error {
+func Serve(host, port string, ctxRoot string) error {
+
+	err := validateContextRoot(ctxRoot)
+	if err != nil {
+		Stderrf(err.Error())
+		return err
+	}
 
 	// create an instance of a router and our handler
 	r := http.NewRouter()
-	handler := http.NewTmcHandler()
+
+	handler := http.NewTmcHandler(
+		http.TmcHandlerOptions{
+			ContextRoot: ctxRoot,
+		})
 
 	options := http.GorillaServerOptions{
 		BaseRouter:       r,
@@ -26,11 +37,20 @@ func Serve(host, port string) error {
 	}
 
 	fmt.Printf("Start tm-catalog server on %s:%s\n", host, port)
-	err := s.ListenAndServe()
+	err = s.ListenAndServe()
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
 		return err
 	}
 
+	return nil
+}
+
+func validateContextRoot(ctxRoot string) error {
+	vCtxRoot, _ := url.JoinPath("/", ctxRoot)
+	_, err := url.ParseRequestURI(vCtxRoot)
+	if err != nil {
+		return fmt.Errorf("invalid contextRoot: %s", ctxRoot)
+	}
 	return nil
 }

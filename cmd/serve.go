@@ -19,13 +19,15 @@ func init() {
 	RootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().StringP("host", "", "0.0.0.0", "serve with this host name")
 	serveCmd.Flags().StringP("port", "", "8080", "serve with this port")
+	serveCmd.Flags().StringP("contextRoot", "", "", "define additional context root path")
 }
 
 func serve(cmd *cobra.Command, args []string) {
 	host := cmd.Flag("host").Value.String()
 	port := cmd.Flag("port").Value.String()
+	cr := cmd.Flag("contextRoot").Value.String()
 
-	err := cli.Serve(host, port)
+	err := cli.Serve(host, port, cr)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)

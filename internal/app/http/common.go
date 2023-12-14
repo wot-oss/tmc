@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -26,6 +27,9 @@ const (
 
 	basePathInventory   = "/inventory"
 	basePathThingModels = "/thing-models"
+
+	ctxRoot         = "contextRoot"
+	ctxRelPathDepth = "relPathDepth"
 )
 
 func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
@@ -190,9 +194,11 @@ func convertParams(params any) (*FilterParams, *SearchParams) {
 	return &filter, &search
 }
 
-func toInventoryResponse(toc model.TOC) InventoryResponse {
-	meta := mapInventoryMeta(toc)
-	inv := mapInventoryData(toc.Data)
+func toInventoryResponse(ctx context.Context, toc model.TOC) InventoryResponse {
+	mapper := NewMapper(ctx)
+
+	meta := mapper.GetInventoryMeta(toc)
+	inv := mapper.GetInventoryData(toc.Data)
 	resp := InventoryResponse{
 		Meta: &meta,
 		Data: inv,
@@ -201,16 +207,20 @@ func toInventoryResponse(toc model.TOC) InventoryResponse {
 	return resp
 }
 
-func toInventoryEntryResponse(tocEntry model.TOCEntry) InventoryEntryResponse {
-	invEntry := mapInventoryEntry(tocEntry)
+func toInventoryEntryResponse(ctx context.Context, tocEntry model.TOCEntry) InventoryEntryResponse {
+	mapper := NewMapper(ctx)
+
+	invEntry := mapper.GetInventoryEntry(tocEntry)
 	resp := InventoryEntryResponse{
 		Data: invEntry,
 	}
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(tocVersions []model.TOCVersion) InventoryEntryVersionsResponse {
-	invEntryVersions := mapInventoryEntryVersions(tocVersions)
+func toInventoryEntryVersionsResponse(ctx context.Context, tocVersions []model.TOCVersion) InventoryEntryVersionsResponse {
+	mapper := NewMapper(ctx)
+
+	invEntryVersions := mapper.GetInventoryEntryVersions(tocVersions)
 	resp := InventoryEntryVersionsResponse{
 		Data: invEntryVersions,
 	}
