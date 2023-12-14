@@ -86,24 +86,24 @@ func (h *HttpRemote) Name() string {
 	return h.name
 }
 
-func (h *HttpRemote) List(filter string) (model.TOC, error) {
+func (h *HttpRemote) List(search *model.SearchParams) (model.SearchResult, error) {
 	reqUrl := h.buildUrl(TOCFilename)
 	resp, err := h.doGet(reqUrl)
 	if err != nil {
-		return model.TOC{}, err
+		return model.SearchResult{}, err
 	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return model.TOC{}, err
+		return model.SearchResult{}, err
 	}
 
 	var toc model.TOC
 	err = json.Unmarshal(data, &toc)
-	toc.Filter(filter)
+	toc.Filter(search)
 	if err != nil {
-		return model.TOC{}, err
+		return model.SearchResult{}, err
 	}
-	return toc, nil
+	return model.NewSearchResultFromTOC(toc, h.Name()), nil
 }
 
 func (h *HttpRemote) doGet(reqUrl string) (*http.Response, error) {
@@ -116,26 +116,24 @@ func (h *HttpRemote) doGet(reqUrl string) (*http.Response, error) {
 	return resp, err
 }
 
-func (h *HttpRemote) Versions(name string) (model.TOCEntry, error) {
+func (h *HttpRemote) Versions(name string) (model.FoundEntry, error) {
 	log := slog.Default()
 	if len(name) == 0 {
 		log.Error("Please specify a name to show the TM.")
-		return model.TOCEntry{}, errors.New("please specify a name to show the TM")
-	}
-	toc, err := h.List("")
-	if err != nil {
-		return model.TOCEntry{}, err
+		return model.FoundEntry{}, errors.New("please specify a name to show the TM")
 	}
 	name = strings.TrimSpace(name)
-
-	tocThing := toc.FindByName(name)
-	if tocThing == nil {
-		msg := fmt.Sprintf("No thing model found for name: %s", name)
-		log.Error(msg)
-		return model.TOCEntry{}, errors.New(msg)
+	toc, err := h.List(&model.SearchParams{Name: name})
+	if err != nil {
+		return model.FoundEntry{}, err
 	}
 
-	return *tocThing, nil
+	if len(toc.Entries) != 1 {
+		log.Error(fmt.Sprintf("No thing model found for name: %s", name))
+		return model.FoundEntry{}, ErrEntryNotFound
+	}
+
+	return toc.Entries[0], nil
 }
 
 func (h *HttpRemote) addAuth(req *http.Request) {

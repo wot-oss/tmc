@@ -44,8 +44,8 @@ type Remote interface {
 	Push(id model.TMID, raw []byte) error
 	Fetch(id model.TMID) ([]byte, error)
 	CreateToC() error
-	List(filter string) (model.TOC, error)
-	Versions(name string) (model.TOCEntry, error)
+	List(search *model.SearchParams) (model.SearchResult, error)
+	Versions(name string) (model.FoundEntry, error)
 	Name() string
 }
 

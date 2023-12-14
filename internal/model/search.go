@@ -83,9 +83,8 @@ func toFoundVersions(versions []TOCVersion, fromRemote string) []FoundVersion {
 	return r
 }
 
-func (sr SearchResult) Merge(other SearchResult) SearchResult {
+func (sr *SearchResult) Merge(other *SearchResult) {
 	sr.Entries = mergeFoundEntries(sr.Entries, other.Entries)
-	return sr
 }
 
 func mergeFoundEntries(e1, e2 []FoundEntry) []FoundEntry {
@@ -108,4 +107,13 @@ func mergeFoundEntries(e1, e2 []FoundEntry) []FoundEntry {
 		}
 	}
 	return e1[:i]
+}
+
+type SearchParams struct {
+	Author       []string
+	Manufacturer []string
+	Mpn          []string
+	ExternalID   []string
+	Name         string
+	Query        string
 }

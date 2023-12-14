@@ -28,9 +28,9 @@ func NewTmcHandler() *TmcHandler {
 }
 
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params GetInventoryParams) {
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -110,9 +110,9 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams) {
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -126,9 +126,9 @@ func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params G
 }
 
 func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams) {
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -142,9 +142,9 @@ func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, pa
 }
 
 func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams) {
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)

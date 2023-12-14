@@ -32,7 +32,7 @@ func (c *VersionsCommand) ListVersions(remoteName, name string) (model.FoundEntr
 			return model.FoundEntry{}, err
 		}
 		found = true
-		res = res.Merge(model.NewFoundEntryFromTOCEntry(&toc, remote.Name()))
+		res = res.Merge(toc)
 	}
 	if !found {
 		return model.FoundEntry{}, remotes.ErrEntryNotFound

@@ -133,7 +133,7 @@ func NewBadRequestError(err error, detail string, args ...any) error {
 	}
 }
 
-func convertParams(params any) (*FilterParams, *SearchParams) {
+func convertParams(params any) *model.SearchParams {
 
 	var filterAuthor *string
 	var filterManufacturer *string
@@ -164,44 +164,39 @@ func convertParams(params any) (*FilterParams, *SearchParams) {
 		searchContent = mpnsParams.SearchContent
 	}
 
-	var filter FilterParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil {
-		filter = FilterParams{}
+	var search model.SearchParams
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || searchContent != nil {
+		search = model.SearchParams{}
 		if filterAuthor != nil {
-			filter.Author = strings.Split(*filterAuthor, ",")
+			search.Author = strings.Split(*filterAuthor, ",")
 		}
 		if filterManufacturer != nil {
-			filter.Manufacturer = strings.Split(*filterManufacturer, ",")
+			search.Manufacturer = strings.Split(*filterManufacturer, ",")
 		}
 		if filterMpn != nil {
-			filter.Mpn = strings.Split(*filterMpn, ",")
+			search.Mpn = strings.Split(*filterMpn, ",")
 		}
 		if filterExternalID != nil {
-			filter.ExternalID = strings.Split(*filterExternalID, ",")
+			search.ExternalID = strings.Split(*filterExternalID, ",")
+		}
+		if searchContent != nil {
+			search.Query = *searchContent
 		}
 	}
-
-	var search SearchParams
-	if searchContent != nil {
-		search = SearchParams{
-			query: *searchContent,
-		}
-	}
-	return &filter, &search
+	return &search
 }
 
-func toInventoryResponse(toc model.TOC) InventoryResponse {
+func toInventoryResponse(toc model.SearchResult) InventoryResponse {
 	meta := mapInventoryMeta(toc)
-	inv := mapInventoryData(toc.Data)
+	inv := mapInventoryData(toc.Entries)
 	resp := InventoryResponse{
 		Meta: &meta,
 		Data: inv,
 	}
-	resp.Meta.Created = toc.Meta.Created
 	return resp
 }
 
-func toInventoryEntryResponse(tocEntry model.TOCEntry) InventoryEntryResponse {
+func toInventoryEntryResponse(tocEntry model.FoundEntry) InventoryEntryResponse {
 	invEntry := mapInventoryEntry(tocEntry)
 	resp := InventoryEntryResponse{
 		Data: invEntry,
@@ -209,7 +204,7 @@ func toInventoryEntryResponse(tocEntry model.TOCEntry) InventoryEntryResponse {
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(tocVersions []model.TOCVersion) InventoryEntryVersionsResponse {
+func toInventoryEntryVersionsResponse(tocVersions []model.FoundVersion) InventoryEntryVersionsResponse {
 	invEntryVersions := mapInventoryEntryVersions(tocVersions)
 	resp := InventoryEntryVersionsResponse{
 		Data: invEntryVersions,

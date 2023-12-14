@@ -6,23 +6,23 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
-func mapInventoryMeta(toc model.TOC) Meta {
+func mapInventoryMeta(toc model.SearchResult) Meta {
 	meta := Meta{
-		Created: toc.Meta.Created,
+		//Created: toc.Meta.Created, // fixme: what to do with this?
 	}
 	return meta
 }
 
-func mapInventoryData(tocData []*model.TOCEntry) []InventoryEntry {
+func mapInventoryData(tocData []model.FoundEntry) []InventoryEntry {
 	data := []InventoryEntry{}
 	for _, v := range tocData {
-		data = append(data, mapInventoryEntry(*v))
+		data = append(data, mapInventoryEntry(v))
 	}
 
 	return data
 }
 
-func mapInventoryEntry(tocEntry model.TOCEntry) InventoryEntry {
+func mapInventoryEntry(tocEntry model.FoundEntry) InventoryEntry {
 	invEntry := InventoryEntry{}
 	invEntry.Name = tocEntry.Name
 	invEntry.SchemaAuthor.SchemaName = tocEntry.Author.Name
@@ -40,7 +40,7 @@ func mapInventoryEntry(tocEntry model.TOCEntry) InventoryEntry {
 	return invEntry
 }
 
-func mapInventoryEntryVersions(tocVersions []model.TOCVersion) []InventoryEntryVersion {
+func mapInventoryEntryVersions(tocVersions []model.FoundVersion) []InventoryEntryVersion {
 	invVersions := []InventoryEntryVersion{}
 	for _, v := range tocVersions {
 		invVersion := mapInventoryEntryVersion(v)
@@ -50,7 +50,7 @@ func mapInventoryEntryVersions(tocVersions []model.TOCVersion) []InventoryEntryV
 	return invVersions
 }
 
-func mapInventoryEntryVersion(tocVersion model.TOCVersion) InventoryEntryVersion {
+func mapInventoryEntryVersion(tocVersion model.FoundVersion) InventoryEntryVersion {
 	invVersion := InventoryEntryVersion{}
 
 	invVersion.TmID = tocVersion.TMID

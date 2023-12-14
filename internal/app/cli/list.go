@@ -16,7 +16,9 @@ const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
 func List(remoteName, filter string) error {
-	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remoteName, filter)
+	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remoteName, &model.SearchParams{
+		Query: filter,
+	})
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err

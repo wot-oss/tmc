@@ -14,9 +14,8 @@ func TestListCommand_List(t *testing.T) {
 	r1 := mocks.NewRemote(t)
 	r2 := mocks.NewRemote(t)
 	rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
-	r1.On("Name").Return("r1")
-	r1.On("List", "omnicorp").Return(model.TOC{
-		Data: []*model.TOCEntry{
+	r1.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
+		Entries: []model.FoundEntry{
 			{
 				Name:         "omnicorp/senseall",
 				Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
@@ -31,9 +30,8 @@ func TestListCommand_List(t *testing.T) {
 			},
 		},
 	}, nil)
-	r2.On("Name").Return("r2")
-	r2.On("List", "omnicorp").Return(model.TOC{
-		Data: []*model.TOCEntry{
+	r2.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
+		Entries: []model.FoundEntry{
 			{
 				Name:         "omnicorp/senseall",
 				Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
@@ -50,7 +48,7 @@ func TestListCommand_List(t *testing.T) {
 	}, nil)
 
 	c := NewListCommand(rm)
-	res, err := c.List("", "omnicorp")
+	res, err := c.List("", &model.SearchParams{Query: "omnicorp"})
 
 	assert.NoError(t, err)
 	assert.Len(t, res.Entries, 3)

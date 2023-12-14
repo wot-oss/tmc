@@ -1,6 +1,7 @@
 package http
 
 import (
+	"errors"
 	"sort"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
@@ -8,31 +9,20 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func listToc(filter *FilterParams, search *SearchParams) (*model.TOC, error) {
-	remote, err := remotes.DefaultManager().Get("")
+func listToc(search *model.SearchParams) (*model.SearchResult, error) {
+	c := commands.NewListCommand(remotes.DefaultManager())
+	toc, err := c.List("", search)
 	if err != nil {
 		return nil, err
-	}
-
-	toc, err := remote.List("")
-	if err != nil {
-		return nil, err
-	}
-
-	if filter != nil {
-		Filter(&toc, filter)
-	}
-	if search != nil {
-		Search(&toc, search)
 	}
 
 	return &toc, nil
 }
 
-func listTocAuthors(toc *model.TOC) []string {
+func listTocAuthors(toc *model.SearchResult) []string {
 	authors := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Data {
+	for _, v := range toc.Entries {
 		if _, ok := check[v.Author.Name]; !ok {
 			check[v.Author.Name] = true
 			authors = append(authors, v.Author.Name)
@@ -42,10 +32,10 @@ func listTocAuthors(toc *model.TOC) []string {
 	return authors
 }
 
-func listTocManufacturers(toc *model.TOC) []string {
+func listTocManufacturers(toc *model.SearchResult) []string {
 	mans := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Data {
+	for _, v := range toc.Entries {
 		if _, ok := check[v.Manufacturer.Name]; !ok {
 			check[v.Manufacturer.Name] = true
 			mans = append(mans, v.Manufacturer.Name)
@@ -55,10 +45,10 @@ func listTocManufacturers(toc *model.TOC) []string {
 	return mans
 }
 
-func listTocMpns(toc *model.TOC) []string {
+func listTocMpns(toc *model.SearchResult) []string {
 	mpns := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Data {
+	for _, v := range toc.Entries {
 		if _, ok := check[v.Mpn]; !ok {
 			check[v.Mpn] = true
 			mpns = append(mpns, v.Mpn)
@@ -68,18 +58,16 @@ func listTocMpns(toc *model.TOC) []string {
 	return mpns
 }
 
-func findTocEntry(name string) (*model.TOCEntry, error) {
+func findTocEntry(name string) (*model.FoundEntry, error) {
 	//todo: check if name is valid format
-	toc, err := listToc(nil, nil)
+	toc, err := listToc(&model.SearchParams{Name: name})
 	if err != nil {
 		return nil, err
 	}
-
-	tocEntry := toc.FindByName(name)
-	if tocEntry == nil {
+	if len(toc.Entries) != 1 {
 		return nil, NewNotFoundError(nil, "Inventory with name %s not found", name)
 	}
-	return tocEntry, nil
+	return &toc.Entries[0], nil
 }
 
 func fetchThingModel(tmID string) ([]byte, error) {
@@ -89,7 +77,7 @@ func fetchThingModel(tmID string) ([]byte, error) {
 	}
 
 	mTmID, err := model.ParseTMID(tmID, false)
-	if err == model.ErrInvalidId {
+	if errors.Is(err, model.ErrInvalidId) {
 		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmID)
 	} else if err != nil {
 		return nil, err

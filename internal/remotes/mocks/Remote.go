@@ -60,27 +60,27 @@ func (_m *Remote) Fetch(id model.TMID) ([]byte, error) {
 	return r0, r1
 }
 
-// List provides a mock function with given fields: filter
-func (_m *Remote) List(filter string) (model.TOC, error) {
-	ret := _m.Called(filter)
+// List provides a mock function with given fields: search
+func (_m *Remote) List(search *model.SearchParams) (model.SearchResult, error) {
+	ret := _m.Called(search)
 
 	if len(ret) == 0 {
 		panic("no return value specified for List")
 	}
 
-	var r0 model.TOC
+	var r0 model.SearchResult
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (model.TOC, error)); ok {
-		return rf(filter)
+	if rf, ok := ret.Get(0).(func(*model.SearchParams) (model.SearchResult, error)); ok {
+		return rf(search)
 	}
-	if rf, ok := ret.Get(0).(func(string) model.TOC); ok {
-		r0 = rf(filter)
+	if rf, ok := ret.Get(0).(func(*model.SearchParams) model.SearchResult); ok {
+		r0 = rf(search)
 	} else {
-		r0 = ret.Get(0).(model.TOC)
+		r0 = ret.Get(0).(model.SearchResult)
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(filter)
+	if rf, ok := ret.Get(1).(func(*model.SearchParams) error); ok {
+		r1 = rf(search)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -125,22 +125,22 @@ func (_m *Remote) Push(id model.TMID, raw []byte) error {
 }
 
 // Versions provides a mock function with given fields: name
-func (_m *Remote) Versions(name string) (model.TOCEntry, error) {
+func (_m *Remote) Versions(name string) (model.FoundEntry, error) {
 	ret := _m.Called(name)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Versions")
 	}
 
-	var r0 model.TOCEntry
+	var r0 model.FoundEntry
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (model.TOCEntry, error)); ok {
+	if rf, ok := ret.Get(0).(func(string) (model.FoundEntry, error)); ok {
 		return rf(name)
 	}
-	if rf, ok := ret.Get(0).(func(string) model.TOCEntry); ok {
+	if rf, ok := ret.Get(0).(func(string) model.FoundEntry); ok {
 		r0 = rf(name)
 	} else {
-		r0 = ret.Get(0).(model.TOCEntry)
+		r0 = ret.Get(0).(model.FoundEntry)
 	}
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {

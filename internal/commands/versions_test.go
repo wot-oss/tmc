@@ -14,35 +14,45 @@ func TestVersionsCommand_ListVersions(t *testing.T) {
 	r1 := mocks.NewRemote(t)
 	r2 := mocks.NewRemote(t)
 	rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
-	r1.On("Name").Return("r1")
 	r1.On("Versions", "senseall").Return(
-		model.TOCEntry{
+		model.FoundEntry{
 			Name:         "omnicorp/senseall",
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "omnicorp"},
-			Versions: []model.TOCVersion{
+			Versions: []model.FoundVersion{
 				{
-					TMID: "omnicorp/senseall/v0.36.0-20231231153548-243d1b462ccc.tm.json",
+					TOCVersion: model.TOCVersion{
+						TMID: "omnicorp/senseall/v0.36.0-20231231153548-243d1b462ccc.tm.json",
+					},
+					FoundIn: "r1",
 				},
 				{
-					TMID: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json",
+					TOCVersion: model.TOCVersion{
+						TMID: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json",
+					},
+					FoundIn: "r1",
 				},
 			},
 		}, nil)
-	r2.On("Name").Return("r2")
-	r2.On("Versions", "senseall").Return(model.TOCEntry{
+	r2.On("Versions", "senseall").Return(model.FoundEntry{
 
 		Name:         "omnicorp/senseall",
 		Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 		Mpn:          "senseall",
 		Author:       model.SchemaAuthor{Name: "omnicorp"},
-		Versions: []model.TOCVersion{
+		Versions: []model.FoundVersion{
 			{
-				TMID: "omnicorp/senseall/v0.34.0-20231130153548-243d1b462aaa.tm.json",
+				TOCVersion: model.TOCVersion{
+					TMID: "omnicorp/senseall/v0.34.0-20231130153548-243d1b462aaa.tm.json",
+				},
+				FoundIn: "r2",
 			},
 			{
-				TMID: "omnicorp/senseall/v0.35.0-20231230173548-243d1b462bbb.tm.json",
+				TOCVersion: model.TOCVersion{
+					TMID: "omnicorp/senseall/v0.35.0-20231230173548-243d1b462bbb.tm.json",
+				},
+				FoundIn: "r2",
 			},
 		},
 	}, nil)
