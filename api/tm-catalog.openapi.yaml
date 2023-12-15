@@ -18,6 +18,8 @@ tags:
     description: Access to manufacturers information
   - name: mpns
     description: Access to mpns (manufacturer part numbers) information
+  - name: health
+    description: Access to health information
 paths:
   /inventory:
     get:
@@ -99,8 +101,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /inventory/{name}:
     get:
       tags:
@@ -144,8 +144,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /inventory/{name}/versions:
     get:
       tags:
@@ -189,8 +187,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /thing-models/{tmID}:
     get:
       tags:
@@ -233,8 +229,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /thing-models:
     post:
       tags:
@@ -277,9 +271,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
-
   /authors:
     get:
       tags:
@@ -345,8 +336,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
   /manufacturers:
     get:
       tags:
@@ -411,8 +400,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
   /mpns:
     get:
       tags:
@@ -475,8 +462,94 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
+  /healthz:
+    get:
+      tags:
+        - health
+      summary: Get the overall health of the service
+      description: Get the overall health of the service, aggregates the responses from the /health/live and /health/ready
+      operationId: getHealth
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /healthz/live:
+    get:
+      tags:
+        - health
+      summary: Returns the liveliness of the service
+      description: Returns the liveliness of the service, or whether it encountered a bug or deadlock
+      operationId: getHealthLive
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /healthz/ready:
+    get:
+      tags:
+        - health
+      summary: Returns the readiness of the service
+      description: Returns the readiness of the service, or whether it is ready to process requests
+      operationId: getHealthReady
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /healthz/startup:
+    get:
+      tags:
+        - health
+      summary: Returns whether the service is initialized
+      description: Returns whether the service is initialized
+      operationId: getHealthStartup
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     InventoryEntry:
@@ -669,11 +742,6 @@ components:
           type: string
         status:
           type: integer
-  securitySchemes:
-    api_key:
-      type: apiKey
-      name: api_key
-      in: header
   examples:
     InventoryEntryVersionsResponseExample:
       value:

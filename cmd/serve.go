@@ -22,7 +22,8 @@ func init() {
 	RootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().StringP("host", "", "0.0.0.0", "serve with this host name")
 	serveCmd.Flags().StringP("port", "", "8080", "serve with this port")
-	serveCmd.Flags().StringP("urlContextRoot", "", "", "define additional URL context root path to be considered in hypermedia links")
+	serveCmd.Flags().StringP("urlContextRoot", "", "",
+		"define additional URL context root path to be considered in hypermedia links,\ncan also be set via environment variable TMC_URLCONTEXTROOT")
 	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup("urlContextRoot"))
 }
 

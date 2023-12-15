@@ -9,6 +9,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Hint: after generating the server code based on the openapi spec
+//       1. maybe reorder the properties in model.gen.go for a nicer JSON output, as oapi-codegen orders them alphabetically
+//       2. for path parameters "name" and "tmID", add a regex any character -> {name:.+}, {tmID:.+}
+//       3. in server.gen.go, order the handler functions, in the way that more specific are on top on less specific
+//          e.g. r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/versions" should be on top of r.HandleFunc(options.BaseURL+"/inventory/{name:.+}
+
 // //go:generate oapi-codegen -package http -generate types -o models.gen.go ../../../api/tm-catalog.openapi.yaml
 // //go:generate oapi-codegen -package http -generate gorilla-server -o server.gen.go ../../../api/tm-catalog.openapi.yaml
 
@@ -169,6 +175,50 @@ func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params GetM
 
 	resp := toMpnsResponse(mpns)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+// GetHealth Get the overall health of the service
+// (GET /healthz)
+func (h *TmcHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
+	err := checkHealth()
+	if err != nil {
+		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
+		return
+	}
+	HandleHealthyResponse(w, r)
+}
+
+// GetHealthLive Returns the liveness of the service
+// (GET /healthz/live)
+func (h *TmcHandler) GetHealthLive(w http.ResponseWriter, r *http.Request) {
+	err := checkHealthLive()
+	if err != nil {
+		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
+		return
+	}
+	HandleHealthyResponse(w, r)
+}
+
+// GetHealthReady Returns the readiness of the service
+// (GET /healthz/ready)
+func (h *TmcHandler) GetHealthReady(w http.ResponseWriter, r *http.Request) {
+	err := checkHealthReady()
+	if err != nil {
+		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
+		return
+	}
+	HandleHealthyResponse(w, r)
+}
+
+// GetHealthStartup Returns whether the service is initialized
+// (GET /healthz/startup)
+func (h *TmcHandler) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
+	err := checkHealthStartup()
+	if err != nil {
+		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
+		return
+	}
+	HandleHealthyResponse(w, r)
 }
 
 func (h *TmcHandler) createContext(r *http.Request) context.Context {

@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	Api_keyScopes = "api_key.Scopes"
-)
-
 // Defines values for GetInventoryParamsSort.
 const (
 	Author       GetInventoryParamsSort = "author"
@@ -34,12 +30,12 @@ type ErrorResponse struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
-	Links              *InventoryEntryLinks    `json:"links,omitempty"`
 	Name               string                  `json:"name"`
 	SchemaAuthor       SchemaAuthor            `json:"schema:author"`
 	SchemaManufacturer SchemaManufacturer      `json:"schema:manufacturer"`
 	SchemaMpn          string                  `json:"schema:mpn"`
 	Versions           []InventoryEntryVersion `json:"versions"`
+	Links              *InventoryEntryLinks    `json:"links,omitempty"`
 }
 
 // InventoryEntryLinks defines model for InventoryEntryLinks.
@@ -55,12 +51,12 @@ type InventoryEntryResponse struct {
 // InventoryEntryVersion defines model for InventoryEntryVersion.
 type InventoryEntryVersion struct {
 	Description string                      `json:"description"`
-	Digest      string                      `json:"digest"`
-	ExternalID  string                      `json:"externalID"`
-	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
-	Timestamp   string                      `json:"timestamp"`
-	TmID        string                      `json:"tmID"`
 	Version     ModelVersion                `json:"version"`
+	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
+	TmID        string                      `json:"tmID"`
+	Digest      string                      `json:"digest"`
+	Timestamp   string                      `json:"timestamp"`
+	ExternalID  string                      `json:"externalID"`
 }
 
 // InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.
