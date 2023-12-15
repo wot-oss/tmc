@@ -22,16 +22,16 @@ func init() {
 	RootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().StringP("host", "", "0.0.0.0", "serve with this host name")
 	serveCmd.Flags().StringP("port", "", "8080", "serve with this port")
-	serveCmd.Flags().StringP("contextRoot", "", "", "define additional context root path")
-	_ = viper.BindPFlag(config.KeyContextRoot, serveCmd.Flags().Lookup("contextRoot"))
+	serveCmd.Flags().StringP("urlContextRoot", "", "", "define additional URL context root path to be considered in hypermedia links")
+	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup("urlContextRoot"))
 }
 
 func serve(cmd *cobra.Command, args []string) {
 	host := cmd.Flag("host").Value.String()
 	port := cmd.Flag("port").Value.String()
-	ctxRoot := viper.GetString(config.KeyContextRoot)
+	urlCtxRoot := viper.GetString(config.KeyUrlContextRoot)
 
-	err := cli.Serve(host, port, ctxRoot)
+	err := cli.Serve(host, port, urlCtxRoot)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)

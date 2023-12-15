@@ -28,7 +28,7 @@ const (
 	basePathInventory   = "/inventory"
 	basePathThingModels = "/thing-models"
 
-	ctxRoot         = "contextRoot"
+	ctxUrlRoot      = "urlContextRoot"
 	ctxRelPathDepth = "relPathDepth"
 )
 

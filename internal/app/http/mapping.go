@@ -87,7 +87,7 @@ func (m *Mapper) GetInventoryEntryVersion(tocVersion model.TOCVersion) Inventory
 
 func resolveRelativeLink(ctx context.Context, link string) string {
 	link, _ = strings.CutPrefix(link, "/")
-	basePath := ctx.Value(ctxRoot).(string)
+	basePath := ctx.Value(ctxUrlRoot).(string)
 
 	if basePath != "" {
 		link, _ = url.JoinPath("/", basePath, link)

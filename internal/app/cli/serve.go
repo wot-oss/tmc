@@ -9,9 +9,9 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 )
 
-func Serve(host, port string, ctxRoot string) error {
+func Serve(host, port string, urlCtxRoot string) error {
 
-	err := validateContextRoot(ctxRoot)
+	err := validateContextRoot(urlCtxRoot)
 	if err != nil {
 		Stderrf(err.Error())
 		return err
@@ -22,7 +22,7 @@ func Serve(host, port string, ctxRoot string) error {
 
 	handler := http.NewTmcHandler(
 		http.TmcHandlerOptions{
-			ContextRoot: ctxRoot,
+			UrlContextRoot: urlCtxRoot,
 		})
 
 	options := http.GorillaServerOptions{
@@ -50,7 +50,7 @@ func validateContextRoot(ctxRoot string) error {
 	vCtxRoot, _ := url.JoinPath("/", ctxRoot)
 	_, err := url.ParseRequestURI(vCtxRoot)
 	if err != nil {
-		return fmt.Errorf("invalid contextRoot: %s", ctxRoot)
+		return fmt.Errorf("invalid urlContextRoot: %s", ctxRoot)
 	}
 	return nil
 }

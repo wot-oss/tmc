@@ -17,7 +17,7 @@ type TmcHandler struct {
 }
 
 type TmcHandlerOptions struct {
-	ContextRoot string
+	UrlContextRoot string
 }
 
 func NewRouter() *mux.Router {
@@ -176,7 +176,7 @@ func (h *TmcHandler) createContext(r *http.Request) context.Context {
 
 	ctx := r.Context()
 	ctx = context.WithValue(ctx, ctxRelPathDepth, relPathDepth)
-	ctx = context.WithValue(ctx, ctxRoot, h.Options.ContextRoot)
+	ctx = context.WithValue(ctx, ctxUrlRoot, h.Options.UrlContextRoot)
 
 	return ctx
 }
