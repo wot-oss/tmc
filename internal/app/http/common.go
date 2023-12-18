@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,20 +13,26 @@ import (
 )
 
 const (
-	error400Title  = "Bad request"
-	error404Title  = "Not found"
+	error400Title  = "Bad Request"
+	error404Title  = "Not Found"
 	error409Title  = "Conflict"
+	error503Title  = "Service Unavailable"
 	error500Title  = "Internal Server Error"
 	error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
 
 	headerContentType         = "Content-Type"
+	headerCacheControl        = "Cache-Control"
 	headerXContentTypeOptions = "X-Content-Type-Options"
 	mimeJSON                  = "application/json"
 	mimeProblemJSON           = "application/problem+json"
 	noSniff                   = "nosniff"
+	noCache                   = "no-cache, no-store, max-age=0, must-revalidate"
 
 	basePathInventory   = "/inventory"
 	basePathThingModels = "/thing-models"
+
+	ctxUrlRoot      = "urlContextRoot"
+	ctxRelPathDepth = "relPathDepth"
 )
 
 func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
@@ -44,6 +51,12 @@ func HandleByteResponse(w http.ResponseWriter, r *http.Request, status int, mime
 	w.Header().Set(headerContentType, mime)
 	w.WriteHeader(status)
 	_, _ = w.Write(data)
+}
+
+func HandleHealthyResponse(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set(headerCacheControl, noCache)
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
 }
 
 func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
@@ -116,7 +129,7 @@ func (e *BaseHttpError) Unwrap() error {
 func NewNotFoundError(err error, detail string, args ...any) error {
 	detail = fmt.Sprintf(detail, args...)
 	return &BaseHttpError{
-		Status: 404,
+		Status: http.StatusNotFound,
 		Title:  error404Title,
 		Detail: detail,
 		Err:    err,
@@ -126,8 +139,17 @@ func NewNotFoundError(err error, detail string, args ...any) error {
 func NewBadRequestError(err error, detail string, args ...any) error {
 	detail = fmt.Sprintf(detail, args...)
 	return &BaseHttpError{
-		Status: 400,
+		Status: http.StatusBadRequest,
 		Title:  error400Title,
+		Detail: detail,
+		Err:    err,
+	}
+}
+
+func NewServiceUnavailableError(err error, detail string) error {
+	return &BaseHttpError{
+		Status: http.StatusServiceUnavailable,
+		Title:  error503Title,
 		Detail: detail,
 		Err:    err,
 	}
@@ -190,9 +212,11 @@ func convertParams(params any) (*FilterParams, *SearchParams) {
 	return &filter, &search
 }
 
-func toInventoryResponse(toc model.TOC) InventoryResponse {
-	meta := mapInventoryMeta(toc)
-	inv := mapInventoryData(toc.Data)
+func toInventoryResponse(ctx context.Context, toc model.TOC) InventoryResponse {
+	mapper := NewMapper(ctx)
+
+	meta := mapper.GetInventoryMeta(toc)
+	inv := mapper.GetInventoryData(toc.Data)
 	resp := InventoryResponse{
 		Meta: &meta,
 		Data: inv,
@@ -201,16 +225,20 @@ func toInventoryResponse(toc model.TOC) InventoryResponse {
 	return resp
 }
 
-func toInventoryEntryResponse(tocEntry model.TOCEntry) InventoryEntryResponse {
-	invEntry := mapInventoryEntry(tocEntry)
+func toInventoryEntryResponse(ctx context.Context, tocEntry model.TOCEntry) InventoryEntryResponse {
+	mapper := NewMapper(ctx)
+
+	invEntry := mapper.GetInventoryEntry(tocEntry)
 	resp := InventoryEntryResponse{
 		Data: invEntry,
 	}
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(tocVersions []model.TOCVersion) InventoryEntryVersionsResponse {
-	invEntryVersions := mapInventoryEntryVersions(tocVersions)
+func toInventoryEntryVersionsResponse(ctx context.Context, tocVersions []model.TOCVersion) InventoryEntryVersionsResponse {
+	mapper := NewMapper(ctx)
+
+	invEntryVersions := mapper.GetInventoryEntryVersions(tocVersions)
 	resp := InventoryEntryVersionsResponse{
 		Data: invEntryVersions,
 	}
