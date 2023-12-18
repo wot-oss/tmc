@@ -71,40 +71,35 @@ func findTocEntry(name string) (*model.FoundEntry, error) {
 }
 
 func fetchThingModel(tmID string) ([]byte, error) {
-	remote, err := remotes.DefaultManager().Get("")
-	if err != nil {
-		return nil, err
-	}
-
-	mTmID, err := model.ParseTMID(tmID, false)
+	_, err := model.ParseTMID(tmID, true)
 	if errors.Is(err, model.ErrInvalidId) {
 		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmID)
 	} else if err != nil {
 		return nil, err
 	}
 
-	data, err := remote.Fetch(mTmID)
-	if err != nil && err.Error() == "file does not exist" {
-		return nil, NewNotFoundError(err, "File does not exists")
+	data, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMID("", tmID)
+	if errors.Is(err, commands.ErrTmNotFound) {
+		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {
 		return nil, err
 	}
 	return data, nil
 }
 
-func pushThingModel(file []byte) (*model.TMID, error) {
+func pushThingModel(file []byte) (string, error) {
 	remote, err := remotes.DefaultManager().Get("")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	tmID, err := commands.PushFile(file, remote, "")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	err = remote.CreateToC()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &tmID, nil
+	return tmID, nil
 }

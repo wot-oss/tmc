@@ -24,7 +24,7 @@ type FileRemote struct {
 }
 
 type ErrTMExists struct {
-	ExistingId model.TMID
+	ExistingId string
 }
 
 func (e *ErrTMExists) Error() string {
@@ -50,13 +50,13 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	if len(raw) == 0 {
 		return errors.New("nothing to write")
 	}
-	fullPath, dir := f.filenames(id)
+	fullPath, dir, _ := f.filenames(id.String())
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
 		return fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
 
-	if found, existingId := f.getExistingID(id); found {
+	if found, existingId := f.getExistingID(id.String()); found {
 		slog.Default().Info(fmt.Sprintf("TM already exists under ID %v", existingId))
 		return &ErrTMExists{ExistingId: existingId}
 	}
@@ -70,31 +70,36 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	return nil
 }
 
-func (f *FileRemote) filenames(id model.TMID) (string, string) {
-	fullPath := filepath.Join(f.root, id.String())
+func (f *FileRemote) filenames(id string) (string, string, string) {
+	fullPath := filepath.Join(f.root, id)
 	dir := filepath.Dir(fullPath)
-	return fullPath, dir
+	base := filepath.Base(fullPath)
+	return fullPath, dir, base
 }
 
-func (f *FileRemote) getExistingID(id model.TMID) (bool, model.TMID) {
-	fullName, dir := f.filenames(id)
+func (f *FileRemote) getExistingID(ids string) (bool, string) {
+	fullName, dir, base := f.filenames(ids)
 	// try full name as given
 	if _, err := os.Stat(fullName); err == nil {
-		return true, id
+		return true, ids
 	}
 	// try without timestamp
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return false, model.TMID{}
+		return false, ""
 	}
-	existingTMVersions := findTMFileEntriesByBaseVersion(entries, id.Version)
-	if len(existingTMVersions) > 0 && existingTMVersions[0].Hash == id.Version.Hash {
-		ret := id
-		ret.Version = existingTMVersions[0]
-		return true, ret
+	version, err := model.ParseTMVersion(strings.TrimSuffix(base, model.TMFileExtension))
+	if err != nil {
+		slog.Default().Error("invalid TM version in TM id", "id", ids, "error", err)
+		return false, ""
+	}
+	existingTMVersions := findTMFileEntriesByBaseVersion(entries, version)
+	if len(existingTMVersions) > 0 && existingTMVersions[0].Hash == version.Hash {
+		return true,
+			strings.TrimSuffix(ids, base) + existingTMVersions[0].String() + model.TMFileExtension
 	}
 
-	return false, model.TMID{}
+	return false, ""
 }
 
 // findTMFileEntriesByBaseVersion finds directory entries that correspond to TM file names, converts those to TMVersions,
@@ -123,12 +128,12 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 	return res
 }
 
-func (f *FileRemote) Fetch(id model.TMID) ([]byte, error) {
+func (f *FileRemote) Fetch(id string) ([]byte, error) {
 	exists, actualId := f.getExistingID(id)
 	if !exists {
 		return nil, os.ErrNotExist
 	}
-	actualFilename, _ := f.filenames(actualId)
+	actualFilename, _, _ := f.filenames(actualId)
 	return os.ReadFile(actualFilename)
 }
 

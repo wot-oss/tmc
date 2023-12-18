@@ -112,10 +112,10 @@ func pushFile(filename string, remote remotes.Remote, optPath string) (PushResul
 	if err != nil {
 		var errExists *remotes.ErrTMExists
 		if errors.As(err, &errExists) {
-			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, id.String())}, nil
+			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId)}, nil
 		}
 		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
 	}
 
-	return PushResult{PushOK, fmt.Sprintf("file %s pushed as %s", filename, id.String())}, nil
+	return PushResult{PushOK, fmt.Sprintf("file %s pushed as %s", filename, id)}, nil
 }

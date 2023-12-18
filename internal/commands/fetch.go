@@ -18,9 +18,11 @@ type FetchName struct {
 	SemVerOrDigest string
 }
 
-var fetchNameRegex = regexp.MustCompile(`^([^:]+)(:(.+))?$`)
+var ErrTmNotFound = errors.New("TM not found")
 
-func (fn *FetchName) Parse(fetchName string) error {
+var fetchNameRegex = regexp.MustCompile(`^([\w\-0-9]+(/[\w\-0-9]+)+)(:(.+))?$`)
+
+func ParseFetchName(fetchName string) (FetchName, error) {
 	// Find submatches in the input string
 	matches := fetchNameRegex.FindStringSubmatch(fetchName)
 
@@ -28,15 +30,16 @@ func (fn *FetchName) Parse(fetchName string) error {
 	if len(matches) < 2 {
 		msg := fmt.Sprintf("Invalid name format: %s - Must be NAME[:SEMVER|DIGEST]", fetchName)
 		slog.Default().Error(msg)
-		return fmt.Errorf(msg)
+		return FetchName{}, fmt.Errorf(msg)
 	}
 
+	fn := FetchName{}
 	// Extract values from submatches
 	fn.Name = matches[1]
-	if len(matches) > 3 {
-		fn.SemVerOrDigest = matches[3]
+	if len(matches) > 4 {
+		fn.SemVerOrDigest = matches[4]
 	}
-	return nil
+	return fn, nil
 }
 
 type FetchCommand struct {
@@ -48,7 +51,38 @@ func NewFetchCommand(manager remotes.RemoteManager) *FetchCommand {
 		remoteMgr: manager,
 	}
 }
-func (c *FetchCommand) FetchThingByName(fn *FetchName, remoteName string) ([]byte, error) {
+
+func (c *FetchCommand) FetchByTMIDOrName(remoteName, idOrName string) ([]byte, error) {
+	_, err := model.ParseTMID(idOrName, true)
+	if err == nil {
+		tm, err := c.FetchByTMID(remoteName, idOrName)
+		if !errors.Is(err, ErrTmNotFound) {
+			return tm, err
+		}
+	}
+
+	fn, err := ParseFetchName(idOrName)
+	if err != nil {
+		slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
+		return nil, err
+	}
+	return c.FetchByName(remoteName, fn)
+}
+func (c *FetchCommand) FetchByTMID(remoteName string, tmid string) ([]byte, error) {
+	remote, err := c.remoteMgr.Get(remoteName)
+	if err != nil {
+		return nil, err
+	}
+	thing, err := remote.Fetch(tmid)
+	if err != nil {
+		msg := fmt.Sprintf("No thing model found for %v", tmid)
+		slog.Default().Error(msg)
+		return nil, ErrTmNotFound
+	}
+	return thing, nil
+
+}
+func (c *FetchCommand) FetchByName(remoteName string, fn FetchName) ([]byte, error) {
 	log := slog.Default()
 	tocThing, err := NewVersionsCommand(c.remoteMgr).ListVersions(remoteName, fn.Name)
 	if err != nil {
@@ -57,7 +91,6 @@ func (c *FetchCommand) FetchThingByName(fn *FetchName, remoteName string) ([]byt
 
 	var id string
 	var foundIn string
-	var thing []byte
 	// Just the name specified: fetch most recent
 	if len(fn.SemVerOrDigest) == 0 {
 		id, foundIn, err = findMostRecentVersion(tocThing.Versions)
@@ -76,23 +109,8 @@ func (c *FetchCommand) FetchThingByName(fn *FetchName, remoteName string) ([]byt
 		}
 	}
 
-	// TODO: cannot use IsOfficial of ThingModel here
-	official := utils.ToTrimmedLower(tocThing.Author.Name) == utils.ToTrimmedLower(tocThing.Manufacturer.Name)
-	tmid, err := model.ParseTMID(id, official)
-
-	log.Debug(fmt.Sprintf("fetching %v from %s", tmid, foundIn))
-
-	remote, err := c.remoteMgr.Get(foundIn)
-	if err != nil {
-		return nil, err
-	}
-	thing, err = remote.Fetch(tmid)
-	if err != nil {
-		msg := fmt.Sprintf("No thing model found for %s", fn)
-		slog.Default().Error(msg)
-		return nil, errors.New(msg)
-	}
-	return thing, nil
+	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
+	return c.FetchByTMID(remoteName, id)
 }
 
 func findMostRecentVersion(versions []model.FoundVersion) (id, source string, err error) {

@@ -61,8 +61,8 @@ func (h *HttpRemote) Push(_ model.TMID, _ []byte) error {
 	return ErrNotSupported
 }
 
-func (h *HttpRemote) Fetch(id model.TMID) ([]byte, error) {
-	reqUrl := h.buildUrl(id.String())
+func (h *HttpRemote) Fetch(id string) ([]byte, error) {
+	reqUrl := h.buildUrl(id)
 	resp, err := h.doGet(reqUrl)
 	if err != nil {
 		return nil, err

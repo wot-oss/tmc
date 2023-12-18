@@ -42,7 +42,7 @@ type Remote interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMExists if the same file is already stored with a different timestamp
 	Push(id model.TMID, raw []byte) error
-	Fetch(id model.TMID) ([]byte, error)
+	Fetch(id string) ([]byte, error)
 	CreateToC() error
 	List(search *model.SearchParams) (model.SearchResult, error)
 	Versions(name string) (model.FoundEntry, error)

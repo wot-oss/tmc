@@ -56,7 +56,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetInventoryVersionsById Get the versions of an inventory entry
+// GetInventoryVersionsByName Get the versions of an inventory entry
 // (GET /inventory/{inventoryId}/versions)
 func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
 	tocEntry, err := findTocEntry(name)
@@ -70,7 +70,7 @@ func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.R
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetThingModelById Get the content of a Thing Model by it's ID
+// GetThingModelById Get the content of a Thing Model by its ID
 // (GET /thing-models/{tmID})
 func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string) {
 	data, err := fetchThingModel(tmID)
@@ -104,7 +104,7 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := toPushThingModelResponse(*tmID)
+	resp := toPushThingModelResponse(tmID)
 
 	HandleJsonResponse(w, r, 201, resp)
 }

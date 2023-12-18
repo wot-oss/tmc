@@ -13,9 +13,11 @@ type ThingModel struct {
 }
 
 func (tm *ThingModel) IsOfficial() bool {
-	compareMan := utils.ToTrimmedLower(tm.Manufacturer.Name)
-	compareAuthor := utils.ToTrimmedLower(tm.Author.Name)
-	return compareMan == compareAuthor
+	return EqualsAsSchemaName(tm.Manufacturer.Name, tm.Author.Name)
+}
+
+func EqualsAsSchemaName(s1, s2 string) bool {
+	return utils.ToTrimmedLower(s1) == utils.ToTrimmedLower(s2)
 }
 
 type SchemaAuthor struct {

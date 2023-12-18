@@ -93,7 +93,11 @@ func ParseTMID(s string, official bool) (TMID, error) {
 	}
 	s = strings.TrimSuffix(s, TMFileExtension)
 	parts := strings.Split(s, "/")
-	if len(parts) < 3 {
+	minLength := 4
+	if official {
+		minLength = 3
+	}
+	if len(parts) < minLength {
 		return TMID{}, ErrInvalidId
 	}
 	filename := parts[len(parts)-1]

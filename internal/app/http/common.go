@@ -233,9 +233,9 @@ func toMpnsResponse(mpns []string) MpnsResponse {
 	return resp
 }
 
-func toPushThingModelResponse(tmID model.TMID) PushThingModelResponse {
+func toPushThingModelResponse(tmID string) PushThingModelResponse {
 	data := PushThingModelResult{
-		TmID: tmID.String(),
+		TmID: tmID,
 	}
 	return PushThingModelResponse{
 		Data: data,

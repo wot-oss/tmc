@@ -150,9 +150,9 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	assert.NoError(t, err)
 	id, err := PushFile(raw, remote, "")
 	assert.NoError(t, err)
-	testTMDir := filepath.Join(root, filepath.Dir(id.String()))
+	testTMDir := filepath.Join(root, filepath.Dir(id))
 	t.Logf("test TM dir: %s", testTMDir)
-	_, err = os.Stat(filepath.Join(root, id.String()))
+	_, err = os.Stat(filepath.Join(root, id))
 	assert.NoError(t, err)
 	entries, _ := os.ReadDir(testTMDir)
 	assert.Len(t, entries, 1)
@@ -163,7 +163,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	id, err = PushFile(raw, remote, "")
 	var errExists *remotes.ErrTMExists
 	assert.ErrorAs(t, err, &errExists)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id.String())))
+	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 1)
 	assert.Equal(t, firstSaved, entries[0].Name())
 
@@ -172,7 +172,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
 	id, err = PushFile(raw, remote, "")
 	assert.NoError(t, err)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id.String())))
+	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 2)
 	assert.Equal(t, firstSaved, entries[0].Name())
 
@@ -181,7 +181,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	raw = bytes.Replace(raw, []byte("Lamp Thing"), []byte("Lamp Thing Model"), 1)
 	id, err = PushFile(raw, remote, "")
 	assert.NoError(t, err)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id.String())))
+	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 3)
 	assert.Equal(t, firstSaved, entries[0].Name())
 
@@ -203,7 +203,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 
 	id, err := PushFile(raw, remote, "")
 	assert.NoError(t, err)
-	entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id.String())))
+	entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 1)
 	assert.True(t, strings.HasPrefix(entries[0].Name(), "v3.2.1"))
 
@@ -212,7 +212,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	raw = bytes.Replace(raw, []byte("\"v3.2.1\""), []byte("\"v4.0.0\""), 1)
 	id, err = PushFile(raw, remote, "")
 	assert.NoError(t, err)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id.String())))
+	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 2)
 	assert.True(t, strings.HasPrefix(entries[1].Name(), "v4.0.0"))
 
@@ -222,7 +222,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
 	id, err = PushFile(raw, remote, "")
 	assert.NoError(t, err)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id.String())))
+	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 3)
 	assert.True(t, strings.HasPrefix(entries[0].Name(), "v3.2.1"))
 	assert.True(t, strings.HasPrefix(entries[1].Name(), "v3.2.1"))
