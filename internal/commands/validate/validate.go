@@ -26,9 +26,9 @@ var tmValidator *jsonschema.Schema
 var modbusValidator *jsonschema.Schema
 
 const (
-	tmcMandatorySchemaUrl = "tmc-mandatory.schema.json"
+	tmcMandatorySchemaUrl = "resource://tmc-mandatory.schema.json"
 	tmSchemaUrl           = "https://raw.githubusercontent.com/w3c/wot-thing-description/main/validation/tm-json-schema-validation.json"
-	modbusSchemaUrl       = "modbus.schema.json"
+	modbusSchemaUrl       = "resource://modbus.schema.json"
 )
 
 func init() {
