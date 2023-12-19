@@ -100,13 +100,6 @@ func inferType(typ string, bytes []byte) string {
 	}
 	return ""
 }
-func RemoteSetDefault(name string) error {
-	err := remotes.SetDefault(name)
-	if err != nil {
-		Stderrf("%v", err)
-	}
-	return err
-}
 
 func RemoteToggleEnabled(name string) error {
 	err := remotes.ToggleEnabled(name)

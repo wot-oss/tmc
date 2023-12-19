@@ -8,16 +8,16 @@ import (
 )
 
 var versionsCmd = &cobra.Command{
-	Use:   "versions <name>",
+	Use:   "versions <name> [--remote <remoteName>]",
 	Short: "List available versions of the TM with given name",
-	Long:  `List available versions of the TM with given name`,
+	Long:  `List available versions of the TM with given name. --remote is optional if there's only one remote configured'`,
 	Args:  cobra.ExactArgs(1),
 	Run:   listVersions,
 }
 
 func init() {
 	RootCmd.AddCommand(versionsCmd)
-	versionsCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
+	versionsCmd.Flags().StringP("remote", "r", "", "name of the remote to search for versions")
 }
 
 func listVersions(cmd *cobra.Command, args []string) {

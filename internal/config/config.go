@@ -42,14 +42,11 @@ func InitViper() {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(DefaultConfigDir)
 	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
-	if err != nil {
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				// Config file not found; do nothing and rely on defaults
-			} else {
-				panic("cannot read config: " + err.Error())
-			}
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; do nothing and rely on defaults
+		} else {
+			panic("cannot read config: " + err.Error())
 		}
 	}
 
