@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -11,6 +12,15 @@ import (
 )
 
 func TestLoggingOnSubCommands(t *testing.T) {
+	temp, err := os.MkdirTemp("", "config")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(temp)
+	orgDir := config.DefaultConfigDir
+	config.DefaultConfigDir = temp
+	defer func() { config.DefaultConfigDir = orgDir }()
+
 	config.InitViper()
 	RootCmd.ResetCommands()
 
@@ -49,6 +59,15 @@ func TestLoggingOnSubCommands(t *testing.T) {
 }
 
 func TestLogFlagEnablesLogging(t *testing.T) {
+	temp, err := os.MkdirTemp("", "config")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(temp)
+	orgDir := config.DefaultConfigDir
+	config.DefaultConfigDir = temp
+	defer func() { config.DefaultConfigDir = orgDir }()
+
 	config.InitViper()
 	RootCmd.ResetCommands()
 

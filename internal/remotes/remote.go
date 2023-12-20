@@ -230,7 +230,26 @@ func saveConfig(conf Config) error {
 	if err != nil {
 		return err
 	}
-	return viper.WriteConfigAs(configFile)
+
+	b, err := os.ReadFile(configFile)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if len(b) == 0 {
+		b = []byte("{}")
+	}
+	var j map[string]any
+	err = json.Unmarshal(b, &j)
+	if err != nil {
+		return err
+	}
+	j[KeyRemotes] = conf
+
+	w, err := json.MarshalIndent(j, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(configFile, w, 0660)
 }
 
 func AsRemoteConfig(bytes []byte) (map[string]any, error) {

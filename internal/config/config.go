@@ -17,7 +17,7 @@ const (
 var HomeDir string
 var DefaultConfigDir string
 
-func init() {
+func InitConfig() {
 	var err error
 	HomeDir, err = os.UserHomeDir()
 	if err != nil {
@@ -25,7 +25,6 @@ func init() {
 	}
 	DefaultConfigDir = filepath.Join(HomeDir, ".tm-catalog")
 
-	InitViper()
 }
 
 func InitViper() {
@@ -57,6 +56,4 @@ func InitViper() {
 	_ = viper.BindEnv(KeyLog)
 	// bind viper variable "urlContextRoot" to env (TMC_URLCONTEXTROOT)
 	_ = viper.BindEnv(KeyUrlContextRoot)
-
-	viper.WatchConfig()
 }
