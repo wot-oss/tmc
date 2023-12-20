@@ -27,6 +27,8 @@ type ErrTMExists struct {
 	ExistingId string
 }
 
+var ErrRootInvalid = errors.New("root is not a directory")
+
 func (e *ErrTMExists) Error() string {
 	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
 }
@@ -129,6 +131,10 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 }
 
 func (f *FileRemote) Fetch(id string) ([]byte, error) {
+	err := f.checkRootValid()
+	if err != nil {
+		return nil, err
+	}
 	exists, actualId := f.getExistingID(id)
 	if !exists {
 		return nil, os.ErrNotExist
@@ -138,6 +144,10 @@ func (f *FileRemote) Fetch(id string) ([]byte, error) {
 }
 
 func (f *FileRemote) CreateToC() error {
+	err := f.checkRootValid()
+	if err != nil {
+		return err
+	}
 	return createTOC(f.root)
 }
 
@@ -148,6 +158,11 @@ func (f *FileRemote) Name() string {
 func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error) {
 	log := slog.Default()
 	log.Debug(fmt.Sprintf("Creating list with filter '%v'", search))
+
+	err := f.checkRootValid()
+	if err != nil {
+		return model.SearchResult{}, err
+	}
 
 	data, err := os.ReadFile(filepath.Join(f.root, TOCFilename))
 	if err != nil {
@@ -182,6 +197,15 @@ func (f *FileRemote) Versions(name string) (model.FoundEntry, error) {
 
 	return toc.Entries[0], nil
 }
+
+func (f *FileRemote) checkRootValid() error {
+	stat, err := os.Stat(f.root)
+	if err != nil || !stat.IsDir() {
+		return fmt.Errorf("%s: %w", f.Name(), ErrRootInvalid)
+	}
+	return nil
+}
+
 func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error) {
 	if dirName != "" {
 		absDir, err := makeAbs(dirName)

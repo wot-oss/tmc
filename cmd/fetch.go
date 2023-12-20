@@ -8,16 +8,16 @@ import (
 )
 
 var fetchCmd = &cobra.Command{
-	Use:   "fetch NAME[:SEMVER|DIGEST]",
+	Use:   "fetch NAME[:SEMVER|DIGEST] [--remote <remoteName>]",
 	Short: "Fetches the TM by name",
-	Long:  "Fetches TM by name, optionally accepting semantic version or digest",
+	Long:  "Fetches TM by name, optionally accepting semantic version or digest. --remote is optional if there's only one remote configured",
 	Args:  cobra.ExactArgs(1),
 	Run:   executeFetch,
 }
 
 func init() {
 	RootCmd.AddCommand(fetchCmd)
-	fetchCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
+	fetchCmd.Flags().StringP("remote", "r", "", "name of the remote to fetch from")
 }
 
 func executeFetch(cmd *cobra.Command, args []string) {

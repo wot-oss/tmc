@@ -39,6 +39,7 @@ func init() {
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tm-catalog-cli.yaml)")
 	RootCmd.PersistentFlags().BoolVarP(&log, "log", "l", false, "enable logging")
 	RootCmd.PersistentPreRun = preRunAll
+	config.InitViper()
 	// bind viper variable "log" to CLI flag --log of root command
 	_ = viper.BindPFlag(config.KeyLog, RootCmd.PersistentFlags().Lookup("log"))
 }

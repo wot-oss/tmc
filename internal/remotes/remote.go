@@ -19,7 +19,6 @@ const (
 	KeyRemoteType    = "type"
 	KeyRemoteLoc     = "loc"
 	KeyRemoteAuth    = "auth"
-	KeyRemoteDefault = "default"
 	KeyRemoteEnabled = "enabled"
 
 	RemoteTypeFile = "file"
@@ -30,7 +29,7 @@ var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
 type Config map[string]map[string]any
 
-var ErrNoDefault = errors.New("no default remote config found")
+var ErrAmbiguous = errors.New("multiple remotes configured, but remote target not specified")
 var ErrRemoteNotFound = errors.New("named remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote name")
 var ErrRemoteExists = errors.New("named remote already exists")
@@ -51,11 +50,10 @@ type Remote interface {
 
 type RemoteManager interface {
 	// Get returns the Remote built from config with the given name
-	// Empty name returns the default remote
+	// Empty name returns the sole remote, if there's only one. Otherwise, an error
 	Get(name string) (Remote, error)
 	All() ([]Remote, error)
 	ReadConfig() (Config, error)
-	SetDefault(name string) error
 	ToggleEnabled(name string) error
 	Remove(name string) error
 	Rename(oldName, newName string) error
@@ -84,19 +82,7 @@ func (r *remoteManager) Get(name string) (Remote, error) {
 				name = n
 			}
 		} else {
-			found := false
-			for n, v := range remotes {
-				def := utils.JsGetBool(v, KeyRemoteDefault)
-				if def != nil && *def {
-					rc = v
-					name = n
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nil, ErrNoDefault
-			}
+			return nil, ErrAmbiguous
 		}
 	} else {
 		if !ok {
@@ -160,23 +146,6 @@ func (r *remoteManager) ReadConfig() (Config, error) {
 	return cp, nil
 }
 
-func (r *remoteManager) SetDefault(name string) error {
-	conf, err := r.ReadConfig()
-	if err != nil {
-		return err
-	}
-	if _, ok := conf[name]; !ok {
-		return ErrRemoteNotFound
-	}
-	for n, rc := range conf {
-		if n == name {
-			rc[KeyRemoteDefault] = true
-		} else {
-			delete(rc, KeyRemoteDefault)
-		}
-	}
-	return r.saveConfig(conf)
-}
 func (r *remoteManager) ToggleEnabled(name string) error {
 	conf, err := r.ReadConfig()
 	if err != nil {
@@ -273,17 +242,6 @@ func (r *remoteManager) Rename(oldName, newName string) error {
 	}
 }
 func (r *remoteManager) saveConfig(conf Config) error {
-	dc := 0
-	for _, rc := range conf {
-		d := rc[KeyRemoteDefault]
-		if b, ok := d.(bool); ok && b {
-			dc++
-		}
-	}
-	if dc > 1 {
-		return fmt.Errorf("too many default remotes. can accept at most one")
-	}
-
 	viper.Set(KeyRemotes, conf)
 	configFile := viper.ConfigFileUsed()
 	if configFile == "" {
@@ -293,7 +251,26 @@ func (r *remoteManager) saveConfig(conf Config) error {
 	if err != nil {
 		return err
 	}
-	return viper.WriteConfigAs(configFile)
+
+	b, err := os.ReadFile(configFile)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if len(b) == 0 {
+		b = []byte("{}")
+	}
+	var j map[string]any
+	err = json.Unmarshal(b, &j)
+	if err != nil {
+		return err
+	}
+	j[KeyRemotes] = conf
+
+	w, err := json.MarshalIndent(j, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(configFile, w, 0660)
 }
 
 func AsRemoteConfig(bytes []byte) (map[string]any, error) {

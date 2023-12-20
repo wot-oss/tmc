@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 func TestNewFileRemote(t *testing.T) {
@@ -105,4 +106,19 @@ func TestCreateFileRemoteConfig(t *testing.T) {
 		assert.Equalf(t, test.expRoot, cf[KeyRemoteLoc], "in test %d for %s %s", i, test.strConf, test.fileConf)
 
 	}
+}
+
+func TestValidatesRoot(t *testing.T) {
+	remote, _ := NewFileRemote(map[string]any{
+		"type": "file",
+		"loc":  "/temp/surely-does-not-exist-5245874598745",
+	}, "")
+
+	_, err := remote.List(&model.SearchParams{Query: ""})
+	assert.ErrorIs(t, err, ErrRootInvalid)
+	_, err = remote.Versions("manufacturer/mpn")
+	assert.ErrorIs(t, err, ErrRootInvalid)
+	_, err = remote.Fetch("manufacturer/mpn")
+	assert.ErrorIs(t, err, ErrRootInvalid)
+
 }

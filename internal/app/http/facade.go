@@ -87,8 +87,8 @@ func fetchThingModel(tmID string) ([]byte, error) {
 	return data, nil
 }
 
-func pushThingModel(file []byte) (string, error) {
-	remote, err := remotes.DefaultManager().Get("")
+func pushThingModel(file []byte, remoteName string) (string, error) {
+	remote, err := remotes.DefaultManager().Get(remoteName)
 	if err != nil {
 		return "", err
 	}

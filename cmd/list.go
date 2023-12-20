@@ -8,16 +8,16 @@ import (
 )
 
 var listCmd = &cobra.Command{
-	Use:   "list [PATTERN]",
+	Use:   "list [PATTERN] [--remote <remoteName>]",
 	Short: "List TMs in catalog",
-	Long:  `List TMs and filter for PATTERN in all mandatory fields`,
+	Long:  `List TMs and filter for PATTERN in all mandatory fields. --remote is optional if there's only one remote configured`,
 	Args:  cobra.MaximumNArgs(1),
 	Run:   executeList,
 }
 
 func init() {
 	RootCmd.AddCommand(listCmd)
-	listCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
+	listCmd.Flags().StringP("remote", "r", "", "name of the remote to list")
 }
 
 func executeList(cmd *cobra.Command, args []string) {
