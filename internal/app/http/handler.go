@@ -24,7 +24,7 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
-	PushRemote     string
+	PushTarget     string
 }
 
 func NewRouter() *mux.Router {
@@ -119,7 +119,7 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 		HandleErrorResponse(w, r, err)
 		return
 	}
-	tmID, err := pushThingModel(b, h.Options.PushRemote)
+	tmID, err := pushThingModel(b, h.Options.PushTarget)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
