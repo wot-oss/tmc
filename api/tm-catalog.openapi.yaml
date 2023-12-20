@@ -18,6 +18,8 @@ tags:
     description: Access to manufacturers information
   - name: mpns
     description: Access to mpns (manufacturer part numbers) information
+  - name: health
+    description: Access to health information
 paths:
   /inventory:
     get:
@@ -27,46 +29,46 @@ paths:
       description: Returns the catalogs inventory
       operationId: getInventory
       parameters:
-        - name: filter[author]
+        - name: 'filter.author'
           in: query
           description: |
             Filters the inventory by one or more authors having exact match.  
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[author]=MyCompany,YourCompany
-        - name: filter[manufacturer]
+          example: filter.author=MyCompany,YourCompany
+        - name: 'filter.manufacturer'
           in: query
           description: |
             Filters the inventory by one or more manufacturers having exact match.  
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[manufacturer]=ABB,Danfoss
-        - name: filter[mpn]
+          example: filter.manufacturer=ABB,Danfoss
+        - name: 'filter.mpn'
           in: query
           description: |
             Filters the inventory by one ore more mpn (manufacturer part number) having exact match.   
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[mpn]=B21,FC102
-        - name: filter[externalID]
+          example: filter.mpn=B21,FC102
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the inventory by one or more external ID having exact match.   
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the inventory according to whether the content of the inventory entries matches the given search.    
             The search works additive to other filters.
           schema:
             type: string
-          example: search[content]=
+          example: search.content=
         - name: sort
           in: query
           description: |
@@ -99,8 +101,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /inventory/{name}:
     get:
       tags:
@@ -144,8 +144,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /inventory/{name}/versions:
     get:
       tags:
@@ -189,8 +187,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /thing-models/{tmID}:
     get:
       tags:
@@ -233,8 +229,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: []
   /thing-models:
     post:
       tags:
@@ -277,9 +271,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
-
   /authors:
     get:
       tags:
@@ -288,7 +279,7 @@ paths:
       description: Returns the contained authors of the inventory
       operationId: getAuthors
       parameters:
-        - name: filter[manufacturer]
+        - name: 'filter.manufacturer'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries  
@@ -296,8 +287,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[manufacturer]=ABB,Danfoss
-        - name: filter[mpn]
+          example: filter.manufacturer=ABB,Danfoss
+        - name: 'filter.mpn'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries    
@@ -305,8 +296,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[mpn]=B21,FC102
-        - name: filter[externalID]
+          example: filter.mpn=B21,FC102
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries   
@@ -314,8 +305,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries  
@@ -345,8 +336,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
   /manufacturers:
     get:
       tags:
@@ -355,15 +344,15 @@ paths:
       description: Returns the contained manufacturers of the inventory
       operationId: getManufacturers
       parameters:
-        - name: filter[author]
+        - name: 'filter.author'
           in: query
           description: |
             Filters the manufacturers according to whether they belong to at least one of the given authors with an exact match.       
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[author]=MyCompany,YourCompany
-        - name: filter[mpn]
+          example: filter.author=MyCompany,YourCompany
+        - name: 'filter.mpn'
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries    
@@ -371,8 +360,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[mpn]=B21,FC102
-        - name: filter[externalID]
+          example: filter.mpn=B21,FC102
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries   
@@ -380,8 +369,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries  
@@ -411,8 +400,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
   /mpns:
     get:
       tags:
@@ -421,23 +408,23 @@ paths:
       description: Returns the mpns (manufacturer part numbers) of the inventory
       operationId: getMpns
       parameters:
-        - name: filter[author]
+        - name: 'filter.author'
           in: query
           description: |
             Filters the mpns according to whether they belong to at least one of the given authors with an exact match.     
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[author]=MyCompany,YourCompany
-        - name: filter[manufacturer]
+          example: filter.author=MyCompany,YourCompany
+        - name: 'filter.manufacturer'
           in: query
           description: |
             Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.     
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[manufacturer]=ABB,Danfoss
-        - name: filter[externalID]
+          example: filter.manufacturer=ABB,Danfoss
+        - name: 'filter.externalID'
           in: query
           description: |
             Filters the mpns according to whether their inventory entry   
@@ -445,8 +432,8 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter[externalID]=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: search[content]
+          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+        - name: 'search.content'
           in: query
           description: |
             Filters the mpns according to whether their inventory entry content matches the given search.        
@@ -475,8 +462,94 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-      security:
-        - api_key: [ ]
+  /healthz:
+    get:
+      tags:
+        - health
+      summary: Get the overall health of the service
+      description: Get the overall health of the service, aggregates the responses from the /health/live and /health/ready
+      operationId: getHealth
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /healthz/live:
+    get:
+      tags:
+        - health
+      summary: Returns the liveliness of the service
+      description: Returns the liveliness of the service, or whether it encountered a bug or deadlock
+      operationId: getHealthLive
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /healthz/ready:
+    get:
+      tags:
+        - health
+      summary: Returns the readiness of the service
+      description: Returns the readiness of the service, or whether it is ready to process requests
+      operationId: getHealthReady
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /healthz/startup:
+    get:
+      tags:
+        - health
+      summary: Returns whether the service is initialized
+      description: Returns whether the service is initialized
+      operationId: getHealthStartup
+      responses:
+        '204':
+          description: Successful operation
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                default: 'no-cache, no-store, max-age=0, must-revalidate'
+              description: "no-cache, no-store, max-age=0, must-revalidate"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     InventoryEntry:
@@ -669,11 +742,6 @@ components:
           type: string
         status:
           type: integer
-  securitySchemes:
-    api_key:
-      type: apiKey
-      name: api_key
-      in: header
   examples:
     InventoryEntryVersionsResponseExample:
       value:

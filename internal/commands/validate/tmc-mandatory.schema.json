@@ -1,7 +1,6 @@
 {
   "description": "JSON Schema for validating Thing Models for importing into Thing Model Catalog",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "tm-mandatory.schema.json",
   "definitions": {
     "context": {
       "type": "array",

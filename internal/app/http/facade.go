@@ -103,3 +103,30 @@ func pushThingModel(file []byte) (string, error) {
 
 	return tmID, nil
 }
+
+func checkHealth() error {
+	err := checkHealthLive()
+	if err != nil {
+		return err
+	}
+
+	err = checkHealthReady()
+	return err
+}
+
+func checkHealthLive() error {
+	return nil
+}
+
+func checkHealthReady() error {
+	_, err := remotes.DefaultManager().Get("")
+	if err != nil {
+		return errors.New("invalid remotes configuration or no default remote found")
+	}
+	return nil
+}
+
+func checkHealthStartup() error {
+	err := checkHealthReady()
+	return err
+}

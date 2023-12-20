@@ -25,9 +25,9 @@ func printToCThing(name string, tocEntry model.FoundEntry) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tDESCRIPTION\tREMOTE\tPATH\n")
+	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tDESCRIPTION\tREMOTE\tPATH\n")
 	for _, v := range tocEntry.Versions {
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n", name, v.Description, v.FoundIn, v.Links["content"])
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.Description, v.FoundIn, v.Links["content"])
 	}
 	_ = table.Flush()
 }
