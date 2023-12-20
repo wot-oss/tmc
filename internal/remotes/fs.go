@@ -20,6 +20,7 @@ const defaultFilePermissions = 0664
 
 type FileRemote struct {
 	root string
+	name string
 }
 
 type ErrTMExists struct {
@@ -30,18 +31,18 @@ func (e *ErrTMExists) Error() string {
 	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
 }
 
-func NewFileRemote(config map[string]any) (*FileRemote, error) {
-	loc := config[KeyRemoteLoc]
-	locString, ok := loc.(string)
-	if !ok {
-		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string: %v", loc)
+func NewFileRemote(config map[string]any, name string) (*FileRemote, error) {
+	loc := utils.JsGetString(config, KeyRemoteLoc)
+	if loc == nil {
+		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string")
 	}
-	rootPath, err := utils.ExpandHome(locString)
+	rootPath, err := utils.ExpandHome(*loc)
 	if err != nil {
 		return nil, err
 	}
 	return &FileRemote{
 		root: rootPath,
+		name: name,
 	}, nil
 }
 
@@ -135,13 +136,13 @@ func (f *FileRemote) CreateToC() error {
 	return createTOC(f.root)
 }
 
+func (f *FileRemote) Name() string {
+	return f.name
+}
+
 func (f *FileRemote) List(filter string) (model.TOC, error) {
 	log := slog.Default()
-	if len(filter) == 0 {
-		log.Debug("Creating list")
-	} else {
-		log.Debug(fmt.Sprintf("Creating list with filter '%s'", filter))
-	}
+	log.Debug(fmt.Sprintf("Creating list with filter '%s'", filter))
 
 	data, err := os.ReadFile(filepath.Join(f.root, TOCFilename))
 	if err != nil {
@@ -150,10 +151,10 @@ func (f *FileRemote) List(filter string) (model.TOC, error) {
 
 	var toc model.TOC
 	err = json.Unmarshal(data, &toc)
-	toc.Filter(filter)
 	if err != nil {
 		return model.TOC{}, err
 	}
+	toc.Filter(filter)
 	return toc, nil
 }
 
@@ -171,9 +172,8 @@ func (f *FileRemote) Versions(name string) (model.TOCEntry, error) {
 
 	tocThing := toc.FindByName(name)
 	if tocThing == nil {
-		msg := fmt.Sprintf("No thing model found for name: %s", name)
-		log.Error(msg)
-		return model.TOCEntry{}, errors.New(msg)
+		log.Error(fmt.Sprintf("No thing model found for name: %s", name))
+		return model.TOCEntry{}, ErrEntryNotFound
 	}
 
 	return *tocThing, nil
@@ -193,21 +193,17 @@ func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error
 		if err != nil {
 			return nil, err
 		}
-		if rType, ok := rc[KeyRemoteType]; ok {
-			if rType != RemoteTypeFile {
+		if rType := utils.JsGetString(rc, KeyRemoteType); rType != nil {
+			if *rType != RemoteTypeFile {
 				return nil, fmt.Errorf("invalid json config. type must be \"file\" or absent")
 			}
 		}
 		rc[KeyRemoteType] = RemoteTypeFile
-		l, ok := rc[KeyRemoteLoc]
-		if !ok {
-			return nil, fmt.Errorf("invalid json config. must have key \"loc\"")
+		l := utils.JsGetString(rc, KeyRemoteLoc)
+		if l == nil {
+			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
 		}
-		ls, ok := l.(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid json config. loc must be a string")
-		}
-		la, err := makeAbs(ls)
+		la, err := makeAbs(*l)
 		if err != nil {
 			return nil, err
 		}

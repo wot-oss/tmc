@@ -11,13 +11,16 @@ import (
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 const (
 	KeyRemotes       = "remotes"
 	KeyRemoteType    = "type"
 	KeyRemoteLoc     = "loc"
+	KeyRemoteAuth    = "auth"
 	KeyRemoteDefault = "default"
+	KeyRemoteEnabled = "enabled"
 
 	RemoteTypeFile = "file"
 	RemoteTypeHttp = "http"
@@ -31,6 +34,8 @@ var ErrNoDefault = errors.New("no default remote config found")
 var ErrRemoteNotFound = errors.New("named remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote name")
 var ErrRemoteExists = errors.New("named remote already exists")
+var ErrEntryNotFound = errors.New("entry not found")
+
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp}
 
 type Remote interface {
@@ -41,6 +46,7 @@ type Remote interface {
 	CreateToC() error
 	List(filter string) (model.TOC, error)
 	Versions(name string) (model.TOCEntry, error)
+	Name() string
 }
 
 // Get returns the Remote built from config with the given name
@@ -53,18 +59,19 @@ func Get(name string) (Remote, error) {
 	rc, ok := remotes[name]
 	if name == "" {
 		if len(remotes) == 1 {
-			for _, v := range remotes {
+			for n, v := range remotes {
 				rc = v
+				name = n
 			}
 		} else {
 			found := false
-			for _, v := range remotes {
-				if def, ok := v[KeyRemoteDefault]; ok {
-					if d, ok := def.(bool); ok && d {
-						rc = v
-						found = true
-						break
-					}
+			for n, v := range remotes {
+				def := utils.JsGetBool(v, KeyRemoteDefault)
+				if def != nil && *def {
+					rc = v
+					name = n
+					found = true
+					break
 				}
 			}
 			if !found {
@@ -77,15 +84,43 @@ func Get(name string) (Remote, error) {
 		}
 	}
 
+	enabled := utils.JsGetBool(rc, KeyRemoteEnabled)
+	if enabled != nil && !*enabled {
+		return nil, ErrRemoteNotFound
+	}
+	return createRemote(rc, name)
+}
+
+func createRemote(rc map[string]any, name string) (Remote, error) {
 	switch t := rc[KeyRemoteType]; t {
 	case RemoteTypeFile:
-		return NewFileRemote(rc)
+		return NewFileRemote(rc, name)
 	case RemoteTypeHttp:
-		return NewHttpRemote(rc)
+		return NewHttpRemote(rc, name)
 	default:
 		return nil, fmt.Errorf("unsupported remote type: %v. Supported types are %v", t, SupportedTypes)
 	}
+}
 
+func All() ([]Remote, error) {
+	conf, err := ReadConfig()
+	if err != nil {
+		return nil, err
+	}
+	var rs []Remote
+
+	for n, rc := range conf {
+		en := utils.JsGetBool(rc, KeyRemoteEnabled)
+		if en != nil && !*en {
+			continue
+		}
+		r, err := createRemote(rc, n)
+		if err != nil {
+			return rs, err
+		}
+		rs = append(rs, r)
+	}
+	return rs, err
 }
 
 func ReadConfig() (Config, error) {
@@ -120,6 +155,27 @@ func SetDefault(name string) error {
 			delete(rc, KeyRemoteDefault)
 		}
 	}
+	return saveConfig(conf)
+}
+func ToggleEnabled(name string) error {
+	conf, err := ReadConfig()
+	if err != nil {
+		return err
+	}
+	c, ok := conf[name]
+	if !ok {
+		return ErrRemoteNotFound
+	}
+	if enabled, ok := c[KeyRemoteEnabled]; ok {
+		if eb, ok := enabled.(bool); ok && !eb {
+			delete(c, KeyRemoteEnabled)
+		} else {
+			c[KeyRemoteEnabled] = false
+		}
+	} else {
+		c[KeyRemoteEnabled] = false
+	}
+	conf[name] = c
 	return saveConfig(conf)
 }
 func Remove(name string) error {

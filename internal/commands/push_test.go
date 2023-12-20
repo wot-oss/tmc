@@ -139,11 +139,10 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	t.Logf("test root: %s", root)
 	defer func() { _ = os.RemoveAll(root) }()
 
-	remote, err := remotes.NewFileRemote(
-		map[string]any{
-			"type": "file",
-			"loc":  root,
-		})
+	remote, err := remotes.NewFileRemote(map[string]any{
+		"type": "file",
+		"loc":  root,
+	}, "")
 	assert.NoError(t, err)
 
 	// write first TM
@@ -192,11 +191,10 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	assert.NoError(t, err)
 	defer func() { _ = os.RemoveAll(root) }()
 
-	remote, err := remotes.NewFileRemote(
-		map[string]any{
-			"type": "file",
-			"loc":  root,
-		})
+	remote, err := remotes.NewFileRemote(map[string]any{
+		"type": "file",
+		"loc":  root,
+	}, "")
 	assert.NoError(t, err)
 
 	// write first TM

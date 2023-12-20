@@ -13,9 +13,10 @@ func TestNewHttpRemote(t *testing.T) {
 		map[string]any{
 			"type": "http",
 			"loc":  root,
-		})
+		}, "name")
 	assert.NoError(t, err)
-	assert.Equal(t, root, remote.root.String())
+	assert.Equal(t, root, remote.root)
+	assert.Equal(t, "name", remote.Name())
 }
 
 func TestCreateHttpRemoteConfig(t *testing.T) {
