@@ -19,7 +19,6 @@ const (
 	KeyRemoteType    = "type"
 	KeyRemoteLoc     = "loc"
 	KeyRemoteAuth    = "auth"
-	KeyRemoteDefault = "default"
 	KeyRemoteEnabled = "enabled"
 
 	RemoteTypeFile = "file"
@@ -30,7 +29,7 @@ var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
 type Config map[string]map[string]any
 
-var ErrNoDefault = errors.New("no default remote config found")
+var ErrAmbiguous = errors.New("multiple remotes configured, but remote target not specified")
 var ErrRemoteNotFound = errors.New("named remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote name")
 var ErrRemoteExists = errors.New("named remote already exists")
@@ -50,7 +49,7 @@ type Remote interface {
 }
 
 // Get returns the Remote built from config with the given name
-// Empty name returns the default remote
+// Empty name returns the sole remote, if there's only one. Otherwise, an error
 func Get(name string) (Remote, error) {
 	remotes, err := ReadConfig()
 	if err != nil {
@@ -64,19 +63,7 @@ func Get(name string) (Remote, error) {
 				name = n
 			}
 		} else {
-			found := false
-			for n, v := range remotes {
-				def := utils.JsGetBool(v, KeyRemoteDefault)
-				if def != nil && *def {
-					rc = v
-					name = n
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nil, ErrNoDefault
-			}
+			return nil, ErrAmbiguous
 		}
 	} else {
 		if !ok {
@@ -140,23 +127,6 @@ func ReadConfig() (Config, error) {
 	return cp, nil
 }
 
-func SetDefault(name string) error {
-	conf, err := ReadConfig()
-	if err != nil {
-		return err
-	}
-	if _, ok := conf[name]; !ok {
-		return ErrRemoteNotFound
-	}
-	for n, rc := range conf {
-		if n == name {
-			rc[KeyRemoteDefault] = true
-		} else {
-			delete(rc, KeyRemoteDefault)
-		}
-	}
-	return saveConfig(conf)
-}
 func ToggleEnabled(name string) error {
 	conf, err := ReadConfig()
 	if err != nil {
@@ -251,17 +221,6 @@ func Rename(oldName, newName string) error {
 	}
 }
 func saveConfig(conf Config) error {
-	dc := 0
-	for _, rc := range conf {
-		d := rc[KeyRemoteDefault]
-		if b, ok := d.(bool); ok && b {
-			dc++
-		}
-	}
-	if dc > 1 {
-		return fmt.Errorf("too many default remotes. can accept at most one")
-	}
-
 	viper.Set(KeyRemotes, conf)
 	configFile := viper.ConfigFileUsed()
 	if configFile == "" {
@@ -271,7 +230,26 @@ func saveConfig(conf Config) error {
 	if err != nil {
 		return err
 	}
-	return viper.WriteConfigAs(configFile)
+
+	b, err := os.ReadFile(configFile)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if len(b) == 0 {
+		b = []byte("{}")
+	}
+	var j map[string]any
+	err = json.Unmarshal(b, &j)
+	if err != nil {
+		return err
+	}
+	j[KeyRemotes] = conf
+
+	w, err := json.MarshalIndent(j, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(configFile, w, 0660)
 }
 
 func AsRemoteConfig(bytes []byte) (map[string]any, error) {

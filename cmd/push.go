@@ -18,7 +18,7 @@ file-or-dirname
 	import all found ThingModels.
 
 --remote, -r
-	Name of the target remote repository
+	Name of the target remote repository. Can be omitted if there's only one configured
 
 --opt-path, -p
 	Appends optional path parts to the target path (and id) of imported files, after the mandatory path structure.
@@ -34,7 +34,7 @@ file-or-dirname
 
 func init() {
 	RootCmd.AddCommand(pushCmd)
-	pushCmd.Flags().StringP("remote", "r", "", "use named remote instead of default")
+	pushCmd.Flags().StringP("remote", "r", "", "the target remote. can be omitted if there's only one")
 	pushCmd.Flags().StringP("opt-path", "p", "", "append optional path to mandatory target directory structure")
 	pushCmd.Flags().BoolP("opt-tree", "t", false, "use original directory tree as optional path for each file. Has no effect with a single file. Overrides -p")
 }

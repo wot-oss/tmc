@@ -17,7 +17,7 @@ const (
 var HomeDir string
 var DefaultConfigDir string
 
-func init() {
+func InitConfig() {
 	var err error
 	HomeDir, err = os.UserHomeDir()
 	if err != nil {
@@ -25,7 +25,6 @@ func init() {
 	}
 	DefaultConfigDir = filepath.Join(HomeDir, ".tm-catalog")
 
-	InitViper()
 }
 
 func InitViper() {
@@ -42,14 +41,11 @@ func InitViper() {
 	viper.SetConfigName("config")
 	viper.AddConfigPath(DefaultConfigDir)
 	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
-	if err != nil {
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				// Config file not found; do nothing and rely on defaults
-			} else {
-				panic("cannot read config: " + err.Error())
-			}
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			// Config file not found; do nothing and rely on defaults
+		} else {
+			panic("cannot read config: " + err.Error())
 		}
 	}
 
@@ -60,6 +56,4 @@ func InitViper() {
 	_ = viper.BindEnv(KeyLog)
 	// bind viper variable "urlContextRoot" to env (TMC_URLCONTEXTROOT)
 	_ = viper.BindEnv(KeyUrlContextRoot)
-
-	viper.WatchConfig()
 }
