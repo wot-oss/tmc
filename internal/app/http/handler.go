@@ -46,9 +46,9 @@ func NewTmcHandler(options TmcHandlerOptions) *TmcHandler {
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params GetInventoryParams) {
 	ctx := h.createContext(r)
 
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -75,7 +75,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetInventoryVersionsById Get the versions of an inventory entry
+// GetInventoryVersionsByName Get the versions of an inventory entry
 // (GET /inventory/{inventoryId}/versions)
 func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
 	ctx := h.createContext(r)
@@ -91,7 +91,7 @@ func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.R
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetThingModelById Get the content of a Thing Model by it's ID
+// GetThingModelById Get the content of a Thing Model by its ID
 // (GET /thing-models/{tmID})
 func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string) {
 	data, err := fetchThingModel(tmID)
@@ -125,15 +125,15 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := toPushThingModelResponse(*tmID)
+	resp := toPushThingModelResponse(tmID)
 
 	HandleJsonResponse(w, r, 201, resp)
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams) {
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -147,9 +147,9 @@ func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params G
 }
 
 func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams) {
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -163,9 +163,9 @@ func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, pa
 }
 
 func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams) {
-	filterParams, searchParams := convertParams(params)
+	searchParams := convertParams(params)
 
-	toc, err := listToc(filterParams, searchParams)
+	toc, err := listToc(searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)

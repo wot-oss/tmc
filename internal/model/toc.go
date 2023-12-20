@@ -25,6 +25,29 @@ type TOCEntry struct {
 	Versions     []TOCVersion       `json:"versions"`
 }
 
+func (e *TOCEntry) MatchesSearchText(searchQuery string) bool {
+	if e == nil {
+		return false
+	}
+	searchQuery = utils.ToTrimmedLower(searchQuery)
+	if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
+		return true
+	}
+	if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
+		return true
+	}
+	if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
+		return true
+	}
+	for _, version := range e.Versions {
+		if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
+			return true
+		}
+	}
+	return false
+
+}
+
 const TMLinkRel = "content"
 
 type TOCVersion struct {
@@ -37,32 +60,56 @@ type TOCVersion struct {
 	ExternalID  string            `json:"externalID"`
 }
 
-func (toc *TOC) Filter(filter string) {
+func (toc *TOC) Filter(search *SearchParams) {
+	if search == nil {
+		return
+	}
 	toc.Data = slices.DeleteFunc(toc.Data, func(tocEntry *TOCEntry) bool {
-		return !matchFilter(*tocEntry, filter)
-	})
-}
-
-func matchFilter(entry TOCEntry, filter string) bool {
-	filter = utils.ToTrimmedLower(filter)
-	if strings.Contains(utils.ToTrimmedLower(entry.Name), filter) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(entry.Manufacturer.Name), filter) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(entry.Mpn), filter) {
-		return true
-	}
-	for _, version := range entry.Versions {
-		if strings.Contains(utils.ToTrimmedLower(version.Description), filter) {
+		if !tocEntry.MatchesSearchText(search.Query) {
 			return true
 		}
-	}
-	return false
+
+		if len(search.Name) > 0 && !matchesFilter([]string{search.Name}, tocEntry.Name) {
+			return true
+		}
+
+		if !matchesFilter(search.Author, tocEntry.Author.Name) {
+			return true
+		}
+
+		if !matchesFilter(search.Manufacturer, tocEntry.Manufacturer.Name) {
+			return true
+		}
+
+		if !matchesFilter(search.Mpn, tocEntry.Mpn) {
+			return true
+		}
+
+		if len(search.ExternalID) > 0 {
+			hasExternalID := false
+			for _, v := range tocEntry.Versions {
+				if slices.Contains(search.ExternalID, v.ExternalID) {
+					hasExternalID = true
+					break
+				}
+			}
+			if !hasExternalID {
+				return true
+			}
+		}
+		return false
+	})
+
 }
 
-// FindByName searches by name and returns a reference to the TOCEnry if found
+func matchesFilter(acceptedValues []string, value string) bool {
+	if len(acceptedValues) == 0 {
+		return true
+	}
+	return slices.Contains(acceptedValues, value)
+}
+
+// FindByName searches by name and returns a pointer to the TOCEntry if found
 func (toc *TOC) FindByName(name string) *TOCEntry {
 	for _, value := range toc.Data {
 		if value.Name == name {

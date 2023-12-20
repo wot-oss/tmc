@@ -37,7 +37,7 @@ func TestSaveConfigOverwritesOnlyRemotes(t *testing.T) {
 	defer viper.Reset()
 
 	viper.Set(config.KeyLog, false)
-	err = saveConfig(Config{
+	err = defaultManager.saveConfig(Config{
 		"remote": map[string]any{
 			"type": "http",
 			"loc":  "http://example.com/",

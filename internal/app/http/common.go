@@ -155,7 +155,7 @@ func NewServiceUnavailableError(err error, detail string) error {
 	}
 }
 
-func convertParams(params any) (*FilterParams, *SearchParams) {
+func convertParams(params any) *model.SearchParams {
 
 	var filterAuthor *string
 	var filterManufacturer *string
@@ -186,46 +186,41 @@ func convertParams(params any) (*FilterParams, *SearchParams) {
 		searchContent = mpnsParams.SearchContent
 	}
 
-	var filter FilterParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil {
-		filter = FilterParams{}
+	var search model.SearchParams
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || searchContent != nil {
+		search = model.SearchParams{}
 		if filterAuthor != nil {
-			filter.Author = strings.Split(*filterAuthor, ",")
+			search.Author = strings.Split(*filterAuthor, ",")
 		}
 		if filterManufacturer != nil {
-			filter.Manufacturer = strings.Split(*filterManufacturer, ",")
+			search.Manufacturer = strings.Split(*filterManufacturer, ",")
 		}
 		if filterMpn != nil {
-			filter.Mpn = strings.Split(*filterMpn, ",")
+			search.Mpn = strings.Split(*filterMpn, ",")
 		}
 		if filterExternalID != nil {
-			filter.ExternalID = strings.Split(*filterExternalID, ",")
+			search.ExternalID = strings.Split(*filterExternalID, ",")
+		}
+		if searchContent != nil {
+			search.Query = *searchContent
 		}
 	}
-
-	var search SearchParams
-	if searchContent != nil {
-		search = SearchParams{
-			query: *searchContent,
-		}
-	}
-	return &filter, &search
+	return &search
 }
 
-func toInventoryResponse(ctx context.Context, toc model.TOC) InventoryResponse {
+func toInventoryResponse(ctx context.Context, toc model.SearchResult) InventoryResponse {
 	mapper := NewMapper(ctx)
 
 	meta := mapper.GetInventoryMeta(toc)
-	inv := mapper.GetInventoryData(toc.Data)
+	inv := mapper.GetInventoryData(toc.Entries)
 	resp := InventoryResponse{
 		Meta: &meta,
 		Data: inv,
 	}
-	resp.Meta.Created = toc.Meta.Created
 	return resp
 }
 
-func toInventoryEntryResponse(ctx context.Context, tocEntry model.TOCEntry) InventoryEntryResponse {
+func toInventoryEntryResponse(ctx context.Context, tocEntry model.FoundEntry) InventoryEntryResponse {
 	mapper := NewMapper(ctx)
 
 	invEntry := mapper.GetInventoryEntry(tocEntry)
@@ -235,7 +230,7 @@ func toInventoryEntryResponse(ctx context.Context, tocEntry model.TOCEntry) Inve
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(ctx context.Context, tocVersions []model.TOCVersion) InventoryEntryVersionsResponse {
+func toInventoryEntryVersionsResponse(ctx context.Context, tocVersions []model.FoundVersion) InventoryEntryVersionsResponse {
 	mapper := NewMapper(ctx)
 
 	invEntryVersions := mapper.GetInventoryEntryVersions(tocVersions)
@@ -266,9 +261,9 @@ func toMpnsResponse(mpns []string) MpnsResponse {
 	return resp
 }
 
-func toPushThingModelResponse(tmID model.TMID) PushThingModelResponse {
+func toPushThingModelResponse(tmID string) PushThingModelResponse {
 	data := PushThingModelResult{
-		TmID: tmID.String(),
+		TmID: tmID,
 	}
 	return PushThingModelResponse{
 		Data: data,

@@ -114,11 +114,11 @@ func TestValidatesRoot(t *testing.T) {
 		"loc":  "/temp/surely-does-not-exist-5245874598745",
 	}, "")
 
-	_, err := remote.List("")
+	_, err := remote.List(&model.SearchParams{Query: ""})
 	assert.ErrorIs(t, err, ErrRootInvalid)
 	_, err = remote.Versions("manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
-	_, err = remote.Fetch(model.TMID{})
+	_, err = remote.Fetch("manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
 
 }

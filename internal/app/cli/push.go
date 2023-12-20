@@ -46,7 +46,7 @@ func (r PushResult) String() string {
 // Push pushes file or directory to remote repository
 // Returns the list of push results up to the first encountered error, and the error
 func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, error) {
-	remote, err := remotes.Get(remoteName)
+	remote, err := remotes.DefaultManager().Get(remoteName)
 	if err != nil {
 		Stderrf("Could not ìnitialize a remote instance for %s: %v\ncheck config", remoteName, err)
 		return nil, err
@@ -74,7 +74,7 @@ func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, err
 	}
 	tocErr := remote.CreateToC()
 	if tocErr != nil {
-		fmt.Fprintf(os.Stderr, err.Error())
+		Stderrf("Cannot create TOC: %v", err)
 	}
 	return res, err
 }
@@ -112,10 +112,10 @@ func pushFile(filename string, remote remotes.Remote, optPath string) (PushResul
 	if err != nil {
 		var errExists *remotes.ErrTMExists
 		if errors.As(err, &errExists) {
-			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, id.String())}, nil
+			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId)}, nil
 		}
 		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
 	}
 
-	return PushResult{PushOK, fmt.Sprintf("file %s pushed as %s", filename, id.String())}, nil
+	return PushResult{PushOK, fmt.Sprintf("file %s pushed as %s", filename, id)}, nil
 }

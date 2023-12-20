@@ -18,23 +18,21 @@ func NewMapper(ctx context.Context) *Mapper {
 	}
 }
 
-func (m *Mapper) GetInventoryMeta(toc model.TOC) Meta {
-	meta := Meta{
-		Created: toc.Meta.Created,
-	}
+func (m *Mapper) GetInventoryMeta(toc model.SearchResult) Meta {
+	meta := Meta{}
 	return meta
 }
 
-func (m *Mapper) GetInventoryData(tocData []*model.TOCEntry) []InventoryEntry {
+func (m *Mapper) GetInventoryData(tocData []model.FoundEntry) []InventoryEntry {
 	data := []InventoryEntry{}
 	for _, v := range tocData {
-		data = append(data, m.GetInventoryEntry(*v))
+		data = append(data, m.GetInventoryEntry(v))
 	}
 
 	return data
 }
 
-func (m *Mapper) GetInventoryEntry(tocEntry model.TOCEntry) InventoryEntry {
+func (m *Mapper) GetInventoryEntry(tocEntry model.FoundEntry) InventoryEntry {
 	invEntry := InventoryEntry{}
 	invEntry.Name = tocEntry.Name
 	invEntry.SchemaAuthor.SchemaName = tocEntry.Author.Name
@@ -53,7 +51,7 @@ func (m *Mapper) GetInventoryEntry(tocEntry model.TOCEntry) InventoryEntry {
 	return invEntry
 }
 
-func (m *Mapper) GetInventoryEntryVersions(tocVersions []model.TOCVersion) []InventoryEntryVersion {
+func (m *Mapper) GetInventoryEntryVersions(tocVersions []model.FoundVersion) []InventoryEntryVersion {
 	invVersions := []InventoryEntryVersion{}
 	for _, v := range tocVersions {
 		invVersion := m.GetInventoryEntryVersion(v)
@@ -63,7 +61,7 @@ func (m *Mapper) GetInventoryEntryVersions(tocVersions []model.TOCVersion) []Inv
 	return invVersions
 }
 
-func (m *Mapper) GetInventoryEntryVersion(tocVersion model.TOCVersion) InventoryEntryVersion {
+func (m *Mapper) GetInventoryEntryVersion(tocVersion model.FoundVersion) InventoryEntryVersion {
 	invVersion := InventoryEntryVersion{}
 
 	invVersion.TmID = tocVersion.TMID

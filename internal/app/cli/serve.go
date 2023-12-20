@@ -18,7 +18,7 @@ func Serve(host, port, urlCtxRoot, remote string) error {
 		Stderrf(err.Error())
 		return err
 	}
-	_, err = remotes.Get(remote)
+	_, err = remotes.DefaultManager().Get(remote)
 	if err != nil {
 		if errors.Is(err, remotes.ErrAmbiguous) {
 			Stderrf("must specify remote target for push with --remote when there are multiple remotes configured")

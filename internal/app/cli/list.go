@@ -8,6 +8,7 @@ import (
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 // TODO: figure out how to use viper
@@ -15,7 +16,9 @@ const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
 func List(remoteName, filter string) error {
-	toc, err := commands.List(remoteName, filter)
+	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remoteName, &model.SearchParams{
+		Query: filter,
+	})
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err

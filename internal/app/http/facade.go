@@ -9,31 +9,20 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func listToc(filter *FilterParams, search *SearchParams) (*model.TOC, error) {
-	remote, err := remotes.Get("")
+func listToc(search *model.SearchParams) (*model.SearchResult, error) {
+	c := commands.NewListCommand(remotes.DefaultManager())
+	toc, err := c.List("", search)
 	if err != nil {
 		return nil, err
-	}
-
-	toc, err := remote.List("")
-	if err != nil {
-		return nil, err
-	}
-
-	if filter != nil {
-		Filter(&toc, filter)
-	}
-	if search != nil {
-		Search(&toc, search)
 	}
 
 	return &toc, nil
 }
 
-func listTocAuthors(toc *model.TOC) []string {
+func listTocAuthors(toc *model.SearchResult) []string {
 	authors := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Data {
+	for _, v := range toc.Entries {
 		if _, ok := check[v.Author.Name]; !ok {
 			check[v.Author.Name] = true
 			authors = append(authors, v.Author.Name)
@@ -43,10 +32,10 @@ func listTocAuthors(toc *model.TOC) []string {
 	return authors
 }
 
-func listTocManufacturers(toc *model.TOC) []string {
+func listTocManufacturers(toc *model.SearchResult) []string {
 	mans := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Data {
+	for _, v := range toc.Entries {
 		if _, ok := check[v.Manufacturer.Name]; !ok {
 			check[v.Manufacturer.Name] = true
 			mans = append(mans, v.Manufacturer.Name)
@@ -56,10 +45,10 @@ func listTocManufacturers(toc *model.TOC) []string {
 	return mans
 }
 
-func listTocMpns(toc *model.TOC) []string {
+func listTocMpns(toc *model.SearchResult) []string {
 	mpns := []string{}
 	check := map[string]bool{}
-	for _, v := range toc.Data {
+	for _, v := range toc.Entries {
 		if _, ok := check[v.Mpn]; !ok {
 			check[v.Mpn] = true
 			mpns = append(mpns, v.Mpn)
@@ -69,58 +58,50 @@ func listTocMpns(toc *model.TOC) []string {
 	return mpns
 }
 
-func findTocEntry(name string) (*model.TOCEntry, error) {
+func findTocEntry(name string) (*model.FoundEntry, error) {
 	//todo: check if name is valid format
-	toc, err := listToc(nil, nil)
+	toc, err := listToc(&model.SearchParams{Name: name})
 	if err != nil {
 		return nil, err
 	}
-
-	tocEntry := toc.FindByName(name)
-	if tocEntry == nil {
+	if len(toc.Entries) != 1 {
 		return nil, NewNotFoundError(nil, "Inventory with name %s not found", name)
 	}
-	return tocEntry, nil
+	return &toc.Entries[0], nil
 }
 
 func fetchThingModel(tmID string) ([]byte, error) {
-	remote, err := remotes.Get("")
-	if err != nil {
-		return nil, err
-	}
-
-	mTmID, err := model.ParseTMID(tmID, false)
-	if err == model.ErrInvalidId {
+	_, err := model.ParseTMID(tmID, true)
+	if errors.Is(err, model.ErrInvalidId) {
 		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmID)
 	} else if err != nil {
 		return nil, err
 	}
 
-	data, err := remote.Fetch(mTmID)
-	if err != nil && err.Error() == "file does not exist" {
-		return nil, NewNotFoundError(err, "File does not exists")
+	data, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMID("", tmID)
+	if errors.Is(err, commands.ErrTmNotFound) {
+		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {
 		return nil, err
 	}
 	return data, nil
 }
 
-func pushThingModel(file []byte, remoteName string) (*model.TMID, error) {
-	remote, err := remotes.Get(remoteName)
+func pushThingModel(file []byte, remoteName string) (string, error) {
+	remote, err := remotes.DefaultManager().Get(remoteName)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
 	tmID, err := commands.PushFile(file, remote, "")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	err = remote.CreateToC()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &tmID, nil
+	return tmID, nil
 }
 
 func checkHealth() error {
@@ -138,7 +119,7 @@ func checkHealthLive() error {
 }
 
 func checkHealthReady() error {
-	_, err := remotes.Get("")
+	_, err := remotes.DefaultManager().Get("")
 	if err != nil {
 		return errors.New("invalid remotes configuration or no default remote found")
 	}

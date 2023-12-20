@@ -51,6 +51,7 @@ func TestParseId(t *testing.T) {
 	ids := []string{
 		"author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.js",
 		"author/manufacturer/mpn/v1.2.3.tm.json",
+		"manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
 	}
 	for i, v := range ids {
 		id, err = ParseTMID(v, false)
