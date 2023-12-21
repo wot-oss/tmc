@@ -2,6 +2,8 @@ package remotes
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -48,4 +50,25 @@ func TestCreateHttpRemoteConfig(t *testing.T) {
 		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRemoteLoc]), "in test %d for %s %s", i, test.strConf, test.fileConf)
 
 	}
+}
+
+func TestHttpRemote_Fetch(t *testing.T) {
+	const tmid = "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json"
+	const aid = "manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json"
+	const tm = "{\"id\":\"manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json\"}"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/"+tmid, r.URL.Path)
+		assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+		_, _ = w.Write([]byte(tm))
+	}))
+	defer srv.Close()
+
+	config, err := createHttpRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+	assert.NoError(t, err)
+	r, err := NewHttpRemote(config, "nameless")
+	assert.NoError(t, err)
+	actId, b, err := r.Fetch(tmid)
+	assert.NoError(t, err)
+	assert.Equal(t, aid, actId)
+	assert.Equal(t, []byte(tm), b)
 }
