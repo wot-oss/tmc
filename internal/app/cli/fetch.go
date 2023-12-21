@@ -11,13 +11,23 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-func Fetch(remoteName, idOrName, outputFile string, withPath bool) error {
+type FetchExecutor struct {
+	rm remotes.RemoteManager
+}
+
+func NewFetchExecutor(rm remotes.RemoteManager) *FetchExecutor {
+	return &FetchExecutor{
+		rm: rm,
+	}
+}
+
+func (e *FetchExecutor) Fetch(remoteName, idOrName, outputFile string, withPath bool) error {
 	if withPath && len(outputFile) == 0 {
 		Stderrf("--with-path requires non-empty --output")
 		return errors.New("--output not provided")
 	}
 
-	id, thing, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMIDOrName(remoteName, idOrName)
+	id, thing, err := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remoteName, idOrName)
 	if err != nil {
 		Stderrf("Could not fetch from remote: %v", err)
 		return err
