@@ -31,33 +31,40 @@ func (_m *Remote) CreateToC() error {
 }
 
 // Fetch provides a mock function with given fields: id
-func (_m *Remote) Fetch(id string) ([]byte, error) {
+func (_m *Remote) Fetch(id string) (string, []byte, error) {
 	ret := _m.Called(id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Fetch")
 	}
 
-	var r0 []byte
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string) ([]byte, error)); ok {
+	var r0 string
+	var r1 []byte
+	var r2 error
+	if rf, ok := ret.Get(0).(func(string) (string, []byte, error)); ok {
 		return rf(id)
 	}
-	if rf, ok := ret.Get(0).(func(string) []byte); ok {
+	if rf, ok := ret.Get(0).(func(string) string); ok {
 		r0 = rf(id)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(string) []byte); ok {
+		r1 = rf(id)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).([]byte)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(id)
+	if rf, ok := ret.Get(2).(func(string) error); ok {
+		r2 = rf(id)
 	} else {
-		r1 = ret.Error(1)
+		r2 = ret.Error(2)
 	}
 
-	return r0, r1
+	return r0, r1, r2
 }
 
 // List provides a mock function with given fields: search

@@ -130,17 +130,18 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 	return res
 }
 
-func (f *FileRemote) Fetch(id string) ([]byte, error) {
+func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	err := f.checkRootValid()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	exists, actualId := f.getExistingID(id)
 	if !exists {
-		return nil, os.ErrNotExist
+		return "", nil, os.ErrNotExist
 	}
 	actualFilename, _, _ := f.filenames(actualId)
-	return os.ReadFile(actualFilename)
+	b, err := os.ReadFile(actualFilename)
+	return actualId, b, err
 }
 
 func (f *FileRemote) CreateToC() error {

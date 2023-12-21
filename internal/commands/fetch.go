@@ -52,41 +52,41 @@ func NewFetchCommand(manager remotes.RemoteManager) *FetchCommand {
 	}
 }
 
-func (c *FetchCommand) FetchByTMIDOrName(remoteName, idOrName string) ([]byte, error) {
+func (c *FetchCommand) FetchByTMIDOrName(remoteName, idOrName string) (string, []byte, error) {
 	_, err := model.ParseTMID(idOrName, true)
 	if err == nil {
-		tm, err := c.FetchByTMID(remoteName, idOrName)
+		id, tm, err := c.FetchByTMID(remoteName, idOrName)
 		if !errors.Is(err, ErrTmNotFound) {
-			return tm, err
+			return id, tm, err
 		}
 	}
 
 	fn, err := ParseFetchName(idOrName)
 	if err != nil {
 		slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
-		return nil, err
+		return "", nil, err
 	}
 	return c.FetchByName(remoteName, fn)
 }
-func (c *FetchCommand) FetchByTMID(remoteName string, tmid string) ([]byte, error) {
+func (c *FetchCommand) FetchByTMID(remoteName string, tmid string) (string, []byte, error) {
 	remote, err := c.remoteMgr.Get(remoteName)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	thing, err := remote.Fetch(tmid)
+	id, thing, err := remote.Fetch(tmid)
 	if err != nil {
 		msg := fmt.Sprintf("No thing model found for %v", tmid)
 		slog.Default().Error(msg)
-		return nil, ErrTmNotFound
+		return "", nil, ErrTmNotFound
 	}
-	return thing, nil
+	return id, thing, nil
 
 }
-func (c *FetchCommand) FetchByName(remoteName string, fn FetchName) ([]byte, error) {
+func (c *FetchCommand) FetchByName(remoteName string, fn FetchName) (string, []byte, error) {
 	log := slog.Default()
 	tocThing, err := NewVersionsCommand(c.remoteMgr).ListVersions(remoteName, fn.Name)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	var id string
@@ -95,17 +95,17 @@ func (c *FetchCommand) FetchByName(remoteName string, fn FetchName) ([]byte, err
 	if len(fn.SemVerOrDigest) == 0 {
 		id, foundIn, err = findMostRecentVersion(tocThing.Versions)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	} else if fetchVersion, err := semver.NewVersion(fn.SemVerOrDigest); err == nil {
 		id, foundIn, err = findMostRecentTimeStamp(tocThing.Versions, fetchVersion)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	} else {
 		id, foundIn, err = findDigest(tocThing.Versions, fn.SemVerOrDigest)
 		if err != nil {
-			return nil, err
+			return "", nil, err
 		}
 	}
 

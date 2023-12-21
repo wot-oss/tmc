@@ -10,7 +10,7 @@ import (
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
-	Use:   "push file-or-dirname [--remote=remote-name] [--opt-path=optional/path] [--opt-tree]",
+	Use:   "push <file-or-dirname> [--remote=<remote-name>] [--opt-path=<optional/path>] [--opt-tree]",
 	Short: "Push a TM or directory with TMs to remote",
 	Long: `Push a single ThingModel or an directory with ThingModels to remote catalog.
 file-or-dirname

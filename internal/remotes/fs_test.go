@@ -118,7 +118,7 @@ func TestValidatesRoot(t *testing.T) {
 	assert.ErrorIs(t, err, ErrRootInvalid)
 	_, err = remote.Versions("manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
-	_, err = remote.Fetch("manufacturer/mpn")
+	_, _, err = remote.Fetch("manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
 
 }

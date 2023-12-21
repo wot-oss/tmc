@@ -78,7 +78,7 @@ func fetchThingModel(tmID string) ([]byte, error) {
 		return nil, err
 	}
 
-	data, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMID("", tmID)
+	_, data, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMID("", tmID)
 	if errors.Is(err, commands.ErrTmNotFound) {
 		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {
