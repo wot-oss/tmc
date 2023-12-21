@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/buger/jsonparser"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
@@ -61,13 +62,26 @@ func (h *HttpRemote) Push(_ model.TMID, _ []byte) error {
 	return ErrNotSupported
 }
 
-func (h *HttpRemote) Fetch(id string) ([]byte, error) {
+func (h *HttpRemote) Fetch(id string) (string, []byte, error) {
 	reqUrl := h.buildUrl(id)
 	resp, err := h.doGet(reqUrl)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	return io.ReadAll(resp.Body)
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", nil, err
+	}
+	value, dataType, _, err := jsonparser.Get(b, "id")
+	if err != nil && dataType != jsonparser.NotExist {
+		return "", b, err
+	}
+	switch dataType {
+	case jsonparser.String:
+		return string(value), b, nil
+	default:
+		return fmt.Sprintf("%v", value), b, fmt.Errorf("unexpected type of 'id': %v", value)
+	}
 }
 
 func (h *HttpRemote) buildUrl(fileId string) string {

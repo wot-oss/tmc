@@ -50,10 +50,10 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	rm.On("Get", "").Return(r, nil)
 	setUpVersionsForFetchByTMIDOrName(r)
 
-	r.On("Fetch", "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return([]byte("{}"), nil)
-	r.On("Fetch", "manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return([]byte("{}"), nil)
-	r.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return([]byte("{}"), nil)
-	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return([]byte("{}"), nil)
+	r.On("Fetch", "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
+	r.On("Fetch", "manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
+	r.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
+	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
 
 	f := NewFetchCommand(rm)
 
@@ -80,7 +80,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		b, err := f.FetchByTMIDOrName("", test.in)
+		_, b, err := f.FetchByTMIDOrName("", test.in)
 		if test.expErr {
 			assert.Error(t, err, "Expected error in FetchByTMIDOrName(%s), but got nil", test.in)
 			assert.ErrorContains(t, err, test.expErrText, "Unexpected error in FetchByTMIDOrName(%s)", test.in)
