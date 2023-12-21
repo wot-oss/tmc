@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 var fetchCmd = &cobra.Command{
@@ -37,7 +38,7 @@ func executeFetch(cmd *cobra.Command, args []string) {
 		cli.Stderrf("invalid --with-path flag")
 		os.Exit(1)
 	}
-	err = cli.Fetch(remoteName, args[0], outputFile, withPath)
+	err = cli.NewFetchExecutor(remotes.DefaultManager()).Fetch(remoteName, args[0], outputFile, withPath)
 	if err != nil {
 		cli.Stderrf("fetch failed")
 		os.Exit(1)
