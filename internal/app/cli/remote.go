@@ -153,6 +153,38 @@ func RemoteRename(oldName, newName string) (err error) {
 	return
 }
 
+func RemoteSetAuth(name, kind, data string) error {
+	conf, err := remotes.DefaultManager().ReadConfig()
+	if err != nil {
+		Stderrf("error setting auth: %v", err)
+		return err
+	}
+
+	rc, ok := conf[name]
+	if !ok {
+		Stderrf("remote %s not found", name)
+		return remotes.ErrRemoteNotFound
+	}
+	switch kind {
+	case "bearer":
+		delete(rc, remotes.KeyRemoteAuth)
+		rc[remotes.KeyRemoteAuth] = map[string]any{
+			"bearer": data,
+		}
+	default:
+		Stderrf("unknown auth type: %s", kind)
+		return errors.New("unknown auth type")
+	}
+	rb, _ := json.Marshal(rc)
+
+	err = remotes.DefaultManager().SetConfig(name, fmt.Sprint(rc[remotes.KeyRemoteType]), "", rb)
+	if err != nil {
+		Stderrf("error saving remote config: %v", err)
+		return err
+	}
+	return nil
+}
+
 func isValidType(typ string) bool {
 	for _, t := range remotes.SupportedTypes {
 		if typ == t {
