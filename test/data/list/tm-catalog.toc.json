@@ -1,0 +1,107 @@
+{
+  "meta": {
+    "created": "2023-12-20T14:59:49.8164628+01:00"
+  },
+  "data": [
+    {
+      "name": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp-Gmbh-Co-KG"
+      },
+      "schema:mpn": "senseall",
+      "schema:author": {
+        "schema:name": "omnicorp-R-D-research"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b/v1.0.1-20231208142856-c49617d2e4fc.tm.json"
+          },
+          "tmID": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b/v1.0.1-20231208142856-c49617d2e4fc.tm.json",
+          "digest": "c49617d2e4fc",
+          "timestamp": "20231208142856",
+          "externalID": ""
+        }
+      ]
+    },
+    {
+      "name": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp-Gmbh-Co-KG"
+      },
+      "schema:mpn": "senseall",
+      "schema:author": {
+        "schema:name": "omnicorp-R-D-research"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath/v1.0.1-20231201110829-c49617d2e4fc.tm.json"
+          },
+          "tmID": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath/v1.0.1-20231201110829-c49617d2e4fc.tm.json",
+          "digest": "c49617d2e4fc",
+          "timestamp": "20231201110829",
+          "externalID": ""
+        }
+      ]
+    },
+    {
+      "name": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp-Gmbh-Co-KG"
+      },
+      "schema:mpn": "senseall",
+      "schema:author": {
+        "schema:name": "omnicorp-R-D-research"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json"
+          },
+          "tmID": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json",
+          "digest": "c49617d2e4fc",
+          "timestamp": "20231208142830",
+          "externalID": ""
+        }
+      ]
+    },
+    {
+      "name": "systemx/siemens/AQualSenDev-virtual",
+      "schema:manufacturer": {
+        "schema:name": "siemens"
+      },
+      "schema:mpn": "AQualSenDev-virtual",
+      "schema:author": {
+        "schema:name": "systemx"
+      },
+      "versions": [
+        {
+          "description": "Air quality sensor device (virtual)",
+          "version": {
+            "model": "0.34.0"
+          },
+          "links": {
+            "content": "systemx/siemens/AQualSenDev-virtual/v0.34.0-20231130153548-243d1b462aaa.tm.json"
+          },
+          "tmID": "systemx/siemens/AQualSenDev-virtual/v0.34.0-20231130153548-243d1b462aaa.tm.json",
+          "digest": "243d1b462aaa",
+          "timestamp": "20231130153548",
+          "externalID": "urn:uuid:f48f4ffc-f898-580f-b93f-648d7a9cff1d"
+        }
+      ]
+    }
+  ]
+}

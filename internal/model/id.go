@@ -87,6 +87,13 @@ func init() {
 	pseudoVersionRegex = regexp.MustCompile("^" + pseudoVersionRegexString + "$")
 }
 
+func MustParseTMID(s string, official bool) TMID {
+	tmid, err := ParseTMID(s, official)
+	if err != nil {
+		panic(err)
+	}
+	return tmid
+}
 func ParseTMID(s string, official bool) (TMID, error) {
 	if !strings.HasSuffix(s, TMFileExtension) {
 		return TMID{}, ErrInvalidId
