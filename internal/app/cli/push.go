@@ -43,10 +43,22 @@ func (r PushResult) String() string {
 	return fmt.Sprintf("%v\t %s", r.typ, r.text)
 }
 
+type PushExecutor struct {
+	rm  remotes.RemoteManager
+	now commands.Now
+}
+
+func NewPushExecutor(rm remotes.RemoteManager, now commands.Now) *PushExecutor {
+	return &PushExecutor{
+		rm:  rm,
+		now: now,
+	}
+}
+
 // Push pushes file or directory to remote repository
 // Returns the list of push results up to the first encountered error, and the error
-func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, error) {
-	remote, err := remotes.DefaultManager().Get(remoteName)
+func (p *PushExecutor) Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, error) {
+	remote, err := p.rm.Get(remoteName)
 	if err != nil {
 		Stderrf("Could not ìnitialize a remote instance for %s: %v\ncheck config", remoteName, err)
 		return nil, err
@@ -66,9 +78,9 @@ func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, err
 
 	var res []PushResult
 	if stat.IsDir() {
-		res, err = pushDirectory(abs, remote, optPath, optTree)
+		res, err = p.pushDirectory(abs, remote, optPath, optTree)
 	} else {
-		singleRes, pushErr := pushFile(filename, remote, optPath)
+		singleRes, pushErr := p.pushFile(filename, remote, optPath)
 		res = []PushResult{singleRes}
 		err = pushErr
 	}
@@ -79,7 +91,7 @@ func Push(filename, remoteName, optPath string, optTree bool) ([]PushResult, err
 	return res, err
 }
 
-func pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool) ([]PushResult, error) {
+func (p *PushExecutor) pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool) ([]PushResult, error) {
 	var results []PushResult
 	err := filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
@@ -93,7 +105,7 @@ func pushDirectory(absDirname string, remote remotes.Remote, optPath string, opt
 			optPath = filepath.Dir(strings.TrimPrefix(path, absDirname))
 		}
 
-		res, err := pushFile(path, remote, optPath)
+		res, err := p.pushFile(path, remote, optPath)
 		results = append(results, res)
 		return err
 	})
@@ -102,13 +114,13 @@ func pushDirectory(absDirname string, remote remotes.Remote, optPath string, opt
 
 }
 
-func pushFile(filename string, remote remotes.Remote, optPath string) (PushResult, error) {
+func (p *PushExecutor) pushFile(filename string, remote remotes.Remote, optPath string) (PushResult, error) {
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
 	}
-	id, err := commands.PushFile(raw, remote, optPath)
+	id, err := commands.NewPushCommand(p.now).PushFile(raw, remote, optPath)
 	if err != nil {
 		var errExists *remotes.ErrTMExists
 		if errors.As(err, &errExists) {

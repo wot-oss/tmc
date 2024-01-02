@@ -18,14 +18,23 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-var now = time.Now
-
 const pseudoVersionTimestampFormat = "20060102150405"
+
+type Now func() time.Time
+type PushCommand struct {
+	now Now
+}
+
+func NewPushCommand(now Now) *PushCommand {
+	return &PushCommand{
+		now: now,
+	}
+}
 
 // PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to remote.
 // Returns the ID that the TM has been stored under, and error.
 // If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMExists
-func PushFile(raw []byte, remote remotes.Remote, optPath string) (string, error) {
+func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string) (string, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
@@ -33,7 +42,7 @@ func PushFile(raw []byte, remote remotes.Remote, optPath string) (string, error)
 		return "", err
 	}
 
-	versioned, id, err := prepareToImport(tm, raw, optPath)
+	versioned, id, err := prepareToImport(c.now, tm, raw, optPath)
 	if err != nil {
 		return "", err
 	}
@@ -52,7 +61,7 @@ func PushFile(raw []byte, remote remotes.Remote, optPath string) (string, error)
 	return id.String(), nil
 }
 
-func prepareToImport(tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
+func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
 	manuf := tm.Manufacturer.Name
 	auth := tm.Author.Name
 	if tm == nil || len(auth) == 0 || len(manuf) == 0 || len(tm.Mpn) == 0 {
@@ -75,13 +84,11 @@ func prepareToImport(tm *model.ThingModel, raw []byte, optPath string) ([]byte, 
 			} else {
 				return nil, model.TMID{}, err
 			}
-		} else {
-
 		}
 	}
 
 	prepared = utils.NormalizeLineEndings(prepared)
-	generatedId := generateNewId(tm, prepared, optPath)
+	generatedId := generateNewId(now, tm, prepared, optPath)
 	finalId := idFromFile
 	if !generatedId.Equals(idFromFile) {
 		finalId = generatedId
@@ -136,7 +143,7 @@ func moveIdToOriginalLink(raw []byte, id string) []byte {
 	return raw
 }
 
-func generateNewId(tm *model.ThingModel, raw []byte, optPath string) model.TMID {
+func generateNewId(now Now, tm *model.ThingModel, raw []byte, optPath string) model.TMID {
 	fileForHashing := jsonparser.Delete(raw, "id")
 	hasher := sha1.New()
 	hasher.Write(fileForHashing)

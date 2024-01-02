@@ -3,6 +3,7 @@ package http
 import (
 	"errors"
 	"sort"
+	"time"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
@@ -92,7 +93,7 @@ func pushThingModel(file []byte, remoteName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	tmID, err := commands.PushFile(file, remote, "")
+	tmID, err := commands.NewPushCommand(time.Now).PushFile(file, remote, "")
 	if err != nil {
 		return "", err
 	}
