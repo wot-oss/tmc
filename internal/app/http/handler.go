@@ -238,10 +238,10 @@ func getRelativeDepth(path, siblingPath string) int {
 
 	idx := strings.Index(path, siblingPath)
 	if idx < 0 {
-		return 0
+		return -1
 	}
 
 	path = path[idx:]
-	d := strings.Count(path, "/") + 1
+	d := strings.Count(path, "/")
 	return d
 }
