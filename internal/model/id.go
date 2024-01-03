@@ -25,6 +25,26 @@ type TMID struct {
 	Version      TMVersion
 }
 
+func NewTMID(author, manufacturer, mpn, optPath string, version TMVersion) TMID {
+	id := TMID{
+		OptionalPath: optPath,
+		Author:       author,
+		Manufacturer: manufacturer,
+		Mpn:          mpn,
+		Version:      version,
+	}
+	parts := []string{id.Author}
+	if id.Manufacturer != id.Author {
+		parts = append(parts, id.Manufacturer)
+	}
+	parts = append(parts, id.Mpn, id.OptionalPath)
+	name := JoinSkippingEmpty(parts, "/")
+	id.Name = name
+
+	return id
+
+}
+
 type TMVersion struct {
 	Base      *semver.Version
 	Timestamp string

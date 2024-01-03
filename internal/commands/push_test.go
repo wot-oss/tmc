@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
@@ -138,47 +139,55 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	}, "")
 	assert.NoError(t, err)
 
-	c := NewPushCommand(time.Now)
+	clk := testutils.NewTestClock(time.Now(), 1050*time.Millisecond)
+	c := NewPushCommand(clk.Now)
 
-	// write first TM
+	var firstSaved string
 	_, raw, err := utils.ReadRequiredFile("../../test/data/push/omnilamp.json")
-	assert.NoError(t, err)
-	id, err := c.PushFile(raw, remote, "")
-	assert.NoError(t, err)
-	testTMDir := filepath.Join(root, filepath.Dir(id))
-	t.Logf("test TM dir: %s", testTMDir)
-	_, err = os.Stat(filepath.Join(root, id))
-	assert.NoError(t, err)
-	entries, _ := os.ReadDir(testTMDir)
-	assert.Len(t, entries, 1)
-	firstSaved := entries[0].Name()
+	t.Run("write first TM", func(t *testing.T) {
 
-	// attempt overwriting with the same content - no change
-	time.Sleep(1050 * time.Millisecond)
-	id, err = c.PushFile(raw, remote, "")
-	var errExists *remotes.ErrTMExists
-	assert.ErrorAs(t, err, &errExists)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
-	assert.Len(t, entries, 1)
-	assert.Equal(t, firstSaved, entries[0].Name())
+		assert.NoError(t, err)
+		id, err := c.PushFile(raw, remote, "")
+		assert.NoError(t, err)
+		testTMDir := filepath.Join(root, filepath.Dir(id))
+		t.Logf("test TM dir: %s", testTMDir)
+		_, err = os.Stat(filepath.Join(root, id))
+		assert.NoError(t, err)
+		entries, _ := os.ReadDir(testTMDir)
+		assert.Len(t, entries, 1)
+		firstSaved = entries[0].Name()
+	})
 
-	// write a changed file - saves new version
-	time.Sleep(1050 * time.Millisecond)
-	raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
-	id, err = c.PushFile(raw, remote, "")
-	assert.NoError(t, err)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
-	assert.Len(t, entries, 2)
-	assert.Equal(t, firstSaved, entries[0].Name())
+	t.Run("attempt overwriting with the same content", func(t *testing.T) {
+		// attempt overwriting with the same content - no change
+		id, err := c.PushFile(raw, remote, "")
+		var errExists *remotes.ErrTMExists
+		assert.ErrorAs(t, err, &errExists)
+		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
+		assert.Len(t, entries, 1)
+		assert.Equal(t, firstSaved, entries[0].Name())
+	})
 
-	// change the file back and write - saves new version
-	time.Sleep(1050 * time.Millisecond)
-	raw = bytes.Replace(raw, []byte("Lamp Thing"), []byte("Lamp Thing Model"), 1)
-	id, err = c.PushFile(raw, remote, "")
-	assert.NoError(t, err)
-	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
-	assert.Len(t, entries, 3)
-	assert.Equal(t, firstSaved, entries[0].Name())
+	t.Run("write a changed file", func(t *testing.T) {
+		// write a changed file - saves new version
+		raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
+		id, err := c.PushFile(raw, remote, "")
+		assert.NoError(t, err)
+		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
+		assert.Len(t, entries, 2)
+		assert.Equal(t, firstSaved, entries[0].Name())
+	})
+
+	t.Run("change the file back and write", func(t *testing.T) {
+
+		// change the file back and write - saves new version
+		raw = bytes.Replace(raw, []byte("Lamp Thing"), []byte("Lamp Thing Model"), 1)
+		id, err := c.PushFile(raw, remote, "")
+		assert.NoError(t, err)
+		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
+		assert.Len(t, entries, 3)
+		assert.Equal(t, firstSaved, entries[0].Name())
+	})
 
 }
 func TestPushToRemoteVersioned(t *testing.T) {

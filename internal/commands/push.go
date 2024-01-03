@@ -152,13 +152,7 @@ func generateNewId(now Now, tm *model.ThingModel, raw []byte, optPath string) mo
 	ver := model.TMVersionFromOriginal(tm.Version.Model)
 	ver.Hash = hashStr
 	ver.Timestamp = now().UTC().Format(pseudoVersionTimestampFormat)
-	return model.TMID{
-		OptionalPath: sanitizePathForID(optPath),
-		Author:       tm.Author.Name,
-		Manufacturer: tm.Manufacturer.Name,
-		Mpn:          tm.Mpn,
-		Version:      ver,
-	}
+	return model.NewTMID(tm.Author.Name, tm.Manufacturer.Name, tm.Mpn, sanitizePathForID(optPath), ver)
 }
 func sanitizePathForID(p string) string {
 	if p == "" {
