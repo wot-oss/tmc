@@ -15,20 +15,18 @@ import (
 const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
-func List(remoteName, filter string) error {
-	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remoteName, &model.SearchParams{
-		Query: filter,
-	})
+func List(remoteName string, search *model.SearchParams) error {
+	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remoteName, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
 	}
-	printToC(toc, filter)
+	printToC(toc)
 	return nil
 }
 
 // TODO: use better table writer with eliding etc.
-func printToC(toc model.SearchResult, filter string) {
+func printToC(toc model.SearchResult) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
