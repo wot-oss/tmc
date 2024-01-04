@@ -1,0 +1,37 @@
+{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+      "schema": "https://schema.org/"
+    }
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Lamp Thing Model",
+  "schema:manufacturer": {
+    "schema:name": "omnicorp"
+  },
+  "schema:mpn": "omnilamp",
+  "schema:author": {
+    "schema:name": "omnicorp TM department"
+  },
+  "properties": {
+    "status": {
+      "description": "current status of the lamp (on|off)",
+      "type": "string",
+      "readOnly": true
+    }
+  },
+  "actions": {
+    "toggle": {
+      "description": "Turn the lamp on or off"
+    }
+  },
+  "events": {
+    "overheating": {
+      "description": "Lamp reaches a critical temperature (overheating)",
+      "data": {
+        "type": "string"
+      }
+    }
+  }
+}

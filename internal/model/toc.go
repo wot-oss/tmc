@@ -109,8 +109,8 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, value)
 }
 
-// FindByName searches by name and returns a pointer to the TOCEntry if found
-func (toc *TOC) FindByName(name string) *TOCEntry {
+// findByName searches by name and returns a pointer to the TOCEntry if found
+func (toc *TOC) findByName(name string) *TOCEntry {
 	for _, value := range toc.Data {
 		if value.Name == name {
 			return value
@@ -127,7 +127,7 @@ func (toc *TOC) Insert(ctm *CatalogThingModel) error {
 		return err
 	}
 	// find the right entry, or create if it doesn't exist
-	tocEntry := toc.FindByName(tmid.Name)
+	tocEntry := toc.findByName(tmid.Name)
 	if tocEntry == nil {
 		tocEntry = &TOCEntry{
 			Name:         tmid.Name,

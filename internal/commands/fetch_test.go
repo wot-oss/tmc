@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
 )
 
 func TestParseFetchName(t *testing.T) {
@@ -44,8 +43,8 @@ func TestParseFetchName(t *testing.T) {
 }
 
 func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
-	rm := mocks.NewRemoteManager(t)
-	r := mocks.NewRemote(t)
+	rm := remotes.NewMockRemoteManager(t)
+	r := remotes.NewMockRemote(t)
 	rm.On("All").Return([]remotes.Remote{r}, nil)
 	rm.On("Get", "").Return(r, nil)
 	setUpVersionsForFetchByTMIDOrName(r)
@@ -91,7 +90,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	}
 }
 
-func setUpVersionsForFetchByTMIDOrName(r *mocks.Remote) {
+func setUpVersionsForFetchByTMIDOrName(r *remotes.MockRemote) {
 	r.On("Versions", "manufacturer/mpn").Return(model.FoundEntry{
 		Name:         "manufacturer/mpn",
 		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},

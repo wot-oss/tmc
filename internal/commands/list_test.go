@@ -6,13 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
 )
 
 func TestListCommand_List(t *testing.T) {
-	rm := mocks.NewRemoteManager(t)
-	r1 := mocks.NewRemote(t)
-	r2 := mocks.NewRemote(t)
+	rm := remotes.NewMockRemoteManager(t)
+	r1 := remotes.NewMockRemote(t)
+	r2 := remotes.NewMockRemote(t)
 	rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
 	r1.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
 		Entries: []model.FoundEntry{
