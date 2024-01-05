@@ -10,7 +10,7 @@ func resetSearchFlags() {
 	flagFilterMpn = ""
 	flagFilterManufacturer = ""
 	flagFilterExternalID = ""
-	flagSearchContent = ""
+	flagSearch = ""
 }
 
 func TestHasSearchParams(t *testing.T) {
@@ -35,7 +35,7 @@ func TestHasSearchParams(t *testing.T) {
 	assert.True(t, res)
 
 	resetSearchFlags()
-	flagSearchContent = "some value"
+	flagSearch = "some value"
 	res = hasSearchParamsSet()
 	assert.True(t, res)
 
@@ -58,7 +58,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flagFilterManufacturer = "some manufacturer"
 	flagFilterMpn = "some mpn"
 	flagFilterExternalID = "some externalID"
-	flagSearchContent = "some term"
+	flagSearch = "some term"
 	// when: converting to SearchParams
 	params = convertSearchParams()
 	// then: the filter values are converted correctly
@@ -75,7 +75,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flagFilterManufacturer = "some manufacturer 1,some manufacturer 2"
 	flagFilterMpn = "some mpn 1,some mpn 2,some mpn 3"
 	flagFilterExternalID = "some externalID 1,some external ID 2"
-	flagSearchContent = "some term"
+	flagSearch = "some term"
 	// when: converting to SearchParams
 	params = convertSearchParams()
 	// then: the multiple filter values are converted correctly

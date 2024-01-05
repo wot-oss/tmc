@@ -15,7 +15,7 @@ var (
 	flagFilterManufacturer string
 	flagFilterMpn          string
 	flagFilterExternalID   string
-	flagSearchContent      string
+	flagSearch             string
 )
 
 var listCmd = &cobra.Command{
@@ -33,7 +33,7 @@ func init() {
 	listCmd.Flags().StringVar(&flagFilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	listCmd.Flags().StringVar(&flagFilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
 	listCmd.Flags().StringVar(&flagFilterExternalID, "filter.externalID", "", "filter TMs by one or more comma-separated external ID")
-	listCmd.Flags().StringVar(&flagSearchContent, "search.content", "", "search TMs by their content matching the search term")
+	listCmd.Flags().StringVarP(&flagSearch, "search", "s", "", "search TMs by their content matching the search term")
 }
 
 func executeList(cmd *cobra.Command, args []string) {
@@ -64,8 +64,8 @@ func convertSearchParams() *model.SearchParams {
 		if flagFilterExternalID != "" {
 			search.ExternalID = strings.Split(flagFilterExternalID, ",")
 		}
-		if flagSearchContent != "" {
-			search.Query = flagSearchContent
+		if flagSearch != "" {
+			search.Query = flagSearch
 		}
 	}
 	return search
@@ -73,5 +73,5 @@ func convertSearchParams() *model.SearchParams {
 
 func hasSearchParamsSet() bool {
 	return flagFilterAuthor != "" || flagFilterManufacturer != "" || flagFilterMpn != "" ||
-		flagFilterExternalID != "" || flagSearchContent != ""
+		flagFilterExternalID != "" || flagSearch != ""
 }
