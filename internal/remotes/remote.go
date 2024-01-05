@@ -31,9 +31,10 @@ type Config map[string]map[string]any
 
 var ErrAmbiguous = errors.New("multiple remotes configured, but remote target not specified")
 var ErrRemoteNotFound = errors.New("named remote not found")
-var ErrInvalidRemoteName = errors.New("invalid remote name")
+var ErrInvalidRemoteName = errors.New("invalid remote remoteName")
 var ErrRemoteExists = errors.New("named remote already exists")
 var ErrEntryNotFound = errors.New("entry not found")
+var ErrInvalidSpec = errors.New("illegal remote spec: both dir and remoteName given")
 
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp}
 
@@ -48,14 +49,14 @@ type Remote interface {
 	CreateToC() error
 	List(search *model.SearchParams) (model.SearchResult, error)
 	Versions(name string) (model.FoundEntry, error)
-	Name() string
+	Spec() RepoSpec
 }
 
 //go:generate mockery --name RemoteManager --inpackage
 type RemoteManager interface {
-	// Get returns the Remote built from config with the given name
-	// Empty name returns the sole remote, if there's only one. Otherwise, an error
-	Get(name string) (Remote, error)
+	// Get returns the Remote built from config with the given remoteName
+	// Empty remoteName returns the sole remote, if there's only one. Otherwise, an error
+	Get(spec RepoSpec) (Remote, error)
 	All() ([]Remote, error)
 	ReadConfig() (Config, error)
 	ToggleEnabled(name string) error
@@ -65,6 +66,53 @@ type RemoteManager interface {
 	SetConfig(name, typ, confStr string, confFile []byte) error
 }
 
+type RepoSpec struct {
+	remoteName string
+	dir        string
+}
+
+func NewSpec(remoteName, dir string) (RepoSpec, error) {
+	if remoteName != "" && dir != "" {
+		return RepoSpec{}, ErrInvalidSpec
+	}
+	return RepoSpec{
+		remoteName: remoteName,
+		dir:        dir,
+	}, nil
+}
+
+func NewRemoteSpec(remoteName string) RepoSpec {
+	return RepoSpec{
+		remoteName: remoteName,
+	}
+}
+
+func NewDirSpec(dir string) RepoSpec {
+	return RepoSpec{
+		dir: dir,
+	}
+}
+
+func NewSpecFromFoundSource(s model.FoundSource) RepoSpec {
+	return RepoSpec{
+		remoteName: s.RemoteName,
+		dir:        s.Directory,
+	}
+}
+
+func (r RepoSpec) ToFoundSource() model.FoundSource {
+	return model.FoundSource{
+		Directory:  r.dir,
+		RemoteName: r.remoteName,
+	}
+}
+
+func (s RepoSpec) String() string {
+	return fmt.Sprintf("repository spec {dir: %s, remoteName: %s}", s.dir, s.remoteName)
+}
+
+var EmptySpec, _ = NewSpec("", "")
+
 type remoteManager struct {
 }
 
@@ -73,11 +121,18 @@ var defaultManager = &remoteManager{}
 func DefaultManager() RemoteManager {
 	return defaultManager
 }
-func (r *remoteManager) Get(name string) (Remote, error) {
+func (r *remoteManager) Get(spec RepoSpec) (Remote, error) {
+	if spec.dir != "" {
+		if spec.remoteName != "" {
+			return nil, ErrInvalidSpec
+		}
+		return NewFileRemote(map[string]any{KeyRemoteType: "file", KeyRemoteLoc: spec.dir}, spec)
+	}
 	remotes, err := r.ReadConfig()
 	if err != nil {
 		return nil, err
 	}
+	name := spec.remoteName
 	rc, ok := remotes[name]
 	if name == "" {
 		if len(remotes) == 1 {
@@ -98,15 +153,15 @@ func (r *remoteManager) Get(name string) (Remote, error) {
 	if enabled != nil && !*enabled {
 		return nil, ErrRemoteNotFound
 	}
-	return createRemote(rc, name)
+	return createRemote(rc, spec)
 }
 
-func createRemote(rc map[string]any, name string) (Remote, error) {
+func createRemote(rc map[string]any, spec RepoSpec) (Remote, error) {
 	switch t := rc[KeyRemoteType]; t {
 	case RemoteTypeFile:
-		return NewFileRemote(rc, name)
+		return NewFileRemote(rc, spec)
 	case RemoteTypeHttp:
-		return NewHttpRemote(rc, name)
+		return NewHttpRemote(rc, spec)
 	default:
 		return nil, fmt.Errorf("unsupported remote type: %v. Supported types are %v", t, SupportedTypes)
 	}
@@ -124,7 +179,7 @@ func (r *remoteManager) All() ([]Remote, error) {
 		if en != nil && !*en {
 			continue
 		}
-		r, err := createRemote(rc, n)
+		r, err := createRemote(rc, NewRemoteSpec(n))
 		if err != nil {
 			return rs, err
 		}
@@ -185,7 +240,7 @@ func (r *remoteManager) Remove(name string) error {
 }
 
 func (r *remoteManager) Add(name, typ, confStr string, confFile []byte) error {
-	_, err := r.Get(name)
+	_, err := r.Get(NewRemoteSpec(name))
 	if err == nil || !errors.Is(err, ErrRemoteNotFound) {
 		return ErrRemoteExists
 	}
@@ -194,7 +249,7 @@ func (r *remoteManager) Add(name, typ, confStr string, confFile []byte) error {
 }
 
 func (r *remoteManager) SetConfig(name, typ, confStr string, confFile []byte) error {
-	_, err := r.Get(name)
+	_, err := r.Get(NewRemoteSpec(name))
 	if err != nil && errors.Is(err, ErrRemoteNotFound) {
 		return ErrRemoteNotFound
 	}
@@ -290,15 +345,14 @@ func AsRemoteConfig(bytes []byte) (map[string]any, error) {
 	return rc, nil
 }
 
-// GetNamedOrAll returns the remote with name remoteName in a slice, or all remotes, in case remoteName is empty string
-func GetNamedOrAll(manager RemoteManager, remoteName string) ([]Remote, error) {
-	if remoteName != "" {
-		remote, err := manager.Get(remoteName)
+// GetSpecdOrAll returns the remote with remoteName remoteName in a slice, or all remotes, in case remoteName is empty string
+func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) ([]Remote, error) {
+	if spec.remoteName != "" || spec.dir != "" {
+		remote, err := manager.Get(spec)
 		if err != nil {
 			return nil, err
 		}
 		return []Remote{remote}, nil
-	} else {
-		return manager.All()
 	}
+	return manager.All()
 }

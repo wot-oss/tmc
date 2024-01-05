@@ -12,7 +12,7 @@ import (
 
 func listToc(search *model.SearchParams) (*model.SearchResult, error) {
 	c := commands.NewListCommand(remotes.DefaultManager())
-	toc, err := c.List("", search)
+	toc, err := c.List(remotes.EmptySpec, search)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +79,7 @@ func fetchThingModel(tmID string) ([]byte, error) {
 		return nil, err
 	}
 
-	_, data, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMID("", tmID)
+	_, data, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMID(remotes.EmptySpec, tmID)
 	if errors.Is(err, commands.ErrTmNotFound) {
 		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {
@@ -88,8 +88,8 @@ func fetchThingModel(tmID string) ([]byte, error) {
 	return data, nil
 }
 
-func pushThingModel(file []byte, remoteName string) (string, error) {
-	remote, err := remotes.DefaultManager().Get(remoteName)
+func pushThingModel(file []byte, spec remotes.RepoSpec) (string, error) {
+	remote, err := remotes.DefaultManager().Get(spec)
 	if err != nil {
 		return "", err
 	}
@@ -120,7 +120,7 @@ func checkHealthLive() error {
 }
 
 func checkHealthReady() error {
-	_, err := remotes.DefaultManager().Get("")
+	_, err := remotes.DefaultManager().Get(remotes.EmptySpec)
 	if err != nil {
 		return errors.New("invalid remotes configuration or no default remote found")
 	}

@@ -17,7 +17,7 @@ func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 	rm := remotes.NewMockRemoteManager(t)
 	r := remotes.NewMockRemote(t)
 
-	rm.On("Get", "remote").Return(r, nil)
+	rm.On("Get", remotes.NewRemoteSpec("remote")).Return(r, nil)
 	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").
 		Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
 
@@ -30,7 +30,7 @@ func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 		io.Copy(&buf, rr)
 		outC <- buf.String()
 	}()
-	err := e.Fetch("remote", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
+	err := e.Fetch(remotes.NewRemoteSpec("remote"), "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
 		"", false)
 	assert.NoError(t, err)
 	os.Stdout = old
@@ -49,31 +49,31 @@ func TestFetchExecutor_Fetch_To_OutputFile(t *testing.T) {
 
 	rm := remotes.NewMockRemoteManager(t)
 	r := remotes.NewMockRemote(t)
-	rm.On("Get", "remote").Return(r, nil)
+	rm.On("Get", remotes.NewRemoteSpec("remote")).Return(r, nil)
 	r.On("Fetch", tmid).Return(aid, tm, nil)
 
 	e := NewFetchExecutor(rm)
-	err = e.Fetch("remote", tmid, "", true)
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, "", true)
 
 	fileTxt := filepath.Join(temp, "file.txt")
 	_ = os.WriteFile(fileTxt, []byte("text"), 0660)
-	err = e.Fetch("remote", tmid, fileTxt, true)
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, fileTxt, true)
 	assert.Error(t, err)
 
-	err = e.Fetch("remote", tmid, fileTxt, false)
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, fileTxt, false)
 	assert.NoError(t, err)
 	file, err := os.ReadFile(fileTxt)
 	assert.NoError(t, err)
 	assert.Equal(t, tm, file)
 
-	err = e.Fetch("remote", tmid, temp, false)
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, temp, false)
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, filepath.Base(aid)))
 	file, err = os.ReadFile(filepath.Join(temp, filepath.Base(aid)))
 	assert.NoError(t, err)
 	assert.Equal(t, tm, file)
 
-	err = e.Fetch("remote", tmid, temp, true)
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, temp, true)
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, aid))
 	file, err = os.ReadFile(filepath.Join(temp, aid))

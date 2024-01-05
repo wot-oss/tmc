@@ -16,8 +16,8 @@ func NewVersionsCommand(manager remotes.RemoteManager) *VersionsCommand {
 		remoteMgr: manager,
 	}
 }
-func (c *VersionsCommand) ListVersions(remoteName, name string) (model.FoundEntry, error) {
-	rs, err := remotes.GetNamedOrAll(c.remoteMgr, remoteName)
+func (c *VersionsCommand) ListVersions(spec remotes.RepoSpec, name string) (model.FoundEntry, error) {
+	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, spec)
 	if err != nil {
 		return model.FoundEntry{}, err
 	}

@@ -10,8 +10,8 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func ListVersions(remoteName, name string) error {
-	tocEntry, err := commands.NewVersionsCommand(remotes.DefaultManager()).ListVersions(remoteName, name)
+func ListVersions(spec remotes.RepoSpec, name string) error {
+	tocEntry, err := commands.NewVersionsCommand(remotes.DefaultManager()).ListVersions(spec, name)
 	if err != nil {
 		Stderrf("Could not list versions for %s: %v\ncheck config", name, err)
 		return err
@@ -25,7 +25,7 @@ func printToCThing(name string, tocEntry model.FoundEntry) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tDESCRIPTION\tREMOTE\tPATH\n")
+	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tDESCRIPTION\tREPOSITORY\tPATH\n")
 	for _, v := range tocEntry.Versions {
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.Description, v.FoundIn, v.Links["content"])
 	}

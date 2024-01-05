@@ -15,8 +15,8 @@ import (
 const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
-func List(remoteName, filter string) error {
-	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remoteName, &model.SearchParams{
+func List(remote remotes.RepoSpec, filter string) error {
+	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remote, &model.SearchParams{
 		Query: filter,
 	})
 	if err != nil {

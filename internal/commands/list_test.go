@@ -47,7 +47,7 @@ func TestListCommand_List(t *testing.T) {
 	}, nil)
 
 	c := NewListCommand(rm)
-	res, err := c.List("", &model.SearchParams{Query: "omnicorp"})
+	res, err := c.List(remotes.EmptySpec, &model.SearchParams{Query: "omnicorp"})
 
 	assert.NoError(t, err)
 	assert.Len(t, res.Entries, 3)

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 // Hint: after generating the server code based on the openapi spec
@@ -24,7 +25,7 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
-	PushTarget     string
+	PushTarget     remotes.RepoSpec
 }
 
 func NewRouter() *mux.Router {
