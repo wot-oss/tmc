@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 // pushCmd represents the push command
@@ -43,7 +45,7 @@ func executePush(cmd *cobra.Command, args []string) {
 	remoteName := cmd.Flag("remote").Value.String()
 	optPath := cmd.Flag("opt-path").Value.String()
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
-	results, err := cli.Push(args[0], remoteName, optPath, optTree)
+	results, err := cli.NewPushExecutor(remotes.DefaultManager(), time.Now).Push(args[0], remoteName, optPath, optTree)
 	for _, res := range results {
 		fmt.Println(res)
 	}

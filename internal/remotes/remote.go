@@ -37,6 +37,7 @@ var ErrEntryNotFound = errors.New("entry not found")
 
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp}
 
+//go:generate mockery --name Remote --inpackage
 type Remote interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMExists if the same file is already stored with a different timestamp
@@ -50,6 +51,7 @@ type Remote interface {
 	Name() string
 }
 
+//go:generate mockery --name RemoteManager --inpackage
 type RemoteManager interface {
 	// Get returns the Remote built from config with the given name
 	// Empty name returns the sole remote, if there's only one. Otherwise, an error

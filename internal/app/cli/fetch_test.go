@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 	old := os.Stdout
 
-	rm := mocks.NewRemoteManager(t)
-	r := mocks.NewRemote(t)
+	rm := remotes.NewMockRemoteManager(t)
+	r := remotes.NewMockRemote(t)
 
 	rm.On("Get", "remote").Return(r, nil)
 	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").
@@ -47,8 +47,8 @@ func TestFetchExecutor_Fetch_To_OutputFile(t *testing.T) {
 	const aid = "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json"
 	var tm = []byte("{}")
 
-	rm := mocks.NewRemoteManager(t)
-	r := mocks.NewRemote(t)
+	rm := remotes.NewMockRemoteManager(t)
+	r := remotes.NewMockRemote(t)
 	rm.On("Get", "remote").Return(r, nil)
 	r.On("Fetch", tmid).Return(aid, tm, nil)
 
