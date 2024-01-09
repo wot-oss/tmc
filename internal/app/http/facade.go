@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"sort"
 	"time"
@@ -10,8 +11,13 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func listToc(search *model.SearchParams) (*model.SearchResult, error) {
-	c := commands.NewListCommand(remotes.DefaultManager())
+func listToc(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
+	rm, err := getRemoteManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	c := commands.NewListCommand(rm)
 	toc, err := c.List("", search)
 	if err != nil {
 		return nil, err
@@ -59,9 +65,9 @@ func listTocMpns(toc *model.SearchResult) []string {
 	return mpns
 }
 
-func findTocEntry(name string) (*model.FoundEntry, error) {
+func findTocEntry(ctx context.Context, name string) (*model.FoundEntry, error) {
 	//todo: check if name is valid format
-	toc, err := listToc(&model.SearchParams{Name: name})
+	toc, err := listToc(ctx, &model.SearchParams{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +77,7 @@ func findTocEntry(name string) (*model.FoundEntry, error) {
 	return &toc.Entries[0], nil
 }
 
-func fetchThingModel(tmID string) ([]byte, error) {
+func fetchThingModel(ctx context.Context, tmID string) ([]byte, error) {
 	_, err := model.ParseTMID(tmID, true)
 	if errors.Is(err, model.ErrInvalidId) {
 		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmID)
@@ -79,7 +85,12 @@ func fetchThingModel(tmID string) ([]byte, error) {
 		return nil, err
 	}
 
-	_, data, err := commands.NewFetchCommand(remotes.DefaultManager()).FetchByTMID("", tmID)
+	rm, err := getRemoteManager(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	_, data, err := commands.NewFetchCommand(rm).FetchByTMID("", tmID)
 	if errors.Is(err, commands.ErrTmNotFound) {
 		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {
@@ -88,8 +99,15 @@ func fetchThingModel(tmID string) ([]byte, error) {
 	return data, nil
 }
 
-func pushThingModel(file []byte, remoteName string) (string, error) {
-	remote, err := remotes.DefaultManager().Get(remoteName)
+func pushThingModel(ctx context.Context, file []byte) (string, error) {
+	rm, err := getRemoteManager(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	remoteName := ctx.Value(ctxPushRemote).(string)
+
+	remote, err := rm.Get(remoteName)
 	if err != nil {
 		return "", err
 	}
@@ -105,29 +123,45 @@ func pushThingModel(file []byte, remoteName string) (string, error) {
 	return tmID, nil
 }
 
-func checkHealth() error {
-	err := checkHealthLive()
+func checkHealth(ctx context.Context) error {
+	err := checkHealthLive(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = checkHealthReady()
+	err = checkHealthReady(ctx)
 	return err
 }
 
-func checkHealthLive() error {
+func checkHealthLive(ctx context.Context) error {
 	return nil
 }
 
-func checkHealthReady() error {
-	_, err := remotes.DefaultManager().Get("")
+func checkHealthReady(ctx context.Context) error {
+	rm, err := getRemoteManager(ctx)
+	if err != nil {
+		return err
+	}
+	remoteName := ctx.Value(ctxPushRemote).(string)
+
+	_, err = rm.Get(remoteName)
 	if err != nil {
 		return errors.New("invalid remotes configuration or no default remote found")
 	}
 	return nil
 }
 
-func checkHealthStartup() error {
-	err := checkHealthReady()
+func checkHealthStartup(ctx context.Context) error {
+	err := checkHealthReady(ctx)
 	return err
+}
+
+func getRemoteManager(ctx context.Context) (remotes.RemoteManager, error) {
+	rm := ctx.Value(ctxRemoteManager)
+
+	if rm == nil {
+		return nil, errors.New("remote manager is unset")
+	}
+
+	return rm.(remotes.RemoteManager), nil
 }

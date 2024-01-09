@@ -34,7 +34,8 @@ func Serve(host, port, urlCtxRoot, remote string) error {
 	handler := http.NewTmcHandler(
 		http.TmcHandlerOptions{
 			UrlContextRoot: urlCtxRoot,
-			PushTarget:     remote,
+			RemoteManager:  remotes.DefaultManager(),
+			PushRemote:     remote,
 		})
 
 	options := http.GorillaServerOptions{
