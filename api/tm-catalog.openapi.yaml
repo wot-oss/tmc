@@ -61,14 +61,14 @@ paths:
           schema:
             type: string
           example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: 'search.content'
+        - name: 'search'
           in: query
           description: |
             Filters the inventory according to whether the content of the inventory entries matches the given search.    
             The search works additive to other filters.
           schema:
             type: string
-          example: search.content=
+          example: search=
         - name: sort
           in: query
           description: |
@@ -306,7 +306,7 @@ paths:
           schema:
             type: string
           example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: 'search.content'
+        - name: 'search'
           in: query
           description: |
             Filters the authors according to whether they have inventory entries  
@@ -314,6 +314,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
+          example: search=
       responses:
         '200':
           description: Successful operation
@@ -370,7 +371,7 @@ paths:
           schema:
             type: string
           example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: 'search.content'
+        - name: 'search'
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries  
@@ -378,6 +379,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
+          example: search=
       responses:
         '200':
           description: Successful operation
@@ -433,13 +435,14 @@ paths:
           schema:
             type: string
           example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
-        - name: 'search.content'
+        - name: 'search'
           in: query
           description: |
             Filters the mpns according to whether their inventory entry content matches the given search.        
             The search works additive to other filters.
           schema:
             type: string
+          example: search=
       responses:
         '200':
           description: Successful operation

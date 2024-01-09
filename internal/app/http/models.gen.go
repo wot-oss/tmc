@@ -132,10 +132,10 @@ type GetAuthorsParams struct {
 	// The filter works additive to other filters.
 	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
-	// SearchContent Filters the authors according to whether they have inventory entries
+	// Search Filters the authors according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetInventoryParams defines parameters for GetInventory.
@@ -156,9 +156,9 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
-	// SearchContent Filters the inventory according to whether the content of the inventory entries matches the given search.
+	// Search Filters the inventory according to whether the content of the inventory entries matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
 
 	// Sort Sorts the inventory by one or more fields. The sort is applied in the order of the fields.
 	// The sorting is done ascending per field by default. If a field needs to be sorted descending,
@@ -185,10 +185,10 @@ type GetManufacturersParams struct {
 	// The filter works additive to other filters.
 	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
-	// SearchContent Filters the manufacturers according to whether they have inventory entries
+	// Search Filters the manufacturers according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetMpnsParams defines parameters for GetMpns.
@@ -206,9 +206,9 @@ type GetMpnsParams struct {
 	// The filter works additive to other filters.
 	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
-	// SearchContent Filters the mpns according to whether their inventory entry content matches the given search.
+	// Search Filters the mpns according to whether their inventory entry content matches the given search.
 	// The search works additive to other filters.
-	SearchContent *string `form:"search.content,omitempty" json:"search.content,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // PushThingModelJSONBody defines parameters for PushThingModel.
