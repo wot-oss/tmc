@@ -93,11 +93,11 @@ func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// ------------- Optional query parameter "search.content" -------------
+	// ------------- Optional query parameter "search" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "search.content", r.URL.Query(), &params.SearchContent)
+	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search.content", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
 		return
 	}
 
@@ -213,11 +213,11 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// ------------- Optional query parameter "search.content" -------------
+	// ------------- Optional query parameter "search" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "search.content", r.URL.Query(), &params.SearchContent)
+	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search.content", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
 		return
 	}
 
@@ -325,11 +325,11 @@ func (siw *ServerInterfaceWrapper) GetManufacturers(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// ------------- Optional query parameter "search.content" -------------
+	// ------------- Optional query parameter "search" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "search.content", r.URL.Query(), &params.SearchContent)
+	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search.content", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
 		return
 	}
 
@@ -377,11 +377,11 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// ------------- Optional query parameter "search.content" -------------
+	// ------------- Optional query parameter "search" -------------
 
-	err = runtime.BindQueryParameter("form", true, false, "search.content", r.URL.Query(), &params.SearchContent)
+	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search.content", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
 		return
 	}
 

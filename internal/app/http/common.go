@@ -161,51 +161,51 @@ func convertParams(params any) *model.SearchParams {
 	var filterManufacturer *string
 	var filterMpn *string
 	var filterExternalID *string
-	var searchContent *string
+	var search *string
 
 	if invParams, ok := params.(GetInventoryParams); ok {
 		filterAuthor = invParams.FilterAuthor
 		filterManufacturer = invParams.FilterManufacturer
 		filterMpn = invParams.FilterMpn
 		filterExternalID = invParams.FilterExternalID
-		searchContent = invParams.SearchContent
+		search = invParams.Search
 	} else if authorsParams, ok := params.(GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
 		filterExternalID = authorsParams.FilterExternalID
-		searchContent = authorsParams.SearchContent
+		search = authorsParams.Search
 	} else if manParams, ok := params.(GetManufacturersParams); ok {
 		filterAuthor = manParams.FilterAuthor
 		filterMpn = manParams.FilterMpn
 		filterExternalID = manParams.FilterExternalID
-		searchContent = manParams.SearchContent
+		search = manParams.Search
 	} else if mpnsParams, ok := params.(GetMpnsParams); ok {
 		filterAuthor = mpnsParams.FilterAuthor
 		filterManufacturer = mpnsParams.FilterManufacturer
 		filterExternalID = mpnsParams.FilterExternalID
-		searchContent = mpnsParams.SearchContent
+		search = mpnsParams.Search
 	}
 
-	var search model.SearchParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || searchContent != nil {
-		search = model.SearchParams{}
+	var searchParams model.SearchParams
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || search != nil {
+		searchParams = model.SearchParams{}
 		if filterAuthor != nil {
-			search.Author = strings.Split(*filterAuthor, ",")
+			searchParams.Author = strings.Split(*filterAuthor, ",")
 		}
 		if filterManufacturer != nil {
-			search.Manufacturer = strings.Split(*filterManufacturer, ",")
+			searchParams.Manufacturer = strings.Split(*filterManufacturer, ",")
 		}
 		if filterMpn != nil {
-			search.Mpn = strings.Split(*filterMpn, ",")
+			searchParams.Mpn = strings.Split(*filterMpn, ",")
 		}
 		if filterExternalID != nil {
-			search.ExternalID = strings.Split(*filterExternalID, ",")
+			searchParams.ExternalID = strings.Split(*filterExternalID, ",")
 		}
-		if searchContent != nil {
-			search.Query = *searchContent
+		if search != nil {
+			searchParams.Query = *search
 		}
 	}
-	return &search
+	return &searchParams
 }
 
 func toInventoryResponse(ctx context.Context, toc model.SearchResult) InventoryResponse {

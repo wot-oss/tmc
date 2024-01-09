@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/kinbiko/jsonassert"
@@ -88,8 +90,8 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 	all, err := rm.All()
 	assert.NoError(t, err)
 	assert.Len(t, all, 2)
-	assert.IsType(t, &FileRemote{}, all[0])
-	assert.IsType(t, &HttpRemote{}, all[1])
+	assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
+	assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&HttpRemote{}) }))
 
 	fr, err := rm.Get("r1")
 	assert.NoError(t, err)
