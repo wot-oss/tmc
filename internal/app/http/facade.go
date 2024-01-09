@@ -97,7 +97,7 @@ func pushThingModel(file []byte, spec remotes.RepoSpec) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = remote.CreateToC()
+	err = remote.CreateToC(tmID)
 	if err != nil {
 		return "", err
 	}

@@ -26,7 +26,7 @@ func init() {
 
 }
 
-func executeCreateTOC(cmd *cobra.Command, args []string) {
+func executeCreateTOC(cmd *cobra.Command, _ []string) {
 	var log = slog.Default()
 
 	remoteName := cmd.Flag("remote").Value.String()
@@ -38,18 +38,8 @@ func executeCreateTOC(cmd *cobra.Command, args []string) {
 	}
 	log.Debug(fmt.Sprintf("creating table of contents for remote %s", spec))
 
-	remote, err := remotes.DefaultManager().Get(spec)
+	err = cli.UpdateToc(remotes.DefaultManager(), spec)
 	if err != nil {
-		//TODO: log to stderr or logger ?
-		cli.Stderrf("could not initialize a remote instance for %s: %v. check config", remoteName, err)
-		os.Exit(1)
-	}
-
-	err = remote.CreateToC()
-
-	if err != nil {
-		//TODO: log to stderr or logger ?
-		cli.Stderrf("could not create TOC: %v", err)
 		os.Exit(1)
 	}
 }

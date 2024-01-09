@@ -46,7 +46,7 @@ type Remote interface {
 	// Fetch retrieves the Thing Model file from remote
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(id string) (string, []byte, error)
-	CreateToC() error
+	CreateToC(updatedFiles ...string) error
 	List(search *model.SearchParams) (model.SearchResult, error)
 	Versions(name string) (model.FoundEntry, error)
 	Spec() RepoSpec

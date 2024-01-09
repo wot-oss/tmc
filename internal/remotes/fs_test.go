@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
@@ -267,4 +268,61 @@ func TestFileRemote_Versions(t *testing.T) {
 
 	vers, err = r.Versions("")
 	assert.ErrorContains(t, err, "specify a remoteName")
+}
+
+func TestFileRemote_CreateToC(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	spec := NewRemoteSpec("fr")
+	r := &FileRemote{
+		root: temp,
+		spec: spec,
+	}
+	err := copy.Copy("../../test/data/toc", temp)
+	assert.NoError(t, err)
+
+	t.Run("single id/no toc file", func(t *testing.T) {
+		err = r.CreateToC("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(toc.Data))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", toc.Data[0].Name)
+		assert.Equal(t, 1, len(toc.Data[0].Versions))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json", toc.Data[0].Versions[0].TMID)
+
+	})
+	t.Run("single id/existing toc file", func(t *testing.T) {
+		err = r.CreateToC("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(toc.Data))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", toc.Data[0].Name)
+		assert.Equal(t, 2, len(toc.Data[0].Versions))
+	})
+
+	t.Run("full update/existing toc file", func(t *testing.T) {
+		err = r.CreateToC()
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(toc.Data))
+	})
+
+	t.Run("full update/no toc file", func(t *testing.T) {
+		err := os.Remove(filepath.Join(temp, TOCFilename))
+		assert.NoError(t, err)
+
+		err = r.CreateToC()
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(toc.Data))
+	})
+
 }

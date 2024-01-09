@@ -144,12 +144,12 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	return actualId, b, err
 }
 
-func (f *FileRemote) CreateToC() error {
+func (f *FileRemote) CreateToC(ids ...string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err
 	}
-	return createTOC(f.root)
+	return f.createTOC(ids)
 }
 
 func (f *FileRemote) Spec() RepoSpec {
@@ -165,18 +165,23 @@ func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error
 		return model.SearchResult{}, err
 	}
 
-	data, err := os.ReadFile(filepath.Join(f.root, TOCFilename))
-	if err != nil {
-		return model.SearchResult{}, errors.New("no table of contents found. Run `create-toc` for this remote")
-	}
-
-	var toc model.TOC
-	err = json.Unmarshal(data, &toc)
+	toc, err := f.readTOC()
 	if err != nil {
 		return model.SearchResult{}, err
 	}
 	toc.Filter(search)
 	return model.NewSearchResultFromTOC(toc, f.Spec().ToFoundSource()), nil
+}
+
+func (f *FileRemote) readTOC() (model.TOC, error) {
+	data, err := os.ReadFile(filepath.Join(f.root, TOCFilename))
+	if err != nil {
+		return model.TOC{}, errors.New("no table of contents found. Run `create-toc` for this remote")
+	}
+
+	var toc model.TOC
+	err = json.Unmarshal(data, &toc)
+	return toc, err
 }
 
 func (f *FileRemote) Versions(name string) (model.FoundEntry, error) {
@@ -259,56 +264,90 @@ func makeAbs(dir string) (string, error) {
 const TMExt = ".tm.json"
 const TOCFilename = "tm-catalog.toc.json"
 
-func createTOC(rootPath string) error {
+func (f *FileRemote) createTOC(ids []string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
 
-	newTOC := model.TOC{
-		Meta: model.TOCMeta{Created: time.Now()},
-		Data: []*model.TOCEntry{},
-	}
+	var newTOC *model.TOC
 
-	err := filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+	if len(ids) == 0 { // full rebuild
+		newTOC = &model.TOC{
+			Meta: model.TOCMeta{Created: time.Now()},
+			Data: []*model.TOCEntry{},
+		}
+		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
+			upd, err := updateTocWithFile(newTOC, path, info, log, err)
+			if err != nil {
+				return err
+			}
+			if upd {
+				fileCount++
+			}
+			return nil
+		})
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() {
-			if strings.HasSuffix(info.Name(), TMExt) {
-				thingMeta, err := getThingMetadata(path)
-				if err != nil {
-					msg := "Failed to extract metadata from file %s with error:"
-					msg = fmt.Sprintf(msg, path)
-					log.Error(msg)
-					log.Error(err.Error())
-					log.Error("The file will be excluded from the table of contents.")
-					return nil
-				}
-				err = newTOC.Insert(&thingMeta)
-				if err != nil {
-					log.Error(fmt.Sprintf("Failed to insert %s into toc:", path))
-					log.Error(err.Error())
-					log.Error("The file will be excluded from the table of contents.")
-					return nil
-				}
+
+	} else {
+		toc, err := f.readTOC()
+		if err != nil {
+			newTOC = &model.TOC{
+				Meta: model.TOCMeta{Created: time.Now()},
+				Data: []*model.TOCEntry{},
+			}
+		} else {
+			newTOC = &toc
+		}
+		for _, id := range ids {
+			path := filepath.Join(f.root, id)
+			info, err := os.Stat(path)
+			upd, _ := updateTocWithFile(newTOC, path, info, log, err)
+			if upd {
 				fileCount++
 			}
 		}
-		return nil
-	})
-	if err != nil {
-		return err
 	}
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
 	newTOCJson, _ := json.MarshalIndent(newTOC, "", "  ")
-	err = saveTOC(rootPath, newTOCJson)
+	err := os.WriteFile(filepath.Join(f.root, TOCFilename), newTOCJson, defaultFilePermissions)
+	if err != nil {
+		return err
+	}
 	msg := "Created table of content with %d entries in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
 	return nil
+}
+
+func updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (bool, error) {
+	if err != nil {
+		return false, err
+	}
+	if info.IsDir() || !strings.HasSuffix(info.Name(), TMExt) {
+		return false, nil
+	}
+	thingMeta, err := getThingMetadata(path)
+	if err != nil {
+		msg := "Failed to extract metadata from file %s with error:"
+		msg = fmt.Sprintf(msg, path)
+		log.Error(msg)
+		log.Error(err.Error())
+		log.Error("The file will be excluded from the table of contents.")
+		return false, nil
+	}
+	err = newTOC.Insert(&thingMeta)
+	if err != nil {
+		log.Error(fmt.Sprintf("Failed to insert %s into toc:", path))
+		log.Error(err.Error())
+		log.Error("The file will be excluded from the table of contents.")
+		return false, nil
+	}
+	return true, nil
 }
 
 func getThingMetadata(path string) (model.CatalogThingModel, error) {
@@ -325,15 +364,4 @@ func getThingMetadata(path string) (model.CatalogThingModel, error) {
 	}
 
 	return ctm, nil
-}
-
-func saveTOC(rootPath string, tocBytes []byte) error {
-	file, err := os.Create(filepath.Join(rootPath, TOCFilename))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	_, err = file.Write(tocBytes)
-	return nil
 }

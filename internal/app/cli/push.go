@@ -37,6 +37,7 @@ func (t PushResultType) String() string {
 type PushResult struct {
 	typ  PushResultType
 	text string
+	tmid string
 }
 
 func (r PushResult) String() string {
@@ -84,11 +85,25 @@ func (p *PushExecutor) Push(filename string, spec remotes.RepoSpec, optPath stri
 		res = []PushResult{singleRes}
 		err = pushErr
 	}
-	tocErr := remote.CreateToC()
-	if tocErr != nil {
-		Stderrf("Cannot create TOC: %v", err)
+
+	okIds := getOkIds(res)
+	if len(okIds) > 0 {
+		tocErr := remote.CreateToC(okIds...)
+		if tocErr != nil {
+			Stderrf("Cannot create TOC: %v", err)
+		}
 	}
 	return res, err
+}
+
+func getOkIds(res []PushResult) []string {
+	var r []string
+	for _, pr := range res {
+		if pr.typ == PushOK {
+			r = append(r, pr.tmid)
+		}
+	}
+	return r
 }
 
 func (p *PushExecutor) pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool) ([]PushResult, error) {
@@ -118,16 +133,16 @@ func (p *PushExecutor) pushFile(filename string, remote remotes.Remote, optPath 
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
-		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
+		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error()), ""}, err
 	}
 	id, err := commands.NewPushCommand(p.now).PushFile(raw, remote, optPath)
 	if err != nil {
 		var errExists *remotes.ErrTMExists
 		if errors.As(err, &errExists) {
-			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId)}, nil
+			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId), errExists.ExistingId}, nil
 		}
-		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error())}, err
+		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error()), id}, err
 	}
 
-	return PushResult{PushOK, fmt.Sprintf("file %s pushed as %s", filename, id)}, nil
+	return PushResult{PushOK, fmt.Sprintf("file %s pushed as %s", filename, id), id}, nil
 }

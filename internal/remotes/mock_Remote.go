@@ -12,17 +12,23 @@ type MockRemote struct {
 	mock.Mock
 }
 
-// CreateToC provides a mock function with given fields:
-func (_m *MockRemote) CreateToC() error {
-	ret := _m.Called()
+// CreateToC provides a mock function with given fields: updatedFiles
+func (_m *MockRemote) CreateToC(updatedFiles ...string) error {
+	_va := make([]interface{}, len(updatedFiles))
+	for _i := range updatedFiles {
+		_va[_i] = updatedFiles[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateToC")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(...string) error); ok {
+		r0 = rf(updatedFiles...)
 	} else {
 		r0 = ret.Error(0)
 	}

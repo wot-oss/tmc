@@ -93,7 +93,7 @@ func (h *HttpRemote) buildUrl(fileId string) string {
 	return h.parsedRoot.JoinPath(fileId).String()
 }
 
-func (h *HttpRemote) CreateToC() error {
+func (h *HttpRemote) CreateToC(...string) error {
 	return ErrNotSupported
 }
 func (h *HttpRemote) Spec() RepoSpec {
