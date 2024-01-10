@@ -2,9 +2,16 @@
 
 package utils
 
-// ConvertToNativeLineEndings converts all instances of '\n' to native line endings for the platform.
-// Assumes that line endings are normalized, i.e. there are no '\r' or "\r\n" line endings in the data
-// See NormalizeLineEndings
-func ConvertToNativeLineEndings(b []byte) []byte {
+import (
+	"os"
+
+	"github.com/google/renameio"
+)
+
+func convertToNativeLineEndings(b []byte) []byte {
 	return b
+}
+
+func atomicWriteFile(name string, data []byte, perm os.FileMode) error {
+	return renameio.WriteFile(name, data, perm)
 }

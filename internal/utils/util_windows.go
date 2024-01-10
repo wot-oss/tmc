@@ -2,14 +2,29 @@
 
 package utils
 
-import "bytes"
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+)
 
-// ConvertToNativeLineEndings converts all instances of '\n' to native line endings for the platform.
-// Assumes that line endings are normalized, i.e. there are no '\r' or "\r\n" line endings in the data
-// See NormalizeLineEndings
-func ConvertToNativeLineEndings(b []byte) []byte {
+func convertToNativeLineEndings(b []byte) []byte {
 	if len(b) == 0 {
 		return b
 	}
 	return bytes.ReplaceAll(b, []byte{'\n'}, []byte{'\r', '\n'})
+}
+
+func atomicWriteFile(name string, data []byte, perm os.FileMode) error {
+	dir := filepath.Dir(name)
+	temp, err := os.CreateTemp(dir, filepath.Base(name)+".*.temp")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(temp.Name())
+	err = os.WriteFile(temp.Name(), data, perm)
+	if err != nil {
+		return err
+	}
+	return os.Rename(temp.Name(), name)
 }

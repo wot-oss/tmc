@@ -329,7 +329,7 @@ func (r *remoteManager) saveConfig(conf Config) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(configFile, w, 0660)
+	return utils.AtomicWriteFile(configFile, w, 0660)
 }
 
 func AsRemoteConfig(bytes []byte) (map[string]any, error) {

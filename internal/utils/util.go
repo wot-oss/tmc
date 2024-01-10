@@ -114,3 +114,18 @@ func JsGetMap(js map[string]any, key string) map[string]any {
 	}
 	return nil
 }
+
+// ConvertToNativeLineEndings converts all instances of '\n' to native line endings for the platform.
+// Assumes that line endings are normalized, i.e. there are no '\r' or "\r\n" line endings in the data
+// See NormalizeLineEndings
+func ConvertToNativeLineEndings(b []byte) []byte {
+	return convertToNativeLineEndings(b)
+}
+
+// AtomicWriteFile writes data to the named file quasi-atomically, creating it if necessary.
+// On unix-like systems, the function uses github.com/google/renameio.
+// On Windows, it has a simpler implementation using os.Rename(), which is believed to be atomic on NTFS,
+// but there is no hard guarantee from Microsoft on that.
+func AtomicWriteFile(name string, data []byte, perm os.FileMode) error {
+	return atomicWriteFile(name, data, perm)
+}

@@ -63,7 +63,7 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 		return &ErrTMExists{ExistingId: existingId}
 	}
 
-	err = os.WriteFile(fullPath, raw, defaultFilePermissions)
+	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)
 	if err != nil {
 		return fmt.Errorf("could not write TM to catalog: %v", err)
 	}
@@ -314,7 +314,7 @@ func (f *FileRemote) createTOC(ids []string) error {
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
 	newTOCJson, _ := json.MarshalIndent(newTOC, "", "  ")
-	err := os.WriteFile(filepath.Join(f.root, TOCFilename), newTOCJson, defaultFilePermissions)
+	err := utils.AtomicWriteFile(filepath.Join(f.root, TOCFilename), newTOCJson, defaultFilePermissions)
 	if err != nil {
 		return err
 	}
