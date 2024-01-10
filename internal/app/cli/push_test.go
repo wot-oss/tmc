@@ -24,7 +24,7 @@ func TestPushExecutor_Push(t *testing.T) {
 		id := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json"
 		tmid := model.MustParseTMID(id, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("CreateToC", id).Return(nil)
+		r.On("UpdateToc", id).Return(nil)
 
 		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", remotes.NewRemoteSpec("remote"), "", false)
 		assert.NoError(t, err)
@@ -75,7 +75,7 @@ func TestPushExecutor_Push(t *testing.T) {
 		id := "omnicorp-TM-department/omnicorp/omnilamp/a/b/c/v3.2.1-20231110123243-1e788769a659.tm.json"
 		tmid := model.MustParseTMID(id, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("CreateToC", id).Return(nil)
+		r.On("UpdateToc", id).Return(nil)
 
 		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", remotes.NewRemoteSpec("remote"), "a/b/c", false)
 		assert.NoError(t, err)
@@ -100,7 +100,7 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json"})
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123246-be839ce9daf1.tm.json", false)
 		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-be839ce9daf1.tm.json"})
-		r.On("CreateToC",
+		r.On("UpdateToc",
 			"omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json",
 			"omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-be839ce9daf1.tm.json").Return(nil)
 
@@ -129,7 +129,7 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		id4 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123246-be839ce9daf1.tm.json"
 		tmid = model.MustParseTMID(id4, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("CreateToC", id1, id2, id3, id4).Return(nil)
+		r.On("UpdateToc", id1, id2, id3, id4).Return(nil)
 
 		res, err := e.Push("../../../test/data/push", remotes.NewRemoteSpec("remote"), "opt", false)
 		assert.NoError(t, err)
@@ -155,7 +155,7 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		id4 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20231110123246-be839ce9daf1.tm.json"
 		tmid = model.MustParseTMID(id4, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("CreateToC", id1, id2, id3, id4).Return(nil)
+		r.On("UpdateToc", id1, id2, id3, id4).Return(nil)
 
 		res, err := e.Push("../../../test/data/push", remotes.NewRemoteSpec("remote"), "", true)
 		assert.NoError(t, err)

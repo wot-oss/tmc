@@ -11,22 +11,23 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-var createTOCCmd = &cobra.Command{
-	Use:   "create-toc",
-	Short: "Creates a Table of Contents",
-	Long: `Creates a Table of Contents file listing all paths to Thing Model files. Used for simple search functionality.
+var updateTocCmd = &cobra.Command{
+	Use:   "update-toc [<id1> <id2> ...]",
+	Short: "Update the Table of Contents",
+	Long: `Update the Table of Contents file listing all paths to Thing Model files. Used for simple search functionality.
+Optionally, TM id arguments can be provided to only update the table of contents with the given ids. Invalid/non-existing ids are ignored.
 Specifying the repository with --directory or --remote is optional if there's exactly one remote configured`,
 	Run: executeCreateTOC,
 }
 
 func init() {
-	RootCmd.AddCommand(createTOCCmd)
-	createTOCCmd.Flags().StringP("remote", "r", "", "name of the remote")
-	createTOCCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	RootCmd.AddCommand(updateTocCmd)
+	updateTocCmd.Flags().StringP("remote", "r", "", "name of the remote")
+	updateTocCmd.Flags().StringP("directory", "d", "", "TM repository directory")
 
 }
 
-func executeCreateTOC(cmd *cobra.Command, _ []string) {
+func executeCreateTOC(cmd *cobra.Command, args []string) {
 	var log = slog.Default()
 
 	remoteName := cmd.Flag("remote").Value.String()
@@ -38,7 +39,7 @@ func executeCreateTOC(cmd *cobra.Command, _ []string) {
 	}
 	log.Debug(fmt.Sprintf("creating table of contents for remote %s", spec))
 
-	err = cli.UpdateToc(remotes.DefaultManager(), spec)
+	err = cli.UpdateToc(remotes.DefaultManager(), spec, args)
 	if err != nil {
 		os.Exit(1)
 	}

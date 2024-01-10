@@ -144,7 +144,7 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	return actualId, b, err
 }
 
-func (f *FileRemote) CreateToC(ids ...string) error {
+func (f *FileRemote) UpdateToc(ids ...string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err

@@ -282,7 +282,7 @@ func TestFileRemote_CreateToC(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("single id/no toc file", func(t *testing.T) {
-		err = r.CreateToC("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
@@ -294,7 +294,7 @@ func TestFileRemote_CreateToC(t *testing.T) {
 
 	})
 	t.Run("single id/existing toc file", func(t *testing.T) {
-		err = r.CreateToC("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
+		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
@@ -305,7 +305,7 @@ func TestFileRemote_CreateToC(t *testing.T) {
 	})
 
 	t.Run("full update/existing toc file", func(t *testing.T) {
-		err = r.CreateToC()
+		err = r.UpdateToc()
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
@@ -317,7 +317,7 @@ func TestFileRemote_CreateToC(t *testing.T) {
 		err := os.Remove(filepath.Join(temp, TOCFilename))
 		assert.NoError(t, err)
 
-		err = r.CreateToC()
+		err = r.UpdateToc()
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
