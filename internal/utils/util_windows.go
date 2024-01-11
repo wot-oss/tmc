@@ -23,6 +23,7 @@ func atomicWriteFile(name string, data []byte, perm os.FileMode) error {
 	}
 	defer os.Remove(temp.Name())
 	err = os.WriteFile(temp.Name(), data, perm)
+	_ = temp.Close()
 	if err != nil {
 		return err
 	}
