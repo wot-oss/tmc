@@ -24,7 +24,7 @@ var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List TMs in catalog",
 	Long:  `List TMs and optionally filter them`,
-	Args:  cobra.MaximumNArgs(1),
+	Args:  cobra.ExactArgs(0),
 	Run:   executeList,
 }
 
