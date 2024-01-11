@@ -31,11 +31,11 @@ func Serve(host, port, urlCtxRoot, remote string) error {
 	// create an instance of a router and our handler
 	r := http.NewRouter()
 
+	handlerService := http.NewDefaultHandlerService(remotes.DefaultManager(), remote)
 	handler := http.NewTmcHandler(
+		handlerService,
 		http.TmcHandlerOptions{
 			UrlContextRoot: urlCtxRoot,
-			RemoteManager:  remotes.DefaultManager(),
-			PushRemote:     remote,
 		})
 
 	options := http.GorillaServerOptions{

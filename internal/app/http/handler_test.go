@@ -6,17 +6,18 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/oapi-codegen/testutil"
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 func Test_getRelativeDepth(t *testing.T) {
@@ -44,15 +45,14 @@ func Test_getRelativeDepth(t *testing.T) {
 	}
 }
 
-const pushRemote = "someRemote"
+var unknownErr = errors.New("a unknown error")
 
-func setupTestRouter(rm remotes.RemoteManager, pushRemote string) *mux.Router {
+func setupTestRouter(hs HandlerService) *mux.Router {
 
 	handler := NewTmcHandler(
+		hs,
 		TmcHandlerOptions{
 			UrlContextRoot: "",
-			RemoteManager:  rm,
-			PushRemote:     pushRemote,
 		})
 
 	r := NewRouter()
@@ -70,23 +70,23 @@ func Test_healthLive(t *testing.T) {
 
 	route := "/healthz/live"
 
-	t.Run("with set RemoteManager", func(t *testing.T) {
-		// given: a RemoteManager is set
-		rm := remotes.NewMockRemoteManager(t)
-		router := setupTestRouter(rm, pushRemote)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
+
+	t.Run("with success", func(t *testing.T) {
+		hs.On("CheckHealthLive", nil).Return(nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns 204 status and empty body
 		assertHealthyResponse204(t, rec)
 	})
 
-	t.Run("with unset RemoteManager", func(t *testing.T) {
-		// given: a RemoteManager is unset
-		router := setupTestRouter(nil, pushRemote)
+	t.Run("with error", func(t *testing.T) {
+		hs.On("CheckHealthLive", nil).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
-		// then: unset RemoteManager does not matter, it returns 204 status and empty body
-		assertHealthyResponse204(t, rec)
+		// then: it returns 503 status and json error as body
+		assertResponse503(t, rec, route)
 	})
 }
 
@@ -94,23 +94,19 @@ func Test_healthReady(t *testing.T) {
 
 	route := "/healthz/ready"
 
-	rm := remotes.NewMockRemoteManager(t)
-	r := remotes.NewMockRemote(t)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
-	router := setupTestRouter(rm, pushRemote)
-
-	t.Run("with valid remote", func(t *testing.T) {
-		// given: the remote can be found by the remote manager
-		rm.On("Get", pushRemote).Return(r, nil).Once()
+	t.Run("with success", func(t *testing.T) {
+		hs.On("CheckHealthReady", nil).Return(nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns 204 status and empty body
 		assertHealthyResponse204(t, rec)
 	})
 
-	t.Run("with invalid remote", func(t *testing.T) {
-		// given: the remote cannot be found by the remote manager
-		rm.On("Get", pushRemote).Return(nil, errors.New("invalid remote name")).Once()
+	t.Run("with error", func(t *testing.T) {
+		hs.On("CheckHealthReady", nil).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns 503 status and json error as body
@@ -122,23 +118,19 @@ func Test_healthStartup(t *testing.T) {
 
 	route := "/healthz/startup"
 
-	rm := remotes.NewMockRemoteManager(t)
-	r := remotes.NewMockRemote(t)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
-	router := setupTestRouter(rm, pushRemote)
-
-	t.Run("with valid remote", func(t *testing.T) {
-		// given: the remote can be found by the remote manager
-		rm.On("Get", pushRemote).Return(r, nil).Once()
+	t.Run("with success", func(t *testing.T) {
+		hs.On("CheckHealthStartup", nil).Return(nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns 204 status and empty body
 		assertHealthyResponse204(t, rec)
 	})
 
-	t.Run("with invalid remote", func(t *testing.T) {
-		// given: the remote cannot be found by the remote manager
-		rm.On("Get", pushRemote).Return(nil, errors.New("invalid remote name")).Once()
+	t.Run("with error", func(t *testing.T) {
+		hs.On("CheckHealthStartup", nil).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns 503 status and json error as body
@@ -150,23 +142,19 @@ func Test_health(t *testing.T) {
 
 	route := "/healthz"
 
-	rm := remotes.NewMockRemoteManager(t)
-	r := remotes.NewMockRemote(t)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
-	router := setupTestRouter(rm, pushRemote)
-
-	t.Run("with valid remote", func(t *testing.T) {
-		// given: the remote can be found by the remote manager
-		rm.On("Get", pushRemote).Return(r, nil).Once()
+	t.Run("with success", func(t *testing.T) {
+		hs.On("CheckHealth", nil).Return(nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns 204 status and empty body
 		assertHealthyResponse204(t, rec)
 	})
 
-	t.Run("with invalid remote", func(t *testing.T) {
-		// given: the remote cannot be found by the remote manager
-		rm.On("Get", pushRemote).Return(nil, errors.New("invalid remote name")).Once()
+	t.Run("with error", func(t *testing.T) {
+		hs.On("CheckHealth", nil).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns 503 status and json error as body
@@ -178,17 +166,12 @@ func Test_Inventory(t *testing.T) {
 
 	route := "/inventory"
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
 	t.Run("list all", func(t *testing.T) {
-		// given: 2 remotes having some inventory entries
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", &model.SearchParams{}).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", &model.SearchParams{}).Return(listResult2, nil).Once()
 
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
+		hs.On("ListInventory", nil, &model.SearchParams{}).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
@@ -197,11 +180,15 @@ func Test_Inventory(t *testing.T) {
 		// and then: the body is of correct type
 		var response InventoryResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
-		// and then: the entries are ordered ascending by name and have all data set
-		assert.Equal(t, 3, len(response.Data))
+		// and then: the result contains all data
+		assert.Equal(t, 2, len(response.Data))
 		assertInventoryEntry(t, listResult1.Entries[0], response.Data[0])
-		assertInventoryEntry(t, listResult2.Entries[0], response.Data[1])
-		assertInventoryEntry(t, listResult1.Entries[1], response.Data[2])
+		assertInventoryEntry(t, listResult1.Entries[1], response.Data[1])
+		// and then result is ordered ascending by name
+		isSorted := sort.SliceIsSorted(response.Data, func(i, j int) bool {
+			return response.Data[i].Name < response.Data[j].Name
+		})
+		assert.True(t, isSorted)
 	})
 
 	t.Run("list with filter and search parameter", func(t *testing.T) {
@@ -215,7 +202,7 @@ func Test_Inventory(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.externalID=%s&search=%s",
 			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","), strings.Join(fMpn, ","), strings.Join(fExtID, ","), search)
 
-		// and given: remotes where the list command is expected to be called with the converted search parameters
+		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
 			Author:       fAuthors,
 			Manufacturer: fMan,
@@ -224,11 +211,7 @@ func Test_Inventory(t *testing.T) {
 			Query:        search,
 		}
 
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", expectedSearchParams).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", expectedSearchParams).Return(listResult2, nil).Once()
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
+		hs.On("ListInventory", nil, expectedSearchParams).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutil.NewRequest().Get(filterRoute).GoWithHTTPHandler(t, router).Recorder
@@ -237,8 +220,7 @@ func Test_Inventory(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		// given: remote manager that returns an error
-		rm.On("All").Return(nil, errors.New("an error of unknown type")).Once()
+		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 500 and json error as body
@@ -254,15 +236,11 @@ func Test_InventoryByName(t *testing.T) {
 
 	route := "/inventory/" + inventoryName
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
-	t.Run("with valid remotes", func(t *testing.T) {
-		// given: remote having some inventory entries
-		r := remotes.NewMockRemote(t)
-		r.On("List", &model.SearchParams{Name: inventoryName}).Return(mockListResult, nil).Once()
-		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
-
+	t.Run("with success", func(t *testing.T) {
+		hs.On("FindInventoryEntry", nil, inventoryName).Return(&mockInventoryEntry, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
@@ -275,8 +253,7 @@ func Test_InventoryByName(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		// given: remote manager that returns an error
-		rm.On("All").Return(nil, errors.New("an error of unknown type")).Once()
+		hs.On("FindInventoryEntry", nil, inventoryName).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 500 and json error as body
@@ -292,14 +269,11 @@ func Test_InventoryEntryVersionsByName(t *testing.T) {
 
 	route := "/inventory/" + inventoryName + "/versions"
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
-	t.Run("with valid remotes", func(t *testing.T) {
-		// given: remote having some inventory entries
-		r := remotes.NewMockRemote(t)
-		r.On("List", &model.SearchParams{Name: inventoryName}).Return(mockListResult, nil).Once()
-		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
+	t.Run("with success", func(t *testing.T) {
+		hs.On("FindInventoryEntry", nil, inventoryName).Return(&mockInventoryEntry, nil).Once()
 
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
@@ -313,8 +287,7 @@ func Test_InventoryEntryVersionsByName(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		// given: remote manager that returns an error
-		rm.On("All").Return(nil, errors.New("an error of unknown type")).Once()
+		hs.On("FindInventoryEntry", nil, inventoryName).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 500 and json error as body
@@ -326,18 +299,13 @@ func Test_Authors(t *testing.T) {
 
 	route := "/authors"
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
-	t.Run("with valid remotes", func(t *testing.T) {
-		// given: 2 remotes having some inventory entries
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", &model.SearchParams{}).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", &model.SearchParams{}).Return(listResult2, nil).Once()
+	authors := []string{"author1", "author2", "author3"}
 
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
-
+	t.Run("list all", func(t *testing.T) {
+		hs.On("ListAuthors", nil, &model.SearchParams{}).Return(authors, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
@@ -345,22 +313,16 @@ func Test_Authors(t *testing.T) {
 		// and then: the body is of correct type
 		var response AuthorsResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
-		// and then: duplicates are removed
-		assert.Equal(t, 2, len(response.Data))
-		// and then result are ordered ascending by name
-		assert.Equal(t, []string{"a-corp", "b-corp"}, response.Data)
+		// and then result contains all data
+		assert.Equal(t, authors, response.Data)
+		// and then result is ordered ascending by name
+		isSorted := sort.SliceIsSorted(response.Data, func(i, j int) bool {
+			return response.Data[i] < response.Data[j]
+		})
+		assert.True(t, isSorted)
 	})
 
-	t.Run("with unknown error", func(t *testing.T) {
-		// given: remote manager that returns an error
-		rm.On("All").Return(nil, errors.New("an error of unknown type")).Once()
-		// when: calling the route
-		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
-		// then: it returns status 500 and json error as body
-		assertResponse500(t, rec, route)
-	})
-
-	t.Run("with filter and search parameter", func(t *testing.T) {
+	t.Run("list with filter and search parameter", func(t *testing.T) {
 		// given: the route with filter and search parameters
 		fMan := []string{"man1", "man2"}
 		fMpn := []string{"mpn1", "mpn2"}
@@ -370,7 +332,7 @@ func Test_Authors(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.manufacturer=%s&filter.mpn=%s&filter.externalID=%s&search=%s",
 			route, strings.Join(fMan, ","), strings.Join(fMpn, ","), strings.Join(fExtID, ","), search)
 
-		// and given: remotes where the list command is expected to be called with the converted search parameters
+		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
 			Manufacturer: fMan,
 			Mpn:          fMpn,
@@ -378,17 +340,20 @@ func Test_Authors(t *testing.T) {
 			Query:        search,
 		}
 
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", expectedSearchParams).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", expectedSearchParams).Return(listResult2, nil).Once()
-
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
+		hs.On("ListAuthors", nil, expectedSearchParams).Return(authors, nil).Once()
 
 		// when: calling the route
 		rec := testutil.NewRequest().Get(filterRoute).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
 		assertResponse200(t, rec)
+	})
+
+	t.Run("with unknown error", func(t *testing.T) {
+		hs.On("ListAuthors", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
+		// then: it returns status 500 and json error as body
+		assertResponse500(t, rec, route)
 	})
 }
 
@@ -396,18 +361,13 @@ func Test_Manufacturers(t *testing.T) {
 
 	route := "/manufacturers"
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
-	t.Run("with valid remotes", func(t *testing.T) {
-		// given: 2 remotes having some inventory entries
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", &model.SearchParams{}).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", &model.SearchParams{}).Return(listResult2, nil).Once()
+	manufacturers := []string{"man1", "man2", "man3"}
 
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
-
+	t.Run("list all", func(t *testing.T) {
+		hs.On("ListManufacturers", nil, &model.SearchParams{}).Return(manufacturers, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
@@ -415,22 +375,16 @@ func Test_Manufacturers(t *testing.T) {
 		// and then: the body is of correct type
 		var response ManufacturersResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
-		// and then: duplicates are removed
-		assert.Equal(t, 2, len(response.Data))
-		// and then result are ordered ascending by name
-		assert.Equal(t, []string{"eagle", "frog"}, response.Data)
+		// and then result contains all data
+		assert.Equal(t, manufacturers, response.Data)
+		// and then result is ordered ascending by name
+		isSorted := sort.SliceIsSorted(response.Data, func(i, j int) bool {
+			return response.Data[i] < response.Data[j]
+		})
+		assert.True(t, isSorted)
 	})
 
-	t.Run("with unknown error", func(t *testing.T) {
-		// given: remote manager that returns an error
-		rm.On("All").Return(nil, errors.New("an error of unknown type")).Once()
-		// when: calling the route
-		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
-		// then: it returns status 500 and json error as body
-		assertResponse500(t, rec, route)
-	})
-
-	t.Run("with filter and search parameter", func(t *testing.T) {
+	t.Run("list with filter and search parameter", func(t *testing.T) {
 		// given: the route with filter and search parameters
 		fAuthors := []string{"a1", "a2"}
 		fMpn := []string{"mpn1", "mpn2"}
@@ -440,7 +394,7 @@ func Test_Manufacturers(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.mpn=%s&filter.externalID=%s&search=%s",
 			route, strings.Join(fAuthors, ","), strings.Join(fMpn, ","), strings.Join(fExtID, ","), search)
 
-		// and given: remotes where the list command is expected to be called with the converted search parameters
+		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
 			Author:     fAuthors,
 			Mpn:        fMpn,
@@ -448,17 +402,20 @@ func Test_Manufacturers(t *testing.T) {
 			Query:      search,
 		}
 
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", expectedSearchParams).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", expectedSearchParams).Return(listResult2, nil).Once()
-
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
+		hs.On("ListManufacturers", nil, expectedSearchParams).Return(manufacturers, nil).Once()
 
 		// when: calling the route
 		rec := testutil.NewRequest().Get(filterRoute).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
 		assertResponse200(t, rec)
+	})
+
+	t.Run("with unknown error", func(t *testing.T) {
+		hs.On("ListManufacturers", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
+		// then: it returns status 500 and json error as body
+		assertResponse500(t, rec, route)
 	})
 }
 
@@ -466,18 +423,12 @@ func Test_Mpns(t *testing.T) {
 
 	route := "/mpns"
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
+	mpns := []string{"mpn1", "mpn2", "mpn3"}
 
-	t.Run("with valid remotes", func(t *testing.T) {
-		// given: 2 remotes having some inventory entries
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", &model.SearchParams{}).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", &model.SearchParams{}).Return(listResult2, nil).Once()
-
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
-
+	t.Run("list all", func(t *testing.T) {
+		hs.On("ListMpns", nil, &model.SearchParams{}).Return(mpns, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
@@ -487,20 +438,16 @@ func Test_Mpns(t *testing.T) {
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: duplicates are removed
 		assert.Equal(t, 3, len(response.Data))
-		// and then result are ordered ascending by name
-		assert.Equal(t, []string{"BT2000", "BT3000", "PM20"}, response.Data)
+		// and then result contains all data
+		assert.Equal(t, mpns, response.Data)
+		// and then result is ordered ascending by name
+		isSorted := sort.SliceIsSorted(response.Data, func(i, j int) bool {
+			return response.Data[i] < response.Data[j]
+		})
+		assert.True(t, isSorted)
 	})
 
-	t.Run("with unknown error", func(t *testing.T) {
-		// given: remote manager that returns an error
-		rm.On("All").Return(nil, errors.New("an error of unknown type")).Once()
-		// when: calling the route
-		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
-		// then: it returns status 500 and json error as body
-		assertResponse500(t, rec, route)
-	})
-
-	t.Run("with filter and search parameter", func(t *testing.T) {
+	t.Run("list with filter and search parameter", func(t *testing.T) {
 		// given: the route with filter and search parameters
 		fAuthors := []string{"a1", "a2"}
 		fMan := []string{"man1", "man2"}
@@ -510,7 +457,7 @@ func Test_Mpns(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.externalID=%s&search=%s",
 			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","), strings.Join(fExtID, ","), search)
 
-		// and given: remotes where the list command is expected to be called with the converted search parameters
+		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
 			Author:       fAuthors,
 			Manufacturer: fMan,
@@ -518,34 +465,34 @@ func Test_Mpns(t *testing.T) {
 			Query:        search,
 		}
 
-		r1 := remotes.NewMockRemote(t)
-		r1.On("List", expectedSearchParams).Return(listResult1, nil).Once()
-		r2 := remotes.NewMockRemote(t)
-		r2.On("List", expectedSearchParams).Return(listResult2, nil).Once()
-
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil).Once()
+		hs.On("ListMpns", nil, expectedSearchParams).Return(mpns, nil).Once()
 
 		// when: calling the route
 		rec := testutil.NewRequest().Get(filterRoute).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
 		assertResponse200(t, rec)
 	})
+
+	t.Run("with unknown error", func(t *testing.T) {
+		hs.On("ListMpns", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
+		// then: it returns status 500 and json error as body
+		assertResponse500(t, rec, route)
+	})
 }
 
-func Test_ThingModels(t *testing.T) {
+func Test_FetchThingModel(t *testing.T) {
 	tmID := listResult2.Entries[0].Versions[0].TMID
 	tmContent := []byte("this is the content of a ThingModel")
 
 	route := "/thing-models/" + tmID
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
-	r := remotes.NewMockRemote(t)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
 	t.Run("with valid remotes", func(t *testing.T) {
-		// given: remote having some inventory entries
-		rm.On("Get", "").Return(r, nil).Once()
-		r.On("Fetch", tmID).Return(tmID, tmContent, nil).Once()
+		hs.On("FetchThingModel", nil, tmID).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 200
@@ -556,16 +503,15 @@ func Test_ThingModels(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		invalidRoute := "/thing-models/some-invalid-tm-id"
+		hs.On("FetchThingModel", nil, "some-invalid-tm-id").Return(nil, model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(invalidRoute).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 400 and json error as body
 		assertResponse400(t, rec, invalidRoute)
 	})
 
-	t.Run("with error", func(t *testing.T) {
-		// given: remote that returns an error
-		rm.On("Get", "").Return(r, nil).Once()
-		r.On("Fetch", tmID).Return(tmID, nil, errors.New("an error of unknown type")).Once()
+	t.Run("with not found error", func(t *testing.T) {
+		hs.On("FetchThingModel", nil, tmID).Return(nil, commands.ErrTmNotFound).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, router).Recorder
 		// then: it returns status 404 and json error as body
@@ -575,20 +521,17 @@ func Test_ThingModels(t *testing.T) {
 
 func Test_PushThingModel(t *testing.T) {
 
+	tmID := "a generated TM ID"
 	_, tmContent, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp-versioned.json")
 	assert.NoError(t, err)
 
 	route := "/thing-models"
 
-	rm := remotes.NewMockRemoteManager(t)
-	router := setupTestRouter(rm, pushRemote)
-	r := remotes.NewMockRemote(t)
+	hs := NewMockHandlerService(t)
+	router := setupTestRouter(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		// given: remote where to push
-		rm.On("Get", pushRemote).Return(r, nil).Once()
-		r.On("CreateToC").Return(nil).Once()
-		r.On("Push", mock.AnythingOfType("model.TMID"), mock.AnythingOfType("[]uint8")).Return(nil).Once()
+		hs.On("PushThingModel", nil, tmContent).Return(tmID, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Post(route).
 			WithHeader(headerContentType, mimeJSON).
@@ -601,7 +544,7 @@ func Test_PushThingModel(t *testing.T) {
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: tmID is set in response
 		assert.NotNil(t, response.Data.TmID)
-		_, err := model.ParseTMID(response.Data.TmID, true)
+		assert.Equal(t, tmID, response.Data.TmID)
 		assert.NoError(t, err)
 	})
 
@@ -619,10 +562,9 @@ func Test_PushThingModel(t *testing.T) {
 	})
 
 	t.Run("with validation error", func(t *testing.T) {
-		// given: remote where to push
-		rm.On("Get", pushRemote).Return(r, nil).Once()
-		// and given: some invalid ThingModel
+		// given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
+		hs.On("PushThingModel", nil, invalidContent).Return("", &jsonschema.ValidationError{}).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Post(route).
 			WithHeader(headerContentType, mimeJSON).
@@ -633,10 +575,9 @@ func Test_PushThingModel(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		// given: remote where to push
-		rm.On("Get", pushRemote).Return(nil, errors.New("an error of unknown type")).Once()
 		// and given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
+		hs.On("PushThingModel", nil, invalidContent).Return("", unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Post(route).
 			WithHeader(headerContentType, mimeJSON).
