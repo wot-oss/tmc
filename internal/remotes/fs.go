@@ -1,6 +1,7 @@
 package remotes
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,12 +12,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofrs/flock"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 const defaultDirPermissions = 0775
 const defaultFilePermissions = 0664
+
+var ErrRootInvalid = errors.New("root is not a directory")
+var ErrTocLocked = errors.New("could not acquire lock on TOC file")
+
+var osStat = os.Stat         // mockable for testing
+var osReadFile = os.ReadFile // mockable for testing
 
 type FileRemote struct {
 	root string
@@ -26,8 +34,6 @@ type FileRemote struct {
 type ErrTMExists struct {
 	ExistingId string
 }
-
-var ErrRootInvalid = errors.New("root is not a directory")
 
 func (e *ErrTMExists) Error() string {
 	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
@@ -149,7 +155,7 @@ func (f *FileRemote) UpdateToc(ids ...string) error {
 	if err != nil {
 		return err
 	}
-	return f.createTOC(ids)
+	return f.updateToc(ids)
 }
 
 func (f *FileRemote) Spec() RepoSpec {
@@ -165,6 +171,12 @@ func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error
 		return model.SearchResult{}, err
 	}
 
+	unlock, err := f.lockTOC()
+	defer unlock()
+	if err != nil {
+		return model.SearchResult{}, err
+	}
+
 	toc, err := f.readTOC()
 	if err != nil {
 		return model.SearchResult{}, err
@@ -173,15 +185,20 @@ func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error
 	return model.NewSearchResultFromTOC(toc, f.Spec().ToFoundSource()), nil
 }
 
+// readToc reads the contents of the TOC file. Must be called after the lock is acquired with lockToc()
 func (f *FileRemote) readTOC() (model.TOC, error) {
-	data, err := os.ReadFile(filepath.Join(f.root, TOCFilename))
+	data, err := os.ReadFile(f.tocFilename())
 	if err != nil {
-		return model.TOC{}, errors.New("no table of contents found. Run `create-toc` for this remote")
+		return model.TOC{}, errors.New("no table of contents found. Run `update-toc` for this remote")
 	}
 
 	var toc model.TOC
 	err = json.Unmarshal(data, &toc)
 	return toc, err
+}
+
+func (f *FileRemote) tocFilename() string {
+	return filepath.Join(f.root, TOCFilename)
 }
 
 func (f *FileRemote) Versions(name string) (model.FoundEntry, error) {
@@ -264,11 +281,17 @@ func makeAbs(dir string) (string, error) {
 const TMExt = ".tm.json"
 const TOCFilename = "tm-catalog.toc.json"
 
-func (f *FileRemote) createTOC(ids []string) error {
+func (f *FileRemote) updateToc(ids []string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
+
+	cancel, err := f.lockTOC()
+	defer cancel()
+	if err != nil {
+		return err
+	}
 
 	var newTOC *model.TOC
 
@@ -278,7 +301,7 @@ func (f *FileRemote) createTOC(ids []string) error {
 			Data: []*model.TOCEntry{},
 		}
 		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
-			upd, err := updateTocWithFile(newTOC, path, info, log, err)
+			upd, err := f.updateTocWithFile(newTOC, path, info, log, err)
 			if err != nil {
 				return err
 			}
@@ -291,7 +314,7 @@ func (f *FileRemote) createTOC(ids []string) error {
 			return err
 		}
 
-	} else {
+	} else { // partial update
 		toc, err := f.readTOC()
 		if err != nil {
 			newTOC = &model.TOC{
@@ -303,8 +326,8 @@ func (f *FileRemote) createTOC(ids []string) error {
 		}
 		for _, id := range ids {
 			path := filepath.Join(f.root, id)
-			info, err := os.Stat(path)
-			upd, _ := updateTocWithFile(newTOC, path, info, log, err)
+			info, err := osStat(path)
+			upd, _ := f.updateTocWithFile(newTOC, path, info, log, err)
 			if upd {
 				fileCount++
 			}
@@ -314,7 +337,7 @@ func (f *FileRemote) createTOC(ids []string) error {
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
 	newTOCJson, _ := json.MarshalIndent(newTOC, "", "  ")
-	err := utils.AtomicWriteFile(filepath.Join(f.root, TOCFilename), newTOCJson, defaultFilePermissions)
+	err = utils.AtomicWriteFile(f.tocFilename(), newTOCJson, defaultFilePermissions)
 	if err != nil {
 		return err
 	}
@@ -324,7 +347,7 @@ func (f *FileRemote) createTOC(ids []string) error {
 	return nil
 }
 
-func updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (bool, error) {
+func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (bool, error) {
 	if err != nil {
 		return false, err
 	}
@@ -350,9 +373,28 @@ func updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *sl
 	return true, nil
 }
 
+type unlockFunc func()
+
+func (f *FileRemote) lockTOC() (unlockFunc, error) {
+	fl := flock.New(f.tocFilename() + ".lock")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	unlock := func() {
+		cancel()
+		_ = fl.Unlock()
+	}
+	locked, err := fl.TryLockContext(ctx, 13*time.Millisecond)
+	if err != nil {
+		return unlock, err
+	}
+	if !locked {
+		return unlock, ErrTocLocked
+	}
+
+	return unlock, nil
+}
+
 func getThingMetadata(path string) (model.CatalogThingModel, error) {
-	// TODO: should internal.ReadRequiredFiles be used here?
-	data, err := os.ReadFile(path)
+	data, err := osReadFile(path)
 	if err != nil {
 		return model.CatalogThingModel{}, err
 	}

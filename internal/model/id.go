@@ -53,8 +53,11 @@ type TMVersion struct {
 
 var pseudoVersionRegex *regexp.Regexp
 
-const pseudoVersionRegexString = "(([0-9A-Za-z\\-]+)\\-)?([0-9]{14})-([0-9a-z]{12})"
-const TMFileExtension = ".tm.json"
+const (
+	TMFileExtension              = ".tm.json"
+	PseudoVersionTimestampFormat = "20060102150405"
+	pseudoVersionRegexString     = "(([0-9A-Za-z\\-]+)\\-)?([0-9]{14})-([0-9a-z]{12})"
+)
 
 func (v TMVersion) String() string {
 	res := v.BaseString()
@@ -110,7 +113,7 @@ func init() {
 func MustParseTMID(s string, official bool) TMID {
 	tmid, err := ParseTMID(s, official)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("%w: %s", err, s))
 	}
 	return tmid
 }
