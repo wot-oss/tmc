@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-const remote = "someRemote"
+var remote = remotes.NewRemoteSpec("someRemote")
 
 func Test_CheckHealthLive(t *testing.T) {
 
@@ -158,7 +158,7 @@ func Test_ListInventory(t *testing.T) {
 							TimeStamp:   "20240108140117",
 							ExternalID:  "ext-2",
 						},
-						FoundIn: "r1",
+						FoundIn: model.FoundSource{RemoteName: "r1"},
 					},
 					{
 						TOCVersion: model.TOCVersion{
@@ -169,7 +169,7 @@ func Test_ListInventory(t *testing.T) {
 							TimeStamp:   "20231231153548",
 							ExternalID:  "ext-1",
 						},
-						FoundIn: "r1",
+						FoundIn: model.FoundSource{RemoteName: "r1"},
 					},
 				},
 			},
@@ -188,7 +188,7 @@ func Test_ListInventory(t *testing.T) {
 							TimeStamp:   "20240108140117",
 							ExternalID:  "ext-3",
 						},
-						FoundIn: "r1",
+						FoundIn: model.FoundSource{RemoteName: "r1"},
 					},
 				},
 			},
@@ -449,8 +449,8 @@ func Test_PushingThingModel(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("with unset push remote name", func(t *testing.T) {
-		underTest := NewDefaultHandlerService(rm, "")
+	t.Run("with empty push remote spec", func(t *testing.T) {
+		underTest := NewDefaultHandlerService(rm, remotes.EmptySpec)
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, nil)
 		// then: it returns an error

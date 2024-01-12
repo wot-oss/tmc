@@ -28,10 +28,10 @@ type HandlerService interface {
 
 type defaultHandlerService struct {
 	remoteManager remotes.RemoteManager
-	pushRemote    string
+	pushRemote    remotes.RepoSpec
 }
 
-func NewDefaultHandlerService(rm remotes.RemoteManager, pushRemote string) *defaultHandlerService {
+func NewDefaultHandlerService(rm remotes.RemoteManager, pushRemote remotes.RepoSpec) *defaultHandlerService {
 	return &defaultHandlerService{
 		remoteManager: rm,
 		pushRemote:    pushRemote,
@@ -45,7 +45,7 @@ func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *mod
 	}
 
 	c := commands.NewListCommand(rm)
-	toc, err := c.List("", search)
+	toc, err := c.List(remotes.EmptySpec, search)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 		return nil, err
 	}
 
-	_, data, err := commands.NewFetchCommand(rm).FetchByTMID("", tmID)
+	_, data, err := commands.NewFetchCommand(rm).FetchByTMID(remotes.EmptySpec, tmID)
 	if errors.Is(err, commands.ErrTmNotFound) {
 		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {
@@ -150,12 +150,12 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 		return "", err
 	}
 
-	remoteName := dhs.pushRemote
-	if remoteName == "" {
-		return "", errors.New("push remote name is unset")
+	remoteSpec := dhs.pushRemote
+	if remoteSpec.IsEmpty() {
+		return "", errors.New("push remote spec is unset or empty")
 	}
 
-	remote, err := rm.Get(remoteName)
+	remote, err := rm.Get(remoteSpec)
 	if err != nil {
 		return "", err
 	}
