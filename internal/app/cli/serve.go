@@ -11,17 +11,17 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func Serve(host, port, urlCtxRoot, remote string) error {
+func Serve(host, port, urlCtxRoot string, spec remotes.RepoSpec) error {
 
 	err := validateContextRoot(urlCtxRoot)
 	if err != nil {
 		Stderrf(err.Error())
 		return err
 	}
-	_, err = remotes.DefaultManager().Get(remote)
+	_, err = remotes.DefaultManager().Get(spec)
 	if err != nil {
 		if errors.Is(err, remotes.ErrAmbiguous) {
-			Stderrf("must specify remote target for push with --remote when there are multiple remotes configured")
+			Stderrf("must specify target for push with --directory or --remote when there are multiple remotes configured")
 		} else {
 			Stderrf(err.Error())
 		}
@@ -34,7 +34,7 @@ func Serve(host, port, urlCtxRoot, remote string) error {
 	handler := http.NewTmcHandler(
 		http.TmcHandlerOptions{
 			UrlContextRoot: urlCtxRoot,
-			PushTarget:     remote,
+			PushTarget:     spec,
 		})
 
 	options := http.GorillaServerOptions{

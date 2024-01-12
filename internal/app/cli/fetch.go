@@ -21,13 +21,13 @@ func NewFetchExecutor(rm remotes.RemoteManager) *FetchExecutor {
 	}
 }
 
-func (e *FetchExecutor) Fetch(remoteName, idOrName, outputFile string, withPath bool) error {
+func (e *FetchExecutor) Fetch(remote remotes.RepoSpec, idOrName, outputFile string, withPath bool) error {
 	if withPath && len(outputFile) == 0 {
 		Stderrf("--with-path requires non-empty --output")
 		return errors.New("--output not provided")
 	}
 
-	id, thing, err := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remoteName, idOrName)
+	id, thing, err := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remote, idOrName)
 	if err != nil {
 		Stderrf("Could not fetch from remote: %v", err)
 		return err

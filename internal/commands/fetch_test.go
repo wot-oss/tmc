@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -46,7 +47,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	rm := remotes.NewMockRemoteManager(t)
 	r := remotes.NewMockRemote(t)
 	rm.On("All").Return([]remotes.Remote{r}, nil)
-	rm.On("Get", "").Return(r, nil)
+	rm.On("Get", remotes.NewRemoteSpec("r1")).Return(r, nil)
 	setUpVersionsForFetchByTMIDOrName(r)
 
 	r.On("Fetch", "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
@@ -79,7 +80,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, b, err := f.FetchByTMIDOrName("", test.in)
+		_, b, err := f.FetchByTMIDOrName(remotes.EmptySpec, test.in)
 		if test.expErr {
 			assert.Error(t, err, "Expected error in FetchByTMIDOrName(%s), but got nil", test.in)
 			assert.ErrorContains(t, err, test.expErrText, "Unexpected error in FetchByTMIDOrName(%s)", test.in)
@@ -104,7 +105,7 @@ func setUpVersionsForFetchByTMIDOrName(r *remotes.MockRemote) {
 					Digest:    "c49617d2e4fc",
 					TimeStamp: "20231205123243",
 				},
-				FoundIn: "r1",
+				FoundIn: model.FoundSource{RemoteName: "r1"},
 			},
 		},
 	}, nil)
@@ -121,7 +122,7 @@ func setUpVersionsForFetchByTMIDOrName(r *remotes.MockRemote) {
 					Digest:    "c49617d2e4fc",
 					TimeStamp: "20231205123243",
 				},
-				FoundIn: "r1",
+				FoundIn: model.FoundSource{RemoteName: "r1"},
 			},
 		},
 	}, nil)
@@ -138,8 +139,107 @@ func setUpVersionsForFetchByTMIDOrName(r *remotes.MockRemote) {
 					Digest:    "c49617d2e4fc",
 					TimeStamp: "20231205123243",
 				},
-				FoundIn: "r1",
+				FoundIn: model.FoundSource{RemoteName: "r1"},
 			},
 		},
 	}, nil)
+}
+
+func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
+	rm := remotes.NewMockRemoteManager(t)
+	r1 := remotes.NewMockRemote(t)
+	r2 := remotes.NewMockRemote(t)
+	rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
+	rm.On("Get", remotes.NewRemoteSpec("r1")).Return(r1, nil)
+	rm.On("Get", remotes.NewRemoteSpec("r2")).Return(r2, nil)
+	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
+	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, ErrTmNotFound)
+	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, ErrTmNotFound)
+	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil)
+	r1.On("Versions", "author/manufacturer/mpn").Return(model.FoundEntry{
+		Name:         "author/manufacturer/mpn",
+		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},
+		Mpn:          "mpn",
+		Author:       model.SchemaAuthor{Name: "author"},
+		Versions: []model.FoundVersion{
+			{
+				TOCVersion: model.TOCVersion{
+					Version:   model.Version{Model: "v1.0.0"},
+					TMID:      "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json",
+					Digest:    "a49617d2e4fc",
+					TimeStamp: "20231005123243",
+				},
+				FoundIn: model.FoundSource{RemoteName: "r1"},
+			},
+		},
+	}, nil)
+	r2.On("Versions", "author/manufacturer/mpn").Return(model.FoundEntry{
+		Name:         "author/manufacturer/mpn",
+		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},
+		Mpn:          "mpn",
+		Author:       model.SchemaAuthor{Name: "author"},
+		Versions: []model.FoundVersion{
+			{
+				TOCVersion: model.TOCVersion{
+					Version:   model.Version{Model: "v1.0.0"},
+					TMID:      "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
+					Digest:    "c49617d2e4fc",
+					TimeStamp: "20231205123243",
+				},
+				FoundIn: model.FoundSource{RemoteName: "r2"},
+			},
+		},
+	}, nil)
+
+	f := NewFetchCommand(rm)
+	var id string
+	var b []byte
+	var err error
+	t.Run("fetch from unspecified by id", func(t *testing.T) {
+		id, b, err = f.FetchByTMIDOrName(remotes.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json")
+		assert.NoError(t, err)
+		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
+		assert.True(t, bytes.Contains(b, []byte("r1")))
+
+		id, b, err = f.FetchByTMIDOrName(remotes.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json")
+		assert.NoError(t, err)
+		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
+		assert.True(t, bytes.Contains(b, []byte("r2")))
+	})
+	t.Run("fetch from named by id", func(t *testing.T) {
+		id, b, err = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json")
+		assert.NoError(t, err)
+		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
+		assert.True(t, bytes.Contains(b, []byte("r1")))
+
+		id, b, err = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json")
+		assert.Error(t, err)
+
+		id, b, err = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json")
+		assert.Error(t, err)
+
+		id, b, err = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json")
+		assert.NoError(t, err)
+		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
+		assert.True(t, bytes.Contains(b, []byte("r2")))
+	})
+	t.Run("fetch from unspecified by name", func(t *testing.T) {
+		id, b, err = f.FetchByTMIDOrName(remotes.EmptySpec, "author/manufacturer/mpn")
+		assert.NoError(t, err)
+		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
+		assert.True(t, bytes.Contains(b, []byte("r2")))
+
+	})
+	t.Run("fetch from named by name", func(t *testing.T) {
+		id, b, err = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r1"), "author/manufacturer/mpn")
+		assert.NoError(t, err)
+		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
+		assert.True(t, bytes.Contains(b, []byte("r1")))
+
+		id, b, err = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r2"), "author/manufacturer/mpn")
+		assert.NoError(t, err)
+		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
+		assert.True(t, bytes.Contains(b, []byte("r2")))
+
+	})
 }

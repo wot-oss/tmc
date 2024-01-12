@@ -65,66 +65,102 @@ func TestSaveConfigOverwritesOnlyRemotes(t *testing.T) {
 
 func TestRemoteManager_All_And_Get(t *testing.T) {
 	rm := remoteManager{}
-	viper.Set(KeyRemotes, map[string]any{
-		"r1": map[string]string{
-			"type": "file",
-			"loc":  "somewhere",
-		},
+	t.Run("invalid remotes config", func(t *testing.T) {
+
+		viper.Set(KeyRemotes, map[string]any{
+			"r1": map[string]string{
+				"type": "file",
+				"loc":  "somewhere",
+			},
+		})
+
+		_, err := rm.All()
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "invalid remote config")
+
 	})
-
-	_, err := rm.All()
-	assert.Error(t, err)
-	assert.ErrorContains(t, err, "invalid remote config")
-
 	const ur = "http://example.com/{{ID}}"
-	viper.Set(KeyRemotes, map[string]any{
-		"r1": map[string]any{
-			"type": "file",
-			"loc":  "somewhere",
-		},
-		"r2": map[string]any{
-			"type": "http",
-			"loc":  ur,
-		},
+
+	t.Run("two remotes", func(t *testing.T) {
+
+		viper.Set(KeyRemotes, map[string]any{
+			"r1": map[string]any{
+				"type": "file",
+				"loc":  "somewhere",
+			},
+			"r2": map[string]any{
+				"type": "http",
+				"loc":  ur,
+			},
+		})
+
+		t.Run("all", func(t *testing.T) {
+			all, err := rm.All()
+			assert.NoError(t, err)
+			assert.Len(t, all, 2)
+			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
+			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&HttpRemote{}) }))
+		})
+		t.Run("file remote", func(t *testing.T) {
+
+			fr, err := rm.Get(NewRemoteSpec("r1"))
+			assert.NoError(t, err)
+			assert.Equal(t, &FileRemote{
+				root: "somewhere",
+				spec: NewRemoteSpec("r1"),
+			}, fr)
+
+		})
+		t.Run("http remote", func(t *testing.T) {
+
+			hr, err := rm.Get(NewRemoteSpec("r2"))
+			assert.NoError(t, err)
+			u, _ := url.Parse(ur)
+			assert.Equal(t, &HttpRemote{
+				root:           ur,
+				parsedRoot:     u,
+				templatedPath:  true,
+				templatedQuery: false,
+				spec:           NewRemoteSpec("r2"),
+			}, hr)
+		})
+		t.Run("ad-hoc remote", func(t *testing.T) {
+			ar, err := rm.Get(NewDirSpec("directory"))
+			assert.NoError(t, err)
+			assert.Equal(t, &FileRemote{
+				root: "directory",
+				spec: RepoSpec{"", "directory"},
+			}, ar)
+		})
+
+		t.Run("invalid spec", func(t *testing.T) {
+			_, err := rm.Get(RepoSpec{"name", "dir"})
+			assert.Error(t, err)
+		})
+
 	})
-	all, err := rm.All()
-	assert.NoError(t, err)
-	assert.Len(t, all, 2)
-	assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
-	assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&HttpRemote{}) }))
-
-	fr, err := rm.Get("r1")
-	assert.NoError(t, err)
-	assert.Equal(t, &FileRemote{
-		root: "somewhere",
-		name: "r1",
-	}, fr)
-
-	hr, err := rm.Get("r2")
-	assert.NoError(t, err)
-	u, _ := url.Parse(ur)
-	assert.Equal(t, &HttpRemote{
-		root:           ur,
-		parsedRoot:     u,
-		templatedPath:  true,
-		templatedQuery: false,
-		name:           "r2",
-	}, hr)
 
 }
 
-func TestGetNamedOrAll(t *testing.T) {
+func TestGetSpecdOrAll(t *testing.T) {
 	rm := NewMockRemoteManager(t)
 	r1 := NewMockRemote(t)
 	r2 := NewMockRemote(t)
+	r3 := NewMockRemote(t)
 
 	rm.On("All").Return([]Remote{r1, r2}, nil)
-	all, err := GetNamedOrAll(rm, "")
+	all, err := GetSpecdOrAll(rm, EmptySpec)
 	assert.NoError(t, err)
 	assert.Equal(t, []Remote{r1, r2}, all)
 
-	rm.On("Get", "r1").Return(r1, nil)
-	all, err = GetNamedOrAll(rm, "r1")
+	rm.On("Get", NewRemoteSpec("r1")).Return(r1, nil)
+	all, err = GetSpecdOrAll(rm, NewRemoteSpec("r1"))
 	assert.NoError(t, err)
 	assert.Equal(t, []Remote{r1}, all)
+
+	rm.On("Get", NewDirSpec("dir1")).Return(r3, nil)
+	all, err = GetSpecdOrAll(rm, NewDirSpec("dir1"))
+	assert.NoError(t, err)
+	assert.Equal(t, []Remote{r3}, all)
+
 }

@@ -52,10 +52,10 @@ func NewFetchCommand(manager remotes.RemoteManager) *FetchCommand {
 	}
 }
 
-func (c *FetchCommand) FetchByTMIDOrName(remoteName, idOrName string) (string, []byte, error) {
+func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string) (string, []byte, error) {
 	_, err := model.ParseTMID(idOrName, true)
 	if err == nil {
-		id, tm, err := c.FetchByTMID(remoteName, idOrName)
+		id, tm, err := c.FetchByTMID(spec, idOrName)
 		if !errors.Is(err, ErrTmNotFound) {
 			return id, tm, err
 		}
@@ -66,31 +66,35 @@ func (c *FetchCommand) FetchByTMIDOrName(remoteName, idOrName string) (string, [
 		slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
 		return "", nil, err
 	}
-	return c.FetchByName(remoteName, fn)
+	return c.FetchByName(spec, fn)
 }
-func (c *FetchCommand) FetchByTMID(remoteName string, tmid string) (string, []byte, error) {
-	remote, err := c.remoteMgr.Get(remoteName)
+func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, []byte, error) {
+	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, spec)
 	if err != nil {
 		return "", nil, err
 	}
-	id, thing, err := remote.Fetch(tmid)
-	if err != nil {
-		msg := fmt.Sprintf("No thing model found for %v", tmid)
-		slog.Default().Error(msg)
-		return "", nil, ErrTmNotFound
+
+	for _, r := range rs {
+		id, thing, err := r.Fetch(tmid)
+		if err == nil {
+			return id, thing, nil
+		}
 	}
-	return id, thing, nil
+
+	msg := fmt.Sprintf("No thing model found for %v", tmid)
+	slog.Default().Error(msg)
+	return "", nil, ErrTmNotFound
 
 }
-func (c *FetchCommand) FetchByName(remoteName string, fn FetchName) (string, []byte, error) {
+func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error) {
 	log := slog.Default()
-	tocThing, err := NewVersionsCommand(c.remoteMgr).ListVersions(remoteName, fn.Name)
+	tocThing, err := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
 	if err != nil {
 		return "", nil, err
 	}
 
 	var id string
-	var foundIn string
+	var foundIn remotes.RepoSpec
 	// Just the name specified: fetch most recent
 	if len(fn.SemVerOrDigest) == 0 {
 		id, foundIn, err = findMostRecentVersion(tocThing.Versions)
@@ -110,15 +114,15 @@ func (c *FetchCommand) FetchByName(remoteName string, fn FetchName) (string, []b
 	}
 
 	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
-	return c.FetchByTMID(remoteName, id)
+	return c.FetchByTMID(foundIn, id)
 }
 
-func findMostRecentVersion(versions []model.FoundVersion) (id, source string, err error) {
+func findMostRecentVersion(versions []model.FoundVersion) (id string, source remotes.RepoSpec, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
 		log.Error(msg)
-		return "", "", errors.New(msg)
+		return "", remotes.EmptySpec, errors.New(msg)
 	}
 
 	latestVersion, _ := semver.NewVersion("v0.0.0")
@@ -129,25 +133,25 @@ func findMostRecentVersion(versions []model.FoundVersion) (id, source string, er
 		currentVersion, err := semver.NewVersion(version.Version.Model)
 		if err != nil {
 			log.Error(err.Error())
-			return "", "", err
+			return "", remotes.EmptySpec, err
 		}
 		if currentVersion.GreaterThan(latestVersion) {
 			latestVersion = currentVersion
 			latestTimeStamp, err = time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
 			id = version.TMID
-			source = version.FoundIn
+			source = remotes.NewSpecFromFoundSource(version.FoundIn)
 			continue
 		}
 		if currentVersion.Equal(latestVersion) {
 			currentTimeStamp, err := time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
 			if err != nil {
 				log.Error(err.Error())
-				return "", "", err
+				return "", remotes.EmptySpec, err
 			}
 			if currentTimeStamp.After(latestTimeStamp) {
 				latestTimeStamp = currentTimeStamp
 				id = version.TMID
-				source = version.FoundIn
+				source = remotes.NewSpecFromFoundSource(version.FoundIn)
 				continue
 			}
 		}
@@ -155,12 +159,12 @@ func findMostRecentVersion(versions []model.FoundVersion) (id, source string, er
 	return id, source, nil
 }
 
-func findMostRecentTimeStamp(versions []model.FoundVersion, ver *semver.Version) (id, source string, err error) {
+func findMostRecentTimeStamp(versions []model.FoundVersion, ver *semver.Version) (id string, source remotes.RepoSpec, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
 		log.Error(msg)
-		return "", "", errors.New(msg)
+		return "", remotes.EmptySpec, errors.New(msg)
 	}
 	var latestTimeStamp time.Time
 
@@ -169,7 +173,7 @@ func findMostRecentTimeStamp(versions []model.FoundVersion, ver *semver.Version)
 		currentVersion, err := semver.NewVersion(version.Version.Model)
 		if err != nil {
 			log.Error(err.Error())
-			return "", "", err
+			return "", remotes.EmptySpec, err
 		}
 
 		if !currentVersion.Equal(ver) {
@@ -178,29 +182,29 @@ func findMostRecentTimeStamp(versions []model.FoundVersion, ver *semver.Version)
 		currentTimeStamp, err := time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
 		if err != nil {
 			log.Error(err.Error())
-			return "", "", err
+			return "", remotes.EmptySpec, err
 		}
 		if currentTimeStamp.After(latestTimeStamp) {
 			latestTimeStamp = currentTimeStamp
 			id = version.TMID
-			source = version.FoundIn
+			source = remotes.NewSpecFromFoundSource(version.FoundIn)
 			continue
 		}
 	}
 	if len(id) == 0 {
 		msg := fmt.Sprintf("No version %s found", ver.String())
 		log.Error(msg)
-		return "", "", errors.New(msg)
+		return "", remotes.EmptySpec, errors.New(msg)
 	}
 	return id, source, nil
 }
 
-func findDigest(versions []model.FoundVersion, digest string) (id, source string, err error) {
+func findDigest(versions []model.FoundVersion, digest string) (id string, source remotes.RepoSpec, err error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
 		log.Error(msg)
-		return "", "", errors.New(msg)
+		return "", remotes.EmptySpec, errors.New(msg)
 	}
 
 	digest = utils.ToTrimmedLower(digest)
@@ -209,13 +213,13 @@ func findDigest(versions []model.FoundVersion, digest string) (id, source string
 		tmid, err := model.ParseTMID(version.TMID, false)
 		if err != nil {
 			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.TMID))
-			return "", "", err
+			return "", remotes.EmptySpec, err
 		}
 		if tmid.Version.Hash == digest {
-			return version.TMID, version.FoundIn, nil
+			return version.TMID, remotes.NewSpecFromFoundSource(version.FoundIn), nil
 		}
 	}
 	msg := fmt.Sprintf("No thing model found for digest %s", digest)
 	log.Error(msg)
-	return "", "", errors.New(msg)
+	return "", remotes.EmptySpec, errors.New(msg)
 }

@@ -17,10 +17,22 @@ type FoundEntry struct {
 }
 type FoundVersion struct {
 	TOCVersion
-	FoundIn string
+	FoundIn FoundSource
 }
 
-func NewSearchResultFromTOC(toc TOC, foundIn string) SearchResult {
+type FoundSource struct {
+	Directory  string
+	RemoteName string
+}
+
+func (s FoundSource) String() string {
+	if s.Directory != "" {
+		return s.Directory
+	}
+	return "<" + s.RemoteName + ">"
+}
+
+func NewSearchResultFromTOC(toc TOC, foundIn FoundSource) SearchResult {
 	r := SearchResult{}
 	var es []FoundEntry
 	for _, e := range toc.Data {
@@ -30,7 +42,7 @@ func NewSearchResultFromTOC(toc TOC, foundIn string) SearchResult {
 	return r
 }
 
-func NewFoundEntryFromTOCEntry(e *TOCEntry, foundIn string) FoundEntry {
+func NewFoundEntryFromTOCEntry(e *TOCEntry, foundIn FoundSource) FoundEntry {
 	return FoundEntry{
 		Name:         e.Name,
 		Manufacturer: e.Manufacturer,
@@ -72,7 +84,7 @@ func (r FoundEntry) Merge(other FoundEntry) FoundEntry {
 	return r
 }
 
-func toFoundVersions(versions []TOCVersion, fromRemote string) []FoundVersion {
+func toFoundVersions(versions []TOCVersion, fromRemote FoundSource) []FoundVersion {
 	var r []FoundVersion
 	for _, v := range versions {
 		r = append(r, FoundVersion{

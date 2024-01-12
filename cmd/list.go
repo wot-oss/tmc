@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 var (
@@ -21,14 +23,15 @@ var (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List TMs in catalog",
-	Long:  `List TMs and optionally filter them. --remote is optional if there's only one remote configured`,
-	Args:  cobra.MaximumNArgs(1),
+	Long:  `List TMs and optionally filter them`,
+	Args:  cobra.ExactArgs(0),
 	Run:   executeList,
 }
 
 func init() {
 	RootCmd.AddCommand(listCmd)
 	listCmd.Flags().StringP("remote", "r", "", "name of the remote to list")
+	listCmd.Flags().StringP("directory", "d", "", "TM repository directory to list")
 	listCmd.Flags().StringVar(&flagFilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	listCmd.Flags().StringVar(&flagFilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	listCmd.Flags().StringVar(&flagFilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
@@ -38,10 +41,16 @@ func init() {
 
 func executeList(cmd *cobra.Command, args []string) {
 	remoteName := cmd.Flag("remote").Value.String()
+	dirName := cmd.Flag("directory").Value.String()
 
 	search := convertSearchParams()
+	spec, err := remotes.NewSpec(remoteName, dirName)
+	if errors.Is(err, remotes.ErrInvalidSpec) {
+		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
+		os.Exit(1)
+	}
 
-	err := cli.List(remoteName, search)
+	err = cli.List(spec, search)
 	if err != nil {
 		os.Exit(1)
 	}

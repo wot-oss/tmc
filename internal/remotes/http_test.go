@@ -15,10 +15,10 @@ func TestNewHttpRemote(t *testing.T) {
 		map[string]any{
 			"type": "http",
 			"loc":  root,
-		}, "name")
+		}, NewRemoteSpec("remoteName"))
 	assert.NoError(t, err)
 	assert.Equal(t, root, remote.root)
-	assert.Equal(t, "name", remote.Name())
+	assert.Equal(t, NewRemoteSpec("remoteName"), remote.Spec())
 }
 
 func TestCreateHttpRemoteConfig(t *testing.T) {
@@ -65,7 +65,7 @@ func TestHttpRemote_Fetch(t *testing.T) {
 
 	config, err := createHttpRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
-	r, err := NewHttpRemote(config, "nameless")
+	r, err := NewHttpRemote(config, NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 	actId, b, err := r.Fetch(tmid)
 	assert.NoError(t, err)

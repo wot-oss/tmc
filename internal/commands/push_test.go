@@ -136,7 +136,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	remote, err := remotes.NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, "")
+	}, remotes.EmptySpec)
 	assert.NoError(t, err)
 
 	clk := testutils.NewTestClock(time.Now(), 1050*time.Millisecond)
@@ -198,7 +198,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	remote, err := remotes.NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, "")
+	}, remotes.EmptySpec)
 	assert.NoError(t, err)
 
 	c := NewPushCommand(time.Now)
