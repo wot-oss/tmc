@@ -2,12 +2,13 @@ package http
 
 import (
 	"errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"net/http"
 	"sort"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 var remote = remotes.NewRemoteSpec("someRemote")

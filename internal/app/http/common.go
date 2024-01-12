@@ -34,10 +34,8 @@ const (
 	basePathInventory   = "/inventory"
 	basePathThingModels = "/thing-models"
 
-	ctxUrlRoot       = "urlContextRoot"
-	ctxRelPathDepth  = "relPathDepth"
-	ctxRemoteManager = "remoteManager"
-	ctxPushRemote    = "pushRemote"
+	ctxUrlRoot      = "urlContextRoot"
+	ctxRelPathDepth = "relPathDepth"
 )
 
 func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
