@@ -95,24 +95,6 @@ func (_m *MockRemote) List(search *model.SearchParams) (model.SearchResult, erro
 	return r0, r1
 }
 
-// Name provides a mock function with given fields:
-func (_m *MockRemote) Name() string {
-	ret := _m.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for Name")
-	}
-
-	var r0 string
-	if rf, ok := ret.Get(0).(func() string); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(string)
-	}
-
-	return r0
-}
-
 // Push provides a mock function with given fields: id, raw
 func (_m *MockRemote) Push(id model.TMID, raw []byte) error {
 	ret := _m.Called(id, raw)
@@ -126,6 +108,24 @@ func (_m *MockRemote) Push(id model.TMID, raw []byte) error {
 		r0 = rf(id, raw)
 	} else {
 		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Spec provides a mock function with given fields:
+func (_m *MockRemote) Spec() RepoSpec {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Spec")
+	}
+
+	var r0 RepoSpec
+	if rf, ok := ret.Get(0).(func() RepoSpec); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(RepoSpec)
 	}
 
 	return r0

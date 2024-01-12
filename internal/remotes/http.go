@@ -24,11 +24,11 @@ type HttpRemote struct {
 	parsedRoot     *url.URL
 	templatedPath  bool
 	templatedQuery bool
-	name           string
+	spec           RepoSpec
 	auth           map[string]any
 }
 
-func NewHttpRemote(config map[string]any, name string) (*HttpRemote, error) {
+func NewHttpRemote(config map[string]any, spec RepoSpec) (*HttpRemote, error) {
 	loc := utils.JsGetString(config, KeyRemoteLoc)
 	if loc == nil {
 		return nil, fmt.Errorf("invalid http remote config. loc is either not found or not a string")
@@ -38,7 +38,7 @@ func NewHttpRemote(config map[string]any, name string) (*HttpRemote, error) {
 		return nil, err
 	}
 	auth := utils.JsGetMap(config, KeyRemoteAuth)
-	h := &HttpRemote{root: *loc, parsedRoot: u, name: name, auth: auth}
+	h := &HttpRemote{root: *loc, parsedRoot: u, spec: spec, auth: auth}
 	cpl := strings.Count(*loc, RelFileUriPlaceholder)
 	switch cpl {
 	case 0:
@@ -96,8 +96,8 @@ func (h *HttpRemote) buildUrl(fileId string) string {
 func (h *HttpRemote) CreateToC() error {
 	return ErrNotSupported
 }
-func (h *HttpRemote) Name() string {
-	return h.name
+func (h *HttpRemote) Spec() RepoSpec {
+	return h.spec
 }
 
 func (h *HttpRemote) List(search *model.SearchParams) (model.SearchResult, error) {
@@ -117,7 +117,7 @@ func (h *HttpRemote) List(search *model.SearchParams) (model.SearchResult, error
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	return model.NewSearchResultFromTOC(toc, h.Name()), nil
+	return model.NewSearchResultFromTOC(toc, h.Spec().ToFoundSource()), nil
 }
 
 func (h *HttpRemote) doGet(reqUrl string) (*http.Response, error) {
@@ -133,8 +133,8 @@ func (h *HttpRemote) doGet(reqUrl string) (*http.Response, error) {
 func (h *HttpRemote) Versions(name string) (model.FoundEntry, error) {
 	log := slog.Default()
 	if len(name) == 0 {
-		log.Error("Please specify a name to show the TM.")
-		return model.FoundEntry{}, errors.New("please specify a name to show the TM")
+		log.Error("Please specify a remoteName to show the TM.")
+		return model.FoundEntry{}, errors.New("please specify a remoteName to show the TM")
 	}
 	name = strings.TrimSpace(name)
 	toc, err := h.List(&model.SearchParams{Name: name})
@@ -143,7 +143,7 @@ func (h *HttpRemote) Versions(name string) (model.FoundEntry, error) {
 	}
 
 	if len(toc.Entries) != 1 {
-		log.Error(fmt.Sprintf("No thing model found for name: %s", name))
+		log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
 		return model.FoundEntry{}, ErrEntryNotFound
 	}
 

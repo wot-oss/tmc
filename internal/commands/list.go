@@ -16,8 +16,8 @@ func NewListCommand(m remotes.RemoteManager) *ListCommand {
 		remoteMgr: m,
 	}
 }
-func (c *ListCommand) List(remoteName string, search *model.SearchParams) (model.SearchResult, error) {
-	rs, err := remotes.GetNamedOrAll(c.remoteMgr, remoteName)
+func (c *ListCommand) List(rSpec remotes.RepoSpec, search *model.SearchParams) (model.SearchResult, error) {
+	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, rSpec)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
@@ -26,7 +26,7 @@ func (c *ListCommand) List(remoteName string, search *model.SearchParams) (model
 	for _, remote := range rs {
 		toc, err := remote.List(search)
 		if err != nil {
-			return model.SearchResult{}, fmt.Errorf("could not list %s: %w", remote.Name(), err)
+			return model.SearchResult{}, fmt.Errorf("could not list %s: %w", remote.Spec(), err)
 		}
 		res.Merge(&toc)
 	}

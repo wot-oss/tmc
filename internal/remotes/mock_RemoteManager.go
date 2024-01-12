@@ -57,9 +57,9 @@ func (_m *MockRemoteManager) All() ([]Remote, error) {
 	return r0, r1
 }
 
-// Get provides a mock function with given fields: name
-func (_m *MockRemoteManager) Get(name string) (Remote, error) {
-	ret := _m.Called(name)
+// Get provides a mock function with given fields: spec
+func (_m *MockRemoteManager) Get(spec RepoSpec) (Remote, error) {
+	ret := _m.Called(spec)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
@@ -67,19 +67,19 @@ func (_m *MockRemoteManager) Get(name string) (Remote, error) {
 
 	var r0 Remote
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (Remote, error)); ok {
-		return rf(name)
+	if rf, ok := ret.Get(0).(func(RepoSpec) (Remote, error)); ok {
+		return rf(spec)
 	}
-	if rf, ok := ret.Get(0).(func(string) Remote); ok {
-		r0 = rf(name)
+	if rf, ok := ret.Get(0).(func(RepoSpec) Remote); ok {
+		r0 = rf(spec)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(Remote)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
-		r1 = rf(name)
+	if rf, ok := ret.Get(1).(func(RepoSpec) error); ok {
+		r1 = rf(spec)
 	} else {
 		r1 = ret.Error(1)
 	}

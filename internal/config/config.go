@@ -30,12 +30,6 @@ func InitConfig() {
 func InitViper() {
 	viper.SetDefault(KeyLog, false)
 	viper.SetDefault(KeyLogLevel, "INFO")
-	viper.SetDefault("remotes", map[string]any{
-		"local": map[string]any{
-			"type": "file",
-			"loc":  "~/tm-catalog",
-		},
-	})
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")

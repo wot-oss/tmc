@@ -20,7 +20,7 @@ const defaultFilePermissions = 0664
 
 type FileRemote struct {
 	root string
-	name string
+	spec RepoSpec
 }
 
 type ErrTMExists struct {
@@ -33,7 +33,7 @@ func (e *ErrTMExists) Error() string {
 	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
 }
 
-func NewFileRemote(config map[string]any, name string) (*FileRemote, error) {
+func NewFileRemote(config map[string]any, spec RepoSpec) (*FileRemote, error) {
 	loc := utils.JsGetString(config, KeyRemoteLoc)
 	if loc == nil {
 		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string")
@@ -44,7 +44,7 @@ func NewFileRemote(config map[string]any, name string) (*FileRemote, error) {
 	}
 	return &FileRemote{
 		root: rootPath,
-		name: name,
+		spec: spec,
 	}, nil
 }
 
@@ -81,7 +81,7 @@ func (f *FileRemote) filenames(id string) (string, string, string) {
 
 func (f *FileRemote) getExistingID(ids string) (bool, string) {
 	fullName, dir, base := f.filenames(ids)
-	// try full name as given
+	// try full remoteName as given
 	if _, err := os.Stat(fullName); err == nil {
 		return true, ids
 	}
@@ -152,8 +152,8 @@ func (f *FileRemote) CreateToC() error {
 	return createTOC(f.root)
 }
 
-func (f *FileRemote) Name() string {
-	return f.name
+func (f *FileRemote) Spec() RepoSpec {
+	return f.spec
 }
 
 func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error) {
@@ -176,14 +176,14 @@ func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error
 		return model.SearchResult{}, err
 	}
 	toc.Filter(search)
-	return model.NewSearchResultFromTOC(toc, f.Name()), nil
+	return model.NewSearchResultFromTOC(toc, f.Spec().ToFoundSource()), nil
 }
 
 func (f *FileRemote) Versions(name string) (model.FoundEntry, error) {
 	log := slog.Default()
 	if len(name) == 0 {
-		log.Error("Please specify a name to show the TM.")
-		return model.FoundEntry{}, errors.New("please specify a name to show the TM")
+		log.Error("Please specify a remoteName to show the TM.")
+		return model.FoundEntry{}, errors.New("please specify a remoteName to show the TM")
 	}
 	name = strings.TrimSpace(name)
 	toc, err := f.List(&model.SearchParams{Name: name})
@@ -192,7 +192,7 @@ func (f *FileRemote) Versions(name string) (model.FoundEntry, error) {
 	}
 
 	if len(toc.Entries) != 1 {
-		log.Error(fmt.Sprintf("No thing model found for name: %s", name))
+		log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
 		return model.FoundEntry{}, ErrEntryNotFound
 	}
 
@@ -202,7 +202,7 @@ func (f *FileRemote) Versions(name string) (model.FoundEntry, error) {
 func (f *FileRemote) checkRootValid() error {
 	stat, err := os.Stat(f.root)
 	if err != nil || !stat.IsDir() {
-		return fmt.Errorf("%s: %w", f.Name(), ErrRootInvalid)
+		return fmt.Errorf("%s: %w", f.Spec(), ErrRootInvalid)
 	}
 	return nil
 }
