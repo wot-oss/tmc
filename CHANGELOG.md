@@ -5,6 +5,7 @@
 ### Fixed
 
 - config is now created if not existing
+- Adding ".exe" to Windows binaries 
 
 
 ## [v0.0.0-alpha.1] - 2023-01-15
