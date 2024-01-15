@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 // Hint for generating the server code based on the openapi spec:
@@ -23,12 +22,12 @@ import (
 // //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package http -generate gorilla-server -o server.gen.go ../../../api/tm-catalog.openapi.yaml
 
 type TmcHandler struct {
+	Service HandlerService
 	Options TmcHandlerOptions
 }
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
-	PushTarget     remotes.RepoSpec
 }
 
 func NewRouter() *mux.Router {
@@ -41,64 +40,66 @@ func handleNoRoute(w http.ResponseWriter, r *http.Request) {
 	HandleErrorResponse(w, r, NewNotFoundError(nil, "Path not handled by Thing Model Catalog"))
 }
 
-func NewTmcHandler(options TmcHandlerOptions) *TmcHandler {
+func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
 	return &TmcHandler{
+		Service: handlerService,
 		Options: options,
 	}
 }
 
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params GetInventoryParams) {
-	ctx := h.createContext(r)
 
 	searchParams := convertParams(params)
 
-	toc, err := listToc(searchParams)
+	inv, err := h.Service.ListInventory(nil, searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
-	resp := toInventoryResponse(ctx, *toc)
+	ctx := h.createContext(r)
+	resp := toInventoryResponse(ctx, *inv)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
 // GetInventoryByName Get an inventory entry by inventory name
 // (GET /inventory/{name})
 func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, name string) {
-	ctx := h.createContext(r)
 
-	tocEntry, err := findTocEntry(name)
+	entry, err := h.Service.FindInventoryEntry(nil, name)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
-	resp := toInventoryEntryResponse(ctx, *tocEntry)
+	ctx := h.createContext(r)
+	resp := toInventoryEntryResponse(ctx, *entry)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
 // GetInventoryVersionsByName Get the versions of an inventory entry
 // (GET /inventory/{inventoryId}/versions)
 func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
-	ctx := h.createContext(r)
 
-	tocEntry, err := findTocEntry(name)
+	entry, err := h.Service.FindInventoryEntry(nil, name)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
-	resp := toInventoryEntryVersionsResponse(ctx, tocEntry.Versions)
+	ctx := h.createContext(r)
+	resp := toInventoryEntryVersionsResponse(ctx, entry.Versions)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
 // GetThingModelById Get the content of a Thing Model by its ID
 // (GET /thing-models/{tmID})
 func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string) {
-	data, err := fetchThingModel(tmID)
+
+	data, err := h.Service.FetchThingModel(nil, tmID)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -123,7 +124,8 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 		HandleErrorResponse(w, r, err)
 		return
 	}
-	tmID, err := pushThingModel(b, h.Options.PushTarget)
+
+	tmID, err := h.Service.PushThingModel(nil, b)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -131,52 +133,49 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 
 	resp := toPushThingModelResponse(tmID)
 
-	HandleJsonResponse(w, r, 201, resp)
+	HandleJsonResponse(w, r, http.StatusCreated, resp)
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams) {
+
 	searchParams := convertParams(params)
 
-	toc, err := listToc(searchParams)
+	authors, err := h.Service.ListAuthors(nil, searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
-
-	authors := listTocAuthors(toc)
 
 	resp := toAuthorsResponse(authors)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
 func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams) {
+
 	searchParams := convertParams(params)
 
-	toc, err := listToc(searchParams)
+	mans, err := h.Service.ListManufacturers(nil, searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
-
-	mans := listTocManufacturers(toc)
 
 	resp := toManufacturersResponse(mans)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
 func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams) {
+
 	searchParams := convertParams(params)
 
-	toc, err := listToc(searchParams)
+	mpns, err := h.Service.ListMpns(nil, searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
-
-	mpns := listTocMpns(toc)
 
 	resp := toMpnsResponse(mpns)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
@@ -185,7 +184,8 @@ func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params GetM
 // GetHealth Get the overall health of the service
 // (GET /healthz)
 func (h *TmcHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
-	err := checkHealth()
+
+	err := h.Service.CheckHealth(nil)
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return
@@ -196,7 +196,8 @@ func (h *TmcHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // GetHealthLive Returns the liveness of the service
 // (GET /healthz/live)
 func (h *TmcHandler) GetHealthLive(w http.ResponseWriter, r *http.Request) {
-	err := checkHealthLive()
+
+	err := h.Service.CheckHealthLive(nil)
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return
@@ -207,7 +208,8 @@ func (h *TmcHandler) GetHealthLive(w http.ResponseWriter, r *http.Request) {
 // GetHealthReady Returns the readiness of the service
 // (GET /healthz/ready)
 func (h *TmcHandler) GetHealthReady(w http.ResponseWriter, r *http.Request) {
-	err := checkHealthReady()
+
+	err := h.Service.CheckHealthReady(nil)
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return
@@ -218,7 +220,8 @@ func (h *TmcHandler) GetHealthReady(w http.ResponseWriter, r *http.Request) {
 // GetHealthStartup Returns whether the service is initialized
 // (GET /healthz/startup)
 func (h *TmcHandler) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
-	err := checkHealthStartup()
+
+	err := h.Service.CheckHealthStartup(nil)
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return

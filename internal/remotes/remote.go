@@ -107,8 +107,8 @@ func (r RepoSpec) ToFoundSource() model.FoundSource {
 	}
 }
 
-func (s RepoSpec) String() string {
-	return fmt.Sprintf("repository spec {dir: %s, remoteName: %s}", s.dir, s.remoteName)
+func (r RepoSpec) String() string {
+	return fmt.Sprintf("repository spec {dir: %s, remoteName: %s}", r.dir, r.remoteName)
 }
 
 var EmptySpec, _ = NewSpec("", "")

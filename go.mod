@@ -11,6 +11,7 @@ require (
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/kinbiko/jsonassert v1.1.1
 	github.com/oapi-codegen/runtime v1.1.0
+	github.com/oapi-codegen/testutil v1.1.0
 	github.com/otiai10/copy v1.14.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/spf13/cobra v1.7.0
