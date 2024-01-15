@@ -162,6 +162,8 @@ github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyua
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/oapi-codegen/runtime v1.1.0 h1:rJpoNUawn5XTvekgfkvSZr0RqEnoYpFkyvrzfWeFKWM=
 github.com/oapi-codegen/runtime v1.1.0/go.mod h1:BeSfBkWWWnAnGdyS+S/GnlbmHKzf8/hwkvelJZDeKA8=
+github.com/oapi-codegen/testutil v1.1.0 h1:EufqpNg43acR3qzr3ObhXmWg3Sl2kwtRnUN5GYY4d5g=
+github.com/oapi-codegen/testutil v1.1.0/go.mod h1:ttCaYbHvJtHuiyeBF0tPIX+4uhEPTeizXKx28okijLw=
 github.com/pelletier/go-toml/v2 v2.1.0 h1:FnwAJ4oYMvbT/34k9zzHuZNrhlz48GB3/s6at6/MHO4=
 github.com/pelletier/go-toml/v2 v2.1.0/go.mod h1:tJU2Z3ZkXwnxa4DPO899bsyIoywizdUvyaeZurnPPDc=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

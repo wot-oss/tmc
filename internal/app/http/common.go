@@ -3,9 +3,12 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
@@ -70,7 +73,15 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errDetail := error500Detail
 	errStatus := http.StatusInternalServerError
 
-	if sErr, ok := err.(*BaseHttpError); ok {
+	if errors.Is(err, commands.ErrTmNotFound) {
+		errTitle = error404Title
+		errDetail = err.Error()
+		errStatus = http.StatusNotFound
+	} else if errors.Is(err, model.ErrInvalidId) {
+		errTitle = error400Title
+		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
+	} else if sErr, ok := err.(*BaseHttpError); ok {
 		errTitle = sErr.Title
 		errDetail = sErr.Detail
 		errStatus = sErr.Status
