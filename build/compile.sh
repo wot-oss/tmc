@@ -14,7 +14,12 @@ echo "building targets: $targets"
 for os_arch in "${os_arch_array[@]}"; do
   export GOOS="${os_arch%%,*}"
   export GARCH="${os_arch#*,}"
-  filename="${filename_prefix}-${GOOS}-${GARCH}"
+  if [ "${GOOS}" == "windows" ]; then
+      export EXT=".exe"
+  else
+      export EXT=""
+  fi
+  filename="${filename_prefix}-${GOOS}-${GARCH}${EXT}"
   echo "compiling $filename"
   CGO_ENABLED=0 go build -o $filename
 done
