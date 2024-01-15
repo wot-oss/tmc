@@ -311,17 +311,17 @@ func createTOC(rootPath string) error {
 	return nil
 }
 
-func getThingMetadata(path string) (model.CatalogThingModel, error) {
+func getThingMetadata(path string) (model.ThingModel, error) {
 	// TODO: should internal.ReadRequiredFiles be used here?
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return model.CatalogThingModel{}, err
+		return model.ThingModel{}, err
 	}
 
-	var ctm model.CatalogThingModel
+	var ctm model.ThingModel
 	err = json.Unmarshal(data, &ctm)
 	if err != nil {
-		return model.CatalogThingModel{}, err
+		return model.ThingModel{}, err
 	}
 
 	return ctm, nil
