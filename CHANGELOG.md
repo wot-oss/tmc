@@ -1,6 +1,6 @@
 # Change Log
 
-## [v0.0.0-alpha.2] - 2023-01-12
+## [v0.0.0-alpha.1] - 2023-01-15
 
 This the first alpha release, which implements the most basic verbs to create and interact with a thing model catalog. 
 
