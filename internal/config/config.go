@@ -28,6 +28,7 @@ func InitConfig() {
 }
 
 func InitViper() {
+	viper.SetDefault("remotes", map[string]any{})
 	viper.SetDefault(KeyLog, false)
 	viper.SetDefault(KeyLogLevel, "INFO")
 
@@ -42,7 +43,6 @@ func InitViper() {
 			panic("cannot read config: " + err.Error())
 		}
 	}
-
 	// set prefix "tmc" for environment variables
 	// the environment variables then have to match pattern "tmc_<viper variable>", lower or uppercase
 	viper.SetEnvPrefix(EnvPrefix)
