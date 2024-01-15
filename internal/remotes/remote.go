@@ -100,10 +100,6 @@ func NewSpecFromFoundSource(s model.FoundSource) RepoSpec {
 	}
 }
 
-func (r RepoSpec) IsEmpty() bool {
-	return r.remoteName == "" && r.dir == ""
-}
-
 func (r RepoSpec) ToFoundSource() model.FoundSource {
 	return model.FoundSource{
 		Directory:  r.dir,

@@ -31,20 +31,19 @@ type defaultHandlerService struct {
 	pushRemote    remotes.RepoSpec
 }
 
-func NewDefaultHandlerService(rm remotes.RemoteManager, pushRemote remotes.RepoSpec) *defaultHandlerService {
-	return &defaultHandlerService{
+func NewDefaultHandlerService(rm remotes.RemoteManager, pushRemote remotes.RepoSpec) (*defaultHandlerService, error) {
+	if rm == nil {
+		return nil, errors.New("remote manager is unset")
+	}
+	dhs := &defaultHandlerService{
 		remoteManager: rm,
 		pushRemote:    pushRemote,
 	}
+	return dhs, nil
 }
 
 func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
-	rm, err := dhs.getRemoteManager()
-	if err != nil {
-		return nil, err
-	}
-
-	c := commands.NewListCommand(rm)
+	c := commands.NewListCommand(dhs.remoteManager)
 	toc, err := c.List(remotes.EmptySpec, search)
 	if err != nil {
 		return nil, err
@@ -130,11 +129,7 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 		return nil, err
 	}
 
-	rm, err := dhs.getRemoteManager()
-	if err != nil {
-		return nil, err
-	}
-
+	rm := dhs.remoteManager
 	_, data, err := commands.NewFetchCommand(rm).FetchByTMID(remotes.EmptySpec, tmID)
 	if errors.Is(err, commands.ErrTmNotFound) {
 		return nil, NewNotFoundError(err, "File does not exist")
@@ -145,17 +140,10 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 }
 
 func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byte) (string, error) {
-	rm, err := dhs.getRemoteManager()
-	if err != nil {
-		return "", err
-	}
+	rm := dhs.remoteManager
+	pushRemote := dhs.pushRemote
 
-	remoteSpec := dhs.pushRemote
-	if remoteSpec.IsEmpty() {
-		return "", errors.New("push remote spec is unset or empty")
-	}
-
-	remote, err := rm.Get(remoteSpec)
+	remote, err := rm.Get(pushRemote)
 	if err != nil {
 		return "", err
 	}
@@ -186,15 +174,13 @@ func (dhs *defaultHandlerService) CheckHealthLive(ctx context.Context) error {
 }
 
 func (dhs *defaultHandlerService) CheckHealthReady(ctx context.Context) error {
-	rm, err := dhs.getRemoteManager()
-	if err != nil {
-		return err
-	}
-	remoteName := dhs.pushRemote
 
-	_, err = rm.Get(remoteName)
+	rm := dhs.remoteManager
+	pushRemote := dhs.pushRemote
+
+	_, err := rm.Get(pushRemote)
 	if err != nil {
-		return errors.New("invalid remotes configuration or no default remote found")
+		return errors.New("invalid remotes configuration or push remote found")
 	}
 	return nil
 }
@@ -202,12 +188,4 @@ func (dhs *defaultHandlerService) CheckHealthReady(ctx context.Context) error {
 func (dhs *defaultHandlerService) CheckHealthStartup(ctx context.Context) error {
 	err := dhs.CheckHealthReady(ctx)
 	return err
-}
-
-func (dhs *defaultHandlerService) getRemoteManager() (remotes.RemoteManager, error) {
-	if dhs.remoteManager == nil {
-		return nil, errors.New("remote manager is unset")
-	}
-
-	return dhs.remoteManager, nil
 }

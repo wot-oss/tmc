@@ -31,7 +31,11 @@ func Serve(host, port, urlCtxRoot string, spec remotes.RepoSpec) error {
 	// create an instance of a router and our handler
 	r := http.NewRouter()
 
-	handlerService := http.NewDefaultHandlerService(remotes.DefaultManager(), spec)
+	handlerService, err := http.NewDefaultHandlerService(remotes.DefaultManager(), spec)
+	if err != nil {
+		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
+		return err
+	}
 	handler := http.NewTmcHandler(
 		handlerService,
 		http.TmcHandlerOptions{
