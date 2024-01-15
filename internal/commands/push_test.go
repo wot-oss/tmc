@@ -115,15 +115,48 @@ func TestPrepareToImport(t *testing.T) {
 	now := func() time.Time {
 		return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC)
 	}
-	b, _, err := prepareToImport(now, &model.ThingModel{
-		Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
-		Mpn:          "senseall",
-		Author:       model.SchemaAuthor{Name: "author"},
-		Version:      model.Version{Model: "v3.2.1"},
-	}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir")
-	assert.NoError(t, err)
-	assert.False(t, bytes.Contains(b, []byte{'\r'})) // make sure line endings were normalized
-	assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-863e9f0f950a.tm.json")))
+	t.Run("no id in original", func(t *testing.T) {
+		b, _, err := prepareToImport(now, &model.ThingModel{
+			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
+			Mpn:          "senseall",
+			Author:       model.SchemaAuthor{Name: "author"},
+			Version:      model.Version{Model: "v3.2.1"},
+		}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir")
+		assert.NoError(t, err)
+		assert.False(t, bytes.Contains(b, []byte{'\r'})) // make sure line endings were normalized
+		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-863e9f0f950a.tm.json")))
+	})
+	t.Run("foreign string id in original", func(t *testing.T) {
+		b, _, err := prepareToImport(now, &model.ThingModel{
+			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
+			Mpn:          "senseall",
+			Author:       model.SchemaAuthor{Name: "author"},
+			Version:      model.Version{Model: "v3.2.1"},
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"foreign-id\"}"), "opt/dir")
+		assert.NoError(t, err)
+		assert.True(t, bytes.Contains(b, []byte("\"href\":\"foreign-id\"")))
+		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-e8ed3d810b9a.tm.json")))
+	})
+	t.Run("our string id in original/correct hash", func(t *testing.T) {
+		b, _, err := prepareToImport(now, &model.ThingModel{
+			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
+			Mpn:          "senseall",
+			Author:       model.SchemaAuthor{Name: "author"},
+			Version:      model.Version{Model: "v3.2.1"},
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20231010123243-60afcb846e38.tm.json\"}"), "opt/dir")
+		assert.NoError(t, err)
+		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231010123243-60afcb846e38.tm.json")))
+	})
+	t.Run("our string id in original/incorrect hash", func(t *testing.T) {
+		b, _, err := prepareToImport(now, &model.ThingModel{
+			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
+			Mpn:          "senseall",
+			Author:       model.SchemaAuthor{Name: "author"},
+			Version:      model.Version{Model: "v3.2.1"},
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20231010123243-863e9f0f950a.tm.json\"}"), "opt/dir")
+		assert.NoError(t, err)
+		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-60afcb846e38.tm.json")))
+	})
 
 }
 

@@ -234,9 +234,13 @@ func prepareToc() *TOC {
 func TestTOC_Insert(t *testing.T) {
 	toc := &TOC{}
 
-	err := toc.Insert(&CatalogThingModel{
-		ThingModel:     ThingModel{Manufacturer: SchemaManufacturer{Name: "man"}, Mpn: "mpn", Author: SchemaAuthor{Name: "aut"}},
-		ExtendedFields: ExtendedFields{Links: []Link{{Rel: "original", HRef: "externalID"}}, ID: "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json", Description: "descr"},
+	err := toc.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{Name: "aut"},
+		Links:        []Link{{Rel: "original", HRef: "externalID"}},
+		ID:           "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
+		Description:  "descr",
 	})
 
 	assert.NoError(t, err)
@@ -255,17 +259,25 @@ func TestTOC_Insert(t *testing.T) {
 		ExternalID: "externalID",
 	}, toc.Data[0].Versions[0])
 
-	err = toc.Insert(&CatalogThingModel{
-		ThingModel:     ThingModel{Manufacturer: SchemaManufacturer{Name: "man"}, Mpn: "mpn", Author: SchemaAuthor{Name: "aut"}},
-		ExtendedFields: ExtendedFields{Links: nil, ID: "aut/man/mpn/v1.2.6-20231024121314-abcd12345690.tm.json", Description: "descr"},
+	err = toc.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{Name: "aut"},
+		Links:        nil,
+		ID:           "aut/man/mpn/v1.2.6-20231024121314-abcd12345690.tm.json",
+		Description:  "descr",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(toc.Data))
 	assert.Equal(t, 2, len(toc.Data[0].Versions))
 
-	err = toc.Insert(&CatalogThingModel{
-		ThingModel:     ThingModel{Manufacturer: SchemaManufacturer{Name: "man"}, Mpn: "mpn", Author: SchemaAuthor{Name: "aut"}},
-		ExtendedFields: ExtendedFields{Links: nil, ID: "aut/man/mpn/opt/v1.2.6-20231024121314-abcd12345690.tm.json", Description: "descr"},
+	err = toc.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{Name: "aut"},
+		Links:        nil,
+		ID:           "aut/man/mpn/opt/v1.2.6-20231024121314-abcd12345690.tm.json",
+		Description:  "descr",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(toc.Data))
