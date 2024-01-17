@@ -1,5 +1,16 @@
 # Change Log
 
+## [Unreleased]
+
+### Added
+
+- Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
+
+### Changed
+
+- ```create-toc```: renamed to ```update-toc``` and allow for partial updates
+
+
 ## [v0.0.0-alpha.2] - 2023-01-15
 
 ### Fixed
