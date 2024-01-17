@@ -46,7 +46,7 @@ type Remote interface {
 	// Fetch retrieves the Thing Model file from remote
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(id string) (string, []byte, error)
-	CreateToC() error
+	UpdateToc(updatedFiles ...string) error
 	List(search *model.SearchParams) (model.SearchResult, error)
 	Versions(name string) (model.FoundEntry, error)
 	Spec() RepoSpec
@@ -329,7 +329,7 @@ func (r *remoteManager) saveConfig(conf Config) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(configFile, w, 0660)
+	return utils.AtomicWriteFile(configFile, w, 0660)
 }
 
 func AsRemoteConfig(bytes []byte) (map[string]any, error) {

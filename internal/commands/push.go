@@ -18,8 +18,6 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-const pseudoVersionTimestampFormat = "20060102150405"
-
 type Now func() time.Time
 type PushCommand struct {
 	now Now
@@ -151,7 +149,7 @@ func generateNewId(now Now, tm *model.ThingModel, raw []byte, optPath string) mo
 	hashStr := fmt.Sprintf("%x", hash[:6])
 	ver := model.TMVersionFromOriginal(tm.Version.Model)
 	ver.Hash = hashStr
-	ver.Timestamp = now().UTC().Format(pseudoVersionTimestampFormat)
+	ver.Timestamp = now().UTC().Format(model.PseudoVersionTimestampFormat)
 	return model.NewTMID(tm.Author.Name, tm.Manufacturer.Name, tm.Mpn, sanitizePathForID(optPath), ver)
 }
 func sanitizePathForID(p string) string {

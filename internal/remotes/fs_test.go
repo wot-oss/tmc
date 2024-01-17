@@ -1,14 +1,21 @@
 package remotes
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
+	"text/template"
+	"time"
 
+	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"golang.org/x/exp/rand"
 )
 
 func TestNewFileRemote(t *testing.T) {
@@ -267,4 +274,186 @@ func TestFileRemote_Versions(t *testing.T) {
 
 	vers, err = r.Versions("")
 	assert.ErrorContains(t, err, "specify a remoteName")
+}
+
+func TestFileRemote_UpdateTOC(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	spec := NewRemoteSpec("fr")
+	r := &FileRemote{
+		root: temp,
+		spec: spec,
+	}
+	err := copy.Copy("../../test/data/toc", temp)
+	assert.NoError(t, err)
+
+	t.Run("single id/no toc file", func(t *testing.T) {
+		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(toc.Data))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", toc.Data[0].Name)
+		assert.Equal(t, 1, len(toc.Data[0].Versions))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json", toc.Data[0].Versions[0].TMID)
+
+	})
+	t.Run("single id/existing toc file", func(t *testing.T) {
+		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(toc.Data))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", toc.Data[0].Name)
+		assert.Equal(t, 2, len(toc.Data[0].Versions))
+	})
+
+	t.Run("full update/existing toc file", func(t *testing.T) {
+		err = r.UpdateToc()
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(toc.Data))
+	})
+
+	t.Run("full update/no toc file", func(t *testing.T) {
+		err := os.Remove(filepath.Join(temp, TOCFilename))
+		assert.NoError(t, err)
+
+		err = r.UpdateToc()
+		assert.NoError(t, err)
+
+		toc, err := r.readTOC()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(toc.Data))
+	})
+
+}
+
+func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	templ := template.Must(template.New("tm").Parse(pTempl))
+	mockReader := func(name string) ([]byte, error) {
+		mpns, ver := filepath.Split(name)
+		manufs, mpn := filepath.Split(filepath.Clean(mpns))
+		auths, manuf := filepath.Split(filepath.Clean(manufs))
+		auth := filepath.Base(filepath.Clean(auths))
+		ids := fmt.Sprintf("%s/%s/%s/%s", auth, manuf, mpn, ver)
+		id := model.MustParseTMID(ids, false)
+		res := bytes.NewBuffer(nil)
+		err := templ.Execute(res, map[string]any{
+			"manufacturer": id.Manufacturer,
+			"mpn":          id.Mpn,
+			"author":       id.Author,
+			"id":           ids,
+		})
+		assert.NoError(t, err)
+		return res.Bytes(), nil
+	}
+	osReadFile = mockReader
+	defer func() { osReadFile = os.ReadFile }()
+	osStat = func(name string) (os.FileInfo, error) {
+		return fakeFileInfo{name: name}, nil
+	}
+	defer func() { osStat = os.Stat }()
+	spec := NewRemoteSpec("fr")
+	r := &FileRemote{
+		root: temp,
+		spec: spec,
+	}
+
+	N := 50
+	firstDate, _ := time.Parse(model.PseudoVersionTimestampFormat, "20231208142830")
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < N; i++ {
+		wg.Add(1)
+		go func(v int) {
+			date := firstDate.Add(time.Duration(v) * 1 * time.Second).Format(model.PseudoVersionTimestampFormat)
+			b := make([]byte, 6)
+			_, _ = rand.Read(b)
+			err := r.UpdateToc(fmt.Sprintf("author/manuf/mpn/v1.0.%d-%s-%x.tm.json", v, date, b))
+			assert.NoError(t, err)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+	toc, err := r.readTOC()
+	assert.NoError(t, err)
+
+	assert.Equal(t, 1, len(toc.Data))
+	assert.Equal(t, N, len(toc.Data[0].Versions))
+}
+
+var pTempl = `{
+  "@context": [
+    "https://www.w3.org/2022/wot/td/v1.1",
+    {
+		"schema":"https://schema.org/"
+	}
+  ],
+  "@type": "tm:ThingModel",
+  "title": "Lamp Thing Model",
+  "schema:manufacturer": {
+    "schema:name": "{{.manufacturer}}"
+  },
+  "schema:mpn": "{{.mpn}}",
+  "schema:author": {
+    "schema:name": "{{.author}}"
+  },
+  "properties": {
+    "status": {
+      "description": "current status of the lamp (on|off)",
+      "type": "string",
+      "readOnly": true
+    }
+  },
+  "actions": {
+    "toggle": {
+      "description": "Turn the lamp on or off"
+    }
+  },
+  "events": {
+    "overheating": {
+      "description": "Lamp reaches a critical temperature (overheating)",
+      "data": {
+        "type": "string"
+      }
+    }
+  },
+  "version": {
+    "model": "v1.0.{{.ver}}"
+  }
+,"id":"{{.id}}"}`
+
+type fakeFileInfo struct {
+	name string
+}
+
+func (f fakeFileInfo) Name() string {
+	return f.name
+}
+
+func (f fakeFileInfo) Size() int64 {
+	panic("implement me")
+}
+
+func (f fakeFileInfo) Mode() fs.FileMode {
+	panic("implement me")
+}
+
+func (f fakeFileInfo) ModTime() time.Time {
+	panic("implement me")
+}
+
+func (f fakeFileInfo) IsDir() bool {
+	return false
+}
+
+func (f fakeFileInfo) Sys() any {
+	return nil
 }

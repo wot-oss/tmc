@@ -12,24 +12,6 @@ type MockRemote struct {
 	mock.Mock
 }
 
-// CreateToC provides a mock function with given fields:
-func (_m *MockRemote) CreateToC() error {
-	ret := _m.Called()
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateToC")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // Fetch provides a mock function with given fields: id
 func (_m *MockRemote) Fetch(id string) (string, []byte, error) {
 	ret := _m.Called(id)
@@ -126,6 +108,30 @@ func (_m *MockRemote) Spec() RepoSpec {
 		r0 = rf()
 	} else {
 		r0 = ret.Get(0).(RepoSpec)
+	}
+
+	return r0
+}
+
+// UpdateToc provides a mock function with given fields: updatedFiles
+func (_m *MockRemote) UpdateToc(updatedFiles ...string) error {
+	_va := make([]interface{}, len(updatedFiles))
+	for _i := range updatedFiles {
+		_va[_i] = updatedFiles[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateToc")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(...string) error); ok {
+		r0 = rf(updatedFiles...)
+	} else {
+		r0 = ret.Error(0)
 	}
 
 	return r0

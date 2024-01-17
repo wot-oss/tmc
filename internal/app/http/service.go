@@ -151,7 +151,7 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 	if err != nil {
 		return "", err
 	}
-	err = remote.CreateToC()
+	err = remote.UpdateToc(tmID)
 	if err != nil {
 		return "", err
 	}

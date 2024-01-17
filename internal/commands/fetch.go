@@ -137,13 +137,13 @@ func findMostRecentVersion(versions []model.FoundVersion) (id string, source rem
 		}
 		if currentVersion.GreaterThan(latestVersion) {
 			latestVersion = currentVersion
-			latestTimeStamp, err = time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
+			latestTimeStamp, err = time.Parse(model.PseudoVersionTimestampFormat, version.TimeStamp)
 			id = version.TMID
 			source = remotes.NewSpecFromFoundSource(version.FoundIn)
 			continue
 		}
 		if currentVersion.Equal(latestVersion) {
-			currentTimeStamp, err := time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
+			currentTimeStamp, err := time.Parse(model.PseudoVersionTimestampFormat, version.TimeStamp)
 			if err != nil {
 				log.Error(err.Error())
 				return "", remotes.EmptySpec, err
@@ -179,7 +179,7 @@ func findMostRecentTimeStamp(versions []model.FoundVersion, ver *semver.Version)
 		if !currentVersion.Equal(ver) {
 			continue
 		}
-		currentTimeStamp, err := time.Parse(pseudoVersionTimestampFormat, version.TimeStamp)
+		currentTimeStamp, err := time.Parse(model.PseudoVersionTimestampFormat, version.TimeStamp)
 		if err != nil {
 			log.Error(err.Error())
 			return "", remotes.EmptySpec, err
