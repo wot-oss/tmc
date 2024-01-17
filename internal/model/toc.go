@@ -69,7 +69,7 @@ func (toc *TOC) Filter(search *SearchParams) {
 			return true
 		}
 
-		if len(search.Name) > 0 && !matchesFilter([]string{search.Name}, tocEntry.Name) {
+		if !matchesNameFilter(search.Name, tocEntry.Name, search.Options) {
 			return true
 		}
 
@@ -100,6 +100,18 @@ func (toc *TOC) Filter(search *SearchParams) {
 		return false
 	})
 
+}
+
+func matchesNameFilter(acceptedValue string, value string, options *SearchOptions) bool {
+	if len(acceptedValue) == 0 {
+		return true
+	}
+
+	if options != nil && options.NameFilterType == PrefixMatch {
+		return strings.HasPrefix(value, acceptedValue)
+	} else {
+		return value == acceptedValue
+	}
 }
 
 func matchesFilter(acceptedValues []string, value string) bool {

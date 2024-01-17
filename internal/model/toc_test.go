@@ -20,6 +20,20 @@ func TestTOC_Filter(t *testing.T) {
 		assert.NotNil(t, toc.findByName("aut/man/mpn"))
 		assert.Nil(t, toc.findByName("man/mpn"))
 	})
+	t.Run("filter by name with prefix match", func(t *testing.T) {
+		toc := prepareToc()
+		toc.Filter(&SearchParams{Name: "man", Options: &SearchOptions{NameFilterType: PrefixMatch}})
+		assert.Len(t, toc.Data, 1)
+		assert.NotNil(t, toc.findByName("man/mpn"))
+		assert.Nil(t, toc.findByName("aut/man/mpn"))
+
+		toc = prepareToc()
+		toc.Filter(&SearchParams{Name: "aut/man/", Options: &SearchOptions{NameFilterType: PrefixMatch}})
+		assert.Len(t, toc.Data, 2)
+		assert.NotNil(t, toc.findByName("aut/man/mpn"))
+		assert.NotNil(t, toc.findByName("aut/man/mpn2"))
+		assert.Nil(t, toc.findByName("man/mpn"))
+	})
 	t.Run("filter by mpn", func(t *testing.T) {
 		toc := prepareToc()
 		toc.Filter(&SearchParams{Mpn: []string{"mpn2"}})
