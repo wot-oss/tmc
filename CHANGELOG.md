@@ -10,6 +10,7 @@
 ### Changed
 
 - ```create-toc```: renamed to ```update-toc``` and allow for partial updates
+- ```list```: allows now listing by name pattern
 
 
 ## [v0.0.0-alpha.2] - 2023-01-15

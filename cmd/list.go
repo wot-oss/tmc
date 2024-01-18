@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
@@ -12,11 +14,13 @@ import (
 var filterFlags = cli.FilterFlags{}
 
 var listCmd = &cobra.Command{
-	Use:   "list",
+	Use:   "list <NAME PATTERN>",
 	Short: "List TMs in catalog",
-	Long:  `List TMs and optionally filter them`,
-	Args:  cobra.ExactArgs(0),
-	Run:   executeList,
+	Long: `List TMs in catalog by name pattern, filters or search. 
+The pattern can be a full name or just a prefix the names shall start with. 
+Name pattern, filters and search can be combined to narrow down the result.`,
+	Args: cobra.MaximumNArgs(1),
+	Run:  executeList,
 }
 
 func init() {
@@ -34,7 +38,15 @@ func executeList(cmd *cobra.Command, args []string) {
 	remoteName := cmd.Flag("remote").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 
-	search := cli.CreateSearchParamsFromCLI(filterFlags, "")
+	name := ""
+	if len(args) > 0 {
+		name = args[0]
+	}
+	search := cli.CreateSearchParamsFromCLI(filterFlags, name)
+	if search != nil {
+		search.Options = &model.SearchOptions{NameFilterType: model.PrefixMatch}
+	}
+
 	spec, err := remotes.NewSpec(remoteName, dirName)
 	if errors.Is(err, remotes.ErrInvalidSpec) {
 		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
