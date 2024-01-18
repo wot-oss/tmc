@@ -5,6 +5,7 @@
 ### Added
 
 - Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
+- Implemented ```pull``` command to fetch and save multiple thing models at once 
 
 ### Changed
 
