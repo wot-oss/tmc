@@ -28,15 +28,17 @@ type HandlerService interface {
 
 type defaultHandlerService struct {
 	remoteManager remotes.RemoteManager
+	serveRemote   remotes.RepoSpec
 	pushRemote    remotes.RepoSpec
 }
 
-func NewDefaultHandlerService(rm remotes.RemoteManager, pushRemote remotes.RepoSpec) (*defaultHandlerService, error) {
+func NewDefaultHandlerService(rm remotes.RemoteManager, servedRepo remotes.RepoSpec, pushRemote remotes.RepoSpec) (*defaultHandlerService, error) {
 	if rm == nil {
 		return nil, errors.New("remote manager is unset")
 	}
 	dhs := &defaultHandlerService{
 		remoteManager: rm,
+		serveRemote:   servedRepo,
 		pushRemote:    pushRemote,
 	}
 	return dhs, nil
@@ -44,7 +46,7 @@ func NewDefaultHandlerService(rm remotes.RemoteManager, pushRemote remotes.RepoS
 
 func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
 	c := commands.NewListCommand(dhs.remoteManager)
-	toc, err := c.List(remotes.EmptySpec, search)
+	toc, err := c.List(dhs.serveRemote, search)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +132,7 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 	}
 
 	rm := dhs.remoteManager
-	_, data, err := commands.NewFetchCommand(rm).FetchByTMID(remotes.EmptySpec, tmID)
+	_, data, err := commands.NewFetchCommand(rm).FetchByTMID(dhs.serveRemote, tmID)
 	if errors.Is(err, commands.ErrTmNotFound) {
 		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {

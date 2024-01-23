@@ -11,17 +11,17 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func Serve(host, port, urlCtxRoot string, spec remotes.RepoSpec) error {
+func Serve(host, port, urlCtxRoot string, repo, pushTarget remotes.RepoSpec) error {
 
 	err := validateContextRoot(urlCtxRoot)
 	if err != nil {
 		Stderrf(err.Error())
 		return err
 	}
-	_, err = remotes.DefaultManager().Get(spec)
+	_, err = remotes.DefaultManager().Get(pushTarget)
 	if err != nil {
 		if errors.Is(err, remotes.ErrAmbiguous) {
-			Stderrf("must specify target for push with --directory or --remote when there are multiple remotes configured")
+			Stderrf("must specify target for push with --pushTarget when there are multiple remotes configured")
 		} else {
 			Stderrf(err.Error())
 		}
@@ -31,7 +31,7 @@ func Serve(host, port, urlCtxRoot string, spec remotes.RepoSpec) error {
 	// create an instance of a router and our handler
 	r := http.NewRouter()
 
-	handlerService, err := http.NewDefaultHandlerService(remotes.DefaultManager(), spec)
+	handlerService, err := http.NewDefaultHandlerService(remotes.DefaultManager(), repo, pushTarget)
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
 		return err

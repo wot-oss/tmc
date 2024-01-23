@@ -9,6 +9,7 @@
 ### Changed
 
 - ```create-toc```: renamed to ```update-toc``` and allow for partial updates
+- ```serve```: separate configuration of the remote(s) to be served from the target remote for push  
 
 ### Fixed
 
