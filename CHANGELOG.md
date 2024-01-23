@@ -5,10 +5,12 @@
 ### Added
 
 - Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
+- Implemented ```pull``` command to fetch and save multiple thing models at once 
 
 ### Changed
 
 - ```create-toc```: renamed to ```update-toc``` and allow for partial updates
+- ```list```: allows now listing by name pattern
 - ```serve```: separate configuration of the remote(s) to be served from the target remote for push  
 
 ### Fixed

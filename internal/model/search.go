@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+const (
+	FullMatch FilterType = iota
+	PrefixMatch
+)
+
 type SearchResult struct {
 	Entries []FoundEntry
 }
@@ -128,4 +133,11 @@ type SearchParams struct {
 	ExternalID   []string
 	Name         string
 	Query        string
+	Options      SearchOptions
+}
+
+type FilterType byte
+
+type SearchOptions struct {
+	NameFilterType FilterType
 }
