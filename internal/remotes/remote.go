@@ -30,7 +30,7 @@ var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 type Config map[string]map[string]any
 
 var ErrAmbiguous = errors.New("multiple remotes configured, but remote target not specified")
-var ErrRemoteNotFound = errors.New("named remote not found")
+var ErrRemoteNotFound = errors.New("remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote remoteName")
 var ErrRemoteExists = errors.New("named remote already exists")
 var ErrEntryNotFound = errors.New("entry not found")
@@ -132,15 +132,18 @@ func (r *remoteManager) Get(spec RepoSpec) (Remote, error) {
 	if err != nil {
 		return nil, err
 	}
-	name := spec.remoteName
-	rc, ok := remotes[name]
-	if name == "" {
-		if len(remotes) == 1 {
+	remotes = filterEnabled(remotes)
+	rc, ok := remotes[spec.remoteName]
+	if spec.remoteName == "" {
+		switch len(remotes) {
+		case 0:
+			return nil, ErrRemoteNotFound
+		case 1:
 			for n, v := range remotes {
 				rc = v
-				name = n
+				spec.remoteName = n
 			}
-		} else {
+		default:
 			return nil, ErrAmbiguous
 		}
 	} else {
@@ -148,12 +151,19 @@ func (r *remoteManager) Get(spec RepoSpec) (Remote, error) {
 			return nil, ErrRemoteNotFound
 		}
 	}
-
-	enabled := utils.JsGetBool(rc, KeyRemoteEnabled)
-	if enabled != nil && !*enabled {
-		return nil, ErrRemoteNotFound
-	}
 	return createRemote(rc, spec)
+}
+
+func filterEnabled(remotes Config) Config {
+	res := make(Config)
+	for n, rc := range remotes {
+		enabled := utils.JsGetBool(rc, KeyRemoteEnabled)
+		if enabled != nil && !*enabled {
+			continue
+		}
+		res[n] = rc
+	}
+	return res
 }
 
 func createRemote(rc map[string]any, spec RepoSpec) (Remote, error) {

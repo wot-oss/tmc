@@ -11,7 +11,11 @@
 
 - ```create-toc```: renamed to ```update-toc``` and allow for partial updates
 - ```list```: allows now listing by name pattern
+- ```serve```: separate configuration of the remote(s) to be served from the target remote for push  
 
+### Fixed
+
+- count only enabled remotes when checking if empty remote specification is unambiguous
 
 ## [v0.0.0-alpha.2] - 2023-01-15
 

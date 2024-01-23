@@ -102,7 +102,6 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&HttpRemote{}) }))
 		})
 		t.Run("file remote", func(t *testing.T) {
-
 			fr, err := rm.Get(NewRemoteSpec("r1"))
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRemote{
@@ -112,7 +111,6 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 
 		})
 		t.Run("http remote", func(t *testing.T) {
-
 			hr, err := rm.Get(NewRemoteSpec("r2"))
 			assert.NoError(t, err)
 			u, _ := url.Parse(ur)
@@ -140,6 +138,124 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 
 	})
 
+	t.Run("one enabled remote", func(t *testing.T) {
+		viper.Set(KeyRemotes, map[string]any{
+			"r1": map[string]any{
+				"type": "file",
+				"loc":  "somewhere",
+			},
+			"r2": map[string]any{
+				"type":    "http",
+				"loc":     ur,
+				"enabled": false,
+			},
+		})
+		t.Run("all", func(t *testing.T) {
+			all, err := rm.All()
+			assert.NoError(t, err)
+			assert.Len(t, all, 1)
+			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
+		})
+		t.Run("named file remote", func(t *testing.T) {
+			fr, err := rm.Get(NewRemoteSpec("r1"))
+			assert.NoError(t, err)
+			assert.Equal(t, &FileRemote{
+				root: "somewhere",
+				spec: NewRemoteSpec("r1"),
+			}, fr)
+
+		})
+		t.Run("empty spec", func(t *testing.T) {
+			fr, err := rm.Get(EmptySpec)
+			assert.NoError(t, err)
+			assert.Equal(t, &FileRemote{
+				root: "somewhere",
+				spec: NewRemoteSpec("r1"),
+			}, fr)
+
+		})
+		t.Run("http remote", func(t *testing.T) {
+			_, err := rm.Get(NewRemoteSpec("r2"))
+			assert.ErrorIs(t, err, ErrRemoteNotFound)
+		})
+
+	})
+	t.Run("two enabled remotes", func(t *testing.T) {
+		viper.Set(KeyRemotes, map[string]any{
+			"r1": map[string]any{
+				"type": "file",
+				"loc":  "somewhere",
+			},
+			"r2": map[string]any{
+				"type":    "http",
+				"loc":     ur,
+				"enabled": false,
+			},
+			"r3": map[string]any{
+				"type": "file",
+				"loc":  "somewhere/else",
+			},
+		})
+		t.Run("all", func(t *testing.T) {
+			all, err := rm.All()
+			assert.NoError(t, err)
+			assert.Len(t, all, 2)
+			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
+		})
+		t.Run("named file remote", func(t *testing.T) {
+			fr, err := rm.Get(NewRemoteSpec("r3"))
+			assert.NoError(t, err)
+			assert.Equal(t, &FileRemote{
+				root: "somewhere/else",
+				spec: NewRemoteSpec("r3"),
+			}, fr)
+
+		})
+		t.Run("empty spec", func(t *testing.T) {
+			_, err := rm.Get(EmptySpec)
+			assert.ErrorIs(t, err, ErrAmbiguous)
+		})
+		t.Run("http remote", func(t *testing.T) {
+			_, err := rm.Get(NewRemoteSpec("r2"))
+			assert.ErrorIs(t, err, ErrRemoteNotFound)
+		})
+
+	})
+	t.Run("no enabled remotes", func(t *testing.T) {
+		viper.Set(KeyRemotes, map[string]any{
+			"r1": map[string]any{
+				"type":    "file",
+				"loc":     "somewhere",
+				"enabled": false,
+			},
+			"r2": map[string]any{
+				"type":    "http",
+				"loc":     ur,
+				"enabled": false,
+			},
+		})
+		t.Run("all", func(t *testing.T) {
+			all, err := rm.All()
+			assert.NoError(t, err)
+			assert.Len(t, all, 0)
+		})
+		t.Run("named file remote", func(t *testing.T) {
+			_, err := rm.Get(NewRemoteSpec("r1"))
+			assert.ErrorIs(t, err, ErrRemoteNotFound)
+		})
+		t.Run("ad-hoc remote", func(t *testing.T) {
+			ar, err := rm.Get(NewDirSpec("directory"))
+			assert.NoError(t, err)
+			assert.Equal(t, &FileRemote{
+				root: "directory",
+				spec: RepoSpec{"", "directory"},
+			}, ar)
+		})
+		t.Run("empty spec", func(t *testing.T) {
+			_, err := rm.Get(EmptySpec)
+			assert.ErrorIs(t, err, ErrRemoteNotFound)
+		})
+	})
 }
 
 func TestGetSpecdOrAll(t *testing.T) {
