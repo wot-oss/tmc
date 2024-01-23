@@ -22,6 +22,8 @@ func Serve(host, port, urlCtxRoot string, repo, pushTarget remotes.RepoSpec) err
 	if err != nil {
 		if errors.Is(err, remotes.ErrAmbiguous) {
 			Stderrf("must specify target for push with --pushTarget when there are multiple remotes configured")
+		} else if errors.Is(err, remotes.ErrRemoteNotFound) {
+			Stderrf("invalid --pushTarget: %v", err)
 		} else {
 			Stderrf(err.Error())
 		}
