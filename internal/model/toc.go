@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 	"time"
@@ -102,15 +103,18 @@ func (toc *TOC) Filter(search *SearchParams) {
 
 }
 
-func matchesNameFilter(acceptedValue string, value string, options *SearchOptions) bool {
+func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
 	if len(acceptedValue) == 0 {
 		return true
 	}
 
-	if options != nil && options.NameFilterType == PrefixMatch {
-		return strings.HasPrefix(value, acceptedValue)
-	} else {
+	switch options.NameFilterType {
+	case FullMatch:
 		return value == acceptedValue
+	case PrefixMatch:
+		return strings.HasPrefix(value, acceptedValue)
+	default:
+		panic(fmt.Sprintf("unsupported NameFilterType: %d", options.NameFilterType))
 	}
 }
 

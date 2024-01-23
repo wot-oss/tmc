@@ -52,7 +52,7 @@ func executePull(cmd *cobra.Command, args []string) {
 	}
 	search := cli.CreateSearchParamsFromCLI(pFilterFlags, name)
 	if search != nil {
-		search.Options = &model.SearchOptions{NameFilterType: model.PrefixMatch}
+		search.Options = model.SearchOptions{NameFilterType: model.PrefixMatch}
 	}
 
 	err = cli.NewPullExecutor(remotes.DefaultManager()).Pull(spec, search, outputPath)

@@ -44,7 +44,7 @@ func executeList(cmd *cobra.Command, args []string) {
 	}
 	search := cli.CreateSearchParamsFromCLI(filterFlags, name)
 	if search != nil {
-		search.Options = &model.SearchOptions{NameFilterType: model.PrefixMatch}
+		search.Options = model.SearchOptions{NameFilterType: model.PrefixMatch}
 	}
 
 	spec, err := remotes.NewSpec(remoteName, dirName)

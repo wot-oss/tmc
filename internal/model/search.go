@@ -133,7 +133,7 @@ type SearchParams struct {
 	ExternalID   []string
 	Name         string
 	Query        string
-	Options      *SearchOptions
+	Options      SearchOptions
 }
 
 type FilterType byte
