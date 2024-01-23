@@ -132,13 +132,13 @@ func (r *remoteManager) Get(spec RepoSpec) (Remote, error) {
 	if err != nil {
 		return nil, err
 	}
-	name := spec.remoteName
-	rc, ok := remotes[name]
-	if name == "" {
+	remotes = filterEnabled(remotes)
+	rc, ok := remotes[spec.remoteName]
+	if spec.remoteName == "" {
 		if len(remotes) == 1 {
 			for n, v := range remotes {
 				rc = v
-				name = n
+				spec.remoteName = n
 			}
 		} else {
 			return nil, ErrAmbiguous
@@ -148,12 +148,19 @@ func (r *remoteManager) Get(spec RepoSpec) (Remote, error) {
 			return nil, ErrRemoteNotFound
 		}
 	}
-
-	enabled := utils.JsGetBool(rc, KeyRemoteEnabled)
-	if enabled != nil && !*enabled {
-		return nil, ErrRemoteNotFound
-	}
 	return createRemote(rc, spec)
+}
+
+func filterEnabled(remotes Config) Config {
+	res := make(Config)
+	for n, rc := range remotes {
+		enabled := utils.JsGetBool(rc, KeyRemoteEnabled)
+		if enabled != nil && !*enabled {
+			continue
+		}
+		res[n] = rc
+	}
+	return res
 }
 
 func createRemote(rc map[string]any, spec RepoSpec) (Remote, error) {

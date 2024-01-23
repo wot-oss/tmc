@@ -10,6 +10,9 @@
 
 - ```create-toc```: renamed to ```update-toc``` and allow for partial updates
 
+### Fixed
+
+- count only enabled remotes when checking if empty remote specification is unambiguous
 
 ## [v0.0.0-alpha.2] - 2023-01-15
 
