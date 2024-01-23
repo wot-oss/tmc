@@ -30,7 +30,7 @@ var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 type Config map[string]map[string]any
 
 var ErrAmbiguous = errors.New("multiple remotes configured, but remote target not specified")
-var ErrRemoteNotFound = errors.New("named remote not found")
+var ErrRemoteNotFound = errors.New("remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote remoteName")
 var ErrRemoteExists = errors.New("named remote already exists")
 var ErrEntryNotFound = errors.New("entry not found")
@@ -135,12 +135,15 @@ func (r *remoteManager) Get(spec RepoSpec) (Remote, error) {
 	remotes = filterEnabled(remotes)
 	rc, ok := remotes[spec.remoteName]
 	if spec.remoteName == "" {
-		if len(remotes) == 1 {
+		switch len(remotes) {
+		case 0:
+			return nil, ErrRemoteNotFound
+		case 1:
 			for n, v := range remotes {
 				rc = v
 				spec.remoteName = n
 			}
-		} else {
+		default:
 			return nil, ErrAmbiguous
 		}
 	} else {
