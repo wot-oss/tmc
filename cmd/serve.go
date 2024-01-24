@@ -5,8 +5,10 @@ import (
 	"os"
 
 	"github.com/spf13/viper"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
@@ -31,7 +33,14 @@ func init() {
 	serveCmd.Flags().StringP("pushTarget", "t", "", "name of the remote to use as target for push operations")
 	serveCmd.Flags().StringP("urlContextRoot", "", "",
 		"define additional URL context root path to be considered in hypermedia links,\ncan also be set via environment variable TMC_URLCONTEXTROOT")
+	serveCmd.Flags().StringP("corsAllowedOrigins", "", "", "set comma-separated list for CORS allowed origins")
+	serveCmd.Flags().StringP("corsAllowedHeaders", "", "", "set comma-separated list for CORS allowed headers")
+	serveCmd.Flags().BoolP("corsAllowCredentials", "", false, "set CORS allow credentials")
+
 	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup("urlContextRoot"))
+	_ = viper.BindPFlag(config.KeyCorsAllowedOrigins, serveCmd.Flags().Lookup("corsAllowedOrigins"))
+	_ = viper.BindPFlag(config.KeyCorsAllowedHeaders, serveCmd.Flags().Lookup("corsAllowedHeaders"))
+	_ = viper.BindPFlag(config.KeyCorsAllowCredentials, serveCmd.Flags().Lookup("corsAllowCredentials"))
 }
 
 func serve(cmd *cobra.Command, args []string) {
@@ -47,13 +56,25 @@ func serve(cmd *cobra.Command, args []string) {
 	}
 
 	urlCtxRoot := viper.GetString(config.KeyUrlContextRoot)
+	opts := getServerOptions()
+
 	pushSpec := spec
 	if pushTarget != "" {
 		pushSpec = remotes.NewRemoteSpec(pushTarget)
 	}
-	err = cli.Serve(host, port, urlCtxRoot, spec, pushSpec)
+	err = cli.Serve(host, port, urlCtxRoot, opts, spec, pushSpec)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)
 	}
+}
+
+func getServerOptions() http.ServerOptions {
+	opts := http.ServerOptions{}
+
+	opts.CORS.AddAllowedOrigins(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedOrigins), cli.DefaultListSeparator, true)...)
+	opts.CORS.AddAllowedHeaders(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedHeaders), cli.DefaultListSeparator, true)...)
+	opts.CORS.AddAllowCredentials(viper.GetBool(config.KeyCorsAllowCredentials))
+
+	return opts
 }

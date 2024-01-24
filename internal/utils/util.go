@@ -129,3 +129,17 @@ func ConvertToNativeLineEndings(b []byte) []byte {
 func AtomicWriteFile(name string, data []byte, perm os.FileMode) error {
 	return atomicWriteFile(name, data, perm)
 }
+
+func ParseAsList(list, separator string, trim bool) []string {
+	ret := make([]string, 0)
+
+	for _, entry := range strings.Split(list, separator) {
+		if trim {
+			entry = strings.TrimSpace(entry)
+		}
+		if entry != "" {
+			ret = append(ret, entry)
+		}
+	}
+	return ret
+}
