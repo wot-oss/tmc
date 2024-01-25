@@ -25,8 +25,12 @@ func TestCORSOptions(t *testing.T) {
 	assert.Equal(t, []string{"X-Api-Key", "Content-Type"}, underTest.allowedHeaders)
 
 	assert.False(t, underTest.allowCredentials)
-	underTest.AddAllowCredentials(true)
+	underTest.AllowCredentials(true)
 	assert.True(t, underTest.allowCredentials)
+
+	assert.Equal(t, 0, underTest.maxAge)
+	underTest.MaxAge(120)
+	assert.Equal(t, 120, underTest.maxAge)
 }
 
 func TestWithCORS(t *testing.T) {
@@ -34,7 +38,8 @@ func TestWithCORS(t *testing.T) {
 	cOpts := CORSOptions{}
 	cOpts.AddAllowedHeaders("X-Api-Key", "X-Bar")
 	cOpts.AddAllowedOrigins("http://example.org", "https://sample.com")
-	cOpts.AddAllowCredentials(true)
+	cOpts.AllowCredentials(true)
+	cOpts.MaxAge(120)
 
 	sOpts := ServerOptions{
 		CORS: cOpts,
@@ -50,6 +55,7 @@ func TestWithCORS(t *testing.T) {
 	corsOrigins := fmt.Sprintf("%v", reflect.Indirect(immutable).FieldByName("allowedOrigins"))
 	corsHeaders := fmt.Sprintf("%v", reflect.Indirect(immutable).FieldByName("allowedHeaders"))
 	corsCredentials := fmt.Sprintf("%v", reflect.Indirect(immutable).FieldByName("allowCredentials"))
+	corsMaxAge := fmt.Sprintf("%v", reflect.Indirect(immutable).FieldByName("maxAge"))
 
 	// then: origins are set correct on CORS middleware handler
 	assert.Equal(t, "[http://example.org https://sample.com]", corsOrigins)
@@ -57,6 +63,8 @@ func TestWithCORS(t *testing.T) {
 	assert.Equal(t, "[Accept Accept-Language Content-Language Origin X-Api-Key X-Bar Content-Type]", corsHeaders)
 	// then: allow credentials is set correct on CORS middleware handler
 	assert.Equal(t, "true", corsCredentials)
+	// then: max age is set correct on CORS middleware handler
+	assert.Equal(t, "120", corsMaxAge)
 }
 
 func TestWithCORSOnRequest(t *testing.T) {
@@ -67,6 +75,7 @@ func TestWithCORSOnRequest(t *testing.T) {
 	// given: CORS options with an allowed origin
 	co := CORSOptions{}
 	co.AddAllowedOrigins(allowedOrigin)
+	co.MaxAge(120)
 	opts := ServerOptions{
 		CORS: co,
 	}
@@ -87,6 +96,8 @@ func TestWithCORSOnRequest(t *testing.T) {
 
 		// then: the response header "Access-Control-Allow-Origin" contains the allowed origin
 		assert.Equal(t, allowedOrigin, rec.Header().Get("Access-Control-Allow-Origin"))
+		// and then: the response header "Access-Control-Max-Age" is set
+		assert.Equal(t, "120", rec.Header().Get("Access-Control-Max-Age"))
 	})
 
 	t.Run("request with a not allowed origin", func(t *testing.T) {

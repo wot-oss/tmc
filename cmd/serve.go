@@ -36,11 +36,13 @@ func init() {
 	serveCmd.Flags().StringP("corsAllowedOrigins", "", "", "set comma-separated list for CORS allowed origins")
 	serveCmd.Flags().StringP("corsAllowedHeaders", "", "", "set comma-separated list for CORS allowed headers")
 	serveCmd.Flags().BoolP("corsAllowCredentials", "", false, "set CORS allow credentials")
+	serveCmd.Flags().IntP("corsMaxAge", "", 0, "set how long result of CORS preflight request can be cached in seconds (default 0, max 600)")
 
 	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup("urlContextRoot"))
 	_ = viper.BindPFlag(config.KeyCorsAllowedOrigins, serveCmd.Flags().Lookup("corsAllowedOrigins"))
 	_ = viper.BindPFlag(config.KeyCorsAllowedHeaders, serveCmd.Flags().Lookup("corsAllowedHeaders"))
 	_ = viper.BindPFlag(config.KeyCorsAllowCredentials, serveCmd.Flags().Lookup("corsAllowCredentials"))
+	_ = viper.BindPFlag(config.KeyCorsMaxAge, serveCmd.Flags().Lookup("corsMaxAge"))
 }
 
 func serve(cmd *cobra.Command, args []string) {
@@ -74,7 +76,8 @@ func getServerOptions() http.ServerOptions {
 
 	opts.CORS.AddAllowedOrigins(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedOrigins), cli.DefaultListSeparator, true)...)
 	opts.CORS.AddAllowedHeaders(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedHeaders), cli.DefaultListSeparator, true)...)
-	opts.CORS.AddAllowCredentials(viper.GetBool(config.KeyCorsAllowCredentials))
+	opts.CORS.AllowCredentials(viper.GetBool(config.KeyCorsAllowCredentials))
+	opts.CORS.MaxAge(viper.GetInt(config.KeyCorsMaxAge))
 
 	return opts
 }

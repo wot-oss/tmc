@@ -14,6 +14,7 @@ const (
 	KeyCorsAllowedOrigins   = "corsAllowedOrigins"
 	KeyCorsAllowedHeaders   = "corsAllowedHeaders"
 	KeyCorsAllowCredentials = "corsAllowCredentials"
+	KeyCorsMaxAge           = "corsMaxAge"
 	EnvPrefix               = "tmc"
 )
 
@@ -56,4 +57,5 @@ func InitViper() {
 	_ = viper.BindEnv(KeyCorsAllowedOrigins)   // env variable name = TMC_CORSALLOWEDORIGINS
 	_ = viper.BindEnv(KeyCorsAllowedHeaders)   // env variable name = TMC_CORSALLOWEDHEADERS
 	_ = viper.BindEnv(KeyCorsAllowCredentials) // env variable name = TMC_CORSALLOWCREDENTIALS
+	_ = viper.BindEnv(KeyCorsMaxAge)           // env variable name = TMC_CORSMAXAGE
 }

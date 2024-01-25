@@ -16,6 +16,7 @@ type CORSOptions struct {
 	allowedOrigins   []string
 	allowedHeaders   []string
 	allowCredentials bool
+	maxAge           int
 }
 
 func (co *CORSOptions) AddAllowedOrigins(origins ...string) {
@@ -34,8 +35,12 @@ func (co *CORSOptions) AddAllowedHeaders(headers ...string) {
 	}
 }
 
-func (co *CORSOptions) AddAllowCredentials(allow bool) {
+func (co *CORSOptions) AllowCredentials(allow bool) {
 	co.allowCredentials = allow
+}
+
+func (co *CORSOptions) MaxAge(max int) {
+	co.maxAge = max
 }
 
 func NewHttpHandler(si ServerInterface) http.Handler {
@@ -63,9 +68,14 @@ func WithCORS(h http.Handler, opts ServerOptions) http.Handler {
 		http.MethodOptions,
 		http.MethodHead,
 		http.MethodDelete}))
+
 	if opts.CORS.allowCredentials {
 		corsOpts = append(corsOpts, handlers.AllowCredentials())
 	}
+	if opts.CORS.maxAge > 0 {
+		corsOpts = append(corsOpts, handlers.MaxAge(opts.CORS.maxAge))
+	}
+
 	return handlers.CORS(corsOpts...)(h)
 }
 
