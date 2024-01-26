@@ -21,7 +21,7 @@ func TestPushExecutor_Push(t *testing.T) {
 
 		now := func() time.Time { return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC) }
 		e := NewPushExecutor(rm, now)
-		id := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json"
+		id := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
 		r.On("UpdateToc", id).Return(nil)
@@ -42,13 +42,13 @@ func TestPushExecutor_Push(t *testing.T) {
 
 	t.Run("push when remote has the same TM", func(t *testing.T) {
 
-		tmid2 := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231111123243-1e788769a659.tm.json", false)
+		tmid2 := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231111123243-98b3fbd291f4.tm.json", false)
 
 		now := func() time.Time {
 			return time.Date(2023, time.November, 11, 12, 32, 43, 0, time.UTC)
 		}
 		e := NewPushExecutor(rm, now)
-		r.On("Push", tmid2, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json"})
+		r.On("Push", tmid2, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
 		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", remotes.NewRemoteSpec("remote"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
@@ -57,7 +57,7 @@ func TestPushExecutor_Push(t *testing.T) {
 
 	t.Run("push fails", func(t *testing.T) {
 
-		tmid3 := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20230811123243-1e788769a659.tm.json", false)
+		tmid3 := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20230811123243-98b3fbd291f4.tm.json", false)
 		now := func() time.Time {
 			return time.Date(2023, time.August, 11, 12, 32, 43, 0, time.UTC)
 		}
@@ -72,7 +72,7 @@ func TestPushExecutor_Push(t *testing.T) {
 	t.Run("push with optPath", func(t *testing.T) {
 		now := func() time.Time { return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC) }
 		e := NewPushExecutor(rm, now)
-		id := "omnicorp-TM-department/omnicorp/omnilamp/a/b/c/v3.2.1-20231110123243-1e788769a659.tm.json"
+		id := "omnicorp-TM-department/omnicorp/omnilamp/a/b/c/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
 		r.On("UpdateToc", id).Return(nil)
@@ -92,17 +92,17 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 	t.Run("push directory", func(t *testing.T) {
 		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)
 		e := NewPushExecutor(rm, clk.Now)
-		tmid := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json", false)
+		tmid := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json", false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-be839ce9daf1.tm.json", false)
+		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json", false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123245-1e788769a659.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json"})
-		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123246-be839ce9daf1.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-be839ce9daf1.tm.json"})
+		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123245-98b3fbd291f4.tm.json", false)
+		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
+		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123246-575dfac219e2.tm.json", false)
+		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"})
 		r.On("UpdateToc",
-			"omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json",
-			"omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-be839ce9daf1.tm.json").Return(nil)
+			"omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
+			"omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
 
 		res, err := e.Push("../../../test/data/push", remotes.NewRemoteSpec("remote"), "", false)
 		assert.NoError(t, err)
@@ -117,16 +117,16 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 	t.Run("push directory with optPath", func(t *testing.T) {
 		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)
 		e := NewPushExecutor(rm, clk.Now)
-		id1 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v3.2.1-20231110123243-1e788769a659.tm.json"
+		id1 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id1, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		id2 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123244-be839ce9daf1.tm.json"
+		id2 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123244-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id2, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		id3 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v3.2.1-20231110123245-1e788769a659.tm.json"
+		id3 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v3.2.1-20231110123245-98b3fbd291f4.tm.json"
 		tmid = model.MustParseTMID(id3, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		id4 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123246-be839ce9daf1.tm.json"
+		id4 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
 		r.On("UpdateToc", id1, id2, id3, id4).Return(nil)
@@ -143,16 +143,16 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 	t.Run("push directory with optTree", func(t *testing.T) {
 		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)
 		e := NewPushExecutor(rm, clk.Now)
-		id1 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-1e788769a659.tm.json"
+		id1 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id1, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		id2 := "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-be839ce9daf1.tm.json"
+		id2 := "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id2, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		id3 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20231110123245-1e788769a659.tm.json"
+		id3 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20231110123245-98b3fbd291f4.tm.json"
 		tmid = model.MustParseTMID(id3, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		id4 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20231110123246-be839ce9daf1.tm.json"
+		id4 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
 		r.On("UpdateToc", id1, id2, id3, id4).Return(nil)

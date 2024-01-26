@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
@@ -44,11 +45,11 @@ func Serve(host, port, urlCtxRoot string, repo, pushTarget remotes.RepoSpec) err
 			UrlContextRoot: urlCtxRoot,
 		})
 
-	options := http.GorillaServerOptions{
+	options := server.GorillaServerOptions{
 		BaseRouter:       r,
 		ErrorHandlerFunc: http.HandleErrorResponse,
 	}
-	http.HandlerWithOptions(handler, options)
+	_ = server.HandlerWithOptions(handler, options)
 
 	s := &nethttp.Server{
 		Handler: r,

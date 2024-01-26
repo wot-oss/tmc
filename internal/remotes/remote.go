@@ -23,6 +23,7 @@ const (
 
 	RemoteTypeFile = "file"
 	RemoteTypeHttp = "http"
+	RemoteTypeTmc  = "tmc"
 )
 
 var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -36,7 +37,7 @@ var ErrRemoteExists = errors.New("named remote already exists")
 var ErrEntryNotFound = errors.New("entry not found")
 var ErrInvalidSpec = errors.New("illegal remote spec: both dir and remoteName given")
 
-var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp}
+var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp, RemoteTypeTmc}
 
 //go:generate mockery --name Remote --inpackage
 type Remote interface {
@@ -48,7 +49,7 @@ type Remote interface {
 	Fetch(id string) (string, []byte, error)
 	UpdateToc(updatedFiles ...string) error
 	List(search *model.SearchParams) (model.SearchResult, error)
-	Versions(name string) (model.FoundEntry, error)
+	Versions(name string) ([]model.FoundVersion, error)
 	Spec() RepoSpec
 }
 
@@ -172,6 +173,8 @@ func createRemote(rc map[string]any, spec RepoSpec) (Remote, error) {
 		return NewFileRemote(rc, spec)
 	case RemoteTypeHttp:
 		return NewHttpRemote(rc, spec)
+	case RemoteTypeTmc:
+		return NewTmcRemote(rc, spec)
 	default:
 		return nil, fmt.Errorf("unsupported remote type: %v. Supported types are %v", t, SupportedTypes)
 	}
@@ -277,6 +280,11 @@ func (r *remoteManager) setRemoteConfig(name string, typ string, confStr string,
 		}
 	case RemoteTypeHttp:
 		rc, err = createHttpRemoteConfig(confStr, confFile)
+		if err != nil {
+			return err
+		}
+	case RemoteTypeTmc:
+		rc, err = createTmcRemoteConfig(confStr, confFile)
 		if err != nil {
 			return err
 		}

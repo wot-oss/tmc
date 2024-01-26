@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
@@ -56,12 +57,12 @@ func setupTestRouter(hs HandlerService) *mux.Router {
 		})
 
 	r := NewRouter()
-	options := GorillaServerOptions{
+	options := server.GorillaServerOptions{
 		BaseRouter:       r,
 		ErrorHandlerFunc: HandleErrorResponse,
 	}
 
-	HandlerWithOptions(handler, options)
+	server.HandlerWithOptions(handler, options)
 
 	return r
 }
@@ -178,7 +179,7 @@ func Test_Inventory(t *testing.T) {
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
-		var response InventoryResponse
+		var response server.InventoryResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: the result contains all data
 		assert.Equal(t, 2, len(response.Data))
@@ -246,7 +247,7 @@ func Test_InventoryByName(t *testing.T) {
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
-		var response InventoryEntryResponse
+		var response server.InventoryEntryResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: result has all data set
 		assertInventoryEntry(t, mockInventoryEntry, response.Data)
@@ -280,7 +281,7 @@ func Test_InventoryEntryVersionsByName(t *testing.T) {
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
-		var response InventoryEntryVersionsResponse
+		var response server.InventoryEntryVersionsResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: result has all data set
 		assertInventoryEntryVersions(t, mockInventoryEntry.Versions, response.Data)
@@ -311,7 +312,7 @@ func Test_Authors(t *testing.T) {
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
-		var response AuthorsResponse
+		var response server.AuthorsResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then result contains all data
 		assert.Equal(t, authors, response.Data)
@@ -373,7 +374,7 @@ func Test_Manufacturers(t *testing.T) {
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
-		var response ManufacturersResponse
+		var response server.ManufacturersResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then result contains all data
 		assert.Equal(t, manufacturers, response.Data)
@@ -434,7 +435,7 @@ func Test_Mpns(t *testing.T) {
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
-		var response MpnsResponse
+		var response server.MpnsResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: duplicates are removed
 		assert.Equal(t, 3, len(response.Data))
@@ -540,7 +541,7 @@ func Test_PushThingModel(t *testing.T) {
 		// then: it returns status 201
 		assertResponse201(t, rec)
 		// and then: the body is of correct type
-		var response PushThingModelResponse
+		var response server.PushThingModelResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: tmID is set in response
 		assert.NotNil(t, response.Data.TmID)
@@ -606,7 +607,7 @@ func assertResponse201(t *testing.T, rec *httptest.ResponseRecorder) {
 
 func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route string) {
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
-	var errResponse ErrorResponse
+	var errResponse server.ErrorResponse
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusBadRequest, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
@@ -618,7 +619,7 @@ func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route strin
 
 func assertResponse404(t *testing.T, rec *httptest.ResponseRecorder, route string) {
 	assert.Equal(t, http.StatusNotFound, rec.Code)
-	var errResponse ErrorResponse
+	var errResponse server.ErrorResponse
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusNotFound, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
@@ -630,7 +631,7 @@ func assertResponse404(t *testing.T, rec *httptest.ResponseRecorder, route strin
 
 func assertResponse500(t *testing.T, rec *httptest.ResponseRecorder, route string) {
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	var errResponse ErrorResponse
+	var errResponse server.ErrorResponse
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusInternalServerError, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
@@ -643,7 +644,7 @@ func assertResponse500(t *testing.T, rec *httptest.ResponseRecorder, route strin
 
 func assertResponse503(t *testing.T, rec *httptest.ResponseRecorder, route string) {
 	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
-	var errResponse ErrorResponse
+	var errResponse server.ErrorResponse
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusServiceUnavailable, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
@@ -658,7 +659,7 @@ func assertUnmarshalResponse(t *testing.T, data []byte, v any) {
 	assert.NoError(t, err, "error unmarshalling response")
 }
 
-func assertInventoryEntry(t *testing.T, ref model.FoundEntry, entry InventoryEntry) {
+func assertInventoryEntry(t *testing.T, ref model.FoundEntry, entry server.InventoryEntry) {
 	assert.Equal(t, ref.Name, entry.Name)
 	assert.Equal(t, ref.Author.Name, entry.SchemaAuthor.SchemaName)
 	assert.Equal(t, ref.Manufacturer.Name, entry.SchemaManufacturer.SchemaName)
@@ -669,7 +670,7 @@ func assertInventoryEntry(t *testing.T, ref model.FoundEntry, entry InventoryEnt
 	assertInventoryEntryVersions(t, ref.Versions, entry.Versions)
 }
 
-func assertInventoryEntryVersions(t *testing.T, ref []model.FoundVersion, versions []InventoryEntryVersion) {
+func assertInventoryEntryVersions(t *testing.T, ref []model.FoundVersion, versions []server.InventoryEntryVersion) {
 	for idx, refVer := range ref {
 		entryVer := versions[idx]
 

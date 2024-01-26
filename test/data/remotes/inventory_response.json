@@ -1,0 +1,91 @@
+{
+  "data": [
+    {
+      "name": "omnicorp-R-D-research/omnicorp/senseall",
+      "schema:author": {
+        "schema:name": "omnicorp-R-D-research"
+      },
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "senseall",
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "./thing-models/omnicorp-R-D-research/omnicorp/senseall/v1.0.1-20240110180532-9949f719fd0f.tm.json"
+          },
+          "tmID": "omnicorp-R-D-research/omnicorp/senseall/v1.0.1-20240110180532-9949f719fd0f.tm.json",
+          "digest": "9949f719fd0f",
+          "timestamp": "20240110180532",
+          "externalID": ""
+        }
+      ],
+      "links": {
+        "self": "./inventory/omnicorp-R-D-research/omnicorp/senseall"
+      }
+    },
+    {
+      "name": "omnicorp/lightall",
+      "schema:author": {
+        "schema:name": "omnicorp"
+      },
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "lightall",
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "./thing-models/omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json"
+          },
+          "tmID": "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+          "digest": "c81be4ed973d",
+          "timestamp": "20240104165612",
+          "externalID": ""
+        }
+      ],
+      "links": {
+        "self": "./inventory/omnicorp/lightall"
+      }
+    },
+    {
+      "name": "omnicorp/lightall-mk2",
+      "schema:author": {
+        "schema:name": "omnicorp"
+      },
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "lightall-mk2",
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "2.0.0"
+          },
+          "links": {
+            "content": "./thing-models/omnicorp/lightall-mk2/v2.0.0-20240104165612-2bcba1d82b19.tm.json"
+          },
+          "tmID": "omnicorp/lightall-mk2/v2.0.0-20240104165612-2bcba1d82b19.tm.json",
+          "digest": "2bcba1d82b19",
+          "timestamp": "20240104165612",
+          "externalID": ""
+        }
+      ],
+      "links": {
+        "self": "./inventory/omnicorp/lightall-mk2"
+      }
+    }
+  ],
+  "meta": {
+    "created": "0001-01-01T00:00:00Z"
+  }
+}

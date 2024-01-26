@@ -48,7 +48,7 @@ func serve(cmd *cobra.Command, args []string) {
 
 	urlCtxRoot := viper.GetString(config.KeyUrlContextRoot)
 	pushSpec := spec
-	if pushTarget != "" {
+	if remote == "" && dir == "" && pushTarget != "" {
 		pushSpec = remotes.NewRemoteSpec(pushTarget)
 	}
 	err = cli.Serve(host, port, urlCtxRoot, spec, pushSpec)

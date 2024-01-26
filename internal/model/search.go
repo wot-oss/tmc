@@ -37,27 +37,7 @@ func (s FoundSource) String() string {
 	return "<" + s.RemoteName + ">"
 }
 
-func NewSearchResultFromTOC(toc TOC, foundIn FoundSource) SearchResult {
-	r := SearchResult{}
-	var es []FoundEntry
-	for _, e := range toc.Data {
-		es = append(es, NewFoundEntryFromTOCEntry(e, foundIn))
-	}
-	r.Entries = es
-	return r
-}
-
-func NewFoundEntryFromTOCEntry(e *TOCEntry, foundIn FoundSource) FoundEntry {
-	return FoundEntry{
-		Name:         e.Name,
-		Manufacturer: e.Manufacturer,
-		Mpn:          e.Mpn,
-		Author:       e.Author,
-		Versions:     toFoundVersions(e.Versions, foundIn),
-	}
-}
-
-func mergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
+func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
 	vs1 = append(vs1, vs2...)
 	// whether the TMIDs are actually official or not is not important for these comparisons
 	slices.SortStableFunc(vs1, func(a, b FoundVersion) int {
@@ -85,18 +65,7 @@ func (r FoundEntry) Merge(other FoundEntry) FoundEntry {
 			Versions:     other.Versions,
 		}
 	}
-	r.Versions = mergeFoundVersions(r.Versions, other.Versions)
-	return r
-}
-
-func toFoundVersions(versions []TOCVersion, fromRemote FoundSource) []FoundVersion {
-	var r []FoundVersion
-	for _, v := range versions {
-		r = append(r, FoundVersion{
-			TOCVersion: v,
-			FoundIn:    fromRemote,
-		})
-	}
+	r.Versions = MergeFoundVersions(r.Versions, other.Versions)
 	return r
 }
 

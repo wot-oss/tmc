@@ -92,55 +92,37 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 }
 
 func setUpVersionsForFetchByTMIDOrName(r *remotes.MockRemote) {
-	r.On("Versions", "manufacturer/mpn").Return(model.FoundEntry{
-		Name:         "manufacturer/mpn",
-		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},
-		Mpn:          "mpn",
-		Author:       model.SchemaAuthor{Name: "manufacturer"},
-		Versions: []model.FoundVersion{
-			{
-				TOCVersion: model.TOCVersion{
-					Version:   model.Version{Model: "v1.0.0"},
-					TMID:      "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
-					Digest:    "c49617d2e4fc",
-					TimeStamp: "20231205123243",
-				},
-				FoundIn: model.FoundSource{RemoteName: "r1"},
+	r.On("Versions", "manufacturer/mpn").Return([]model.FoundVersion{
+		{
+			TOCVersion: model.TOCVersion{
+				Version:   model.Version{Model: "v1.0.0"},
+				TMID:      "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
+				Digest:    "c49617d2e4fc",
+				TimeStamp: "20231205123243",
 			},
+			FoundIn: model.FoundSource{RemoteName: "r1"},
 		},
 	}, nil)
-	r.On("Versions", "author/manufacturer/mpn").Return(model.FoundEntry{
-		Name:         "author/manufacturer/mpn",
-		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},
-		Mpn:          "mpn",
-		Author:       model.SchemaAuthor{Name: "author"},
-		Versions: []model.FoundVersion{
-			{
-				TOCVersion: model.TOCVersion{
-					Version:   model.Version{Model: "v1.0.0"},
-					TMID:      "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
-					Digest:    "c49617d2e4fc",
-					TimeStamp: "20231205123243",
-				},
-				FoundIn: model.FoundSource{RemoteName: "r1"},
+	r.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+		{
+			TOCVersion: model.TOCVersion{
+				Version:   model.Version{Model: "v1.0.0"},
+				TMID:      "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
+				Digest:    "c49617d2e4fc",
+				TimeStamp: "20231205123243",
 			},
+			FoundIn: model.FoundSource{RemoteName: "r1"},
 		},
 	}, nil)
-	r.On("Versions", "author/manufacturer/mpn/folder/sub").Return(model.FoundEntry{
-		Name:         "author/manufacturer/mpn/folder/sub",
-		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},
-		Mpn:          "mpn",
-		Author:       model.SchemaAuthor{Name: "author"},
-		Versions: []model.FoundVersion{
-			{
-				TOCVersion: model.TOCVersion{
-					Version:   model.Version{Model: "v1.0.0"},
-					TMID:      "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
-					Digest:    "c49617d2e4fc",
-					TimeStamp: "20231205123243",
-				},
-				FoundIn: model.FoundSource{RemoteName: "r1"},
+	r.On("Versions", "author/manufacturer/mpn/folder/sub").Return([]model.FoundVersion{
+		{
+			TOCVersion: model.TOCVersion{
+				Version:   model.Version{Model: "v1.0.0"},
+				TMID:      "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
+				Digest:    "c49617d2e4fc",
+				TimeStamp: "20231205123243",
 			},
+			FoundIn: model.FoundSource{RemoteName: "r1"},
 		},
 	}, nil)
 }
@@ -156,38 +138,26 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
 	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, ErrTmNotFound)
 	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, ErrTmNotFound)
 	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil)
-	r1.On("Versions", "author/manufacturer/mpn").Return(model.FoundEntry{
-		Name:         "author/manufacturer/mpn",
-		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},
-		Mpn:          "mpn",
-		Author:       model.SchemaAuthor{Name: "author"},
-		Versions: []model.FoundVersion{
-			{
-				TOCVersion: model.TOCVersion{
-					Version:   model.Version{Model: "v1.0.0"},
-					TMID:      "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json",
-					Digest:    "a49617d2e4fc",
-					TimeStamp: "20231005123243",
-				},
-				FoundIn: model.FoundSource{RemoteName: "r1"},
+	r1.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+		{
+			TOCVersion: model.TOCVersion{
+				Version:   model.Version{Model: "v1.0.0"},
+				TMID:      "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json",
+				Digest:    "a49617d2e4fc",
+				TimeStamp: "20231005123243",
 			},
+			FoundIn: model.FoundSource{RemoteName: "r1"},
 		},
 	}, nil)
-	r2.On("Versions", "author/manufacturer/mpn").Return(model.FoundEntry{
-		Name:         "author/manufacturer/mpn",
-		Manufacturer: model.SchemaManufacturer{Name: "manufacturer"},
-		Mpn:          "mpn",
-		Author:       model.SchemaAuthor{Name: "author"},
-		Versions: []model.FoundVersion{
-			{
-				TOCVersion: model.TOCVersion{
-					Version:   model.Version{Model: "v1.0.0"},
-					TMID:      "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
-					Digest:    "c49617d2e4fc",
-					TimeStamp: "20231205123243",
-				},
-				FoundIn: model.FoundSource{RemoteName: "r2"},
+	r2.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+		{
+			TOCVersion: model.TOCVersion{
+				Version:   model.Version{Model: "v1.0.0"},
+				TMID:      "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
+				Digest:    "c49617d2e4fc",
+				TimeStamp: "20231205123243",
 			},
+			FoundIn: model.FoundSource{RemoteName: "r2"},
 		},
 	}, nil)
 
