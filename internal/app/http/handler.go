@@ -5,8 +5,6 @@ import (
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/gorilla/mux"
 )
 
 // Hint for generating the server code based on the openapi spec:
@@ -28,16 +26,6 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
-}
-
-func NewRouter() *mux.Router {
-	r := mux.NewRouter()
-	r.NotFoundHandler = http.HandlerFunc(handleNoRoute)
-	return r
-}
-
-func handleNoRoute(w http.ResponseWriter, r *http.Request) {
-	HandleErrorResponse(w, r, NewNotFoundError(nil, "Path not handled by Thing Model Catalog"))
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {

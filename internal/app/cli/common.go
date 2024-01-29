@@ -11,7 +11,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
-const filterSep = ","
+const DefaultListSeparator = ","
 
 // Stderrf prints a message to os.Stderr, followed by newline
 func Stderrf(format string, args ...any) {
@@ -38,16 +38,16 @@ func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchPara
 	if flags.IsSet() || name != "" {
 		search = &model.SearchParams{}
 		if flags.FilterAuthor != "" {
-			search.Author = strings.Split(flags.FilterAuthor, filterSep)
+			search.Author = strings.Split(flags.FilterAuthor, DefaultListSeparator)
 		}
 		if flags.FilterManufacturer != "" {
-			search.Manufacturer = strings.Split(flags.FilterManufacturer, filterSep)
+			search.Manufacturer = strings.Split(flags.FilterManufacturer, DefaultListSeparator)
 		}
 		if flags.FilterMpn != "" {
-			search.Mpn = strings.Split(flags.FilterMpn, filterSep)
+			search.Mpn = strings.Split(flags.FilterMpn, DefaultListSeparator)
 		}
 		if flags.FilterExternalID != "" {
-			search.ExternalID = strings.Split(flags.FilterExternalID, filterSep)
+			search.ExternalID = strings.Split(flags.FilterExternalID, DefaultListSeparator)
 		}
 		if flags.Search != "" {
 			search.Query = flags.Search
