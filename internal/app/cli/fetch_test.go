@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
@@ -65,6 +66,7 @@ func TestFetchExecutor_Fetch_To_OutputFolder(t *testing.T) {
 	modTimeOld := s.ModTime()
 
 	// when: fetching again the ID to same output folder
+	time.Sleep(time.Millisecond * 200)
 	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, temp)
 	// then: the file has been overwritten and has a newer mod time
 	assert.NoError(t, err)
