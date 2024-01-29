@@ -210,7 +210,7 @@ func findDigest(versions []model.FoundVersion, digest string) (id string, source
 	digest = utils.ToTrimmedLower(digest)
 	for _, version := range versions {
 		// TODO: how to know if it is official?
-		tmid, err := model.ParseTMID(version.TMID, false)
+		tmid, err := model.ParseTMID(version.TMID, true)
 		if err != nil {
 			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.TMID))
 			return "", remotes.EmptySpec, err

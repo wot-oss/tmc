@@ -66,6 +66,8 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 		{"", true, "Invalid name format:  - Must be NAME[:SEMVER|DIGEST]", 0},
 		{"manufacturer", true, "Invalid name format: manufacturer - Must be NAME[:SEMVER|DIGEST]", 0},
 		{"manufacturer/mpn", false, "", 2},
+		{"manufacturer/mpn:v1.0.0", false, "", 2},
+		{"manufacturer/mpn:c49617d2e4fc", false, "", 2},
 		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", 2},
 		{"manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", 2},
 		{"author/manufacturer/mpn", false, "", 2},
