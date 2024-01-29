@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gorilla/mux"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 )
 
@@ -29,16 +28,6 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
-}
-
-func NewRouter() *mux.Router {
-	r := mux.NewRouter()
-	r.NotFoundHandler = http.HandlerFunc(handleNoRoute)
-	return r
-}
-
-func handleNoRoute(w http.ResponseWriter, r *http.Request) {
-	HandleErrorResponse(w, r, NewNotFoundError(nil, "Path not handled by Thing Model Catalog"))
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {

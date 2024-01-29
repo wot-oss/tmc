@@ -8,11 +8,10 @@ import (
 	"net/url"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-func Serve(host, port, urlCtxRoot string, repo, pushTarget remotes.RepoSpec) error {
+func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTarget remotes.RepoSpec) error {
 
 	err := validateContextRoot(urlCtxRoot)
 	if err != nil {
@@ -31,9 +30,7 @@ func Serve(host, port, urlCtxRoot string, repo, pushTarget remotes.RepoSpec) err
 		return err
 	}
 
-	// create an instance of a router and our handler
-	r := http.NewRouter()
-
+	// create an instance of our handler (server interface)
 	handlerService, err := http.NewDefaultHandlerService(remotes.DefaultManager(), repo, pushTarget)
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
@@ -45,14 +42,12 @@ func Serve(host, port, urlCtxRoot string, repo, pushTarget remotes.RepoSpec) err
 			UrlContextRoot: urlCtxRoot,
 		})
 
-	options := server.GorillaServerOptions{
-		BaseRouter:       r,
-		ErrorHandlerFunc: http.HandleErrorResponse,
-	}
-	_ = server.HandlerWithOptions(handler, options)
+	// create a http handler
+	httpHandler := http.NewHttpHandler(handler)
+	httpHandler = http.WithCORS(httpHandler, opts)
 
 	s := &nethttp.Server{
-		Handler: r,
+		Handler: httpHandler,
 		Addr:    net.JoinHostPort(host, port),
 	}
 
