@@ -46,8 +46,8 @@ type InventoryResponseToSearchResultMapper struct {
 	linksMapper func(links server.InventoryEntryVersion) map[string]string
 }
 
-func NewInventoryResponseToSearchResultMapper(s FoundSource) *InventoryResponseToSearchResultMapper {
-	return &InventoryResponseToSearchResultMapper{foundIn: s}
+func NewInventoryResponseToSearchResultMapper(s FoundSource, linksMapper func(links server.InventoryEntryVersion) map[string]string) *InventoryResponseToSearchResultMapper {
+	return &InventoryResponseToSearchResultMapper{foundIn: s, linksMapper: linksMapper}
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToSearchResult(inv server.InventoryResponse) SearchResult {

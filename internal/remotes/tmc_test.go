@@ -187,6 +187,12 @@ func TestTmcRemote_List(t *testing.T) {
 			if test.expErr == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expRes, len(sr.Entries))
+				for _, e := range sr.Entries {
+					for _, v := range e.Versions {
+						assert.NotEmpty(t, v.TMID)
+						assert.Equal(t, v.TMID, v.Links["content"])
+					}
+				}
 			} else {
 				assert.ErrorContains(t, err, test.expErr)
 			}
@@ -267,6 +273,7 @@ func TestTmcRemote_Versions(t *testing.T) {
 			if test.expErr == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expRes, len(vs))
+				assert.Equal(t, "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json", vs[0].Links["content"])
 			} else {
 				assert.ErrorContains(t, err, test.expErr)
 			}

@@ -13,12 +13,14 @@
 - ```create-toc```: renamed to ```update-toc``` and allow for partial updates
 - ```list```: allows now listing by name pattern
 - ```serve```: separate configuration of the remote(s) to be served from the target remote for push  
-- (BREAKING!) ```push```: file hash calculation has been made more reliable and idempotent. Consequently, some files if pushed to TMC, may receive a new version hash, despite no change in contents
-
 
 ### Fixed
 
 - count only enabled remotes when checking if empty remote specification is unambiguous
+- (BREAKING!) ```push```: file hash calculation has been made more reliable and idempotent. Consequently, some files if pushed to TMC, may receive a new version hash, despite no change in contents
+- ```fetch```: fixed "Unable to parse TMID..." error when fetching an official TM by content hash
+- prevent ```serve``` from using one of remotes from config as push target when '-r' or '-d' are given
+- print the actual error if updating TOC after ```push``` fails
 
 ## [v0.0.0-alpha.2] - 2023-01-15
 

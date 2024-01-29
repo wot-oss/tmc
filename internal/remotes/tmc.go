@@ -113,7 +113,7 @@ func (t TmcRemote) List(search *model.SearchParams) (model.SearchResult, error) 
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource())
+		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
 		if single {
 			var tm server.InventoryEntryResponse
 			err = json.Unmarshal(data, &tm)
@@ -139,6 +139,21 @@ func (t TmcRemote) List(search *model.SearchParams) (model.SearchResult, error) 
 		return model.SearchResult{}, errors.New(string(data))
 	default:
 		return model.SearchResult{}, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+	}
+}
+
+func tmcLinksMapper(links server.InventoryEntryVersion) map[string]string {
+	c := ""
+	if links.Links != nil {
+		c = links.Links.Content
+	}
+	b, a, f := strings.Cut(c, "thing-models/")
+	l := a
+	if !f {
+		l = b
+	}
+	return map[string]string{
+		"content": l,
 	}
 }
 
@@ -192,7 +207,7 @@ func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {
 			return nil, ErrEntryNotFound
 		}
 
-		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource()).
+		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper).
 			ToFoundVersions(vResp.Data), nil
 	case http.StatusNotFound:
 		return nil, ErrEntryNotFound
