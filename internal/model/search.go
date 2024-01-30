@@ -108,5 +108,7 @@ type SearchParams struct {
 type FilterType byte
 
 type SearchOptions struct {
+	// NameFilterType specifies whether SearchParams.Name must match a prefix or the full length of a TM name
+	// Note that using FullMatch effectively limits the search result to at most one FoundEntry
 	NameFilterType FilterType
 }

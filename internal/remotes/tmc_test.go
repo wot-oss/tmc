@@ -105,6 +105,7 @@ func TestTmcRemote_List(t *testing.T) {
 		h := <-htc
 		eu, _ := url.Parse(h.expUrl)
 		assert.Equal(t, eu.RawPath, r.URL.RawPath)
+		assert.Equal(t, eu.Path, r.URL.Path)
 		assert.Equal(t, eu.Query(), r.URL.Query())
 		w.WriteHeader(h.status)
 		_, _ = w.Write(h.body)
@@ -135,11 +136,30 @@ func TestTmcRemote_List(t *testing.T) {
 				Manufacturer: []string{"manuf1", "man&uf2"},
 				Mpn:          []string{"mpn"},
 				ExternalID:   []string{"ext1", "ext2"},
+				Name:         "autho",
 				Query:        "some string",
+				Options:      model.SearchOptions{NameFilterType: model.PrefixMatch},
 			},
-			expUrl: "/inventory?filter.author=author1%2Cauthor2&filter.externalID=ext1%2Cext2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&search=some+string",
+			expUrl: "/inventory?filter.name=autho&filter.author=author1%2Cauthor2&filter.externalID=ext1%2Cext2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&search=some+string",
 			expErr: "",
 			expRes: 3,
+		},
+		{
+			name:   "ignores search params with name and full match",
+			body:   inventorySingle,
+			status: http.StatusOK,
+			search: &model.SearchParams{
+				Author:       []string{"author1", "author2"},
+				Manufacturer: []string{"manuf1", "man&uf2"},
+				Mpn:          []string{"mpn"},
+				ExternalID:   []string{"ext1", "ext2"},
+				Name:         "corp/mpn",
+				Query:        "some string",
+				Options:      model.SearchOptions{NameFilterType: model.FullMatch},
+			},
+			expUrl: "/inventory/corp%2Fmpn",
+			expErr: "",
+			expRes: 1,
 		},
 		{
 			name:   "retrieves single TM by name",

@@ -173,6 +173,7 @@ func convertParams(params any) *model.SearchParams {
 	var filterManufacturer *string
 	var filterMpn *string
 	var filterExternalID *string
+	var filterName *string
 	var search *string
 
 	if invParams, ok := params.(server.GetInventoryParams); ok {
@@ -180,6 +181,7 @@ func convertParams(params any) *model.SearchParams {
 		filterManufacturer = invParams.FilterManufacturer
 		filterMpn = invParams.FilterMpn
 		filterExternalID = invParams.FilterExternalID
+		filterName = invParams.FilterName
 		search = invParams.Search
 	} else if authorsParams, ok := params.(server.GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
@@ -199,7 +201,7 @@ func convertParams(params any) *model.SearchParams {
 	}
 
 	var searchParams model.SearchParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || search != nil {
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || filterName != nil || search != nil {
 		searchParams = model.SearchParams{}
 		if filterAuthor != nil {
 			searchParams.Author = strings.Split(*filterAuthor, ",")
@@ -212,6 +214,10 @@ func convertParams(params any) *model.SearchParams {
 		}
 		if filterExternalID != nil {
 			searchParams.ExternalID = strings.Split(*filterExternalID, ",")
+		}
+		if filterName != nil {
+			searchParams.Name = *filterName
+			searchParams.Options.NameFilterType = model.PrefixMatch
 		}
 		if search != nil {
 			searchParams.Query = *search

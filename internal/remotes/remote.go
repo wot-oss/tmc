@@ -47,9 +47,13 @@ type Remote interface {
 	// Fetch retrieves the Thing Model file from remote
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(id string) (string, []byte, error)
-	UpdateToc(updatedFiles ...string) error
+	// UpdateToc updates table of contents file with data from given TM files. Performs a full update if no updatedIds given
+	UpdateToc(updatedIds ...string) error
+	// List searches the catalog for TMs matching search parameters
 	List(search *model.SearchParams) (model.SearchResult, error)
+	// Versions lists versions of a TM with given name
 	Versions(name string) ([]model.FoundVersion, error)
+	// Spec returns the spec this Remote has been created from
 	Spec() RepoSpec
 }
 

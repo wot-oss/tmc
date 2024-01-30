@@ -113,7 +113,7 @@ func (dhs *defaultHandlerService) ListMpns(ctx context.Context, search *model.Se
 
 func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error) {
 	//todo: check if name is valid format
-	toc, err := dhs.ListInventory(ctx, &model.SearchParams{Name: name})
+	toc, err := dhs.ListInventory(ctx, &model.SearchParams{Name: name, Options: model.SearchOptions{NameFilterType: model.FullMatch}})
 	if err != nil {
 		return nil, err
 	}

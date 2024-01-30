@@ -152,6 +152,10 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
+	// FilterName Filters the inventory by TM name (consisting of 'author/manufacturer/mpn') having a prefix match.
+	// The filter works additive to other filters.
+	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
+
 	// FilterExternalID Filters the inventory by one or more external ID having exact match.
 	// The filter works additive to other filters.
 	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`

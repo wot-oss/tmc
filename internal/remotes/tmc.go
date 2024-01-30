@@ -95,7 +95,7 @@ func (t TmcRemote) List(search *model.SearchParams) (model.SearchResult, error) 
 	reqUrl := t.parsedRoot.JoinPath("inventory")
 
 	single := false
-	if search != nil && search.Name != "" {
+	if search != nil && search.Name != "" && search.Options.NameFilterType == model.FullMatch {
 		single = true
 		reqUrl = reqUrl.JoinPath(url.PathEscape(search.Name))
 	} else {
@@ -166,6 +166,11 @@ func addSearchParams(u *url.URL, search *model.SearchParams) {
 		vals.Set("search", search.Query)
 		u.RawQuery = vals.Encode()
 	}
+	if search.Name != "" {
+		vals := u.Query()
+		vals.Set("filter.name", search.Name)
+		u.RawQuery = vals.Encode()
+	}
 	appendQueryArray(u, "filter.author", search.Author)
 	appendQueryArray(u, "filter.manufacturer", search.Manufacturer)
 	appendQueryArray(u, "filter.mpn", search.Mpn)
@@ -174,8 +179,11 @@ func addSearchParams(u *url.URL, search *model.SearchParams) {
 
 func appendQueryArray(u *url.URL, key string, values []string) {
 	q := u.Query()
-	q.Set(key, strings.Join(values, ","))
-	u.RawQuery = q.Encode()
+	vals := strings.Join(values, ",")
+	if vals != "" {
+		q.Set(key, vals)
+		u.RawQuery = q.Encode()
+	}
 }
 
 func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {

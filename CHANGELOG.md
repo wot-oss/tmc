@@ -8,6 +8,8 @@
 - Implemented ```pull``` command to fetch and save multiple thing models at once
 - Implemented setting CORS options for API
 - Implemented a 'tmc' remote type, which uses our own REST API as the underlying TM storage
+- Added 'filter.name' parameter to REST API '/inventory' listing
+- Added '--exact' flag to `list` and `pull`
 
 ### Changed
 

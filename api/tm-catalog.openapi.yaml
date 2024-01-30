@@ -53,6 +53,14 @@ paths:
           schema:
             type: string
           example: filter.mpn=B21,FC102
+        - name: 'filter.name'
+          in: query
+          description: |
+            Filters the inventory by TM name (consisting of 'author/manufacturer/mpn') having a prefix match.   
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: filter.name=darthvader/omnicorp/deathstar
         - name: 'filter.externalID'
           in: query
           description: |
