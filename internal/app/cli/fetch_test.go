@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
@@ -31,14 +32,15 @@ func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 		outC <- buf.String()
 	}()
 	err := e.Fetch(remotes.NewRemoteSpec("remote"), "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
-		"", false)
+		"")
 	assert.NoError(t, err)
 	os.Stdout = old
 	_ = w.Close()
 	stdout := <-outC
 	assert.Equal(t, "{}\n", stdout)
 }
-func TestFetchExecutor_Fetch_To_OutputFile(t *testing.T) {
+
+func TestFetchExecutor_Fetch_To_OutputFolder(t *testing.T) {
 	temp, err := os.MkdirTemp("", "fs")
 	assert.NoError(t, err)
 	defer os.RemoveAll(temp)
@@ -52,32 +54,32 @@ func TestFetchExecutor_Fetch_To_OutputFile(t *testing.T) {
 	rm.On("Get", remotes.NewRemoteSpec("remote")).Return(r, nil)
 	r.On("Fetch", tmid).Return(aid, tm, nil)
 
+	// given: a fetch executor
 	e := NewFetchExecutor(rm)
-	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, "", true)
 
-	fileTxt := filepath.Join(temp, "file.txt")
-	_ = os.WriteFile(fileTxt, []byte("text"), 0660)
-	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, fileTxt, true)
-	assert.Error(t, err)
-
-	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, fileTxt, false)
-	assert.NoError(t, err)
-	file, err := os.ReadFile(fileTxt)
-	assert.NoError(t, err)
-	assert.Equal(t, tm, file)
-
-	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, temp, false)
-	assert.NoError(t, err)
-	assert.FileExists(t, filepath.Join(temp, filepath.Base(aid)))
-	file, err = os.ReadFile(filepath.Join(temp, filepath.Base(aid)))
-	assert.NoError(t, err)
-	assert.Equal(t, tm, file)
-
-	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, temp, true)
+	// when: fetching to output folder
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, temp)
+	// then: the file exists below the output folder with tree structure given by the ID
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, aid))
-	file, err = os.ReadFile(filepath.Join(temp, aid))
-	assert.NoError(t, err)
-	assert.Equal(t, tm, file)
+	s, err := os.Stat(filepath.Join(temp, aid))
+	modTimeOld := s.ModTime()
 
+	// when: fetching again the ID to same output folder
+	time.Sleep(time.Millisecond * 200)
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, temp)
+	// then: the file has been overwritten and has a newer mod time
+	assert.NoError(t, err)
+	assert.FileExists(t, filepath.Join(temp, aid))
+	s, err = os.Stat(filepath.Join(temp, aid))
+	modTimeNew := s.ModTime()
+	assert.Greater(t, modTimeNew, modTimeOld)
+
+	// given: output folder that is actually a file
+	fileNoDir := filepath.Join(temp, "file.txt")
+	_ = os.WriteFile(fileNoDir, []byte("text"), 0660)
+	// when: fetching to output folder
+	err = e.Fetch(remotes.NewRemoteSpec("remote"), tmid, fileNoDir)
+	// then: an error is returned
+	assert.Error(t, err)
 }
