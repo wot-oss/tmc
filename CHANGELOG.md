@@ -7,6 +7,7 @@
 - Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
 - Implemented ```pull``` command to fetch and save multiple thing models at once
 - Implemented setting CORS options for API
+- Implemented fetching a TM by a \[partial\] semantic version or version digest also in REST API
 
 ### Changed
 
@@ -18,6 +19,7 @@
 ### Fixed
 
 - count only enabled remotes when checking if empty remote specification is unambiguous
+- make fetch by partial semantic version match the most recent version beginning with given string
 
 ## [v0.0.0-alpha.2] - 2023-01-15
 

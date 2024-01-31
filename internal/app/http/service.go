@@ -124,15 +124,13 @@ func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name s
 }
 
 func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID string) ([]byte, error) {
-	_, err := model.ParseTMID(tmID, true)
-	if errors.Is(err, model.ErrInvalidId) {
+	_, _, err := commands.ParseAsTMIDOrFetchName(tmID)
+	if err != nil {
 		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmID)
-	} else if err != nil {
-		return nil, err
 	}
 
 	rm := dhs.remoteManager
-	_, data, err := commands.NewFetchCommand(rm).FetchByTMID(dhs.serveRemote, tmID)
+	_, data, err := commands.NewFetchCommand(rm).FetchByTMIDOrName(dhs.serveRemote, tmID)
 	if errors.Is(err, commands.ErrTmNotFound) {
 		return nil, NewNotFoundError(err, "File does not exist")
 	} else if err != nil {
