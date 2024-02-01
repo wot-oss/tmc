@@ -15,9 +15,10 @@ var listCmd = &cobra.Command{
 	Use:   "list <NAME PATTERN>",
 	Short: "List TMs in catalog",
 	Long: `List TMs in catalog by name pattern, filters or search. 
-The pattern can be a full name or just a prefix the names shall start with. 
-Name pattern, filters and search can be combined to narrow down the result.
-Use --exact to force full-length matching of the name`,
+The pattern can be a full name or a prefix the names shall start with. A partial pattern will match only complete 
+path parts. E.g. 'company/device' will not match 'company/device-mark2', but will match 'company/device/submodel'.
+
+Name pattern, filters and search can be combined to narrow down the result.`,
 	Args: cobra.MaximumNArgs(1),
 	Run:  executeList,
 }
@@ -30,7 +31,6 @@ func init() {
 	listCmd.Flags().StringVar(&filterFlags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	listCmd.Flags().StringVar(&filterFlags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
 	listCmd.Flags().StringVarP(&filterFlags.Search, "search", "s", "", "search TMs by their content matching the search term")
-	listCmd.Flags().BoolP("exact", "e", false, "match the TM name exactly. overrides all other search filter flags")
 }
 
 func executeList(cmd *cobra.Command, args []string) {
@@ -47,13 +47,7 @@ func executeList(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	exact, err := cmd.Flags().GetBool("exact")
-	if err != nil {
-		cli.Stderrf("invalid --exact flag")
-		os.Exit(1)
-	}
-
-	search := cli.CreateSearchParamsFromCLI(filterFlags, name, exact)
+	search := cli.CreateSearchParamsFromCLI(filterFlags, name)
 	err = cli.List(spec, search)
 	if err != nil {
 		os.Exit(1)

@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
+### Changed
 
-
+- Removed '--exact' flag to `list` and `pull`
+- `list` and `pull`: match given name pattern as a prefix by complete path parts
+- `list`: changed output format: put NAME column first, renamed PATH column to MPN
+- `versions`: changed output format: renamed PATH column to ID
 
 ## [v0.0.0-alpha.3]
 
