@@ -68,7 +68,12 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 		return err
 	}
 
-	fmt.Printf("Pulling %d ThingModels ...\n", len(searchResult.Entries))
+	vc := 0
+	for _, m := range searchResult.Entries {
+		vc += len(m.Versions)
+	}
+
+	fmt.Printf("Pulling %d ThingModels with %d versions...\n", len(searchResult.Entries), vc)
 
 	fc := commands.NewFetchCommand(e.rm)
 	var totalRes []PullResult
