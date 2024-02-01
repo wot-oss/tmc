@@ -48,7 +48,7 @@ func TestConvertSearchParams(t *testing.T) {
 	// given: no filter params set via CLI flags
 	flags := FilterFlags{}
 	// when: converting to SearchParams
-	params := CreateSearchParamsFromCLI(flags, "", true)
+	params := CreateSearchParamsFromCLI(flags, "")
 	// then: SearchParams are undefined
 	assert.Nil(t, params)
 
@@ -61,7 +61,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flags.Search = "some term"
 	name := "omni-corp/omni"
 	// when: converting to SearchParams
-	params = CreateSearchParamsFromCLI(flags, name, false)
+	params = CreateSearchParamsFromCLI(flags, name)
 	// then: the filter values are converted correctly
 	assert.NotNil(t, params)
 	assert.Equal(t, []string{flags.FilterAuthor}, params.Author)
@@ -80,7 +80,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flags.FilterExternalID = "some externalID 1,some external ID 2"
 	flags.Search = "some term"
 	// when: converting to SearchParams
-	params = CreateSearchParamsFromCLI(flags, "", false)
+	params = CreateSearchParamsFromCLI(flags, "")
 	// then: the multiple filter values are converted correctly
 	assert.NotNil(t, params)
 	assert.Equal(t, strings.Split(flags.FilterAuthor, ","), params.Author)

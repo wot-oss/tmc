@@ -10,7 +10,6 @@
 - Print information about used config file in `help`
 - Implemented a 'tmc' remote type, which uses our own REST API as the underlying TM storage
 - Added 'filter.name' parameter to REST API '/inventory' listing
-- Added '--exact' flag to `list` and `pull`
 
 ### Changed
 
@@ -18,6 +17,9 @@
 - ```list```: allows now listing by name pattern
 - ```serve```: separate configuration of the remote(s) to be served from the target remote for push
 - ```fetch```: ```--output``` now accepts only a target folder to save TM to, ```--with-path``` has been removed
+- `list` and `pull`: match given name pattern as a prefix by complete path parts
+- `list`: changed output format: put NAME column first, renamed PATH column to MPN
+- `versions`: changed output format: renamed PATH column to ID
 
 ### Fixed
 

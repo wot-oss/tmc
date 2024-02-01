@@ -112,7 +112,12 @@ func matchesNameFilter(acceptedValue string, value string, options SearchOptions
 	case FullMatch:
 		return value == acceptedValue
 	case PrefixMatch:
-		return strings.HasPrefix(value, acceptedValue)
+		actualPathParts := strings.Split(value, "/")
+		acceptedPathParts := strings.Split(acceptedValue, "/")
+		if len(acceptedPathParts) > len(actualPathParts) {
+			return false
+		}
+		return slices.Equal(actualPathParts[0:len(acceptedPathParts)], acceptedPathParts)
 	default:
 		panic(fmt.Sprintf("unsupported NameFilterType: %d", options.NameFilterType))
 	}
