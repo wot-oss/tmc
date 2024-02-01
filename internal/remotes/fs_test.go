@@ -174,7 +174,7 @@ func TestFileRemote_Fetch(t *testing.T) {
 	assert.Equal(t, fileA, bytes)
 
 	actId, bytes, err = r.Fetch(filepath.Join(tmName, "v1.0.0-20231212142856-e49617d2e4fc.tm.json"))
-	assert.ErrorIs(t, err, os.ErrNotExist)
+	assert.ErrorIs(t, err, ErrEntryNotFound)
 	assert.Equal(t, "", actId)
 
 }
@@ -255,22 +255,22 @@ func TestFileRemote_Versions(t *testing.T) {
 	copyFile("../../test/data/list/tm-catalog.toc.json", filepath.Join(temp, TOCFilename))
 	vers, err := r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
 	assert.NoError(t, err)
-	assert.Len(t, vers.Versions, 1)
+	assert.Len(t, vers, 1)
 
 	vers, err = r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath")
 	assert.NoError(t, err)
-	assert.Len(t, vers.Versions, 1)
+	assert.Len(t, vers, 1)
 
 	vers, err = r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall")
 	assert.NoError(t, err)
-	assert.Len(t, vers.Versions, 1)
+	assert.Len(t, vers, 1)
 
 	vers, err = r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/nothing-here")
 	assert.ErrorIs(t, err, ErrEntryNotFound)
 
 	vers, err = r.Versions("systemx/siemens/AQualSenDev-virtual")
 	assert.NoError(t, err)
-	assert.Len(t, vers.Versions, 1)
+	assert.Len(t, vers, 1)
 
 	vers, err = r.Versions("")
 	assert.ErrorContains(t, err, "specify a remoteName")

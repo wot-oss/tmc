@@ -5,19 +5,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 )
-
-// Hint for generating the server code based on the openapi spec:
-// 1. uncomment lines "// //go:generate" to "//go:generate" to be considered when calling "go generate"
-// 2. after calling "go generate":
-//       2.1. maybe reorder the properties in model.gen.go for a nicer JSON output, as oapi-codegen orders them alphabetically
-//       2.2. for path parameters "name" and "tmID", add a regex for any character -> {name:.+}, {tmID:.+}
-//       2.3. in server.gen.go, order the handler functions, in the way that the more specific are on top on less specific
-//          e.g. r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/versions" should be on top of r.HandleFunc(options.BaseURL+"/inventory/{name:.+}
-// 3. when 2. is done, comment lines "// //go:generate" again, to prevent unwanted changes by calling "go generate"
-
-// //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package http -generate types -o models.gen.go ../../../api/tm-catalog.openapi.yaml
-// //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package http -generate gorilla-server -o server.gen.go ../../../api/tm-catalog.openapi.yaml
 
 type TmcHandler struct {
 	Service HandlerService
@@ -35,7 +25,7 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 	}
 }
 
-func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params GetInventoryParams) {
+func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 
 	searchParams := convertParams(params)
 
@@ -124,7 +114,7 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
 }
 
-func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams) {
+func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {
 
 	searchParams := convertParams(params)
 
@@ -139,7 +129,7 @@ func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params G
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams) {
+func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, params server.GetManufacturersParams) {
 
 	searchParams := convertParams(params)
 
@@ -154,7 +144,7 @@ func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, pa
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams) {
+func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params server.GetMpnsParams) {
 
 	searchParams := convertParams(params)
 

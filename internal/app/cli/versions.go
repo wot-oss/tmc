@@ -11,22 +11,22 @@ import (
 )
 
 func ListVersions(spec remotes.RepoSpec, name string) error {
-	tocEntry, err := commands.NewVersionsCommand(remotes.DefaultManager()).ListVersions(spec, name)
+	tocVersions, err := commands.NewVersionsCommand(remotes.DefaultManager()).ListVersions(spec, name)
 	if err != nil {
 		Stderrf("Could not list versions for %s: %v\ncheck config", name, err)
 		return err
 	}
 
-	printToCThing(name, tocEntry)
+	printToCThing(name, tocVersions)
 	return nil
 }
 
-func printToCThing(name string, tocEntry model.FoundEntry) {
+func printToCThing(name string, versions []model.FoundVersion) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tDESCRIPTION\tREPOSITORY\tPATH\n")
-	for _, v := range tocEntry.Versions {
+	for _, v := range versions {
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.Description, v.FoundIn, v.Links["content"])
 	}
 	_ = table.Flush()

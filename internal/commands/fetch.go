@@ -88,7 +88,7 @@ func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, 
 }
 func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error) {
 	log := slog.Default()
-	tocThing, err := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
+	tocVersions, err := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
 	if err != nil {
 		return "", nil, err
 	}
@@ -97,17 +97,17 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string,
 	var foundIn remotes.RepoSpec
 	// Just the name specified: fetch most recent
 	if len(fn.SemVerOrDigest) == 0 {
-		id, foundIn, err = findMostRecentVersion(tocThing.Versions)
+		id, foundIn, err = findMostRecentVersion(tocVersions)
 		if err != nil {
 			return "", nil, err
 		}
 	} else if fetchVersion, err := semver.NewVersion(fn.SemVerOrDigest); err == nil {
-		id, foundIn, err = findMostRecentTimeStamp(tocThing.Versions, fetchVersion)
+		id, foundIn, err = findMostRecentTimeStamp(tocVersions, fetchVersion)
 		if err != nil {
 			return "", nil, err
 		}
 	} else {
-		id, foundIn, err = findDigest(tocThing.Versions, fn.SemVerOrDigest)
+		id, foundIn, err = findDigest(tocVersions, fn.SemVerOrDigest)
 		if err != nil {
 			return "", nil, err
 		}
@@ -209,13 +209,7 @@ func findDigest(versions []model.FoundVersion, digest string) (id string, source
 
 	digest = utils.ToTrimmedLower(digest)
 	for _, version := range versions {
-		// TODO: how to know if it is official?
-		tmid, err := model.ParseTMID(version.TMID, false)
-		if err != nil {
-			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.TMID))
-			return "", remotes.EmptySpec, err
-		}
-		if tmid.Version.Hash == digest {
+		if version.Digest == digest {
 			return version.TMID, remotes.NewSpecFromFoundSource(version.FoundIn), nil
 		}
 	}
