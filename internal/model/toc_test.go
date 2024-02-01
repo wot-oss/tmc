@@ -28,7 +28,7 @@ func TestTOC_Filter(t *testing.T) {
 		assert.Nil(t, toc.findByName("aut/man/mpn"))
 
 		toc = prepareToc()
-		toc.Filter(&SearchParams{Name: "aut/man/", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		toc.Filter(&SearchParams{Name: "aut/man/mpn", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, toc.Data, 2)
 		assert.NotNil(t, toc.findByName("aut/man/mpn"))
 		assert.NotNil(t, toc.findByName("aut/man/mpn2"))

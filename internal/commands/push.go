@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +14,6 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands/validate"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 type Now func() time.Time
@@ -85,18 +83,17 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 		}
 	}
 
-	prepared = utils.NormalizeLineEndings(prepared)
-	generatedId := generateNewId(now, tm, prepared, optPath)
+	generatedId, normalized := generateNewId(now, tm, prepared, optPath)
 	finalId := idFromFile
 	if !generatedId.Equals(idFromFile) {
 		finalId = generatedId
-		idString, _ := json.Marshal(generatedId.String())
-		prepared, err = jsonparser.Set(prepared, idString, "id")
-		if err != nil {
-			return nil, model.TMID{}, err
-		}
 	}
-	return prepared, finalId, nil
+	idString, _ := json.Marshal(finalId.String())
+	final, err := jsonparser.Set(normalized, idString, "id")
+	if err != nil {
+		return nil, model.TMID{}, err
+	}
+	return final, finalId, nil
 }
 func moveIdToOriginalLink(raw []byte, id string) []byte {
 	linksValue, dataType, _, err := jsonparser.Get(raw, "links")
@@ -141,17 +138,14 @@ func moveIdToOriginalLink(raw []byte, id string) []byte {
 	return raw
 }
 
-func generateNewId(now Now, tm *model.ThingModel, raw []byte, optPath string) model.TMID {
-	fileForHashing := jsonparser.Delete(raw, "id")
-	hasher := sha1.New()
-	hasher.Write(fileForHashing)
-	hash := hasher.Sum(nil)
-	hashStr := fmt.Sprintf("%x", hash[:6])
+func generateNewId(now Now, tm *model.ThingModel, raw []byte, optPath string) (model.TMID, []byte) {
+	hashStr, raw, _ := CalculateFileDigest(raw) // ignore the error, because the file has been validated already
 	ver := model.TMVersionFromOriginal(tm.Version.Model)
 	ver.Hash = hashStr
 	ver.Timestamp = now().UTC().Format(model.PseudoVersionTimestampFormat)
-	return model.NewTMID(tm.Author.Name, tm.Manufacturer.Name, tm.Mpn, sanitizePathForID(optPath), ver)
+	return model.NewTMID(tm.Author.Name, tm.Manufacturer.Name, tm.Mpn, sanitizePathForID(optPath), ver), raw
 }
+
 func sanitizePathForID(p string) string {
 	if p == "" {
 		return p

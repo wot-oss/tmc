@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -95,8 +96,8 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 			errTitle = error400Title
 			errDetail = err.Error()
 			errStatus = http.StatusBadRequest
-		case *InvalidParamFormatError, *RequiredParamError, *RequiredHeaderError,
-			*UnmarshalingParamError, *TooManyValuesForParamError, *UnescapedCookieParamError:
+		case *server.InvalidParamFormatError, *server.RequiredParamError, *server.RequiredHeaderError,
+			*server.UnmarshalingParamError, *server.TooManyValuesForParamError, *server.UnescapedCookieParamError:
 			errTitle = error400Title
 			errDetail = err.Error()
 			errStatus = http.StatusBadRequest
@@ -104,7 +105,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		}
 	}
 
-	problem := ErrorResponse{
+	problem := server.ErrorResponse{
 		Title:    errTitle,
 		Detail:   &errDetail,
 		Status:   errStatus,
@@ -172,25 +173,27 @@ func convertParams(params any) *model.SearchParams {
 	var filterManufacturer *string
 	var filterMpn *string
 	var filterExternalID *string
+	var filterName *string
 	var search *string
 
-	if invParams, ok := params.(GetInventoryParams); ok {
+	if invParams, ok := params.(server.GetInventoryParams); ok {
 		filterAuthor = invParams.FilterAuthor
 		filterManufacturer = invParams.FilterManufacturer
 		filterMpn = invParams.FilterMpn
 		filterExternalID = invParams.FilterExternalID
+		filterName = invParams.FilterName
 		search = invParams.Search
-	} else if authorsParams, ok := params.(GetAuthorsParams); ok {
+	} else if authorsParams, ok := params.(server.GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
 		filterExternalID = authorsParams.FilterExternalID
 		search = authorsParams.Search
-	} else if manParams, ok := params.(GetManufacturersParams); ok {
+	} else if manParams, ok := params.(server.GetManufacturersParams); ok {
 		filterAuthor = manParams.FilterAuthor
 		filterMpn = manParams.FilterMpn
 		filterExternalID = manParams.FilterExternalID
 		search = manParams.Search
-	} else if mpnsParams, ok := params.(GetMpnsParams); ok {
+	} else if mpnsParams, ok := params.(server.GetMpnsParams); ok {
 		filterAuthor = mpnsParams.FilterAuthor
 		filterManufacturer = mpnsParams.FilterManufacturer
 		filterExternalID = mpnsParams.FilterExternalID
@@ -198,7 +201,7 @@ func convertParams(params any) *model.SearchParams {
 	}
 
 	var searchParams model.SearchParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || search != nil {
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || filterName != nil || search != nil {
 		searchParams = model.SearchParams{}
 		if filterAuthor != nil {
 			searchParams.Author = strings.Split(*filterAuthor, ",")
@@ -212,6 +215,10 @@ func convertParams(params any) *model.SearchParams {
 		if filterExternalID != nil {
 			searchParams.ExternalID = strings.Split(*filterExternalID, ",")
 		}
+		if filterName != nil {
+			searchParams.Name = *filterName
+			searchParams.Options.NameFilterType = model.PrefixMatch
+		}
 		if search != nil {
 			searchParams.Query = *search
 		}
@@ -219,64 +226,64 @@ func convertParams(params any) *model.SearchParams {
 	return &searchParams
 }
 
-func toInventoryResponse(ctx context.Context, toc model.SearchResult) InventoryResponse {
+func toInventoryResponse(ctx context.Context, toc model.SearchResult) server.InventoryResponse {
 	mapper := NewMapper(ctx)
 
 	meta := mapper.GetInventoryMeta(toc)
 	inv := mapper.GetInventoryData(toc.Entries)
-	resp := InventoryResponse{
+	resp := server.InventoryResponse{
 		Meta: &meta,
 		Data: inv,
 	}
 	return resp
 }
 
-func toInventoryEntryResponse(ctx context.Context, tocEntry model.FoundEntry) InventoryEntryResponse {
+func toInventoryEntryResponse(ctx context.Context, tocEntry model.FoundEntry) server.InventoryEntryResponse {
 	mapper := NewMapper(ctx)
 
 	invEntry := mapper.GetInventoryEntry(tocEntry)
-	resp := InventoryEntryResponse{
+	resp := server.InventoryEntryResponse{
 		Data: invEntry,
 	}
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(ctx context.Context, tocVersions []model.FoundVersion) InventoryEntryVersionsResponse {
+func toInventoryEntryVersionsResponse(ctx context.Context, tocVersions []model.FoundVersion) server.InventoryEntryVersionsResponse {
 	mapper := NewMapper(ctx)
 
 	invEntryVersions := mapper.GetInventoryEntryVersions(tocVersions)
-	resp := InventoryEntryVersionsResponse{
+	resp := server.InventoryEntryVersionsResponse{
 		Data: invEntryVersions,
 	}
 	return resp
 }
 
-func toAuthorsResponse(authors []string) AuthorsResponse {
-	resp := AuthorsResponse{
+func toAuthorsResponse(authors []string) server.AuthorsResponse {
+	resp := server.AuthorsResponse{
 		Data: authors,
 	}
 	return resp
 }
 
-func toManufacturersResponse(manufacturers []string) ManufacturersResponse {
-	resp := ManufacturersResponse{
+func toManufacturersResponse(manufacturers []string) server.ManufacturersResponse {
+	resp := server.ManufacturersResponse{
 		Data: manufacturers,
 	}
 	return resp
 }
 
-func toMpnsResponse(mpns []string) MpnsResponse {
-	resp := MpnsResponse{
+func toMpnsResponse(mpns []string) server.MpnsResponse {
+	resp := server.MpnsResponse{
 		Data: mpns,
 	}
 	return resp
 }
 
-func toPushThingModelResponse(tmID string) PushThingModelResponse {
-	data := PushThingModelResult{
+func toPushThingModelResponse(tmID string) server.PushThingModelResponse {
+	data := server.PushThingModelResult{
 		TmID: tmID,
 	}
-	return PushThingModelResponse{
+	return server.PushThingModelResponse{
 		Data: data,
 	}
 }

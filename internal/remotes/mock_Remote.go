@@ -113,11 +113,11 @@ func (_m *MockRemote) Spec() RepoSpec {
 	return r0
 }
 
-// UpdateToc provides a mock function with given fields: updatedFiles
-func (_m *MockRemote) UpdateToc(updatedFiles ...string) error {
-	_va := make([]interface{}, len(updatedFiles))
-	for _i := range updatedFiles {
-		_va[_i] = updatedFiles[_i]
+// UpdateToc provides a mock function with given fields: updatedIds
+func (_m *MockRemote) UpdateToc(updatedIds ...string) error {
+	_va := make([]interface{}, len(updatedIds))
+	for _i := range updatedIds {
+		_va[_i] = updatedIds[_i]
 	}
 	var _ca []interface{}
 	_ca = append(_ca, _va...)
@@ -129,7 +129,7 @@ func (_m *MockRemote) UpdateToc(updatedFiles ...string) error {
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(...string) error); ok {
-		r0 = rf(updatedFiles...)
+		r0 = rf(updatedIds...)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -138,22 +138,24 @@ func (_m *MockRemote) UpdateToc(updatedFiles ...string) error {
 }
 
 // Versions provides a mock function with given fields: name
-func (_m *MockRemote) Versions(name string) (model.FoundEntry, error) {
+func (_m *MockRemote) Versions(name string) ([]model.FoundVersion, error) {
 	ret := _m.Called(name)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Versions")
 	}
 
-	var r0 model.FoundEntry
+	var r0 []model.FoundVersion
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (model.FoundEntry, error)); ok {
+	if rf, ok := ret.Get(0).(func(string) ([]model.FoundVersion, error)); ok {
 		return rf(name)
 	}
-	if rf, ok := ret.Get(0).(func(string) model.FoundEntry); ok {
+	if rf, ok := ret.Get(0).(func(string) []model.FoundVersion); ok {
 		r0 = rf(name)
 	} else {
-		r0 = ret.Get(0).(model.FoundEntry)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.FoundVersion)
+		}
 	}
 
 	if rf, ok := ret.Get(1).(func(string) error); ok {

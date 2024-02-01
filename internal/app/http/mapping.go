@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
@@ -18,13 +19,13 @@ func NewMapper(ctx context.Context) *Mapper {
 	}
 }
 
-func (m *Mapper) GetInventoryMeta(toc model.SearchResult) Meta {
-	meta := Meta{}
+func (m *Mapper) GetInventoryMeta(toc model.SearchResult) server.Meta {
+	meta := server.Meta{}
 	return meta
 }
 
-func (m *Mapper) GetInventoryData(tocData []model.FoundEntry) []InventoryEntry {
-	data := []InventoryEntry{}
+func (m *Mapper) GetInventoryData(tocData []model.FoundEntry) []server.InventoryEntry {
+	data := []server.InventoryEntry{}
 	for _, v := range tocData {
 		data = append(data, m.GetInventoryEntry(v))
 	}
@@ -32,8 +33,8 @@ func (m *Mapper) GetInventoryData(tocData []model.FoundEntry) []InventoryEntry {
 	return data
 }
 
-func (m *Mapper) GetInventoryEntry(tocEntry model.FoundEntry) InventoryEntry {
-	invEntry := InventoryEntry{}
+func (m *Mapper) GetInventoryEntry(tocEntry model.FoundEntry) server.InventoryEntry {
+	invEntry := server.InventoryEntry{}
 	invEntry.Name = tocEntry.Name
 	invEntry.SchemaAuthor.SchemaName = tocEntry.Author.Name
 	invEntry.SchemaManufacturer.SchemaName = tocEntry.Manufacturer.Name
@@ -42,7 +43,7 @@ func (m *Mapper) GetInventoryEntry(tocEntry model.FoundEntry) InventoryEntry {
 
 	hrefSelf, _ := url.JoinPath(basePathInventory, tocEntry.Name)
 	hrefSelf = resolveRelativeLink(m.Ctx, hrefSelf)
-	links := InventoryEntryLinks{
+	links := server.InventoryEntryLinks{
 		Self: hrefSelf,
 	}
 
@@ -51,8 +52,8 @@ func (m *Mapper) GetInventoryEntry(tocEntry model.FoundEntry) InventoryEntry {
 	return invEntry
 }
 
-func (m *Mapper) GetInventoryEntryVersions(tocVersions []model.FoundVersion) []InventoryEntryVersion {
-	invVersions := []InventoryEntryVersion{}
+func (m *Mapper) GetInventoryEntryVersions(tocVersions []model.FoundVersion) []server.InventoryEntryVersion {
+	invVersions := []server.InventoryEntryVersion{}
 	for _, v := range tocVersions {
 		invVersion := m.GetInventoryEntryVersion(v)
 		invVersions = append(invVersions, invVersion)
@@ -61,8 +62,8 @@ func (m *Mapper) GetInventoryEntryVersions(tocVersions []model.FoundVersion) []I
 	return invVersions
 }
 
-func (m *Mapper) GetInventoryEntryVersion(tocVersion model.FoundVersion) InventoryEntryVersion {
-	invVersion := InventoryEntryVersion{}
+func (m *Mapper) GetInventoryEntryVersion(tocVersion model.FoundVersion) server.InventoryEntryVersion {
+	invVersion := server.InventoryEntryVersion{}
 
 	invVersion.TmID = tocVersion.TMID
 	invVersion.Version.Model = tocVersion.Version.Model
@@ -74,7 +75,7 @@ func (m *Mapper) GetInventoryEntryVersion(tocVersion model.FoundVersion) Invento
 	hrefContent, _ := url.JoinPath(basePathThingModels, tocVersion.TMID)
 	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
 
-	links := InventoryEntryVersionLinks{
+	links := server.InventoryEntryVersionLinks{
 		Content: hrefContent,
 	}
 

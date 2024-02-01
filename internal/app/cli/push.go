@@ -90,7 +90,7 @@ func (p *PushExecutor) Push(filename string, spec remotes.RepoSpec, optPath stri
 	if len(okIds) > 0 {
 		tocErr := remote.UpdateToc(okIds...)
 		if tocErr != nil {
-			Stderrf("Cannot create TOC: %v", err)
+			Stderrf("Cannot create TOC: %v", tocErr)
 		}
 	}
 	return res, err

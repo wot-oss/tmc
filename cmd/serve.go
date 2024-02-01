@@ -61,7 +61,7 @@ func serve(cmd *cobra.Command, args []string) {
 	opts := getServerOptions()
 
 	pushSpec := spec
-	if pushTarget != "" {
+	if remote == "" && dir == "" && pushTarget != "" {
 		pushSpec = remotes.NewRemoteSpec(pushTarget)
 	}
 	err = cli.Serve(host, port, urlCtxRoot, opts, spec, pushSpec)

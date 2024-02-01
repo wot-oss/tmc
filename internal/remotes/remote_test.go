@@ -115,11 +115,13 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 			assert.NoError(t, err)
 			u, _ := url.Parse(ur)
 			assert.Equal(t, &HttpRemote{
-				root:           ur,
-				parsedRoot:     u,
 				templatedPath:  true,
 				templatedQuery: false,
-				spec:           NewRemoteSpec("r2"),
+				baseHttpRemote: baseHttpRemote{
+					root:       ur,
+					parsedRoot: u,
+					spec:       NewRemoteSpec("r2"),
+				},
 			}, hr)
 		})
 		t.Run("ad-hoc remote", func(t *testing.T) {

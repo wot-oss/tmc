@@ -182,10 +182,10 @@ func Test_ListInventory(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: remote having some inventory entries
 		r := remotes.NewMockRemote(t)
-		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
+		r.On("List", &model.SearchParams{Author: []string{"a-corp", "b-corp"}}).Return(listResult, nil).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: list all
-		res, err := underTest.ListInventory(nil, &model.SearchParams{})
+		res, err := underTest.ListInventory(nil, &model.SearchParams{Author: []string{"a-corp", "b-corp"}})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned

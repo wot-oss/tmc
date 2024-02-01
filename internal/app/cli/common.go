@@ -32,10 +32,9 @@ func (ff *FilterFlags) IsSet() bool {
 		ff.FilterExternalID != "" || ff.Search != ""
 }
 
-func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
+func CreateSearchParamsFromCLI(flags FilterFlags, name string, exactName bool) *model.SearchParams {
 	var search *model.SearchParams
-
-	if flags.IsSet() || name != "" {
+	if flags.IsSet() || name != "" || !exactName {
 		search = &model.SearchParams{}
 		if flags.FilterAuthor != "" {
 			search.Author = strings.Split(flags.FilterAuthor, DefaultListSeparator)
@@ -54,6 +53,9 @@ func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchPara
 		}
 		if name != "" {
 			search.Name = name
+		}
+		if !exactName {
+			search.Options.NameFilterType = model.PrefixMatch
 		}
 	}
 	return search
