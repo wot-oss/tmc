@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 func resetSearchFlags(flags *FilterFlags) {
@@ -47,7 +48,7 @@ func TestConvertSearchParams(t *testing.T) {
 	// given: no filter params set via CLI flags
 	flags := FilterFlags{}
 	// when: converting to SearchParams
-	params := CreateSearchParamsFromCLI(flags, "")
+	params := CreateSearchParamsFromCLI(flags, "", true)
 	// then: SearchParams are undefined
 	assert.Nil(t, params)
 
@@ -60,7 +61,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flags.Search = "some term"
 	name := "omni-corp/omni"
 	// when: converting to SearchParams
-	params = CreateSearchParamsFromCLI(flags, name)
+	params = CreateSearchParamsFromCLI(flags, name, false)
 	// then: the filter values are converted correctly
 	assert.NotNil(t, params)
 	assert.Equal(t, []string{flags.FilterAuthor}, params.Author)
@@ -68,6 +69,7 @@ func TestConvertSearchParams(t *testing.T) {
 	assert.Equal(t, []string{flags.FilterMpn}, params.Mpn)
 	assert.Equal(t, []string{flags.FilterExternalID}, params.ExternalID)
 	assert.Equal(t, name, params.Name)
+	assert.Equal(t, model.PrefixMatch, params.Options.NameFilterType)
 	assert.Equal(t, flags.Search, params.Query)
 
 	// given: filter params are set with multiple comma-separated values
@@ -78,7 +80,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flags.FilterExternalID = "some externalID 1,some external ID 2"
 	flags.Search = "some term"
 	// when: converting to SearchParams
-	params = CreateSearchParamsFromCLI(flags, "")
+	params = CreateSearchParamsFromCLI(flags, "", false)
 	// then: the multiple filter values are converted correctly
 	assert.NotNil(t, params)
 	assert.Equal(t, strings.Split(flags.FilterAuthor, ","), params.Author)

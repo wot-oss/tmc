@@ -8,6 +8,10 @@
 - Implemented ```pull``` command to fetch and save multiple thing models at once
 - Implemented setting CORS options for API
 - Implemented fetching a TM by a \[partial\] semantic version or version digest also in REST API
+- Print information about used config file in `help`
+- Implemented a 'tmc' remote type, which uses our own REST API as the underlying TM storage
+- Added 'filter.name' parameter to REST API '/inventory' listing
+- Added '--exact' flag to `list` and `pull`
 
 ### Changed
 
@@ -20,6 +24,10 @@
 
 - count only enabled remotes when checking if empty remote specification is unambiguous
 - make fetch by partial semantic version match the most recent version beginning with given string
+- (BREAKING!) ```push```: file hash calculation has been made more reliable and idempotent. Consequently, some files if pushed to TMC, may receive a new version hash, despite no change in contents
+- ```fetch```: fixed "Unable to parse TMID..." error when fetching an official TM by content hash
+- prevent ```serve``` from using one of remotes from config as push target when '-r' or '-d' are given
+- print the actual error if updating TOC after ```push``` fails
 
 ## [v0.0.0-alpha.2] - 2023-01-15
 

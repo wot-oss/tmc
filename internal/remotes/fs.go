@@ -26,6 +26,7 @@ var ErrTocLocked = errors.New("could not acquire lock on TOC file")
 var osStat = os.Stat         // mockable for testing
 var osReadFile = os.ReadFile // mockable for testing
 
+// FileRemote implements a Remote TM repository backed by a file system
 type FileRemote struct {
 	root string
 	spec RepoSpec
@@ -35,8 +36,15 @@ type ErrTMExists struct {
 	ExistingId string
 }
 
+const errTmExistsPrefix = "Thing Model already exists under id: "
+
 func (e *ErrTMExists) Error() string {
-	return fmt.Sprintf("Thing Model already exists under id: %v", e.ExistingId)
+	return fmt.Sprintf(errTmExistsPrefix+"%v", e.ExistingId)
+}
+
+func (e *ErrTMExists) FromString(s string) {
+	id, _ := strings.CutPrefix(s, errTmExistsPrefix)
+	e.ExistingId = id
 }
 
 func NewFileRemote(config map[string]any, spec RepoSpec) (*FileRemote, error) {
@@ -143,7 +151,7 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	}
 	exists, actualId := f.getExistingID(id)
 	if !exists {
-		return "", nil, os.ErrNotExist
+		return "", nil, ErrEntryNotFound
 	}
 	actualFilename, _, _ := f.filenames(actualId)
 	b, err := os.ReadFile(actualFilename)
@@ -182,7 +190,7 @@ func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error
 		return model.SearchResult{}, err
 	}
 	toc.Filter(search)
-	return model.NewSearchResultFromTOC(toc, f.Spec().ToFoundSource()), nil
+	return model.NewTOCToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(toc), nil
 }
 
 // readToc reads the contents of the TOC file. Must be called after the lock is acquired with lockToc()
@@ -201,24 +209,24 @@ func (f *FileRemote) tocFilename() string {
 	return filepath.Join(f.root, TOCFilename)
 }
 
-func (f *FileRemote) Versions(name string) (model.FoundEntry, error) {
+func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	if len(name) == 0 {
 		log.Error("Please specify a remoteName to show the TM.")
-		return model.FoundEntry{}, errors.New("please specify a remoteName to show the TM")
+		return nil, errors.New("please specify a remoteName to show the TM")
 	}
 	name = strings.TrimSpace(name)
 	toc, err := f.List(&model.SearchParams{Name: name})
 	if err != nil {
-		return model.FoundEntry{}, err
+		return nil, err
 	}
 
 	if len(toc.Entries) != 1 {
 		log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
-		return model.FoundEntry{}, ErrEntryNotFound
+		return nil, ErrEntryNotFound
 	}
 
-	return toc.Entries[0], nil
+	return toc.Entries[0].Versions, nil
 }
 
 func (f *FileRemote) checkRootValid() error {

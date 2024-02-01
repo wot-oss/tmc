@@ -99,12 +99,12 @@ func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, 
 }
 func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error) {
 	log := slog.Default()
-	tocThing, err := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
+	tocVersions, err := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
 	if err != nil {
 		return "", nil, err
 	}
-	versions := make([]model.FoundVersion, len(tocThing.Versions))
-	copy(versions, tocThing.Versions)
+	versions := make([]model.FoundVersion, len(tocVersions))
+	copy(versions, tocVersions)
 
 	var id string
 	var foundIn remotes.RepoSpec
