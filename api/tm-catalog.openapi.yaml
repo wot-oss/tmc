@@ -194,8 +194,8 @@ paths:
       summary: Get the content of a Thing Model by its ID or fetch name
       description: > 
         Returns the actual content of a Thing Model.
-        The Thing Model is selected by the ID or fetch name. Fetch name is defined as \<name\>[:(\<semver\>|\<digest\>)], 
-        where \<name\> is the TM's name as returned by /inventory, \<semver\> is a full or partial semantic version, and \<digest\> is the TM version's digest.
+        The Thing Model is selected by the ID or fetch name. Fetch name is defined as \<name\>[:\<semver\>], 
+        where \<name\> is the inventory name, \<semver\> is a full or partial semantic version.
         Using \<semver\> will return the most recent version of the TM that matches the provided part of semantic version
       operationId: getThingModelById
       parameters:

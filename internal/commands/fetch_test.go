@@ -66,16 +66,16 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 		expErrText string
 		expVer     string
 	}{
-		{"", true, "Invalid name format:  - Must be NAME[:SEMVER|DIGEST]", ""},
-		{"manufacturer", true, "Invalid name format: manufacturer - Must be NAME[:SEMVER|DIGEST]", ""},
+		{"", true, "Invalid name format:  - Must be NAME[:SEMVER]", ""},
+		{"manufacturer", true, "Invalid name format: manufacturer - Must be NAME[:SEMVER]", ""},
 		{"manufacturer/mpn", false, "", ""},
 		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
 		{"manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
 		{"author/manufacturer/mpn", false, "", "v2.0.0"},
-		{"author/manufacturer/mpn:c49617d2e4fc", false, "", "v1.0.0"},
 		{"author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
 		{"author/manufacturer/mpn:v1.0.0", false, "", "v1.0.0"},
 		{"author/manufacturer/mpn:1.0.0", false, "", "v1.0.0"},
+		{"author/manufacturer/mpn:1.a.0", true, "Invalid Semantic Version", ""},
 		{"author/manufacturer/mpn:v1.0", false, "", "v1.0.4"},
 		{"author/manufacturer/mpn:1.3", true, "No version 1.3 found", ""},
 		{"author/manufacturer/mpn:1.1", true, "No version 1.1 found", ""},
@@ -84,7 +84,6 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 		{"author/manufacturer/mpn:v1", false, "", "v1.2.3"},
 		{"author/manufacturer/mpn/folder/sub", false, "", "v1.0.0"},
 		{"author/manufacturer/mpn/folder/sub:v1.0.0", false, "", "v1.0.0"},
-		{"author/manufacturer/mpn/folder/sub:c49617d2e4fc", false, "", "v1.0.0"},
 		{"author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
 	}
 

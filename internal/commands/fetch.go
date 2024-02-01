@@ -7,17 +7,15 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 type FetchName struct {
-	Name           string
-	SemVerOrDigest string
+	Name   string
+	Semver string
 }
 
 var ErrTmNotFound = errors.New("TM not found")
@@ -30,7 +28,7 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 
 	// Check if there are enough submatches
 	if len(matches) < 2 {
-		msg := fmt.Sprintf("Invalid name format: %s - Must be NAME[:SEMVER|DIGEST]", fetchName)
+		msg := fmt.Sprintf("Invalid name format: %s - Must be NAME[:SEMVER]", fetchName)
 		slog.Default().Error(msg)
 		return FetchName{}, fmt.Errorf(msg)
 	}
@@ -39,7 +37,7 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 	// Extract values from submatches
 	fn.Name = matches[1]
 	if len(matches) > 4 {
-		fn.SemVerOrDigest = matches[4]
+		fn.Semver = matches[4]
 	}
 	return fn, nil
 }
@@ -105,23 +103,24 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string,
 	if err != nil {
 		return "", nil, err
 	}
+	versions := make([]model.FoundVersion, len(tocThing.Versions))
+	copy(versions, tocThing.Versions)
 
 	var id string
 	var foundIn remotes.RepoSpec
 	// Just the name specified: fetch most recent
-	if len(fn.SemVerOrDigest) == 0 {
-		id, foundIn, err = findMostRecentVersion(tocThing.Versions)
-		if err != nil {
-			return "", nil, err
-		}
-	} else if _, err := semver.NewVersion(fn.SemVerOrDigest); err == nil {
-		id, foundIn, err = findMostRecentMatchingVersion(tocThing.Versions, fn.SemVerOrDigest)
+	if len(fn.Semver) == 0 {
+		id, foundIn, err = findMostRecentVersion(versions)
 		if err != nil {
 			return "", nil, err
 		}
 	} else {
-		id, foundIn, err = findByDigest(tocThing.Versions, fn.SemVerOrDigest)
-		if err != nil {
+		if _, err := semver.NewVersion(fn.Semver); err == nil {
+			id, foundIn, err = findMostRecentMatchingVersion(versions, fn.Semver)
+			if err != nil {
+				return "", nil, err
+			}
+		} else {
 			return "", nil, err
 		}
 	}
@@ -130,7 +129,7 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string,
 	return c.FetchByTMID(foundIn, id)
 }
 
-func findMostRecentVersion(versions []model.FoundVersion) (id string, source remotes.RepoSpec, err error) {
+func findMostRecentVersion(versions []model.FoundVersion) (string, remotes.RepoSpec, error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		msg := "No versions found"
@@ -138,38 +137,10 @@ func findMostRecentVersion(versions []model.FoundVersion) (id string, source rem
 		return "", remotes.EmptySpec, errors.New(msg)
 	}
 
-	latestVersion, _ := semver.NewVersion("v0.0.0")
-	var latestTimeStamp time.Time
+	sortFoundVersionsDesc(versions)
 
-	for _, version := range versions {
-		// TODO: use StrictNewVersion
-		currentVersion, err := semver.NewVersion(version.Version.Model)
-		if err != nil {
-			log.Error(err.Error())
-			return "", remotes.EmptySpec, err
-		}
-		if currentVersion.GreaterThan(latestVersion) {
-			latestVersion = currentVersion
-			latestTimeStamp, err = time.Parse(model.PseudoVersionTimestampFormat, version.TimeStamp)
-			id = version.TMID
-			source = remotes.NewSpecFromFoundSource(version.FoundIn)
-			continue
-		}
-		if currentVersion.Equal(latestVersion) {
-			currentTimeStamp, err := time.Parse(model.PseudoVersionTimestampFormat, version.TimeStamp)
-			if err != nil {
-				log.Error(err.Error())
-				return "", remotes.EmptySpec, err
-			}
-			if currentTimeStamp.After(latestTimeStamp) {
-				latestTimeStamp = currentTimeStamp
-				id = version.TMID
-				source = remotes.NewSpecFromFoundSource(version.FoundIn)
-				continue
-			}
-		}
-	}
-	return id, source, nil
+	v := versions[0]
+	return v.TMID, remotes.NewSpecFromFoundSource(v.FoundIn), nil
 }
 
 func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (id string, source remotes.RepoSpec, err error) {
@@ -210,6 +181,15 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 	}
 
 	// sort the remaining by semver then timestamp in descending order
+	sortFoundVersionsDesc(versions)
+
+	// and here's our winner
+	v := versions[0]
+	return v.TMID, remotes.NewSpecFromFoundSource(v.FoundIn), nil
+}
+
+// sortFoundVersionsDesc sorts by semver then timestamp in descending order, ie. from newest to oldest
+func sortFoundVersionsDesc(versions []model.FoundVersion) {
 	slices.SortStableFunc(versions, func(a, b model.FoundVersion) int {
 		av := semver.MustParse(a.Version.Model)
 		bv := semver.MustParse(b.Version.Model)
@@ -219,33 +199,4 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 		}
 		return strings.Compare(b.TimeStamp, a.TimeStamp) // our timestamps can be compared lexicographically
 	})
-
-	// and here's our winner
-	v := versions[0]
-	return v.TMID, remotes.NewSpecFromFoundSource(v.FoundIn), nil
-}
-
-func findByDigest(versions []model.FoundVersion, digest string) (id string, source remotes.RepoSpec, err error) {
-	log := slog.Default()
-	if len(versions) == 0 {
-		msg := "No versions found"
-		log.Error(msg)
-		return "", remotes.EmptySpec, errors.New(msg)
-	}
-
-	digest = utils.ToTrimmedLower(digest)
-	for _, version := range versions {
-		// TODO: how to know if it is official?
-		tmid, err := model.ParseTMID(version.TMID, false)
-		if err != nil {
-			log.Error(fmt.Sprintf("Unable to parse TMID from %s", version.TMID))
-			return "", remotes.EmptySpec, err
-		}
-		if tmid.Version.Hash == digest {
-			return version.TMID, remotes.NewSpecFromFoundSource(version.FoundIn), nil
-		}
-	}
-	msg := fmt.Sprintf("No thing model found for digest %s", digest)
-	log.Error(msg)
-	return "", remotes.EmptySpec, errors.New(msg)
 }
