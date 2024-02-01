@@ -56,7 +56,7 @@ paths:
         - name: 'filter.name'
           in: query
           description: |
-            Filters the inventory by TM name (consisting of 'author/manufacturer/mpn') having a prefix match.   
+            Filters the inventory by inventory entry name (consisting of 'author/manufacturer/mpn') having a prefix match.   
             The filter works additive to other filters.
           schema:
             type: string
