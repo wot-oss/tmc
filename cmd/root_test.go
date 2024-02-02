@@ -82,9 +82,9 @@ func TestLogFlagEnablesLogging(t *testing.T) {
 	var pushCmd = &cobra.Command{Use: "push", Run: runFunc}
 	RootCmd.AddCommand(pushCmd)
 
-	// when: executing the command with the --log flag
+	// when: executing the command with the --loglevel flag
 	RootCmd.SetArgs([]string{"push"})
-	_ = RootCmd.ParseFlags([]string{"--log", ""})
+	_ = RootCmd.ParseFlags([]string{"--loglevel", "info"})
 	_ = RootCmd.Execute()
 	// then: logging is ENABLED
 	assert.False(t, isDisabled)
