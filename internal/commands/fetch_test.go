@@ -14,30 +14,31 @@ func TestParseFetchName(t *testing.T) {
 		in      string
 		expErr  bool
 		expName string
-		expSD   string
+		expSV   string
 	}{
 		{"", true, "", ""},
 		{"manufacturer", true, "", ""},
 		{"manufacturer\\mpn", true, "", ""},
 		{"manu-facturer/mpn", false, "manu-facturer/mpn", ""},
 		{"manufacturer/mpn:1.2.3", false, "manufacturer/mpn", "1.2.3"},
+		{"manufacturer/mpn:1.2.", true, "", ""},
+		{"manufacturer/mpn:1.2", false, "manufacturer/mpn", "1.2"},
 		{"manufacturer/mpn:v1.2.3", false, "manufacturer/mpn", "v1.2.3"},
-		{"manufacturer/mpn:43748209adcb", false, "manufacturer/mpn", "43748209adcb"},
+		{"manufacturer/mpn:43748209adcb", true, "", ""},
 		{"author/manufacturer/mpn:1.2.3", false, "author/manufacturer/mpn", "1.2.3"},
 		{"author/manufacturer/mpn:v1.2.3", false, "author/manufacturer/mpn", "v1.2.3"},
-		{"author/manufacturer/mpn:43748209adcb", false, "author/manufacturer/mpn", "43748209adcb"},
 		{"author/manufacturer/mpn/folder/structure:1.2.3", false, "author/manufacturer/mpn/folder/structure", "1.2.3"},
 		{"author/manufacturer/mpn/folder/structure:v1.2.3-alpha1", false, "author/manufacturer/mpn/folder/structure", "v1.2.3-alpha1"},
-		{"author/manufacturer/mpn/folder/structure:43748209adcb", false, "author/manufacturer/mpn/folder/structure", "43748209adcb"},
 	}
 
 	for _, test := range tests {
 		out, err := ParseFetchName(test.in)
 		if test.expErr {
 			assert.Error(t, err, "Want: error in ParseFetchName(%s). Got: nil", test.in)
+			assert.ErrorIs(t, err, ErrInvalidFetchName)
 		} else {
 			assert.NoError(t, err, "Want: no error in ParseFetchName(%s). Got: %v", test.in, err)
-			exp := FetchName{test.expName, test.expSD}
+			exp := FetchName{test.expName, test.expSV}
 			assert.Equal(t, exp, out, "Want: ParseFetchName(%s) = %v. Got: %v", test.in, exp, out)
 		}
 	}
@@ -62,36 +63,36 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 
 	tests := []struct {
 		in         string
-		expErr     bool
+		expErr     error
 		expErrText string
 		expVer     string
 	}{
-		{"", true, "Invalid name format:  - Must be NAME[:SEMVER]", ""},
-		{"manufacturer", true, "Invalid name format: manufacturer - Must be NAME[:SEMVER]", ""},
-		{"manufacturer/mpn", false, "", ""},
-		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
-		{"manufacturer/mpn:v1.0.0", false, "", "v1.0.0"},
-		{"manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
-		{"author/manufacturer/mpn", false, "", "v2.0.0"},
-		{"author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
-		{"author/manufacturer/mpn:v1.0.0", false, "", "v1.0.0"},
-		{"author/manufacturer/mpn:1.0.0", false, "", "v1.0.0"},
-		{"author/manufacturer/mpn:1.a.0", true, "Invalid Semantic Version", ""},
-		{"author/manufacturer/mpn:v1.0", false, "", "v1.0.4"},
-		{"author/manufacturer/mpn:1.3", true, "No version 1.3 found", ""},
-		{"author/manufacturer/mpn:1.1", true, "No version 1.1 found", ""},
-		{"author/manufacturer/mpn:1.2", false, "", "v1.2.3"},
-		{"author/manufacturer/mpn:3", true, "No version 3 found", ""},
-		{"author/manufacturer/mpn:v1", false, "", "v1.2.3"},
-		{"author/manufacturer/mpn/folder/sub", false, "", "v1.0.0"},
-		{"author/manufacturer/mpn/folder/sub:v1.0.0", false, "", "v1.0.0"},
-		{"author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false, "", "v1.0.0"},
+		{"", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer/mpn", nil, "", ""},
+		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
+		{"manufacturer/mpn:v1.0.0", nil, "", "v1.0.0"},
+		{"manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
+		{"author/manufacturer/mpn", nil, "", "v2.0.0"},
+		{"author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
+		{"author/manufacturer/mpn:v1.0.0", nil, "", "v1.0.0"},
+		{"author/manufacturer/mpn:1.0.0", nil, "", "v1.0.0"},
+		{"author/manufacturer/mpn:1.a.0", ErrInvalidFetchName, "invalid semantic version", ""},
+		{"author/manufacturer/mpn:v1.0", nil, "", "v1.0.4"},
+		{"author/manufacturer/mpn:1.3", remotes.ErrTmNotFound, "no version 1.3 found", ""},
+		{"author/manufacturer/mpn:1.1", remotes.ErrTmNotFound, "no version 1.1 found", ""},
+		{"author/manufacturer/mpn:1.2", nil, "", "v1.2.3"},
+		{"author/manufacturer/mpn:3", remotes.ErrTmNotFound, "no version 3 found", ""},
+		{"author/manufacturer/mpn:v1", nil, "", "v1.2.3"},
+		{"author/manufacturer/mpn/folder/sub", nil, "", "v1.0.0"},
+		{"author/manufacturer/mpn/folder/sub:v1.0.0", nil, "", "v1.0.0"},
+		{"author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
 	}
 
 	for _, test := range tests {
 		_, b, err := f.FetchByTMIDOrName(remotes.EmptySpec, test.in)
-		if test.expErr {
-			assert.Error(t, err, "Expected error in FetchByTMIDOrName(%s), but got nil", test.in)
+		if test.expErr != nil {
+			assert.ErrorIs(t, err, test.expErr, "Expected error in FetchByTMIDOrName(%s)", test.in)
 			assert.ErrorContains(t, err, test.expErrText, "Unexpected error in FetchByTMIDOrName(%s)", test.in)
 		} else {
 			assert.NoError(t, err, "Expected no error in FetchByTMIDOrName(%s)", test.in)
@@ -198,8 +199,8 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
 	rm.On("Get", remotes.NewRemoteSpec("r1")).Return(r1, nil)
 	rm.On("Get", remotes.NewRemoteSpec("r2")).Return(r2, nil)
 	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
-	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, ErrTmNotFound)
-	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, ErrTmNotFound)
+	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, remotes.ErrTmNotFound)
+	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, remotes.ErrTmNotFound)
 	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil)
 	r1.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{

@@ -18,7 +18,7 @@ type FetchName struct {
 	Semver string
 }
 
-var ErrTmNotFound = errors.New("TM not found")
+var ErrInvalidFetchName = errors.New("invalid fetch name")
 
 var fetchNameRegex = regexp.MustCompile(`^([\w\-0-9]+(/[\w\-0-9]+)+)(:(.+))?$`)
 
@@ -28,16 +28,20 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 
 	// Check if there are enough submatches
 	if len(matches) < 2 {
-		msg := fmt.Sprintf("Invalid name format: %s - Must be NAME[:SEMVER]", fetchName)
-		slog.Default().Error(msg)
-		return FetchName{}, fmt.Errorf(msg)
+		err := fmt.Errorf("%w: %s - must be NAME[:SEMVER]", ErrInvalidFetchName, fetchName)
+		slog.Default().Error(err.Error())
+		return FetchName{}, err
 	}
 
 	fn := FetchName{}
 	// Extract values from submatches
 	fn.Name = matches[1]
-	if len(matches) > 4 {
+	if len(matches) > 4 && matches[4] != "" {
 		fn.Semver = matches[4]
+		_, err := semver.NewVersion(fn.Semver)
+		if err != nil {
+			return FetchName{}, fmt.Errorf("%w: %s - invalid semantic version", ErrInvalidFetchName, fetchName)
+		}
 	}
 	return fn, nil
 }
@@ -94,7 +98,7 @@ func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, 
 
 	msg := fmt.Sprintf("No thing model found for %v", tmid)
 	slog.Default().Error(msg)
-	return "", nil, ErrTmNotFound
+	return "", nil, remotes.ErrTmNotFound
 
 }
 func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error) {
@@ -132,9 +136,9 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string,
 func findMostRecentVersion(versions []model.FoundVersion) (string, remotes.RepoSpec, error) {
 	log := slog.Default()
 	if len(versions) == 0 {
-		msg := "No versions found"
-		log.Error(msg)
-		return "", remotes.EmptySpec, errors.New(msg)
+		err := fmt.Errorf("%w: no versions found", remotes.ErrTmNotFound)
+		log.Error(err.Error())
+		return "", remotes.EmptySpec, err
 	}
 
 	sortFoundVersionsDesc(versions)
@@ -175,9 +179,9 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 
 	// see if anything remained
 	if len(versions) == 0 {
-		msg := fmt.Sprintf("No version %s found", ver)
-		log.Error(msg)
-		return "", remotes.EmptySpec, errors.New(msg)
+		err := fmt.Errorf("%w: no version %s found", remotes.ErrTmNotFound, ver)
+		log.Error(err.Error())
+		return "", remotes.EmptySpec, err
 	}
 
 	// sort the remaining by semver then timestamp in descending order

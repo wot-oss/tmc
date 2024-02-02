@@ -13,7 +13,7 @@ import (
 func ListVersions(spec remotes.RepoSpec, name string) error {
 	tocVersions, err := commands.NewVersionsCommand(remotes.DefaultManager()).ListVersions(spec, name)
 	if err != nil {
-		Stderrf("Could not list versions for %s: %v\ncheck config", name, err)
+		Stderrf("Could not list versions of %s: %v", name, err)
 		return err
 	}
 
