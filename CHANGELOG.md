@@ -7,7 +7,7 @@
 - Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
 - Implemented ```pull``` command to fetch and save multiple thing models at once
 - Implemented setting CORS options for API
-- Implemented fetching a TM by a \[partial\] semantic version or version digest also in REST API
+- Implemented fetching a TM by a \[partial\] semantic version also in REST API
 - Print information about used config file in `help`
 - Implemented a 'tmc' remote type, which uses our own REST API as the underlying TM storage
 - Added 'filter.name' parameter to REST API '/inventory' listing
