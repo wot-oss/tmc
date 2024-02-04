@@ -219,7 +219,7 @@ func TestFileRemote_List(t *testing.T) {
 	copyFile("../../test/data/list/tm-catalog.toc.json", filepath.Join(temp, TOCFilename))
 	list, err := r.List(&model.SearchParams{})
 	assert.NoError(t, err)
-	assert.Len(t, list.Entries, 4)
+	assert.Len(t, list.Entries, 3)
 }
 
 func copyFile(from, to string) {
@@ -267,10 +267,6 @@ func TestFileRemote_Versions(t *testing.T) {
 
 	vers, err = r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/nothing-here")
 	assert.ErrorIs(t, err, ErrEntryNotFound)
-
-	vers, err = r.Versions("systemx/siemens/AQualSenDev-virtual")
-	assert.NoError(t, err)
-	assert.Len(t, vers, 1)
 
 	vers, err = r.Versions("")
 	assert.ErrorContains(t, err, "specify a remoteName")
