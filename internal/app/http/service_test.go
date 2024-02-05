@@ -356,29 +356,53 @@ func Test_FetchingThingModel(t *testing.T) {
 		res, err := underTest.FetchThingModel(nil, invalidTmID)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is status code 400
-		assert.Error(t, err)
-		sErr, ok := err.(*BaseHttpError)
-		assert.True(t, ok)
-		assert.Equal(t, http.StatusBadRequest, sErr.Status)
+		// and then: error is ErrInvalidFetchName
+		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
 	})
 
-	t.Run("with tmID not found ", func(t *testing.T) {
+	t.Run("with invalid fetch name", func(t *testing.T) {
+		// when: fetching ThingModel
+		res, err := underTest.FetchThingModel(nil, "b-corp\\eagle/PM20")
+		// then: it returns nil result
+		assert.Nil(t, res)
+		// and then: error is ErrInvalidFetchName
+		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
+	})
+
+	t.Run("with invalid semantic version", func(t *testing.T) {
+		// when: fetching ThingModel
+		res, err := underTest.FetchThingModel(nil, "b-corp/eagle/PM20:v1.")
+		// then: it returns nil result
+		assert.Nil(t, res)
+		// and then: error is ErrInvalidFetchName
+		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
+	})
+
+	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", tmID).Return(tmID, nil, commands.ErrTmNotFound).Once()
+		r.On("Fetch", tmID).Return(tmID, nil, remotes.ErrTmNotFound).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(nil, tmID)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is status code 404
-		assert.Error(t, err)
-		sErr, ok := err.(*BaseHttpError)
-		assert.True(t, ok)
-		assert.Equal(t, http.StatusNotFound, sErr.Status)
+		// and then: error is ErrTmNotFound
+		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
 	})
 
-	t.Run("with tmID found ", func(t *testing.T) {
+	t.Run("with fetch name not found", func(t *testing.T) {
+		fn := "b-corp/eagle/PM20"
+		r.On("Versions", fn).Return(nil, nil).Once()
+		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
+		// when: fetching ThingModel
+		res, err := underTest.FetchThingModel(nil, fn)
+		// then: it returns nil result
+		assert.Nil(t, res)
+		// and then: error is ErrTmNotFound
+		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+	})
+
+	t.Run("with tmID found", func(t *testing.T) {
 		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", tmID).Return(tmID, raw, nil).Once()

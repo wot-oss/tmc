@@ -109,7 +109,7 @@ func fetchTM(tmUrl string, auth map[string]any) (string, []byte, error) {
 			return fmt.Sprintf("%v", value), b, fmt.Errorf("unexpected type of 'id': %v", value)
 		}
 	case http.StatusNotFound:
-		return "", nil, ErrEntryNotFound
+		return "", nil, ErrTmNotFound
 	case http.StatusInternalServerError, http.StatusBadRequest:
 		return "", nil, errors.New(string(b))
 	default:
@@ -192,7 +192,7 @@ func (h *HttpRemote) Versions(name string) ([]model.FoundVersion, error) {
 
 	if len(toc.Entries) != 1 {
 		log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
-		return nil, ErrEntryNotFound
+		return nil, ErrTmNotFound
 	}
 
 	return toc.Entries[0].Versions, nil

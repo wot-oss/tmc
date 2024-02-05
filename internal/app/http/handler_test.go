@@ -12,7 +12,7 @@ import (
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
 	"github.com/oapi-codegen/testutil"
@@ -45,7 +45,7 @@ func Test_getRelativeDepth(t *testing.T) {
 	}
 }
 
-var unknownErr = errors.New("a unknown error")
+var unknownErr = errors.New("an unknown error")
 
 func setupTestHttpHandler(hs HandlerService) http.Handler {
 
@@ -503,7 +503,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID).Return(nil, commands.ErrTmNotFound).Once()
+		hs.On("FetchThingModel", nil, tmID).Return(nil, remotes.ErrTmNotFound).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, httpHandler).Recorder
 		// then: it returns status 404 and json error as body

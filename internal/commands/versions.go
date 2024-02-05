@@ -25,7 +25,7 @@ func (c *VersionsCommand) ListVersions(spec remotes.RepoSpec, name string) ([]mo
 	found := false
 	for _, remote := range rs {
 		vers, err := remote.Versions(name)
-		if err != nil && errors.Is(err, remotes.ErrEntryNotFound) {
+		if err != nil && errors.Is(err, remotes.ErrTmNotFound) {
 			continue
 		}
 		if err != nil {
@@ -35,7 +35,7 @@ func (c *VersionsCommand) ListVersions(spec remotes.RepoSpec, name string) ([]mo
 		res = model.MergeFoundVersions(res, vers)
 	}
 	if !found {
-		return nil, remotes.ErrEntryNotFound
+		return nil, remotes.ErrTmNotFound
 	}
 	return res, nil
 

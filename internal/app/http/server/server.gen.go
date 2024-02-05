@@ -46,9 +46,9 @@ type ServerInterface interface {
 	// Push a new Thing Model
 	// (POST /thing-models)
 	PushThingModel(w http.ResponseWriter, r *http.Request)
-	// Get the content of a Thing Model by it's ID
-	// (GET /thing-models/{tmID})
-	GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string)
+	// Get the content of a Thing Model by its ID or fetch name
+	// (GET /thing-models/{tmIDOrName})
+	GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -425,17 +425,17 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 
 	var err error
 
-	// ------------- Path parameter "tmID" -------------
-	var tmID string
+	// ------------- Path parameter "tmIDOrName" -------------
+	var tmIDOrName string
 
-	err = runtime.BindStyledParameter("simple", false, "tmID", mux.Vars(r)["tmID"], &tmID)
+	err = runtime.BindStyledParameter("simple", false, "tmIDOrName", mux.Vars(r)["tmIDOrName"], &tmIDOrName)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmID", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmIDOrName", Err: err})
 		return
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetThingModelById(w, r, tmID)
+		siw.Handler.GetThingModelById(w, r, tmIDOrName)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -572,7 +572,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.PushThingModel).Methods("POST")
 
-	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.GetThingModelById).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}", wrapper.GetThingModelById).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/healthz", wrapper.GetHealth).Methods("GET")
 
