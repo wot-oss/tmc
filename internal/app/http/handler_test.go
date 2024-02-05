@@ -188,18 +188,16 @@ func Test_Inventory(t *testing.T) {
 		fAuthors := []string{"a1", "a2"}
 		fMan := []string{"man1", "man2"}
 		fMpn := []string{"mpn1", "mpn2"}
-		fExtID := []string{"ext1", "ext2"}
 		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.externalID=%s&search=%s",
-			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","), strings.Join(fMpn, ","), strings.Join(fExtID, ","), search)
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&search=%s",
+			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","), strings.Join(fMpn, ","), search)
 
 		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
 			Author:       fAuthors,
 			Manufacturer: fMan,
 			Mpn:          fMpn,
-			ExternalID:   fExtID,
 			Query:        search,
 		}
 
@@ -318,17 +316,15 @@ func Test_Authors(t *testing.T) {
 		// given: the route with filter and search parameters
 		fMan := []string{"man1", "man2"}
 		fMpn := []string{"mpn1", "mpn2"}
-		fExtID := []string{"ext1", "ext2"}
 		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.manufacturer=%s&filter.mpn=%s&filter.externalID=%s&search=%s",
-			route, strings.Join(fMan, ","), strings.Join(fMpn, ","), strings.Join(fExtID, ","), search)
+		filterRoute := fmt.Sprintf("%s?filter.manufacturer=%s&filter.mpn=%s&search=%s",
+			route, strings.Join(fMan, ","), strings.Join(fMpn, ","), search)
 
 		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
 			Manufacturer: fMan,
 			Mpn:          fMpn,
-			ExternalID:   fExtID,
 			Query:        search,
 		}
 
@@ -380,18 +376,16 @@ func Test_Manufacturers(t *testing.T) {
 		// given: the route with filter and search parameters
 		fAuthors := []string{"a1", "a2"}
 		fMpn := []string{"mpn1", "mpn2"}
-		fExtID := []string{"ext1", "ext2"}
 		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.mpn=%s&filter.externalID=%s&search=%s",
-			route, strings.Join(fAuthors, ","), strings.Join(fMpn, ","), strings.Join(fExtID, ","), search)
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.mpn=%s&search=%s",
+			route, strings.Join(fAuthors, ","), strings.Join(fMpn, ","), search)
 
 		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
-			Author:     fAuthors,
-			Mpn:        fMpn,
-			ExternalID: fExtID,
-			Query:      search,
+			Author: fAuthors,
+			Mpn:    fMpn,
+			Query:  search,
 		}
 
 		hs.On("ListManufacturers", nil, expectedSearchParams).Return(manufacturers, nil).Once()
@@ -443,17 +437,15 @@ func Test_Mpns(t *testing.T) {
 		// given: the route with filter and search parameters
 		fAuthors := []string{"a1", "a2"}
 		fMan := []string{"man1", "man2"}
-		fExtID := []string{"ext1", "ext2"}
 		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.externalID=%s&search=%s",
-			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","), strings.Join(fExtID, ","), search)
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&search=%s",
+			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","), search)
 
 		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := &model.SearchParams{
 			Author:       fAuthors,
 			Manufacturer: fMan,
-			ExternalID:   fExtID,
 			Query:        search,
 		}
 

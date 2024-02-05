@@ -61,14 +61,6 @@ paths:
           schema:
             type: string
           example: filter.name=darthvader/omnicorp/deathstar
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the inventory by one or more external ID having exact match.   
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: 'search'
           in: query
           description: |
@@ -320,15 +312,6 @@ paths:
           schema:
             type: string
           example: filter.mpn=B21,FC102
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the authors according to whether they have inventory entries   
-            which belong to at least one of the given external ID's with an exact match.    
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: 'search'
           in: query
           description: |
@@ -385,15 +368,6 @@ paths:
           schema:
             type: string
           example: filter.mpn=B21,FC102
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the manufacturers according to whether they have inventory entries   
-            which belong to at least one of the given external ID's with an exact match.    
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: 'search'
           in: query
           description: |
@@ -449,15 +423,6 @@ paths:
           schema:
             type: string
           example: filter.manufacturer=ABB,Danfoss
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the mpns according to whether their inventory entry   
-            belongs to at least one of the given external ID's with an exact match.    
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
         - name: 'search'
           in: query
           description: |
