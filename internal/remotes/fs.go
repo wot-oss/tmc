@@ -151,7 +151,7 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	}
 	exists, actualId := f.getExistingID(id)
 	if !exists {
-		return "", nil, ErrEntryNotFound
+		return "", nil, ErrTmNotFound
 	}
 	actualFilename, _, _ := f.filenames(actualId)
 	b, err := os.ReadFile(actualFilename)
@@ -211,10 +211,6 @@ func (f *FileRemote) tocFilename() string {
 
 func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
-	if len(name) == 0 {
-		log.Error("Please specify a remoteName to show the TM.")
-		return nil, errors.New("please specify a remoteName to show the TM")
-	}
 	name = strings.TrimSpace(name)
 	toc, err := f.List(&model.SearchParams{Name: name})
 	if err != nil {
@@ -222,8 +218,9 @@ func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
 	}
 
 	if len(toc.Entries) != 1 {
-		log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
-		return nil, ErrEntryNotFound
+		err := fmt.Errorf("%w: %s", ErrTmNotFound, name)
+		log.Error(err.Error())
+		return nil, err
 	}
 
 	return toc.Entries[0].Versions, nil
