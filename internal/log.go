@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
@@ -30,14 +31,22 @@ func newDiscardLogHandler(opts *slog.HandlerOptions) slog.Handler {
 }
 
 func InitLogging() {
-	logEnabled := viper.GetBool(config.KeyLog)
-
 	logLevel := viper.GetString(config.KeyLogLevel)
-	var level slog.Level
-	//levelP := &level
-	err := level.UnmarshalText([]byte(logLevel))
-	if err != nil {
-		level = slog.LevelInfo
+
+	var logEnabled bool
+	level := slog.LevelError
+
+	switch logLevel {
+	case "":
+		logEnabled = false
+	case strings.ToLower(config.LogLevelOff):
+		logEnabled = false
+	default:
+		logEnabled = true
+		err := level.UnmarshalText([]byte(logLevel))
+		if err != nil {
+			level = slog.LevelInfo
+		}
 	}
 
 	opts := &slog.HandlerOptions{
