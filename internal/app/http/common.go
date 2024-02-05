@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-
-	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -74,21 +73,23 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errDetail := error500Detail
 	errStatus := http.StatusInternalServerError
 
-	if errors.Is(err, commands.ErrTmNotFound) {
+	var eErr *remotes.ErrTMExists
+	var bErr *BaseHttpError
+	if errors.Is(err, remotes.ErrTmNotFound) {
 		errTitle = error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
-	} else if errors.Is(err, model.ErrInvalidId) {
+	} else if errors.Is(err, model.ErrInvalidId) || errors.Is(err, commands.ErrInvalidFetchName) {
 		errTitle = error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
-	} else if sErr, ok := err.(*BaseHttpError); ok {
-		errTitle = sErr.Title
-		errDetail = sErr.Detail
-		errStatus = sErr.Status
-	} else if sErr, ok := err.(*remotes.ErrTMExists); ok {
+	} else if errors.As(err, &bErr) {
+		errTitle = bErr.Title
+		errDetail = bErr.Detail
+		errStatus = bErr.Status
+	} else if errors.As(err, &eErr) {
 		errTitle = error409Title
-		errDetail = sErr.Error()
+		errDetail = eErr.Error()
 		errStatus = http.StatusConflict
 	} else {
 		switch err.(type) {
@@ -139,32 +140,31 @@ func (e *BaseHttpError) Unwrap() error {
 }
 
 func NewNotFoundError(err error, detail string, args ...any) error {
-	detail = fmt.Sprintf(detail, args...)
-	return &BaseHttpError{
-		Status: http.StatusNotFound,
-		Title:  error404Title,
-		Detail: detail,
-		Err:    err,
-	}
+	return newBaseHttpError(err, http.StatusNotFound, error404Title, detail, args...)
 }
 
 func NewBadRequestError(err error, detail string, args ...any) error {
-	detail = fmt.Sprintf(detail, args...)
-	return &BaseHttpError{
-		Status: http.StatusBadRequest,
-		Title:  error400Title,
-		Detail: detail,
-		Err:    err,
-	}
+	return newBaseHttpError(err, http.StatusBadRequest, error400Title, detail, args...)
 }
 
 func NewServiceUnavailableError(err error, detail string) error {
-	return &BaseHttpError{
-		Status: http.StatusServiceUnavailable,
-		Title:  error503Title,
-		Detail: detail,
+	return newBaseHttpError(err, http.StatusServiceUnavailable, error503Title, detail)
+}
+
+func newBaseHttpError(err error, status int, title string, detail string, args ...any) error {
+	msg := fmt.Sprintf(detail, args...)
+
+	if err != nil {
+		msg = fmt.Sprintf(msg+": %s", err.Error())
+	}
+
+	be := &BaseHttpError{
+		Status: status,
+		Title:  title,
+		Detail: msg,
 		Err:    err,
 	}
+	return be
 }
 
 func convertParams(params any) *model.SearchParams {

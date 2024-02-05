@@ -1,0 +1,82 @@
+{
+  "meta": {
+    "created": "2024-02-05T10:30:17.660274866+01:00"
+  },
+  "data": [
+    {
+      "name": "omnicorp-R-D-research/omnicorp/senseall",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "senseall",
+      "schema:author": {
+        "schema:name": "omnicorp-R-D-research"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "omnicorp-R-D-research/omnicorp/senseall/v1.0.1-20240202143505-0a5dcc75d401.tm.json"
+          },
+          "tmID": "omnicorp-R-D-research/omnicorp/senseall/v1.0.1-20240202143505-0a5dcc75d401.tm.json",
+          "digest": "0a5dcc75d401",
+          "timestamp": "20240202143505",
+          "externalID": ""
+        }
+      ]
+    },
+    {
+      "name": "omnicorp/lightall-mk2",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "lightall-mk2",
+      "schema:author": {
+        "schema:name": "omnicorp"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "2.0.0"
+          },
+          "links": {
+            "content": "omnicorp/lightall-mk2/v2.0.0-20240205093112-21860d97d305.tm.json"
+          },
+          "tmID": "omnicorp/lightall-mk2/v2.0.0-20240205093112-21860d97d305.tm.json",
+          "digest": "21860d97d305",
+          "timestamp": "20240205093112",
+          "externalID": ""
+        }
+      ]
+    },
+    {
+      "name": "omnicorp/lightall",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "lightall",
+      "schema:author": {
+        "schema:name": "omnicorp"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "omnicorp/lightall/v1.0.1-20240205093112-34a4a25a38d5.tm.json"
+          },
+          "tmID": "omnicorp/lightall/v1.0.1-20240205093112-34a4a25a38d5.tm.json",
+          "digest": "34a4a25a38d5",
+          "timestamp": "20240205093112",
+          "externalID": ""
+        }
+      ]
+    }
+  ]
+}

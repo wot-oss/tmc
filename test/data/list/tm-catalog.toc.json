@@ -77,31 +77,6 @@
           "externalID": ""
         }
       ]
-    },
-    {
-      "name": "systemx/siemens/AQualSenDev-virtual",
-      "schema:manufacturer": {
-        "schema:name": "siemens"
-      },
-      "schema:mpn": "AQualSenDev-virtual",
-      "schema:author": {
-        "schema:name": "systemx"
-      },
-      "versions": [
-        {
-          "description": "Air quality sensor device (virtual)",
-          "version": {
-            "model": "0.34.0"
-          },
-          "links": {
-            "content": "systemx/siemens/AQualSenDev-virtual/v0.34.0-20231130153548-243d1b462aaa.tm.json"
-          },
-          "tmID": "systemx/siemens/AQualSenDev-virtual/v0.34.0-20231130153548-243d1b462aaa.tm.json",
-          "digest": "243d1b462aaa",
-          "timestamp": "20231130153548",
-          "externalID": "urn:uuid:f48f4ffc-f898-580f-b93f-648d7a9cff1d"
-        }
-      ]
     }
   ]
 }

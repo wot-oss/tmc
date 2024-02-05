@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	KeyLog                  = "log"
 	KeyLogLevel             = "logLevel"
 	KeyUrlContextRoot       = "urlContextRoot"
 	KeyCorsAllowedOrigins   = "corsAllowedOrigins"
@@ -16,6 +15,7 @@ const (
 	KeyCorsAllowCredentials = "corsAllowCredentials"
 	KeyCorsMaxAge           = "corsMaxAge"
 	EnvPrefix               = "tmc"
+	LogLevelOff             = "off"
 )
 
 var HomeDir string
@@ -33,8 +33,7 @@ func InitConfig() {
 
 func InitViper() {
 	viper.SetDefault("remotes", map[string]any{})
-	viper.SetDefault(KeyLog, false)
-	viper.SetDefault(KeyLogLevel, "INFO")
+	viper.SetDefault(KeyLogLevel, LogLevelOff)
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
@@ -52,10 +51,10 @@ func InitViper() {
 	viper.SetEnvPrefix(EnvPrefix)
 
 	// bind viper variables to environment variables
-	_ = viper.BindEnv(KeyLog)                  // env variable name = TMC_LOG
-	_ = viper.BindEnv(KeyUrlContextRoot)       // env variable name = TMC_URLCONTEXTROOT
-	_ = viper.BindEnv(KeyCorsAllowedOrigins)   // env variable name = TMC_CORSALLOWEDORIGINS
-	_ = viper.BindEnv(KeyCorsAllowedHeaders)   // env variable name = TMC_CORSALLOWEDHEADERS
-	_ = viper.BindEnv(KeyCorsAllowCredentials) // env variable name = TMC_CORSALLOWCREDENTIALS
-	_ = viper.BindEnv(KeyCorsMaxAge)           // env variable name = TMC_CORSMAXAGE
+	_ = viper.BindEnv(KeyLogLevel)             // env variable name = tmc_loglevel
+	_ = viper.BindEnv(KeyUrlContextRoot)       // env variable name = tmc_urlcontextroot
+	_ = viper.BindEnv(KeyCorsAllowedOrigins)   // env variable name = tmc_corsallowedorigins
+	_ = viper.BindEnv(KeyCorsAllowedHeaders)   // env variable name = tmc_corsallowedheaders
+	_ = viper.BindEnv(KeyCorsAllowCredentials) // env variable name = tmc_corsallowcredentials
+	_ = viper.BindEnv(KeyCorsMaxAge)           // env variable name = tmc_corsmaxage
 }

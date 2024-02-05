@@ -212,13 +212,13 @@ func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {
 		}
 		if len(vResp.Data) != 1 {
 			log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
-			return nil, ErrEntryNotFound
+			return nil, ErrTmNotFound
 		}
 
 		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper).
 			ToFoundVersions(vResp.Data), nil
 	case http.StatusNotFound:
-		return nil, ErrEntryNotFound
+		return nil, ErrTmNotFound
 	case http.StatusInternalServerError, http.StatusBadRequest:
 		return nil, errors.New(string(data))
 	default:
