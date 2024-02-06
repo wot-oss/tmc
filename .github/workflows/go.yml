@@ -59,7 +59,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
   docker:
-    if: false
+    if: startsWith(github.ref, 'refs/tags') 
     needs: build
     runs-on: ubuntu-latest
 
@@ -74,10 +74,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Construct binary name
-        run: echo "BINARY=${{ github.event.repository.name }}-${{env.GOOS}}_${{env.GOARCH}}" >> $GITHUB_ENV
-
-        
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:

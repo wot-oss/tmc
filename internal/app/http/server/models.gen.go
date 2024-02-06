@@ -127,11 +127,6 @@ type GetAuthorsParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
-	// FilterExternalID Filters the authors according to whether they have inventory entries
-	// which belong to at least one of the given external ID's with an exact match.
-	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
-
 	// Search Filters the authors according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
@@ -152,13 +147,9 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
-	// FilterName Filters the inventory by TM name (consisting of 'author/manufacturer/mpn') having a prefix match.
+	// FilterName Filters the inventory by inventory entry name (consisting of 'author/manufacturer/mpn') having a prefix match.
 	// The filter works additive to other filters.
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
-
-	// FilterExternalID Filters the inventory by one or more external ID having exact match.
-	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
 	// Search Filters the inventory according to whether the content of the inventory entries matches the given search.
 	// The search works additive to other filters.
@@ -184,11 +175,6 @@ type GetManufacturersParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
-	// FilterExternalID Filters the manufacturers according to whether they have inventory entries
-	// which belong to at least one of the given external ID's with an exact match.
-	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
-
 	// Search Filters the manufacturers according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
@@ -204,11 +190,6 @@ type GetMpnsParams struct {
 	// FilterManufacturer Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.
 	// The filter works additive to other filters.
 	FilterManufacturer *string `form:"filter.manufacturer,omitempty" json:"filter.manufacturer,omitempty"`
-
-	// FilterExternalID Filters the mpns according to whether their inventory entry
-	// belongs to at least one of the given external ID's with an exact match.
-	// The filter works additive to other filters.
-	FilterExternalID *string `form:"filter.externalID,omitempty" json:"filter.externalID,omitempty"`
 
 	// Search Filters the mpns according to whether their inventory entry content matches the given search.
 	// The search works additive to other filters.

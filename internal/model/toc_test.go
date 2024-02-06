@@ -138,22 +138,6 @@ func TestTOC_Filter(t *testing.T) {
 		assert.NotNil(t, toc.findByName("aut/man/mpn2"))
 		assert.NotNil(t, toc.findByName("man/mpn"))
 	})
-	t.Run("filter by externalID", func(t *testing.T) {
-		toc := prepareToc()
-		toc.Filter(&SearchParams{ExternalID: []string{"externalID"}, Author: []string{"aut"}})
-		assert.Len(t, toc.Data, 0)
-
-		toc = prepareToc()
-		toc.Filter(&SearchParams{ExternalID: []string{"externalID"}})
-		assert.Len(t, toc.Data, 1)
-		assert.NotNil(t, toc.findByName("man/mpn"))
-
-		toc = prepareToc()
-		toc.Filter(&SearchParams{ExternalID: []string{"externalID", "externalID2"}})
-		assert.Len(t, toc.Data, 2)
-		assert.NotNil(t, toc.findByName("aut/man/mpn"))
-		assert.NotNil(t, toc.findByName("man/mpn"))
-	})
 }
 
 func prepareToc() *TOC {

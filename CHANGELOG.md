@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
+
+
+
+## [v0.0.0-alpha.3]
+
 ### Added
 
+- Building docker base image for releases to enable catalog hosting
 - Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
 - Implemented ```pull``` command to fetch and save multiple thing models at once
 - Implemented setting CORS options for API
@@ -18,6 +24,9 @@
 - ```list```: allows now listing by name pattern
 - ```serve```: separate configuration of the remote(s) to be served from the target remote for push
 - ```fetch```: ```--output``` now accepts only a target folder to save TM to, ```--with-path``` has been removed
+- ```list, pull```: removed filter flag `filter.externalID`, search for externalID has now to be done by query search `-s`
+- REST API:  removed filter parameter filter.externalID from `/inventory`, `/authors`, `/manufacturers`, `/mpns`,     
+  search for externalID has now to be done by query parameter `search`
 - enable/disable logging is now done only by setting a loglevel
 - `list` and `pull`: match given name pattern as a prefix by complete path parts
 - `list`: changed output format: put NAME column first, renamed PATH column to MPN

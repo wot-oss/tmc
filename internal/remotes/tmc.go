@@ -174,7 +174,6 @@ func addSearchParams(u *url.URL, search *model.SearchParams) {
 	appendQueryArray(u, "filter.author", search.Author)
 	appendQueryArray(u, "filter.manufacturer", search.Manufacturer)
 	appendQueryArray(u, "filter.mpn", search.Mpn)
-	appendQueryArray(u, "filter.externalID", search.ExternalID)
 }
 
 func appendQueryArray(u *url.URL, key string, values []string) {

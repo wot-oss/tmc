@@ -31,7 +31,6 @@ func init() {
 	pullCmd.Flags().StringVar(&pFilterFlags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	pullCmd.Flags().StringVar(&pFilterFlags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	pullCmd.Flags().StringVar(&pFilterFlags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
-	pullCmd.Flags().StringVar(&pFilterFlags.FilterExternalID, "filter.externalID", "", "filter TMs by one or more comma-separated external ID")
 	pullCmd.Flags().StringVarP(&pFilterFlags.Search, "search", "s", "", "search TMs by their content matching the search term")
 	_ = pullCmd.MarkFlagRequired("output")
 }

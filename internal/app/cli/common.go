@@ -23,13 +23,11 @@ type FilterFlags struct {
 	FilterAuthor       string
 	FilterManufacturer string
 	FilterMpn          string
-	FilterExternalID   string
 	Search             string
 }
 
 func (ff *FilterFlags) IsSet() bool {
-	return ff.FilterAuthor != "" || ff.FilterManufacturer != "" || ff.FilterMpn != "" ||
-		ff.FilterExternalID != "" || ff.Search != ""
+	return ff.FilterAuthor != "" || ff.FilterManufacturer != "" || ff.FilterMpn != "" || ff.Search != ""
 }
 
 func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
@@ -44,9 +42,6 @@ func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchPara
 		}
 		if flags.FilterMpn != "" {
 			search.Mpn = strings.Split(flags.FilterMpn, DefaultListSeparator)
-		}
-		if flags.FilterExternalID != "" {
-			search.ExternalID = strings.Split(flags.FilterExternalID, DefaultListSeparator)
 		}
 		if flags.Search != "" {
 			search.Query = flags.Search

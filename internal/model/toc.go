@@ -44,6 +44,9 @@ func (e *TOCEntry) MatchesSearchText(searchQuery string) bool {
 		if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
 			return true
 		}
+		if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
+			return true
+		}
 	}
 	return false
 
@@ -86,18 +89,6 @@ func (toc *TOC) Filter(search *SearchParams) {
 			return true
 		}
 
-		if len(search.ExternalID) > 0 {
-			hasExternalID := false
-			for _, v := range tocEntry.Versions {
-				if slices.Contains(search.ExternalID, v.ExternalID) {
-					hasExternalID = true
-					break
-				}
-			}
-			if !hasExternalID {
-				return true
-			}
-		}
 		return false
 	})
 
