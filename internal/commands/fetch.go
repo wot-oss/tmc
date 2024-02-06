@@ -89,17 +89,7 @@ func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, 
 		return "", nil, err
 	}
 
-	for _, r := range rs {
-		id, thing, err := r.Fetch(tmid)
-		if err == nil {
-			return id, thing, nil
-		}
-	}
-
-	msg := fmt.Sprintf("No thing model found for %v", tmid)
-	slog.Default().Error(msg)
-	return "", nil, remotes.ErrTmNotFound
-
+	return rs.Fetch(tmid)
 }
 func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error) {
 	log := slog.Default()

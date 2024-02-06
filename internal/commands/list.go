@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"fmt"
-
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -21,14 +19,5 @@ func (c *ListCommand) List(rSpec remotes.RepoSpec, search *model.SearchParams) (
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-
-	res := &model.SearchResult{}
-	for _, remote := range rs {
-		toc, err := remote.List(search)
-		if err != nil {
-			return model.SearchResult{}, fmt.Errorf("could not list %s: %w", remote.Spec(), err)
-		}
-		res.Merge(&toc)
-	}
-	return *res, nil
+	return rs.List(search)
 }

@@ -368,13 +368,17 @@ func AsRemoteConfig(bytes []byte) (map[string]any, error) {
 }
 
 // GetSpecdOrAll returns the remote with remoteName remoteName in a slice, or all remotes, in case remoteName is empty string
-func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) ([]Remote, error) {
+func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) (Remote, error) {
 	if spec.remoteName != "" || spec.dir != "" {
 		remote, err := manager.Get(spec)
 		if err != nil {
 			return nil, err
 		}
-		return []Remote{remote}, nil
+		return remote, nil
 	}
-	return manager.All()
+	all, err := manager.All()
+	if err != nil {
+		return nil, err
+	}
+	return NewUnionRemote(all...), nil
 }
