@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Thing Model Catalog - OpenAPI 3.0
-  version: 0.0.1
+  version: 0.0.2
 externalDocs:
   description: Find out more about Thing Model Catalog
   url: https://github.com/web-of-things-open-source/tm-catalog-cli
@@ -36,7 +36,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.author=MyCompany,YourCompany
+          example: 'MyCompany,nexus-x'
         - name: 'filter.manufacturer'
           in: query
           description: |
@@ -44,7 +44,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.manufacturer=ABB,Danfoss
+          example: 'BarTech,Siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -52,7 +52,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.mpn=B21,FC102
+          example: 'BazLamp,PAC2200'
         - name: 'filter.name'
           in: query
           description: |
@@ -60,7 +60,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.name=darthvader/omnicorp/deathstar
+          example: 'nexus-x/Siemens'
         - name: 'search'
           in: query
           description: |
@@ -68,17 +68,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
-        - name: sort
-          in: query
-          description: |
-            Sorts the inventory by one or more fields. The sort is applied in the order of the fields.   
-            The sorting is done ascending per field by default. If a field needs to be sorted descending,  
-            prefix it with a HYPHEN-MINUS "-")
-          schema:
-            type: string
-            enum: [author, manufacturer, mpn]
-          example: sort=author,-manufacturer
+          example: 'n/a'
       responses:
         '200':
           description: Successful operation
@@ -115,7 +105,7 @@ paths:
           required: true
           schema:
             type: string
-          example: mycompany/abb/B21
+          example: 'nexus-x/Siemens/PAC2200'
       responses:
         '200':
           description: Successful operation
@@ -158,7 +148,7 @@ paths:
           required: true
           schema:
             type: string
-          example: mycompany/abb/B21
+          example: 'nexus-x/Siemens/PAC2200'
       responses:
         '200':
           description: Successful operation
@@ -167,7 +157,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InventoryEntryVersionsResponse'
               examples:
-                versionsExample:
+                inventoryVersions:
                   $ref: '#/components/examples/InventoryEntryVersionsResponseExample'
         '400':
           description: Invalid ID supplied
@@ -201,21 +191,19 @@ paths:
       parameters:
         - name: tmIDOrName
           in: path
-          description: ID or of the Thing Model
+          description: ID or fetch name of the Thing Model
           required: true
           schema:
             type: string
           examples:
             id:
-              value: author/manufacturer/mpn/v1.2.3-20231205123243-c49617d2e4fc.tm.json
-            digest:
-              value: author/manufacturer/mpn:c49617d2e4fc
+              value: 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
             fullVersion:
-              value: author/manufacturer/mpn:v1.2.3
+              value: 'nexus-x/Siemens/PAC2200:v1.2.3'
             major:
-              value: author/manufacturer/mpn:1
+              value: 'nexus-x/Siemens/PAC2200:1'
             majorMinor:
-              value: author/manufacturer/mpn:1.2
+              value: 'nexus-x/Siemens/PAC2200:1.2'
       responses:
         '200':
           description: |
@@ -260,6 +248,9 @@ paths:
           application/json:
             schema:
               type: object
+            examples:
+              payload:
+                $ref: '#/components/examples/PushPayloadExample'
         required: true
       responses:
         '201':
@@ -302,7 +293,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.manufacturer=ABB,Danfoss
+          example: 'BarTech,Siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -311,7 +302,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.mpn=B21,FC102
+          example: 'BazLamp,PAC2200'
         - name: 'search'
           in: query
           description: |
@@ -320,7 +311,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
+          example: 'n/a'
       responses:
         '200':
           description: Successful operation
@@ -358,7 +349,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.author=MyCompany,YourCompany
+          example: 'MyCompany,nexus-x'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -367,7 +358,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.mpn=B21,FC102
+          example: 'BazLamp,PAC2200'
         - name: 'search'
           in: query
           description: |
@@ -376,7 +367,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
+          example: 'n/a'
       responses:
         '200':
           description: Successful operation
@@ -414,7 +405,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.author=MyCompany,YourCompany
+          example: 'MyCompany,nexus-x'
         - name: 'filter.manufacturer'
           in: query
           description: |
@@ -422,7 +413,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.manufacturer=ABB,Danfoss
+          example: 'BarTech,Siemens'
         - name: 'search'
           in: query
           description: |
@@ -430,7 +421,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
+          example: 'n/a'
       responses:
         '200':
           description: Successful operation
@@ -468,7 +459,7 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
           content:
@@ -490,7 +481,7 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
           content:
@@ -512,7 +503,7 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
           content:
@@ -534,7 +525,7 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
           content:
@@ -554,14 +545,14 @@ components:
       properties:
         name:
           type: string
-          example: mycompany/abb/B21
+          example: 'nexus-x/Siemens/PAC2200'
         schema:author:
           $ref: '#/components/schemas/SchemaAuthor'
         schema:manufacturer:
           $ref: '#/components/schemas/SchemaManufacturer'
         schema:mpn:
           type: string
-          example: B21
+          example: 'PAC2200'
         versions:
           type: array
           items:
@@ -580,21 +571,21 @@ components:
       properties:
         tmID:
           type: string
-          example: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          example: 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
         externalID:
           type: string
-          example: e7f19370-84a3-11ee-b962-0242ac120002
+          example: 'e7f19370-84a3-11ee-b962-0242ac120002'
         description:
           type: string
-          example: Some description of the thing
+          example: 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
         digest:
           type: string
-          example: 7256fc6baeec
+          example: 'f4254310f557'
         version:
           $ref: '#/components/schemas/ModelVersion'
         timestamp:
           type: string
-          example: 20231116091345
+          example: '20231201133245'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
     InventoryEntryLinks:
@@ -605,7 +596,7 @@ components:
         self:
           type: string
           format: uri
-          example: /inventory/mycompany/abb/B21
+          example: './inventory/nexus-x/Siemens/PAC2200'
     InventoryEntryVersionLinks:
       type: object
       required:
@@ -614,7 +605,7 @@ components:
         content:
           type: string
           format: uri
-          example: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          example: './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
     InventoryResponse:
       type: object
       required:
@@ -683,7 +674,7 @@ components:
       properties:
         schema:name:
           type: string
-          example: MyCompany
+          example: 'nexus-x'
     SchemaManufacturer:
       required:
         - schema:name
@@ -691,7 +682,7 @@ components:
       properties:
         schema:name:
           type: string
-          example: ABB
+          example: 'Siemens'
     Meta:
       required:
         - created
@@ -708,7 +699,7 @@ components:
       properties:
         model:
           type: string
-          example: 1.0.1
+          example: '0.0.0'
     PushThingModelResult:
       required:
         - tmID
@@ -716,7 +707,7 @@ components:
       properties:
         tmID:
           type: string
-          example: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+          example: 'MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
     ErrorResponse:
       required:
         - title
@@ -737,137 +728,175 @@ components:
     InventoryEntryVersionsResponseExample:
       value:
         data:
-          - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-            externalID: e7f19370-84a3-11ee-b962-0242ac120002
-            description: Some new description of the device
-            timestamp: 20231116091345
-            digest: 7256fc6baeec
-            version:
-              model: 1.0.1
-            links:
-              content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-          - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            externalID: e7f19370-84a3-11ee-b962-0242ac120002
-            description: Some description of the device
-            timestamp: 20231017080730
-            digest: 4832ab7bbeac
-            version:
-              model: 1.0.0
-            links:
-              content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-          - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-            externalID: e7f19370-84a3-11ee-b962-0242ac120002
-            description: Some description of the device
-            timestamp: 20231015102132
-            digest: 6391fe4bcefc
-            version:
-              model: 1.0.0
-            links:
-              content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+          - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
+            'digest': '13027b8f66e1'
+            'externalID': '{{ID}}'
+            'links':
+              'content': './thing-models/nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+            'timestamp': '20231201140213'
+            'tmID': 'nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+            'version':
+              'model': '1.0.0'
+          - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
+            'digest': 'f4254310f557'
+            'externalID': '{{ID}}'
+            'links':
+              'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+            'timestamp': '20231201133245'
+            'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+            'version':
+              'model': '0.0.0'
+          - 'description': ''
+            'digest': 'a4e3a90b80c8'
+            'externalID': '{{ID}}'
+            'links':
+              'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+            'timestamp': '20231201130021'
+            'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+            'version':
+              'model': '0.0.0'
     InventoryEntryResponseExample:
       value:
         data:
-          name: mycompany/abb/B21
-          schema:author:
-            schema:name: MyCompany
-          schema:manufacturer:
-            schema:name: ABB
-          schema:mpn: B21
-          versions:
-            - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-              externalID: e7f19370-84a3-11ee-b962-0242ac120002
-              description: Some new description of the device
-              timestamp: 20231116091345
-              digest: 7256fc6baeec
-              version:
-                model: 1.0.1
-              links:
-                content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-            - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-              externalID: e7f19370-84a3-11ee-b962-0242ac120002
-              description: Some description of the device
-              timestamp: 20231017080730
-              digest: 4832ab7bbeac
-              version:
-                model: 1.0.0
-              links:
-                content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-              externalID: e7f19370-84a3-11ee-b962-0242ac120002
-              description: Some description of the device
-              timestamp: 20231015102132
-              digest: 6391fe4bcefc
-              version:
-                model: 1.0.0
-              links:
-                content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-          links:
-            self: /inventory/mycompany/abb/B21
+          'links':
+            'self': './inventory/nexus-x/Siemens/PAC2200'
+          'name': 'nexus-x/Siemens/PAC2200'
+          'schema:author':
+            'schema:name': 'nexus-x'
+          'schema:manufacturer':
+            'schema:name': 'Siemens'
+          'schema:mpn': 'PAC2200'
+          'versions':
+            - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
+              'digest': '13027b8f66e1'
+              'externalID': '{{ID}}'
+              'links':
+                'content': './thing-models/nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+              'timestamp': '20231201140213'
+              'tmID': 'nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+              'version':
+                'model': '1.0.0'
+            - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
+              'digest': 'f4254310f557'
+              'externalID': '{{ID}}'
+              'links':
+                'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+              'timestamp': '20231201133245'
+              'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+              'version':
+                'model': '0.0.0'
+            - 'description': ''
+              'digest': 'a4e3a90b80c8'
+              'externalID': '{{ID}}'
+              'links':
+                'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+              'timestamp': '20231201130021'
+              'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+              'version':
+                'model': '0.0.0'
     InventoryResponseExample:
       value:
         meta:
-          created: "2023-11-16T18:07:18.8213578+01:00"
+          created: '2023-11-16T18:07:18.8213578+01:00'
         data:
-          - name: mycompany/abb/B21
-            schema:author:
-              schema:name: MyCompany
-            schema:manufacturer:
-              schema:name: ABB
-            schema:mpn: B21
-            versions:
-              - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-                externalID: e7f19370-84a3-11ee-b962-0242ac120002
-                description: Some new description of the device
-                timestamp: 20231116091345
-                digest: 7256fc6baeec
-                version:
-                  model: 1.0.1
-                links:
-                  content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-              - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-                externalID: e7f19370-84a3-11ee-b962-0242ac120002
-                description: Some description of the device
-                timestamp: 20231017080730
-                digest: 4832ab7bbeac
-                version:
-                  model: 1.0.0
-                links:
-                  content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            links:
-              self: /inventory/mycompany/abb/B21
-          - name: yourcompany/danfoss/FC102
-            schema:author:
-              schema:name: YourCompany
-            schema:manufacturer:
-              schema:name: Danfoss
-            schema:mpn: FC 102
-            versions:
-              - tmID: yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
-                externalID: danfoss-kxf19370
-                description: Some description of the device
-                timestamp: 2023082112103
-                digest: 2522cf7bbead
-                version:
-                  model: 1.0.0
-                links:
-                  content: /thing-models/yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
-            links:
-              self: /inventory/yourcompany/danfoss/FC102
+          - 'links':
+              'self': './inventory/nexus-x/Siemens/PAC2200'
+            'name': 'nexus-x/Siemens/PAC2200'
+            'schema:author':
+              'schema:name': 'nexus-x'
+            'schema:manufacturer':
+              'schema:name': 'Siemens'
+            'schema:mpn': 'PAC2200'
+            'versions':
+              - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
+                'digest': '13027b8f66e1'
+                'externalID': '{{ID}}'
+                'links':
+                  'content': './thing-models/nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+                'timestamp': '20231201140213'
+                'tmID': 'nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+                'version':
+                  'model': '1.0.0'
+              - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
+                'digest': 'f4254310f557'
+                'externalID': '{{ID}}'
+                'links':
+                  'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+                'timestamp': '20231201133245'
+                'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+                'version':
+                  'model': '0.0.0'
+              - 'description': ''
+                'digest': 'a4e3a90b80c8'
+                'externalID': '{{ID}}'
+                'links':
+                  'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+                'timestamp': '20231201130021'
+                'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+                'version':
+                  'model': '0.0.0'
+          - 'links':
+              'self': './inventory/MyCompany/BarTech/BazLamp'
+            'name': 'MyCompany/BarTech/BazLamp'
+            'schema:author':
+              'schema:name': 'MyCompany'
+            'schema:manufacturer':
+              'schema:name': 'BarTech'
+            'schema:mpn': 'BazLamp'
+            'versions':
+               - 'description': 'The BarTech BazLamp is a modern smart floor lamp.'
+                 'digest': '1fc13316b7d8'
+                 'externalID': 'e7f19370-84a3-11ee-b962-0242ac120002'
+                 'links':
+                   'content': './thing-models/MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
+                 'timestamp': '20240206122430'
+                 'tmID': 'MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
+                 'version':
+                  'model': '0.0.1'
     AuthorsResponseExample:
       value:
         data:
-          - My Company
-          - Your Company
-          - Another Company
+          - 'MyCompany'
+          - 'nexus-x'
     ManufacturersResponseExample:
       value:
         data:
-          - ABB
-          - Antarc
-          - Siemens
+          - 'BarTech'
+          - 'Siemens'
     MpnsResponseExample:
       value:
         data:
-          - B21
-          - FC102
-          - PAC4200
+          - 'BazLamp'
+          - 'GH180'
+          - 'PAC2200'
+    PushPayloadExample:
+      value:
+        '@context':
+           -  'https://www.w3.org/2022/wot/td/v1.1'
+           - schema:
+               'https://schema.org/'
+        '@type': 'tm:ThingModel'
+        'id': 'e7f19370-84a3-11ee-b962-0242ac120002'
+        'title': 'BazLamp Smart'
+        'description': 'The BarTech BazLamp is a modern smart floor lamp.'
+        'schema:author':
+          'schema:name': 'MyCompany'
+        'schema:manufacturer':
+          'schema:name': 'BarTech'
+        'schema:mpn': 'BazLamp'
+        'version':
+          'model': 'v0.0.1'
+        'properties':
+          'status':
+            'description': 'current status of the lamp (on|off)'
+            'type': 'string'
+            'readOnly': true
+        'actions':
+          'toggle':
+            'description': 'Turn the lamp on or off'
+        'events':
+          'overheating':
+            'description': 'Lamp reaches a critical temperature (overheating)'
+            'data':
+              'type': 'string'
+

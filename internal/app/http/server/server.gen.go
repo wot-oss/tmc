@@ -213,14 +213,6 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// ------------- Optional query parameter "sort" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "sort", r.URL.Query(), &params.Sort)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
-		return
-	}
-
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInventory(w, r, params)
 	}))
