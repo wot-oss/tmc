@@ -34,7 +34,7 @@ var ErrAmbiguous = errors.New("multiple remotes configured, but remote target no
 var ErrRemoteNotFound = errors.New("remote not found")
 var ErrInvalidRemoteName = errors.New("invalid remote remoteName")
 var ErrRemoteExists = errors.New("named remote already exists")
-var ErrEntryNotFound = errors.New("entry not found")
+var ErrTmNotFound = errors.New("TM not found")
 var ErrInvalidSpec = errors.New("illegal remote spec: both dir and remoteName given")
 
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp, RemoteTypeTmc}
