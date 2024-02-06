@@ -85,14 +85,6 @@ func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// ------------- Optional query parameter "filter.externalID" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "filter.externalID", r.URL.Query(), &params.FilterExternalID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.externalID", Err: err})
-		return
-	}
-
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
@@ -213,14 +205,6 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// ------------- Optional query parameter "filter.externalID" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "filter.externalID", r.URL.Query(), &params.FilterExternalID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.externalID", Err: err})
-		return
-	}
-
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
@@ -325,14 +309,6 @@ func (siw *ServerInterfaceWrapper) GetManufacturers(w http.ResponseWriter, r *ht
 		return
 	}
 
-	// ------------- Optional query parameter "filter.externalID" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "filter.externalID", r.URL.Query(), &params.FilterExternalID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.externalID", Err: err})
-		return
-	}
-
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
@@ -374,14 +350,6 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 	err = runtime.BindQueryParameter("form", true, false, "filter.manufacturer", r.URL.Query(), &params.FilterManufacturer)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.manufacturer", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "filter.externalID" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "filter.externalID", r.URL.Query(), &params.FilterExternalID)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.externalID", Err: err})
 		return
 	}
 

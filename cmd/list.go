@@ -29,7 +29,6 @@ func init() {
 	listCmd.Flags().StringVar(&filterFlags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	listCmd.Flags().StringVar(&filterFlags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	listCmd.Flags().StringVar(&filterFlags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
-	listCmd.Flags().StringVar(&filterFlags.FilterExternalID, "filter.externalID", "", "filter TMs by one or more comma-separated external ID")
 	listCmd.Flags().StringVarP(&filterFlags.Search, "search", "s", "", "search TMs by their content matching the search term")
 	listCmd.Flags().BoolP("exact", "e", false, "match the TM name exactly. overrides all other search filter flags")
 }

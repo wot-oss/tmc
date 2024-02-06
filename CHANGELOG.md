@@ -20,6 +20,9 @@
 - ```list```: allows now listing by name pattern
 - ```serve```: separate configuration of the remote(s) to be served from the target remote for push
 - ```fetch```: ```--output``` now accepts only a target folder to save TM to, ```--with-path``` has been removed
+- ```list, pull```: removed filter flag `filter.externalID`, search for externalID has now to be done by query search `-s`
+- REST API:  removed filter parameter filter.externalID from `/inventory`, `/authors`, `/manufacturers`, `/mpns`,     
+  search for externalID has now to be done by query parameter `search`
 - enable/disable logging is now done only by setting a loglevel
 
 ### Fixed

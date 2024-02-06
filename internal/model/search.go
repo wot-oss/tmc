@@ -99,7 +99,6 @@ type SearchParams struct {
 	Author       []string
 	Manufacturer []string
 	Mpn          []string
-	ExternalID   []string
 	Name         string
 	Query        string
 	Options      SearchOptions
