@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -142,4 +144,32 @@ func ParseAsList(list, separator string, trim bool) []string {
 		}
 	}
 	return ret
+}
+
+// ReadFileLines reads a whole file into memory and returns its lines.
+func ReadFileLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	return lines, scanner.Err()
+}
+
+// WriteFileLines writes the lines to the given file.
+func WriteFileLines(lines []string, path string, mode os.FileMode) error {
+	buf := bytes.NewBuffer(nil)
+	for _, line := range lines {
+		_, err := fmt.Fprintln(buf, line)
+		if err != nil {
+			return err
+		}
+	}
+	return AtomicWriteFile(path, buf.Bytes(), mode)
 }

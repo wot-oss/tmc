@@ -14,12 +14,18 @@ type UnionRemote struct {
 }
 
 func NewUnionRemote(rs ...Remote) *UnionRemote {
-	rs = slices.DeleteFunc(rs, func(remote Remote) bool {
-		_, ok := remote.(*UnionRemote)
-		return ok // paranoia calling: disallow union of union until it's necessary
-	})
+	// paranoia calling: flatten the list to disallow union of union until it's necessary
+	var ers []Remote
+	for _, r := range rs {
+		if u, ok := r.(*UnionRemote); ok {
+			ers = append(ers, u.rs...)
+		} else {
+			ers = append(ers, r)
+		}
+	}
+
 	return &UnionRemote{
-		rs: rs,
+		rs: ers,
 	}
 }
 func (u *UnionRemote) Push(model.TMID, []byte) error {
@@ -77,4 +83,17 @@ func (u *UnionRemote) Versions(name string) ([]model.FoundVersion, error) {
 
 func (u *UnionRemote) Spec() RepoSpec {
 	return EmptySpec
+}
+
+func (u *UnionRemote) ListCompletions(kind string, toComplete string) ([]string, error) {
+	var cs []string
+	for _, r := range u.rs {
+		rcs, err := r.ListCompletions(kind, toComplete)
+		if err != nil {
+			return nil, err
+		}
+		cs = append(cs, rcs...)
+	}
+	slices.Sort(cs)
+	return slices.Compact(cs), nil
 }

@@ -4,10 +4,11 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
-// remoteSetConfigCmd represents the 'remote add' command
+// remoteSetConfigCmd represents the 'remote set-config' command
 var remoteSetConfigCmd = &cobra.Command{
 	Use:   "set-config [--type <type>] <name> (<config> | --file <configFileName>)",
 	Short: "Set config for a remote repository",
@@ -39,10 +40,17 @@ the config may be a simple string, like a URL, or a json file.
 			os.Exit(1)
 		}
 	},
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		if len(args) == 0 {
+			return completion.CompleteRemoteNames(cmd, args, toComplete)
+		}
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	},
 }
 
 func init() {
 	remoteCmd.AddCommand(remoteSetConfigCmd)
 	remoteSetConfigCmd.Flags().StringP("type", "t", "", "type of remote to add")
+	_ = remoteSetConfigCmd.RegisterFlagCompletionFunc("type", completion.CompleteRemoteTypes)
 	remoteSetConfigCmd.Flags().StringP("file", "f", "", "name of the file to read remote config from")
 }

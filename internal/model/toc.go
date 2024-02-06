@@ -132,11 +132,11 @@ func (toc *TOC) findByName(name string) *TOCEntry {
 }
 
 // Insert uses CatalogThingModel to add a version, either to an existing
-// entry or as a new entry.
-func (toc *TOC) Insert(ctm *ThingModel) error {
+// entry or as a new entry. Returns the TMID of the inserted entry
+func (toc *TOC) Insert(ctm *ThingModel) (TMID, error) {
 	tmid, err := ParseTMID(ctm.ID, ctm.IsOfficial())
 	if err != nil {
-		return err
+		return TMID{}, err
 	}
 	// find the right entry, or create if it doesn't exist
 	tocEntry := toc.findByName(tmid.Name)
@@ -166,5 +166,5 @@ func (toc *TOC) Insert(ctm *ThingModel) error {
 		Links:       map[string]string{"content": tmid.String()},
 	}
 	tocEntry.Versions = append(tocEntry.Versions, tv)
-	return nil
+	return tmid, nil
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
@@ -45,5 +46,6 @@ the config may be a simple string, like a URL, or a json file.
 func init() {
 	remoteCmd.AddCommand(remoteAddCmd)
 	remoteAddCmd.Flags().StringP("type", "t", "", "type of remote to add")
+	_ = remoteAddCmd.RegisterFlagCompletionFunc("type", completion.CompleteRemoteTypes)
 	remoteAddCmd.Flags().StringP("file", "f", "", "name of the file to read remote config from")
 }

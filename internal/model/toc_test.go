@@ -242,7 +242,7 @@ func prepareToc() *TOC {
 func TestTOC_Insert(t *testing.T) {
 	toc := &TOC{}
 
-	err := toc.Insert(&ThingModel{
+	id, err := toc.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
@@ -252,6 +252,7 @@ func TestTOC_Insert(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
+	assert.Equal(t, MustParseTMID("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json", false), id)
 	assert.Equal(t, 1, len(toc.Data))
 	assert.Equal(t, "aut/man/mpn", toc.Data[0].Name)
 	assert.Equal(t, 1, len(toc.Data[0].Versions))
@@ -267,7 +268,7 @@ func TestTOC_Insert(t *testing.T) {
 		ExternalID: "externalID",
 	}, toc.Data[0].Versions[0])
 
-	err = toc.Insert(&ThingModel{
+	_, err = toc.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
@@ -279,7 +280,7 @@ func TestTOC_Insert(t *testing.T) {
 	assert.Equal(t, 1, len(toc.Data))
 	assert.Equal(t, 2, len(toc.Data[0].Versions))
 
-	err = toc.Insert(&ThingModel{
+	_, err = toc.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},

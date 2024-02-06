@@ -26,6 +26,10 @@ type TmcRemote struct {
 	baseHttpRemote
 }
 
+func (t TmcRemote) ListCompletions(string, string) ([]string, error) {
+	return nil, nil
+}
+
 func NewTmcRemote(config map[string]any, spec RepoSpec) (*TmcRemote, error) {
 	base, err := newBaseHttpRemote(config, spec)
 	if err != nil {

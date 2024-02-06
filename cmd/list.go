@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -19,14 +20,17 @@ The pattern can be a full name or a prefix the names shall start with. A partial
 path parts. E.g. 'company/device' will not match 'company/device-mark2', but will match 'company/device/submodel'.
 
 Name pattern, filters and search can be combined to narrow down the result.`,
-	Args: cobra.MaximumNArgs(1),
-	Run:  executeList,
+	Args:              cobra.MaximumNArgs(1),
+	Run:               executeList,
+	ValidArgsFunction: completion.CompleteTMNames,
 }
 
 func init() {
 	RootCmd.AddCommand(listCmd)
 	listCmd.Flags().StringP("remote", "r", "", "name of the remote to list")
+	_ = listCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
 	listCmd.Flags().StringP("directory", "d", "", "TM repository directory to list")
+	_ = listCmd.MarkFlagDirname("directory")
 	listCmd.Flags().StringVar(&filterFlags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	listCmd.Flags().StringVar(&filterFlags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	listCmd.Flags().StringVar(&filterFlags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")

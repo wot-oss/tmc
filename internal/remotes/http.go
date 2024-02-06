@@ -34,6 +34,10 @@ type HttpRemote struct {
 	templatedQuery bool
 }
 
+func (h *HttpRemote) ListCompletions(string, string) ([]string, error) {
+	return nil, nil
+}
+
 func NewHttpRemote(config map[string]any, spec RepoSpec) (*HttpRemote, error) {
 	base, err := newBaseHttpRemote(config, spec)
 	if err != nil {

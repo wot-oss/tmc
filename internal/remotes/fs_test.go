@@ -216,7 +216,7 @@ func TestFileRemote_List(t *testing.T) {
 		root: temp,
 		spec: NewRemoteSpec("fr"),
 	}
-	copyFile("../../test/data/list/tm-catalog.toc.json", filepath.Join(temp, TOCFilename))
+	copyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	list, err := r.List(&model.SearchParams{})
 	assert.NoError(t, err)
 	assert.Len(t, list.Entries, 3)
@@ -228,6 +228,10 @@ func copyFile(from, to string) {
 		fmt.Println(err)
 	}
 	to, err = filepath.Abs(to)
+	if err != nil {
+		fmt.Println(err)
+	}
+	err = os.MkdirAll(filepath.Dir(to), defaultDirPermissions)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -252,7 +256,7 @@ func TestFileRemote_Versions(t *testing.T) {
 		root: temp,
 		spec: NewRemoteSpec("fr"),
 	}
-	copyFile("../../test/data/list/tm-catalog.toc.json", filepath.Join(temp, TOCFilename))
+	copyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	vers, err := r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
 	assert.NoError(t, err)
 	assert.Len(t, vers, 1)
@@ -294,6 +298,9 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		assert.Equal(t, 1, len(toc.Data[0].Versions))
 		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json", toc.Data[0].Versions[0].TMID)
 
+		names := r.readNamesFile()
+		assert.Equal(t, []string{"omnicorp-TM-department/omnicorp/omnilamp/subfolder"}, names)
+
 	})
 	t.Run("single id/existing toc file", func(t *testing.T) {
 		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
@@ -304,6 +311,8 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		assert.Equal(t, 1, len(toc.Data))
 		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", toc.Data[0].Name)
 		assert.Equal(t, 2, len(toc.Data[0].Versions))
+		names := r.readNamesFile()
+		assert.Equal(t, []string{"omnicorp-TM-department/omnicorp/omnilamp/subfolder"}, names)
 	})
 
 	t.Run("full update/existing toc file", func(t *testing.T) {
@@ -313,11 +322,17 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		toc, err := r.readTOC()
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(toc.Data))
+		names := r.readNamesFile()
+		assert.Equal(t, []string{
+			"omnicorp-TM-department/omnicorp/omnilamp",
+			"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
+		}, names)
 	})
 
 	t.Run("full update/no toc file", func(t *testing.T) {
-		err := os.Remove(filepath.Join(temp, TOCFilename))
+		err := os.Remove(r.tocFilename())
 		assert.NoError(t, err)
+		assert.NoError(t, r.writeNamesFile(nil))
 
 		err = r.UpdateToc()
 		assert.NoError(t, err)
@@ -325,8 +340,12 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		toc, err := r.readTOC()
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(toc.Data))
+		names := r.readNamesFile()
+		assert.Equal(t, []string{
+			"omnicorp-TM-department/omnicorp/omnilamp",
+			"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
+		}, names)
 	})
-
 }
 
 func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
@@ -383,6 +402,8 @@ func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
 
 	assert.Equal(t, 1, len(toc.Data))
 	assert.Equal(t, N, len(toc.Data[0].Versions))
+	names := r.readNamesFile()
+	assert.Equal(t, 1, len(names))
 }
 
 var pTempl = `{

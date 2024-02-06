@@ -21,9 +21,11 @@ const (
 	KeyRemoteAuth    = "auth"
 	KeyRemoteEnabled = "enabled"
 
-	RemoteTypeFile = "file"
-	RemoteTypeHttp = "http"
-	RemoteTypeTmc  = "tmc"
+	RemoteTypeFile           = "file"
+	RemoteTypeHttp           = "http"
+	RemoteTypeTmc            = "tmc"
+	CompletionKindNames      = "names"
+	CompletionKindFetchNames = "fetchNames"
 )
 
 var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -55,6 +57,8 @@ type Remote interface {
 	Versions(name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Remote has been created from
 	Spec() RepoSpec
+
+	ListCompletions(kind string, toComplete string) ([]string, error)
 }
 
 //go:generate mockery --name RemoteManager --inpackage

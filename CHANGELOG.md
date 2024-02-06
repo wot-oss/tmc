@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
+### Added
 
+- Implemented autocompletion for most flags and arguments for the shell autocompletion script
 
 
 ## [v0.0.0-alpha.3]
