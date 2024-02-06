@@ -4,6 +4,7 @@
 
 ### Added
 
+- Building docker base image for releases to enable catalog hosting
 - Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
 - Implemented ```pull``` command to fetch and save multiple thing models at once
 - Implemented setting CORS options for API
