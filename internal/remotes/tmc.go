@@ -66,7 +66,7 @@ func (t TmcRemote) Push(id model.TMID, raw []byte) error {
 		}
 		switch resp.StatusCode {
 		case http.StatusConflict:
-			err := &ErrTMExists{}
+			err := &ErrTMIDConflict{}
 			err.FromString(detail)
 			return err
 		case http.StatusInternalServerError, http.StatusBadRequest:

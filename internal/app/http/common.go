@@ -73,7 +73,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errDetail := error500Detail
 	errStatus := http.StatusInternalServerError
 
-	var eErr *remotes.ErrTMExists
+	var eErr *remotes.ErrTMIDConflict
 	var bErr *BaseHttpError
 	if errors.Is(err, remotes.ErrTmNotFound) {
 		errTitle = error404Title

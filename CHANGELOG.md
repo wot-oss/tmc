@@ -3,7 +3,9 @@
 ## [Unreleased]
 
 
+### Fixed
 
+- handle timestamp collisions on push by retrying after one second, forcing generation of new id, or reporting the error if all else fails
 
 ## [v0.0.0-alpha.3]
 

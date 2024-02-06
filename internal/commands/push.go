@@ -16,6 +16,8 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
+const maxPushRetries = 3
+
 type Now func() time.Time
 type PushCommand struct {
 	now Now
@@ -29,7 +31,7 @@ func NewPushCommand(now Now) *PushCommand {
 
 // PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to remote.
 // Returns the ID that the TM has been stored under, and error.
-// If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMExists
+// If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMIDConflict
 func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string) (string, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
@@ -37,18 +39,27 @@ func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string
 		log.Error("validation failed", "error", err)
 		return "", err
 	}
-
-	versioned, id, err := prepareToImport(c.now, tm, raw, optPath)
+	retriesLeft := maxPushRetries
+RETRY:
+	retriesLeft--
+	versioned, id, err := prepareToImport(c.now, tm, raw, optPath, retriesLeft < 0)
 	if err != nil {
 		return "", err
 	}
 
 	err = remote.Push(id, versioned)
 	if err != nil {
-		var errExists *remotes.ErrTMExists
-		if errors.As(err, &errExists) {
-			log.Info("Thing Model already exists", "existing-id", errExists.ExistingId)
-			return errExists.ExistingId, err
+		var errConflict *remotes.ErrTMIDConflict
+		if errors.As(err, &errConflict) {
+			if errConflict.Type == remotes.IdConflictSameTimestamp {
+				if retriesLeft >= 0 {
+					time.Sleep(1 * time.Second) // sleep 1 sec to get a different timestamp in id
+					goto RETRY
+				}
+				return errConflict.ExistingId, err
+			}
+			log.Info("Thing Model already exists", "existing-id", errConflict.ExistingId)
+			return errConflict.ExistingId, err
 		}
 		log.Error("error pushing to remote", "error", err)
 		return id.String(), err
@@ -57,7 +68,7 @@ func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string
 	return id.String(), nil
 }
 
-func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
+func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string, forceNewId bool) ([]byte, model.TMID, error) {
 	manuf := tm.Manufacturer.Name
 	auth := tm.Author.Name
 	if tm == nil || len(auth) == 0 || len(manuf) == 0 || len(tm.Mpn) == 0 {
@@ -85,7 +96,7 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 
 	generatedId, normalized := generateNewId(now, tm, prepared, optPath)
 	finalId := idFromFile
-	if !generatedId.Equals(idFromFile) {
+	if forceNewId || !generatedId.Equals(idFromFile) {
 		finalId = generatedId
 	}
 	idString, _ := json.Marshal(finalId.String())
