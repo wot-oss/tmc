@@ -7,13 +7,6 @@ import (
 	"time"
 )
 
-// Defines values for GetInventoryParamsSort.
-const (
-	Author       GetInventoryParamsSort = "author"
-	Manufacturer GetInventoryParamsSort = "manufacturer"
-	Mpn          GetInventoryParamsSort = "mpn"
-)
-
 // AuthorsResponse defines model for AuthorsResponse.
 type AuthorsResponse struct {
 	Data []string `json:"data"`
@@ -154,15 +147,7 @@ type GetInventoryParams struct {
 	// Search Filters the inventory according to whether the content of the inventory entries matches the given search.
 	// The search works additive to other filters.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
-
-	// Sort Sorts the inventory by one or more fields. The sort is applied in the order of the fields.
-	// The sorting is done ascending per field by default. If a field needs to be sorted descending,
-	// prefix it with a HYPHEN-MINUS "-")
-	Sort *GetInventoryParamsSort `form:"sort,omitempty" json:"sort,omitempty"`
 }
-
-// GetInventoryParamsSort defines parameters for GetInventory.
-type GetInventoryParamsSort string
 
 // GetManufacturersParams defines parameters for GetManufacturers.
 type GetManufacturersParams struct {
