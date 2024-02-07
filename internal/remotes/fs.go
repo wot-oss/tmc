@@ -24,11 +24,8 @@ const (
 	tocLockTimeout         = 5 * time.Second
 	tocLocRetryDelay       = 13 * time.Millisecond
 	errTmExistsPrefix      = "Thing Model already exists under id: "
-	repoDir                = ".tmc"
 
-	TMExt       = ".tm.json"
-	TmNamesFile = "tmnames.txt"
-	TOCFilename = "tm-catalog.toc.json"
+	TMExt = ".tm.json"
 )
 
 var ErrRootInvalid = errors.New("root is not a directory")
@@ -215,7 +212,7 @@ func (f *FileRemote) readTOC() (model.TOC, error) {
 }
 
 func (f *FileRemote) tocFilename() string {
-	return filepath.Join(f.root, repoDir, TOCFilename)
+	return filepath.Join(f.root, RepoConfDir, TOCFilename)
 }
 
 func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
@@ -394,7 +391,7 @@ func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.F
 type unlockFunc func()
 
 func (f *FileRemote) lockTOC() (unlockFunc, error) {
-	rd := filepath.Join(f.root, repoDir)
+	rd := filepath.Join(f.root, RepoConfDir)
 	stat, err := os.Stat(rd)
 	if err != nil || !stat.IsDir() {
 		err := os.MkdirAll(rd, defaultDirPermissions)
@@ -436,13 +433,13 @@ func (f *FileRemote) moveOldToc(tocFile string) {
 }
 
 func (f *FileRemote) readNamesFile() []string {
-	lines, _ := utils.ReadFileLines(filepath.Join(f.root, repoDir, TmNamesFile))
+	lines, _ := utils.ReadFileLines(filepath.Join(f.root, RepoConfDir, TmNamesFile))
 	return lines
 }
 func (f *FileRemote) writeNamesFile(names []string) error {
 	slices.Sort(names)
 	names = slices.Compact(names)
-	return utils.WriteFileLines(names, filepath.Join(f.root, repoDir, TmNamesFile), defaultFilePermissions)
+	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, TmNamesFile), defaultFilePermissions)
 }
 
 func getThingMetadata(path string) (model.ThingModel, error) {
@@ -471,7 +468,7 @@ func (f *FileRemote) ListCompletions(kind string, toComplete string) ([]string, 
 		return f.readNamesFile(), nil
 	case CompletionKindFetchNames:
 		if strings.Contains(toComplete, "..") {
-			return nil, errors.New("no completions for name containing '..'")
+			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
 		}
 
 		name, _, _ := strings.Cut(toComplete, ":")
@@ -499,6 +496,6 @@ func (f *FileRemote) ListCompletions(kind string, toComplete string) ([]string, 
 		return vs, nil
 
 	default:
-		return nil, errors.New("unknown completion kind: " + kind)
+		return nil, ErrInvalidCompletionParams
 	}
 }

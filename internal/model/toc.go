@@ -104,6 +104,7 @@ func matchesNameFilter(acceptedValue string, value string, options SearchOptions
 		return value == acceptedValue
 	case PrefixMatch:
 		actualPathParts := strings.Split(value, "/")
+		acceptedValue = strings.Trim(acceptedValue, "/")
 		acceptedPathParts := strings.Split(acceptedValue, "/")
 		if len(acceptedPathParts) > len(actualPathParts) {
 			return false

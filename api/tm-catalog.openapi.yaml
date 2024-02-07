@@ -532,6 +532,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /.completions:
+    get:
+      tags:
+        - internal
+      summary: Get completions for shell completion script
+      description: |
+        For internal use only! Not to be relied on for any production purposes. 
+        Returned results may not be complete or the signature may change incompatibly at any time.
+        
+        Get completions for shell completion script
+      operationId: getCompletions
+      parameters:
+        - name: 'kind'
+          in: query
+          description: |
+            Kind of data to complete
+          schema:
+            type: string
+            enum:
+              - 'names'
+              - 'fetchNames'
+        - name: 'toComplete'
+          in: query
+          description: |
+            Data to complete
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            text/plain:
+              schema:
+                type: array
+        '400':
+          description: Illegal query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Completions could not be built
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     InventoryEntry:

@@ -24,6 +24,7 @@ type HandlerService interface {
 	CheckHealthLive(ctx context.Context) error
 	CheckHealthReady(ctx context.Context) error
 	CheckHealthStartup(ctx context.Context) error
+	GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error)
 }
 
 type defaultHandlerService struct {
@@ -155,6 +156,14 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 	}
 
 	return tmID, nil
+}
+
+func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error) {
+	rs, err := remotes.GetSpecdOrAll(dhs.remoteManager, dhs.serveRemote)
+	if err != nil {
+		return nil, err
+	}
+	return rs.ListCompletions(kind, toComplete)
 }
 
 func (dhs *defaultHandlerService) CheckHealth(ctx context.Context) error {

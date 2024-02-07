@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+// Defines values for GetCompletionsParamsKind.
+const (
+	FetchNames GetCompletionsParamsKind = "fetchNames"
+	Names      GetCompletionsParamsKind = "names"
+)
+
 // AuthorsResponse defines model for AuthorsResponse.
 type AuthorsResponse struct {
 	Data []string `json:"data"`
@@ -107,6 +113,18 @@ type SchemaAuthor struct {
 type SchemaManufacturer struct {
 	SchemaName string `json:"schema:name"`
 }
+
+// GetCompletionsParams defines parameters for GetCompletions.
+type GetCompletionsParams struct {
+	// Kind Kind of data to complete
+	Kind *GetCompletionsParamsKind `form:"kind,omitempty" json:"kind,omitempty"`
+
+	// ToComplete Data to complete
+	ToComplete *string `form:"toComplete,omitempty" json:"toComplete,omitempty"`
+}
+
+// GetCompletionsParamsKind defines parameters for GetCompletions.
+type GetCompletionsParamsKind string
 
 // GetAuthorsParams defines parameters for GetAuthors.
 type GetAuthorsParams struct {

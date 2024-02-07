@@ -26,6 +26,7 @@ const (
 	headerContentType         = "Content-Type"
 	headerCacheControl        = "Cache-Control"
 	headerXContentTypeOptions = "X-Content-Type-Options"
+	mimeText                  = "text/plain"
 	mimeJSON                  = "application/json"
 	mimeProblemJSON           = "application/problem+json"
 	noSniff                   = "nosniff"
@@ -79,7 +80,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errTitle = error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
-	} else if errors.Is(err, model.ErrInvalidId) || errors.Is(err, commands.ErrInvalidFetchName) {
+	} else if errors.Is(err, model.ErrInvalidId) || errors.Is(err, commands.ErrInvalidFetchName) || errors.Is(err, remotes.ErrInvalidCompletionParams) {
 		errTitle = error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest

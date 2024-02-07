@@ -13,6 +13,9 @@ import (
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// Get completions for shell completion script
+	// (GET /.completions)
+	GetCompletions(w http.ResponseWriter, r *http.Request, params GetCompletionsParams)
 	// Get the contained authors of the inventory
 	// (GET /authors)
 	GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams)
@@ -59,6 +62,42 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// GetCompletions operation middleware
+func (siw *ServerInterfaceWrapper) GetCompletions(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetCompletionsParams
+
+	// ------------- Optional query parameter "kind" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "kind", r.URL.Query(), &params.Kind)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "kind", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "toComplete" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "toComplete", r.URL.Query(), &params.ToComplete)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "toComplete", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetCompletions(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
 
 // GetAuthors operation middleware
 func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Request) {
@@ -517,6 +556,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 		HandlerMiddlewares: options.Middlewares,
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
+
+	r.HandleFunc(options.BaseURL+"/.completions", wrapper.GetCompletions).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/authors", wrapper.GetAuthors).Methods("GET")
 

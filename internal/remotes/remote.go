@@ -26,6 +26,9 @@ const (
 	RemoteTypeTmc            = "tmc"
 	CompletionKindNames      = "names"
 	CompletionKindFetchNames = "fetchNames"
+	RepoConfDir              = ".tmc"
+	TOCFilename              = "tm-catalog.toc.json"
+	TmNamesFile              = "tmnames.txt"
 )
 
 var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -38,6 +41,7 @@ var ErrInvalidRemoteName = errors.New("invalid remote remoteName")
 var ErrRemoteExists = errors.New("named remote already exists")
 var ErrTmNotFound = errors.New("TM not found")
 var ErrInvalidSpec = errors.New("illegal remote spec: both dir and remoteName given")
+var ErrInvalidCompletionParams = errors.New("invalid completion parameters")
 
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp, RemoteTypeTmc}
 

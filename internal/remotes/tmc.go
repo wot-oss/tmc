@@ -1,6 +1,7 @@
 package remotes
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -24,10 +25,6 @@ const (
 // TmcRemote implements a Remote TM repository backed by an instance of TM catalog REST API server
 type TmcRemote struct {
 	baseHttpRemote
-}
-
-func (t TmcRemote) ListCompletions(string, string) ([]string, error) {
-	return nil, nil
 }
 
 func NewTmcRemote(config map[string]any, spec RepoSpec) (*TmcRemote, error) {
@@ -230,28 +227,37 @@ func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {
 
 }
 
-func toFoundVersions(data []server.InventoryEntryVersion, spec RepoSpec) []model.FoundVersion {
-	var res []model.FoundVersion
-	for _, v := range data {
-		fv := model.FoundVersion{
-			TOCVersion: model.TOCVersion{
-				Description: v.Description,
-				Version: model.Version{
-					Model: v.Version.Model,
-				},
-				Links: map[string]string{
-					"content": v.TmID,
-				},
-				TMID:       v.TmID,
-				Digest:     v.Digest,
-				TimeStamp:  v.Timestamp,
-				ExternalID: v.ExternalID,
-			},
-			FoundIn: spec.ToFoundSource(),
-		}
-		res = append(res, fv)
+func (t TmcRemote) ListCompletions(kind, toComplete string) ([]string, error) {
+	u := t.parsedRoot.JoinPath(".completions")
+	vals := u.Query()
+	vals.Set("kind", kind)
+	vals.Set("toComplete", toComplete)
+	u.RawQuery = vals.Encode()
+
+	resp, err := doGet(u.String(), t.auth)
+	if err != nil {
+		return nil, err
 	}
-	return res
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var lines []string
+		scanner := bufio.NewScanner(bytes.NewBuffer(data))
+		for scanner.Scan() {
+			lines = append(lines, scanner.Text())
+		}
+		return lines, scanner.Err()
+	case http.StatusBadRequest:
+		return nil, ErrInvalidCompletionParams
+	case http.StatusInternalServerError:
+		return nil, errors.New(string(data))
+	default:
+		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+	}
 }
 
 func createTmcRemoteConfig(loc string, bytes []byte) (map[string]any, error) {
