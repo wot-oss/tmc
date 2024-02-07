@@ -58,7 +58,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 }
 
 // GetInventoryVersionsByName Get the versions of an inventory entry
-// (GET /inventory/{inventoryId}/versions)
+// (GET /inventory/{inventoryId}/.versions)
 func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
 
 	entry, err := h.Service.FindInventoryEntry(nil, name)

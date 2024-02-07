@@ -35,7 +35,7 @@ type ServerInterface interface {
 	// (GET /inventory/{name})
 	GetInventoryByName(w http.ResponseWriter, r *http.Request, name string)
 	// Get the versions of an inventory entry
-	// (GET /inventory/{name}/versions)
+	// (GET /inventory/{name}/.versions)
 	GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string)
 	// Get the contained manufacturers of the inventory
 	// (GET /manufacturers)
@@ -522,7 +522,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/inventory", wrapper.GetInventory).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/versions", wrapper.GetInventoryVersionsByName).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/.versions", wrapper.GetInventoryVersionsByName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}", wrapper.GetInventoryByName).Methods("GET")
 
