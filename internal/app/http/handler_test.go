@@ -258,7 +258,7 @@ func Test_InventoryEntryVersionsByName(t *testing.T) {
 
 	inventoryName := mockInventoryEntry.Name
 
-	route := "/inventory/" + inventoryName + "/versions"
+	route := "/inventory/" + inventoryName + "/.versions"
 
 	hs := NewMockHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)

@@ -36,7 +36,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'MyCompany,nexus-x'
+          example: 'MyCompany,siemens'
         - name: 'filter.manufacturer'
           in: query
           description: |
@@ -44,7 +44,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'BarTech,Siemens'
+          example: 'BarTech,siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -52,15 +52,15 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'BazLamp,PAC2200'
+          example: 'BazLamp,POC1000'
         - name: 'filter.name'
           in: query
           description: |
-            Filters the inventory by inventory entry name (consisting of 'author/manufacturer/mpn') having a prefix match.   
+            Filters the inventory by inventory entry name having a prefix match of full path parts.   
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'nexus-x/Siemens'
+          example: 'siemens/POC1000'
         - name: 'search'
           in: query
           description: |
@@ -68,7 +68,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: 'n/a'
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -105,7 +105,7 @@ paths:
           required: true
           schema:
             type: string
-          example: 'nexus-x/Siemens/PAC2200'
+          example: 'siemens/POC1000'
       responses:
         '200':
           description: Successful operation
@@ -134,7 +134,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /inventory/{name}/versions:
+  /inventory/{name}/.versions:
     get:
       tags:
         - inventory
@@ -148,7 +148,7 @@ paths:
           required: true
           schema:
             type: string
-          example: 'nexus-x/Siemens/PAC2200'
+          example: 'siemens/POC1000'
       responses:
         '200':
           description: Successful operation
@@ -197,13 +197,13 @@ paths:
             type: string
           examples:
             id:
-              value: 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+              value: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
             fullVersion:
-              value: 'nexus-x/Siemens/PAC2200:v1.2.3'
+              value: 'siemens/POC1000:v1.2.3'
             major:
-              value: 'nexus-x/Siemens/PAC2200:1'
+              value: 'siemens/POC1000:1'
             majorMinor:
-              value: 'nexus-x/Siemens/PAC2200:1.2'
+              value: 'siemens/POC1000:1.2'
       responses:
         '200':
           description: |
@@ -293,7 +293,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'BarTech,Siemens'
+          example: 'BarTech,siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -302,7 +302,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'BazLamp,PAC2200'
+          example: 'BazLamp,POC1000'
         - name: 'search'
           in: query
           description: |
@@ -311,7 +311,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: 'n/a'
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -349,7 +349,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'MyCompany,nexus-x'
+          example: 'MyCompany,siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -358,7 +358,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'BazLamp,PAC2200'
+          example: 'BazLamp,POC1000'
         - name: 'search'
           in: query
           description: |
@@ -367,7 +367,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: 'n/a'
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -405,7 +405,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'MyCompany,nexus-x'
+          example: 'MyCompany,siemens'
         - name: 'filter.manufacturer'
           in: query
           description: |
@@ -413,7 +413,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'BarTech,Siemens'
+          example: 'BarTech,siemens'
         - name: 'search'
           in: query
           description: |
@@ -421,7 +421,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: 'n/a'
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -591,14 +591,14 @@ components:
       properties:
         name:
           type: string
-          example: 'nexus-x/Siemens/PAC2200'
+          example: 'siemens/POC1000'
         schema:author:
           $ref: '#/components/schemas/SchemaAuthor'
         schema:manufacturer:
           $ref: '#/components/schemas/SchemaManufacturer'
         schema:mpn:
           type: string
-          example: 'PAC2200'
+          example: 'POC1000'
         versions:
           type: array
           items:
@@ -617,21 +617,21 @@ components:
       properties:
         tmID:
           type: string
-          example: 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+          example: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
         externalID:
           type: string
           example: 'e7f19370-84a3-11ee-b962-0242ac120002'
         description:
           type: string
-          example: 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
+          example: 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
         digest:
           type: string
-          example: 'f4254310f557'
+          example: 'e1594d08a01b'
         version:
           $ref: '#/components/schemas/ModelVersion'
         timestamp:
           type: string
-          example: '20231201133245'
+          example: '20231201133246'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
     InventoryEntryLinks:
@@ -642,7 +642,7 @@ components:
         self:
           type: string
           format: uri
-          example: './inventory/nexus-x/Siemens/PAC2200'
+          example: './inventory/siemens/POC1000'
     InventoryEntryVersionLinks:
       type: object
       required:
@@ -651,7 +651,7 @@ components:
         content:
           type: string
           format: uri
-          example: './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+          example: './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
     InventoryResponse:
       type: object
       required:
@@ -720,7 +720,7 @@ components:
       properties:
         schema:name:
           type: string
-          example: 'nexus-x'
+          example: 'siemens'
     SchemaManufacturer:
       required:
         - schema:name
@@ -728,16 +728,19 @@ components:
       properties:
         schema:name:
           type: string
-          example: 'Siemens'
+          example: 'siemens'
     Meta:
-      required:
-        - created
       type: object
       properties:
-        created:
-          type: string
-          format: date-time
-          example: '2023-11-16T11:06:18.8213578+01:00'
+        page:
+          $ref: '#/components/schemas/MetaPage'
+    MetaPage:
+      required:
+        - elements
+      type: object
+      properties:
+        elements:
+          type: integer
     ModelVersion:
       required:
         - model
@@ -774,111 +777,112 @@ components:
     InventoryEntryVersionsResponseExample:
       value:
         data:
-          - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
-            'digest': '13027b8f66e1'
+          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+            'digest': '2cd14601ef09'
             'externalID': '{{ID}}'
             'links':
-              'content': './thing-models/nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
-            'timestamp': '20231201140213'
-            'tmID': 'nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+              'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'timestamp': '20240108112117'
+            'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
             'version':
               'model': '1.0.0'
-          - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
-            'digest': 'f4254310f557'
+          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+            'digest': 'f4184d08a02c'
             'externalID': '{{ID}}'
             'links':
-              'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
-            'timestamp': '20231201133245'
-            'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+              'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+            'timestamp': '20231217140234'
+            'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
             'version':
               'model': '0.0.0'
           - 'description': ''
-            'digest': 'a4e3a90b80c8'
+            'digest': 'e1594d08a01b'
             'externalID': '{{ID}}'
             'links':
-              'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
-            'timestamp': '20231201130021'
-            'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+              'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+            'timestamp': '20231201133246'
+            'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
             'version':
               'model': '0.0.0'
     InventoryEntryResponseExample:
       value:
         data:
           'links':
-            'self': './inventory/nexus-x/Siemens/PAC2200'
-          'name': 'nexus-x/Siemens/PAC2200'
+            'self': './inventory/siemens/POC1000'
+          'name': 'siemens/POC1000'
           'schema:author':
-            'schema:name': 'nexus-x'
+            'schema:name': 'siemens'
           'schema:manufacturer':
-            'schema:name': 'Siemens'
-          'schema:mpn': 'PAC2200'
+            'schema:name': 'siemens'
+          'schema:mpn': 'POC1000'
           'versions':
-            - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
-              'digest': '13027b8f66e1'
+            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+              'digest': '2cd14601ef09'
               'externalID': '{{ID}}'
               'links':
-                'content': './thing-models/nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
-              'timestamp': '20231201140213'
-              'tmID': 'nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+                'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+              'timestamp': '20240108112117'
+              'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
               'version':
                 'model': '1.0.0'
-            - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
-              'digest': 'f4254310f557'
+            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+              'digest': 'f4184d08a02c'
               'externalID': '{{ID}}'
               'links':
-                'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
-              'timestamp': '20231201133245'
-              'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+                'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+              'timestamp': '20231217140234'
+              'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
               'version':
                 'model': '0.0.0'
             - 'description': ''
-              'digest': 'a4e3a90b80c8'
+              'digest': 'e1594d08a01b'
               'externalID': '{{ID}}'
               'links':
-                'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
-              'timestamp': '20231201130021'
-              'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+                'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+              'timestamp': '20231201133246'
+              'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
               'version':
                 'model': '0.0.0'
     InventoryResponseExample:
       value:
         meta:
-          created: '2023-11-16T18:07:18.8213578+01:00'
+          page:
+            elements: 2
         data:
           - 'links':
-              'self': './inventory/nexus-x/Siemens/PAC2200'
-            'name': 'nexus-x/Siemens/PAC2200'
+              'self': './inventory/siemens/POC1000'
+            'name': 'siemens/POC1000'
             'schema:author':
-              'schema:name': 'nexus-x'
+              'schema:name': 'siemens'
             'schema:manufacturer':
-              'schema:name': 'Siemens'
-            'schema:mpn': 'PAC2200'
+              'schema:name': 'siemens'
+            'schema:mpn': 'POC1000'
             'versions':
-              - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
-                'digest': '13027b8f66e1'
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': '2cd14601ef09'
                 'externalID': '{{ID}}'
                 'links':
-                  'content': './thing-models/nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
-                'timestamp': '20231201140213'
-                'tmID': 'nexus-x/Siemens/PAC2200/v1.0.0-20231201140213-13027b8f66e1.tm.json'
+                  'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'timestamp': '20240108112117'
+                'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                 'version':
                   'model': '1.0.0'
-              - 'description': 'The PAC2200 is a measuring device for measuring the basic electrical variables in low-voltage power distribution.'
-                'digest': 'f4254310f557'
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': 'f4184d08a02c'
                 'externalID': '{{ID}}'
                 'links':
-                  'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
-                'timestamp': '20231201133245'
-                'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201133245-f4254310f557.tm.json'
+                  'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'timestamp': '20231217140234'
+                'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                 'version':
                   'model': '0.0.0'
               - 'description': ''
-                'digest': 'a4e3a90b80c8'
+                'digest': 'e1594d08a01b'
                 'externalID': '{{ID}}'
                 'links':
-                  'content': './thing-models/nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
-                'timestamp': '20231201130021'
-                'tmID': 'nexus-x/Siemens/PAC2200/v0.0.0-20231201130021-a4e3a90b80c8.tm.json'
+                  'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'timestamp': '20231201133246'
+                'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'version':
                   'model': '0.0.0'
           - 'links':
@@ -903,18 +907,17 @@ components:
       value:
         data:
           - 'MyCompany'
-          - 'nexus-x'
+          - 'siemens'
     ManufacturersResponseExample:
       value:
         data:
           - 'BarTech'
-          - 'Siemens'
+          - 'siemens'
     MpnsResponseExample:
       value:
         data:
           - 'BazLamp'
-          - 'GH180'
-          - 'PAC2200'
+          - 'POC1000'
     PushPayloadExample:
       value:
         '@context':

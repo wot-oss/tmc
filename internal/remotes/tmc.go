@@ -193,7 +193,7 @@ func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {
 		log.Error("Please specify a remoteName to show the TM.")
 		return nil, errors.New("please specify a remoteName to show the TM")
 	}
-	reqUrl := t.parsedRoot.JoinPath("inventory", url.PathEscape(name), "versions")
+	reqUrl := t.parsedRoot.JoinPath("inventory", url.PathEscape(name), ".versions")
 	resp, err := doGet(reqUrl.String(), t.auth)
 	if err != nil {
 		return nil, err

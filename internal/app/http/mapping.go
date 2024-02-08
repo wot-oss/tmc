@@ -20,8 +20,11 @@ func NewMapper(ctx context.Context) *Mapper {
 }
 
 func (m *Mapper) GetInventoryMeta(toc model.SearchResult) server.Meta {
-	meta := server.Meta{}
-	return meta
+	return server.Meta{
+		Page: &server.MetaPage{
+			Elements: len(toc.Entries),
+		},
+	}
 }
 
 func (m *Mapper) GetInventoryData(tocData []model.FoundEntry) []server.InventoryEntry {

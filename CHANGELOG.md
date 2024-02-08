@@ -4,7 +4,13 @@
 
 ### Added
 
+- REST API: added `meta.page.elements` to inventory response, reflecting number of entries in current result page
 - Implemented autocompletion for most flags and arguments for the shell autocompletion script
+
+### Changed
+
+- REST API: renamed inventory endpoint `/versions` to `/.versions`
+- REST API: removed `meta.created` from inventory response
 
 
 ## [v0.0.0-alpha.3]
@@ -30,9 +36,6 @@
 - REST API:  removed filter parameter filter.externalID from `/inventory`, `/authors`, `/manufacturers`, `/mpns`,     
   search for externalID has now to be done by query parameter `search`
 - enable/disable logging is now done only by setting a loglevel
-- `list` and `pull`: match given name pattern as a prefix by complete path parts
-- `list`: changed output format: put NAME column first, renamed PATH column to MPN
-- `versions`: changed output format: renamed PATH column to ID
 
 ### Fixed
 
