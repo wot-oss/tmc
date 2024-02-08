@@ -406,6 +406,47 @@ func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
 	assert.Equal(t, 1, len(names))
 }
 
+func TestFileRemote_ListCompletions(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRemote{
+		root: temp,
+		spec: NewRemoteSpec("fr"),
+	}
+	_ = os.MkdirAll(filepath.Join(temp, ".tmc"), defaultDirPermissions)
+
+	t.Run("invalid", func(t *testing.T) {
+		_, err := r.ListCompletions("invalid", "")
+		assert.ErrorIs(t, err, ErrInvalidCompletionParams)
+	})
+
+	t.Run("no names file", func(t *testing.T) {
+		names, err := r.ListCompletions(CompletionKindNames, "")
+		assert.NoError(t, err)
+		var exp []string
+		assert.Equal(t, exp, names)
+	})
+
+	t.Run("names", func(t *testing.T) {
+		_ = os.WriteFile(filepath.Join(temp, ".tmc", TmNamesFile), []byte("a/b/c\nd/e/f\n"), defaultFilePermissions)
+		names, err := r.ListCompletions(CompletionKindNames, "")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"a/b/c", "d/e/f"}, names)
+	})
+
+	t.Run("fetchNames", func(t *testing.T) {
+		tmName := "omnicorp-TM-department/omnicorp/omnilamp"
+		_ = os.MkdirAll(filepath.Join(temp, tmName), defaultDirPermissions)
+		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.0.0-20231208142856-a49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
+		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.0.0-20231207142856-b49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
+		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.2.1-20231209142856-c49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
+		_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
+		fNames, err := r.ListCompletions(CompletionKindFetchNames, tmName)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"omnicorp-TM-department/omnicorp/omnilamp:v0.0.1", "omnicorp-TM-department/omnicorp/omnilamp:v1.0.0", "omnicorp-TM-department/omnicorp/omnilamp:v1.2.1"}, fNames)
+	})
+}
+
 var pTempl = `{
   "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",

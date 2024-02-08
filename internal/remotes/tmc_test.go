@@ -376,3 +376,90 @@ func TestTmcRemote_Push(t *testing.T) {
 		})
 	}
 }
+
+func TestTmcRemote_ListCompletions(t *testing.T) {
+
+	type ht struct {
+		name       string
+		kind       string
+		toComplete string
+		status     int
+		respBody   []byte
+		expUrl     string
+		expErr     error
+		expComps   []string
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		eu, _ := url.Parse(h.expUrl)
+		assert.Equal(t, eu.RequestURI(), r.RequestURI)
+		assert.Equal(t, eu.Query(), r.URL.Query())
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.respBody)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRemoteConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:       "invalid kind",
+			kind:       "invalid",
+			toComplete: "",
+			status:     http.StatusBadRequest,
+			respBody:   []byte(`{"detail":"` + "" + `"}`),
+			expUrl:     "/.completions?kind=invalid&toComplete=",
+			expErr:     ErrInvalidCompletionParams,
+			expComps:   nil,
+		},
+		{
+			name:       "names",
+			kind:       "names",
+			toComplete: "",
+			status:     http.StatusOK,
+			respBody:   []byte("abc\ndef\n"),
+			expUrl:     "/.completions?kind=names&toComplete=",
+			expErr:     nil,
+			expComps:   []string{"abc", "def"},
+		},
+		{
+			name:       "fetchNames",
+			kind:       "fetchNames",
+			toComplete: "abc:",
+			status:     http.StatusOK,
+			respBody:   []byte("abc:v1.0.2\nabc:v3.2.1\n"),
+			expUrl:     "/.completions?kind=fetchNames&toComplete=abc%3A",
+			expErr:     nil,
+			expComps:   []string{"abc:v1.0.2", "abc:v3.2.1"},
+		},
+		{
+			name:       "unexpected status",
+			kind:       "names",
+			toComplete: "",
+			status:     http.StatusTeapot,
+			respBody:   []byte(`{"detail":"something bad happened"}`),
+			expUrl:     "/.completions?kind=names&toComplete=",
+			expErr:     errors.New("received unexpected HTTP response from remote TM catalog: 418 I'm a teapot"),
+			expComps:   nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+
+			cs, err := r.ListCompletions(test.kind, test.toComplete)
+			if test.expErr == nil {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expComps, cs)
+			} else {
+				assert.Equal(t, test.expErr, err)
+			}
+		})
+	}
+}
