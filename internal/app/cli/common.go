@@ -30,9 +30,9 @@ func (ff *FilterFlags) IsSet() bool {
 	return ff.FilterAuthor != "" || ff.FilterManufacturer != "" || ff.FilterMpn != "" || ff.Search != ""
 }
 
-func CreateSearchParamsFromCLI(flags FilterFlags, name string, exactName bool) *model.SearchParams {
+func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
 	var search *model.SearchParams
-	if flags.IsSet() || name != "" || !exactName {
+	if flags.IsSet() || name != "" {
 		search = &model.SearchParams{}
 		if flags.FilterAuthor != "" {
 			search.Author = strings.Split(flags.FilterAuthor, DefaultListSeparator)
@@ -49,9 +49,7 @@ func CreateSearchParamsFromCLI(flags FilterFlags, name string, exactName bool) *
 		if name != "" {
 			search.Name = name
 		}
-		if !exactName {
-			search.Options.NameFilterType = model.PrefixMatch
-		}
+		search.Options.NameFilterType = model.PrefixMatch
 	}
 	return search
 }
