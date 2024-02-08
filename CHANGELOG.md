@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- REST API: added `meta.page.elements` to inventory response, reflecting number of entries in current result page
+
+### Changed
+
+- REST API: renamed inventory endpoint `/versions` to `/.versions`
+- REST API: removed `meta.created` from inventory response
 
 ### Fixed
 

@@ -35,7 +35,7 @@ type ServerInterface interface {
 	// (GET /inventory/{name})
 	GetInventoryByName(w http.ResponseWriter, r *http.Request, name string)
 	// Get the versions of an inventory entry
-	// (GET /inventory/{name}/versions)
+	// (GET /inventory/{name}/.versions)
 	GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string)
 	// Get the contained manufacturers of the inventory
 	// (GET /manufacturers)
@@ -210,14 +210,6 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "search", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "sort" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "sort", r.URL.Query(), &params.Sort)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sort", Err: err})
 		return
 	}
 
@@ -530,7 +522,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/inventory", wrapper.GetInventory).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/versions", wrapper.GetInventoryVersionsByName).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/.versions", wrapper.GetInventoryVersionsByName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/inventory/{name:.+}", wrapper.GetInventoryByName).Methods("GET")
 
