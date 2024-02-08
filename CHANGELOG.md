@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
+### Added
+
+- REST API: added `meta.page.elements` to inventory response, reflecting number of entries in current result page
+
 ### Changed
 
+- REST API: renamed inventory endpoint `/versions` to `/.versions`
+- REST API: removed `meta.created` from inventory response
 - Removed '--exact' flag to `list` and `pull`
 - `list` and `pull`: match given name pattern as a prefix by complete path parts
 - `list`: changed output format: put NAME column first, renamed PATH column to MPN
