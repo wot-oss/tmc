@@ -15,8 +15,8 @@ var pullCmd = &cobra.Command{
 	Use:   "pull <NAME PATTERN>",
 	Short: "Pull TMs from a catalog.",
 	Long: `Pulls one or more TMs from a catalog by name pattern, filters or search. 
-The pattern can be a full name or a prefix the names shall start with. A partial pattern will match only complete 
-path parts. E.g. 'company/device' will not match 'company/device-mark2', but will match 'company/device/submodel'.
+The name can be a full name or a prefix consisting of complete path parts. 
+E.g. 'MyCompany/BarTech' will not match 'MyCompany/BarTechCorp', but will match 'MyCompany/BarTech/BazLamp'.
 
 Name pattern, filters and search can be combined to narrow down the result.`,
 	Args: cobra.MaximumNArgs(1),
