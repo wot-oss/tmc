@@ -20,8 +20,8 @@ The name can be a full name or a prefix consisting of complete path parts.
 E.g. 'MyCompany/BarTech' will not match 'MyCompany/BarTechCorp', but will match 'MyCompany/BarTech/BazLamp'.
 
 Name pattern, filters and search can be combined to narrow down the result.`,
-	Args: cobra.MaximumNArgs(1),
-	Run:  executeList,
+	Args:              cobra.MaximumNArgs(1),
+	Run:               executeList,
 	ValidArgsFunction: completion.CompleteTMNames,
 }
 

@@ -4,8 +4,13 @@
 
 ### Added
 
-- REST API: added `meta.page.elements` to inventory response, reflecting number of entries in current result page
 - Implemented autocompletion for most flags and arguments for the shell autocompletion script
+
+## [v0.0.0-alpha.4]
+
+### Added
+
+- REST API: added `meta.page.elements` to inventory response, reflecting number of entries in current result page
 
 ### Changed
 
