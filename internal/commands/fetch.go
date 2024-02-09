@@ -72,10 +72,10 @@ func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
 	return nil, nil, err
 }
 
-func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string) (string, []byte, error) {
+func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string) (string, []byte, error, []remotes.RepoAccessError) {
 	tmid, fn, err := ParseAsTMIDOrFetchName(idOrName)
 	if err != nil {
-		return "", nil, err
+		return "", nil, err, nil
 	}
 	if tmid != nil {
 		return c.FetchByTMID(spec, idOrName)
@@ -83,19 +83,19 @@ func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string)
 	return c.FetchByName(spec, *fn)
 }
 
-func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, []byte, error) {
+func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, []byte, error, []remotes.RepoAccessError) {
 	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, spec)
 	if err != nil {
-		return "", nil, err
+		return "", nil, err, nil
 	}
 
 	return rs.Fetch(tmid)
 }
-func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error) {
+func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error, []remotes.RepoAccessError) {
 	log := slog.Default()
-	tocVersions, err := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
+	tocVersions, err, errs := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
 	if err != nil {
-		return "", nil, err
+		return "", nil, err, errs
 	}
 	versions := make([]model.FoundVersion, len(tocVersions))
 	copy(versions, tocVersions)
@@ -106,21 +106,22 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string,
 	if len(fn.Semver) == 0 {
 		id, foundIn, err = findMostRecentVersion(versions)
 		if err != nil {
-			return "", nil, err
+			return "", nil, err, errs
 		}
 	} else {
 		if _, err := semver.NewVersion(fn.Semver); err == nil {
 			id, foundIn, err = findMostRecentMatchingVersion(versions, fn.Semver)
 			if err != nil {
-				return "", nil, err
+				return "", nil, err, errs
 			}
 		} else {
-			return "", nil, err
+			return "", nil, err, errs
 		}
 	}
 
 	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
-	return c.FetchByTMID(foundIn, id)
+	tmid, bytes, err, _ := c.FetchByTMID(foundIn, id)
+	return tmid, bytes, err, errs
 }
 
 func findMostRecentVersion(versions []model.FoundVersion) (string, remotes.RepoSpec, error) {

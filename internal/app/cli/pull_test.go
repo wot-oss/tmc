@@ -111,7 +111,9 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 	// given: a RemoteManager and a Remote
 	rm := remotes.NewMockRemoteManager(t)
 	r := remotes.NewMockRemote(t)
-	rm.On("Get", remotes.NewRemoteSpec("r1")).Return(r, nil)
+	spec := remotes.NewRemoteSpec("r1")
+	rm.On("Get", spec).Return(r, nil)
+	r.On("Spec").Return(spec)
 
 	fc := commands.NewFetchCommand(rm)
 	tmID := listResult.Entries[0].Versions[0].TMID

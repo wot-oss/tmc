@@ -23,11 +23,13 @@ func NewFetchExecutor(rm remotes.RemoteManager) *FetchExecutor {
 
 func (e *FetchExecutor) Fetch(remote remotes.RepoSpec, idOrName, outputPath string) error {
 
-	id, thing, err := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remote, idOrName)
+	id, thing, err, errs := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remote, idOrName)
 	if err != nil {
 		Stderrf("Could not fetch from remote: %v", err)
 		return err
 	}
+	printErrs("Errors occurred while fetching:", errs)
+
 	thing = utils.ConvertToNativeLineEndings(thing)
 
 	if outputPath == "" {
