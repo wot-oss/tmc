@@ -89,10 +89,9 @@ func (u *UnionRemote) ListCompletions(kind string, toComplete string) ([]string,
 	var cs []string
 	for _, r := range u.rs {
 		rcs, err := r.ListCompletions(kind, toComplete)
-		if err != nil {
-			return nil, err
+		if err == nil {
+			cs = append(cs, rcs...)
 		}
-		cs = append(cs, rcs...)
 	}
 	slices.Sort(cs)
 	return slices.Compact(cs), nil
