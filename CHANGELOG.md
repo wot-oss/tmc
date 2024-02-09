@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- handle timestamp collisions on push by retrying after one second, forcing generation of new id, or reporting the error if all else fails
+
+## [v0.0.0-alpha.4]
+
 ### Added
 
 - REST API: added `meta.page.elements` to inventory response, reflecting number of entries in current result page
@@ -14,10 +20,6 @@
 - `list` and `pull`: match given name pattern as a prefix by complete path parts
 - `list`: changed output format: put NAME column first, renamed PATH column to MPN
 - `versions`: changed output format: renamed PATH column to ID
-
-### Fixed
-
-- handle timestamp collisions on push by retrying after one second, forcing generation of new id, or reporting the error if all else fails
 
 ## [v0.0.0-alpha.3]
 
