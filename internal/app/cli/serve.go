@@ -1,6 +1,7 @@
 package cli
 
 import (
+	_ "embed"
 	"errors"
 	"fmt"
 	"net"
@@ -10,6 +11,9 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
+
+//go:embed banner.txt
+var banner string
 
 func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTarget remotes.RepoSpec) error {
 
@@ -51,7 +55,8 @@ func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTar
 		Addr:    net.JoinHostPort(host, port),
 	}
 
-	fmt.Printf("Start tm-catalog server on %s:%s\n", host, port)
+	fmt.Println(banner)
+	fmt.Printf("Started tm-catalog server on %s:%s\n", host, port)
 	err = s.ListenAndServe()
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
