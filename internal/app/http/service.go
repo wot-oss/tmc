@@ -47,9 +47,13 @@ func NewDefaultHandlerService(rm remotes.RemoteManager, servedRepo remotes.RepoS
 
 func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
 	c := commands.NewListCommand(dhs.remoteManager)
-	toc, err, _ := c.List(dhs.serveRemote, search)
+	toc, err, errs := c.List(dhs.serveRemote, search)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(errs) > 0 {
+		return nil, errs[0]
 	}
 
 	return &toc, nil

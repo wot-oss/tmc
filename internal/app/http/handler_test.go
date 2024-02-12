@@ -217,6 +217,14 @@ func Test_Inventory(t *testing.T) {
 		// then: it returns status 500 and json error as body
 		assertResponse500(t, rec, route)
 	})
+
+	t.Run("with repository access error", func(t *testing.T) {
+		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, remotes.NewRepoAccessError(remotes.NewRemoteSpec("rem"), errors.New("unexpected"))).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 502 and json error as body
+		assertResponse502(t, rec, route)
+	})
 }
 
 func Test_InventoryByName(t *testing.T) {
@@ -708,6 +716,19 @@ func assertResponse500(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assert.Equal(t, route, *errResponse.Instance)
 	assert.Equal(t, error500Title, errResponse.Title)
 	assert.Equal(t, error500Detail, *errResponse.Detail)
+
+	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
+	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+}
+
+func assertResponse502(t *testing.T, rec *httptest.ResponseRecorder, route string) {
+	assert.Equal(t, http.StatusBadGateway, rec.Code)
+	var errResponse server.ErrorResponse
+	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
+	assert.Equal(t, http.StatusBadGateway, errResponse.Status)
+	assert.Equal(t, route, *errResponse.Instance)
+	assert.Equal(t, error502Title, errResponse.Title)
+	assert.Equal(t, error502Detail, *errResponse.Detail)
 
 	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
 	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))

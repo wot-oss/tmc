@@ -14,7 +14,7 @@ func NewListCommand(m remotes.RemoteManager) *ListCommand {
 		remoteMgr: m,
 	}
 }
-func (c *ListCommand) List(rSpec remotes.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []remotes.RepoAccessError) {
+func (c *ListCommand) List(rSpec remotes.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []*remotes.RepoAccessError) {
 	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, rSpec)
 	if err != nil {
 		return model.SearchResult{}, err, nil

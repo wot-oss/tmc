@@ -114,7 +114,13 @@ func (r RepoSpec) ToFoundSource() model.FoundSource {
 }
 
 func (r RepoSpec) String() string {
-	return fmt.Sprintf("repository spec {dir: %s, remoteName: %s}", r.dir, r.remoteName)
+	if r.dir == "" {
+		if r.remoteName == "" {
+			return fmt.Sprintf("undefined repository")
+		}
+		return fmt.Sprintf("remote <%s>", r.remoteName)
+	}
+	return fmt.Sprintf("directory %s", r.dir)
 }
 
 var EmptySpec, _ = NewSpec("", "")

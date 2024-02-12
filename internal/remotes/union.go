@@ -13,24 +13,26 @@ type Union struct {
 	rs []Remote
 }
 
-type RepoAccessError interface {
-	error
-	Unwrap() error
-	Spec() RepoSpec
-}
-type remoteAccessError struct {
+type RepoAccessError struct {
 	spec RepoSpec
 	err  error
 }
 
-func (e *remoteAccessError) Error() string {
-	return fmt.Sprintf("%s returned from %v", e.err.Error(), e.spec)
+func NewRepoAccessError(spec RepoSpec, err error) *RepoAccessError {
+	return &RepoAccessError{
+		spec: spec,
+		err:  err,
+	}
 }
 
-func (e *remoteAccessError) Unwrap() error {
+func (e *RepoAccessError) Error() string {
+	return fmt.Sprintf("%v returned: %v", e.spec, e.err)
+}
+
+func (e *RepoAccessError) Unwrap() error {
 	return e.err
 }
-func (e *remoteAccessError) Spec() RepoSpec {
+func (e *RepoAccessError) Spec() RepoSpec {
 	return e.spec
 }
 
@@ -46,18 +48,15 @@ func NewUnion(rs ...Remote) *Union {
 	}
 }
 
-func (u *Union) Fetch(id string) (string, []byte, error, []RepoAccessError) {
-	var errs []RepoAccessError
+func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
+	var errs []*RepoAccessError
 	for _, r := range u.rs {
 		id, thing, err := r.Fetch(id)
 		if err == nil {
 			return id, thing, nil, nil
 		} else {
 			if !errors.Is(err, ErrTmNotFound) {
-				errs = append(errs, &remoteAccessError{
-					spec: r.Spec(),
-					err:  err,
-				})
+				errs = append(errs, NewRepoAccessError(r.Spec(), err))
 			}
 		}
 	}
@@ -66,16 +65,13 @@ func (u *Union) Fetch(id string) (string, []byte, error, []RepoAccessError) {
 	return "", nil, ErrTmNotFound, errs
 }
 
-func (u *Union) List(search *model.SearchParams) (model.SearchResult, []RepoAccessError) {
-	var errs []RepoAccessError
+func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
+	var errs []*RepoAccessError
 	res := &model.SearchResult{}
 	for _, remote := range u.rs {
 		toc, err := remote.List(search)
 		if err != nil {
-			errs = append(errs, &remoteAccessError{
-				spec: remote.Spec(),
-				err:  err,
-			})
+			errs = append(errs, NewRepoAccessError(remote.Spec(), err))
 			continue
 		}
 		res.Merge(&toc)
@@ -83,17 +79,14 @@ func (u *Union) List(search *model.SearchParams) (model.SearchResult, []RepoAcce
 	return *res, errs
 }
 
-func (u *Union) Versions(name string) ([]model.FoundVersion, []RepoAccessError) {
-	var errs []RepoAccessError
+func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError) {
+	var errs []*RepoAccessError
 	var res []model.FoundVersion
 	for _, remote := range u.rs {
 		vers, err := remote.Versions(name)
 		if err != nil {
 			if !errors.Is(err, ErrTmNotFound) {
-				errs = append(errs, &remoteAccessError{
-					spec: remote.Spec(),
-					err:  err,
-				})
+				errs = append(errs, NewRepoAccessError(remote.Spec(), err))
 			}
 			continue
 		}

@@ -57,12 +57,12 @@ func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchPara
 	return search
 }
 
-func printErrs(hdr string, errs []remotes.RepoAccessError) {
+func printErrs(hdr string, errs []*remotes.RepoAccessError) {
 	if len(errs) == 0 {
 		return
 	}
-	Stderrf("%s\n", hdr)
+	Stderrf("%s", hdr)
 	for _, e := range errs {
-		Stderrf("%v\n", e)
+		Stderrf("%v", e)
 	}
 }

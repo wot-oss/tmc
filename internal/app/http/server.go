@@ -18,8 +18,8 @@ import (
 //          e.g. r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/.versions" should be on top of r.HandleFunc(options.BaseURL+"/inventory/{name:.+}
 // 3. when 2. is done, comment lines "// //go:generate" again, to prevent unwanted changes by calling "go generate"
 
-// //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package server -generate types -o server/models.gen.go ../../../api/tm-catalog.openapi.yaml
-// //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package server -generate gorilla-server -o server/server.gen.go ../../../api/tm-catalog.openapi.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package server -generate types -o server/models.gen.go ../../../api/tm-catalog.openapi.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package server -generate gorilla-server -o server/server.gen.go ../../../api/tm-catalog.openapi.yaml
 
 type ServerOptions struct {
 	CORS CORSOptions
