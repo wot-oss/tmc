@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+
+- Implemented `version` command to show the version of the tm-catalog-cli
 
 
 ## [v0.0.0-alpha.4]

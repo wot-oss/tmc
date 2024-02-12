@@ -41,6 +41,8 @@ jobs:
       run: |
         echo "FILE_NAME ${FILENAME_PREFIX}"
         export FILENAME_PREFIX=${FILENAME_PREFIX}
+        export TMC_VERSION=$(git describe --tags --always)   
+        echo "TMC_VERSION ${TMC_VERSION}"       
         bash ./build/compile.sh 
 
     - name: Release-Notes
