@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+
 	"github.com/spf13/cobra"
 )
-
-var TmcVersion = "n/a"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
@@ -14,7 +14,7 @@ var versionCmd = &cobra.Command{
 	Long:  `Show the tm-catalog-cli version information.`,
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Version: %s\n", TmcVersion)
+		fmt.Printf("Version: %s\n", cli.TmcVersion)
 	},
 }
 
