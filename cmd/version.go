@@ -14,7 +14,7 @@ var versionCmd = &cobra.Command{
 	Long:  `Show the tm-catalog-cli version information.`,
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("Version: %s\n", cli.TmcVersion)
+		fmt.Printf("tm-catalog-cli version %s\n", cli.TmcVersion)
 	},
 }
 

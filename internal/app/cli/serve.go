@@ -51,7 +51,7 @@ func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTar
 		Addr:    net.JoinHostPort(host, port),
 	}
 
-	fmt.Printf("Version tm-catalog-cli: %s\n", TmcVersion)
+	fmt.Printf("Version of tm-catalog-cli: %s\n", TmcVersion)
 	fmt.Printf("Start tm-catalog server on: %s:%s\n", host, port)
 	err = s.ListenAndServe()
 	if err != nil {
