@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- Implemented `version` command to show the version of the tm-catalog-cli
+
 ### Fixed
 
 - handle timestamp collisions on push by retrying after one second, forcing generation of new id, or reporting the error if all else fails

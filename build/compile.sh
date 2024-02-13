@@ -4,9 +4,11 @@
 #  
 # FILENAME_PREFIX: "tm-catalog-cli" per default and normally set to the repo name in a pipeline
 # GOOS_GARCH_TARGETS: list of of os/arch compile targets with defaults
+# TMC_VERSION: version to be set in source code variable internal/app/cli.TmcVersion when compile
    
 filename_prefix=${FILENAME_PREFIX:-"tm-catalog-cli"}
 targets=${GOOS_GARCH_TARGETS:-"linux,amd64;darwin,amd64;darwin,arm64;windows,amd64;windows,arm64"}
+version=${TMC_VERSION:-"n/a"}
 
 IFS=';' read -ra os_arch_array <<< $targets 
 
@@ -21,5 +23,6 @@ for os_arch in "${os_arch_array[@]}"; do
   fi
   filename="${filename_prefix}-${GOOS}-${GARCH}${EXT}"
   echo "compiling $filename"
-  CGO_ENABLED=0 go build -o $filename
+  CGO_ENABLED=0 go build -o $filename \
+  -ldflags="-X github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli.TmcVersion=${version}"
 done
