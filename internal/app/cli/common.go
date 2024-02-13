@@ -13,6 +13,8 @@ import (
 
 const DefaultListSeparator = ","
 
+var TmcVersion = "n/a"
+
 // Stderrf prints a message to os.Stderr, followed by newline
 func Stderrf(format string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
