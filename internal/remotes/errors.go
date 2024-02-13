@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
+	"strconv"
 )
 
 var (
@@ -14,6 +14,7 @@ var (
 	ErrRemoteExists      = errors.New("named remote already exists")
 	ErrTmNotFound        = errors.New("TM not found")
 	ErrInvalidSpec       = errors.New("illegal remote spec: both dir and remoteName given")
+	ErrInvalidErrorCode  = errors.New("invalid error code")
 )
 
 type ErrTMIDConflict struct {
@@ -24,55 +25,46 @@ type ErrTMIDConflict struct {
 type IdConflictType int
 
 const (
-	IdConflictUnknown IdConflictType = iota
-	IdConflictSameContent
+	IdConflictSameContent = iota + 1
 	IdConflictSameTimestamp
 )
-const errTMIDConflictPrefix = "Thing Model id conflict"
 
 var (
 	idConflictStrings = map[IdConflictType]string{
 		IdConflictSameContent:   "same content",
 		IdConflictSameTimestamp: "same timestamp",
 	}
-	idConflictTypeRegex       = regexp.MustCompile("Type: (.+?),")
-	idConflictExistingIdRegex = regexp.MustCompile(": ([^,]+?)$")
+	idConflictCodeRegex = regexp.MustCompile("^([12]):(.+?)$")
 )
 
 func (t IdConflictType) String() string {
 	if s, ok := idConflictStrings[t]; ok {
 		return s
 	}
-	return "unknown conflict type"
+	return fmt.Sprintf("unknown conflict type: %d", t)
 }
 
-func ParseIdConflictType(s string) IdConflictType {
-	for t, ts := range idConflictStrings {
-		if s == ts {
-			return t
-		}
-	}
-	return 0
+func stringToIdConflictType(s string) IdConflictType {
+	i, _ := strconv.Atoi(s)
+	return IdConflictType(i)
 }
 
 func (e *ErrTMIDConflict) Error() string {
-	return fmt.Sprintf(errTMIDConflictPrefix+". Type: %v, existing id: %s", e.Type, e.ExistingId)
+	return fmt.Sprintf("Thing Model id conflict. Type: %v, existing id: %s", e.Type, e.ExistingId)
 }
 
-func (e *ErrTMIDConflict) FromString(s string) {
-	if !strings.HasPrefix(s, errTMIDConflictPrefix) {
-		return
-	}
+// Code returns a machine-readable string error code, which can be parsed by ParseErrTMIDConflict
+func (e *ErrTMIDConflict) Code() string {
+	return fmt.Sprintf("%d:%s", int(e.Type), e.ExistingId)
+}
 
-	t := IdConflictUnknown
-	tMatches := idConflictTypeRegex.FindStringSubmatch(s)
-	if tMatches != nil {
-		t = ParseIdConflictType(tMatches[1])
+func ParseErrTMIDConflict(errCode string) (*ErrTMIDConflict, error) {
+	matches := idConflictCodeRegex.FindStringSubmatch(errCode)
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("%w: %s", ErrInvalidErrorCode, errCode)
 	}
-	e.Type = t
-
-	iMatches := idConflictExistingIdRegex.FindStringSubmatch(s)
-	if iMatches != nil {
-		e.ExistingId = iMatches[1]
-	}
+	return &ErrTMIDConflict{
+		Type:       stringToIdConflictType(matches[1]), // invalid conflict type would not match the regex
+		ExistingId: matches[2],
+	}, nil
 }

@@ -123,7 +123,7 @@ func TestPrepareToImport(t *testing.T) {
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir", false)
+		}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir")
 		assert.NoError(t, err)
 		assert.False(t, bytes.Contains(b, []byte{'\r'})) // make sure line endings were normalized
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
@@ -134,7 +134,7 @@ func TestPrepareToImport(t *testing.T) {
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"foreign-id\"}"), "opt/dir", false)
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"foreign-id\"}"), "opt/dir")
 		assert.NoError(t, err)
 		assert.True(t, bytes.Contains(b, []byte("\"href\":\"foreign-id\"")))
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-e7dac5728be6.tm.json")))
@@ -145,18 +145,20 @@ func TestPrepareToImport(t *testing.T) {
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-7ae21a619c71.tm.json\"}"), "opt/dir", false)
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-7ae21a619c71.tm.json\"}"), "opt/dir")
 		assert.NoError(t, err)
+		// no change in id
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-7ae21a619c71.tm.json")))
 	})
-	t.Run("our string id in original/correct hash/force new id", func(t *testing.T) {
+	t.Run("our string id in original/incorrect author", func(t *testing.T) {
 		b, _, err := prepareToImport(now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-7ae21a619c71.tm.json\"}"), "opt/dir", true)
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"publisher/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-e7dac5728be6.tm.json\"}"), "opt/dir")
 		assert.NoError(t, err)
+		// new generated id
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
 	})
 	t.Run("our string id in original/incorrect hash", func(t *testing.T) {
@@ -165,8 +167,9 @@ func TestPrepareToImport(t *testing.T) {
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-863e9f0f950a.tm.json\"}"), "opt/dir", false)
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-863e9f0f950a.tm.json\"}"), "opt/dir")
 		assert.NoError(t, err)
+		// new generated id
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
 	})
 

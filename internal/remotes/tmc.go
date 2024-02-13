@@ -66,9 +66,15 @@ func (t TmcRemote) Push(id model.TMID, raw []byte) error {
 		}
 		switch resp.StatusCode {
 		case http.StatusConflict:
-			err := &ErrTMIDConflict{}
-			err.FromString(detail)
-			return err
+			eCode := ""
+			if e.Code != nil {
+				eCode = *e.Code
+			}
+			cErr, err := ParseErrTMIDConflict(eCode)
+			if err != nil {
+				return err
+			}
+			return cErr
 		case http.StatusInternalServerError, http.StatusBadRequest:
 			return errors.New(detail)
 		default:

@@ -337,7 +337,7 @@ func TestTmcRemote_Push(t *testing.T) {
 		{
 			name:     "tm exists",
 			reqBody:  pushBody,
-			respBody: []byte(`{"detail":"` + tmErr.Error() + `"}`),
+			respBody: []byte(`{"detail":"` + tmErr.Error() + `", "code": "` + tmErr.Code() + `"}`),
 			status:   http.StatusConflict,
 			expErr:   tmErr,
 		},
