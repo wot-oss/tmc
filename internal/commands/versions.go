@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"errors"
-
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -21,22 +19,5 @@ func (c *VersionsCommand) ListVersions(spec remotes.RepoSpec, name string) ([]mo
 	if err != nil {
 		return nil, err
 	}
-	var res []model.FoundVersion
-	found := false
-	for _, remote := range rs {
-		vers, err := remote.Versions(name)
-		if err != nil && errors.Is(err, remotes.ErrTmNotFound) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-		found = true
-		res = model.MergeFoundVersions(res, vers)
-	}
-	if !found {
-		return nil, remotes.ErrTmNotFound
-	}
-	return res, nil
-
+	return rs.Versions(name)
 }

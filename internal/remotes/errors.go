@@ -8,13 +8,14 @@ import (
 )
 
 var (
-	ErrAmbiguous         = errors.New("multiple remotes configured, but remote target not specified")
-	ErrRemoteNotFound    = errors.New("remote not found")
-	ErrInvalidRemoteName = errors.New("invalid remote remoteName")
-	ErrRemoteExists      = errors.New("named remote already exists")
-	ErrTmNotFound        = errors.New("TM not found")
-	ErrInvalidSpec       = errors.New("illegal remote spec: both dir and remoteName given")
-	ErrInvalidErrorCode  = errors.New("invalid error code")
+	ErrAmbiguous               = errors.New("multiple remotes configured, but remote target not specified")
+	ErrRemoteNotFound          = errors.New("remote not found")
+	ErrInvalidRemoteName       = errors.New("invalid remote remoteName")
+	ErrRemoteExists            = errors.New("named remote already exists")
+	ErrTmNotFound              = errors.New("TM not found")
+	ErrInvalidSpec             = errors.New("illegal remote spec: both dir and remoteName given")
+	ErrInvalidErrorCode        = errors.New("invalid error code")
+	ErrInvalidCompletionParams = errors.New("invalid completion parameters")
 )
 
 type ErrTMIDConflict struct {

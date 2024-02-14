@@ -5,6 +5,7 @@
 ### Added
 
 - Implemented `version` command to show the version of the tm-catalog-cli
+- Implemented autocompletion for most flags and arguments for the shell autocompletion script
 
 ### Fixed
 

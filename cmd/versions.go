@@ -5,22 +5,26 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 var versionsCmd = &cobra.Command{
-	Use:   "versions <name> [--remote <remoteName>]",
-	Short: "List available versions of the TM with given name",
-	Long:  `List available versions of the TM with given name`,
-	Args:  cobra.ExactArgs(1),
-	Run:   listVersions,
+	Use:               "versions <name>",
+	Short:             "List available versions of the TM with given name",
+	Long:              `List available versions of the TM with given name`,
+	Args:              cobra.ExactArgs(1),
+	Run:               listVersions,
+	ValidArgsFunction: completion.CompleteTMNames,
 }
 
 func init() {
 	RootCmd.AddCommand(versionsCmd)
 	versionsCmd.Flags().StringP("remote", "r", "", "name of the remote to search for versions")
+	_ = versionsCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
 	versionsCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	_ = versionsCmd.MarkFlagDirname("directory")
 }
 
 func listVersions(cmd *cobra.Command, args []string) {

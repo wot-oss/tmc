@@ -135,7 +135,7 @@ func (h *HttpRemote) Spec() RepoSpec {
 }
 
 func (h *HttpRemote) List(search *model.SearchParams) (model.SearchResult, error) {
-	reqUrl := h.buildUrl(TOCFilename)
+	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", RepoConfDir, TOCFilename))
 	resp, err := doGet(reqUrl, h.auth)
 	if err != nil {
 		return model.SearchResult{}, err
@@ -196,6 +196,38 @@ func (h *HttpRemote) Versions(name string) ([]model.FoundVersion, error) {
 	}
 
 	return toc.Entries[0].Versions, nil
+}
+
+func (h *HttpRemote) ListCompletions(kind, toComplete string) ([]string, error) {
+	switch kind {
+	case CompletionKindNames:
+		sr, err := h.List(nil)
+		if err != nil {
+			return nil, err
+		}
+		var ns []string
+		for _, e := range sr.Entries {
+			ns = append(ns, e.Name)
+		}
+		return ns, nil
+	case CompletionKindFetchNames:
+		if strings.Contains(toComplete, "..") {
+			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
+		}
+
+		name, _, _ := strings.Cut(toComplete, ":")
+		versions, err := h.Versions(name)
+		if err != nil {
+			return nil, err
+		}
+		var vs []string
+		for _, fv := range versions {
+			vs = append(vs, fmt.Sprintf("%s:%s", name, fv.Version.Model))
+		}
+		return vs, nil
+	default:
+		return nil, ErrInvalidCompletionParams
+	}
 }
 
 func createHttpRemoteConfig(loc string, bytes []byte) (map[string]any, error) {

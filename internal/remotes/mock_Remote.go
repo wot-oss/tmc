@@ -77,6 +77,36 @@ func (_m *MockRemote) List(search *model.SearchParams) (model.SearchResult, erro
 	return r0, r1
 }
 
+// ListCompletions provides a mock function with given fields: kind, toComplete
+func (_m *MockRemote) ListCompletions(kind string, toComplete string) ([]string, error) {
+	ret := _m.Called(kind, toComplete)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListCompletions")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, string) ([]string, error)); ok {
+		return rf(kind, toComplete)
+	}
+	if rf, ok := ret.Get(0).(func(string, string) []string); ok {
+		r0 = rf(kind, toComplete)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(kind, toComplete)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Push provides a mock function with given fields: id, raw
 func (_m *MockRemote) Push(id model.TMID, raw []byte) error {
 	ret := _m.Called(id, raw)

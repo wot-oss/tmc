@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -14,15 +15,19 @@ var fetchCmd = &cobra.Command{
 	Short: "Fetches a TM by name or id",
 	Long: `Fetches a TM by name, optionally accepting a semantic version, or id.
 The semantic version can be full or partial, e.g. v1.2.3, v1.2, v1. The 'v' at the beginning of a version is optional.`,
-	Args: cobra.ExactArgs(1),
-	Run:  executeFetch,
+	Args:              cobra.ExactArgs(1),
+	Run:               executeFetch,
+	ValidArgsFunction: completion.CompleteFetchNames,
 }
 
 func init() {
 	RootCmd.AddCommand(fetchCmd)
 	fetchCmd.Flags().StringP("remote", "r", "", "name of the remote to fetch from")
+	_ = fetchCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
 	fetchCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	_ = fetchCmd.MarkFlagDirname("directory")
 	fetchCmd.Flags().StringP("output", "o", "", "write the fetched TM to output folder instead of stdout")
+	_ = fetchCmd.MarkFlagDirname("output")
 }
 
 func executeFetch(cmd *cobra.Command, args []string) {

@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 func TestNewHttpRemote(t *testing.T) {
@@ -71,4 +73,40 @@ func TestHttpRemote_Fetch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, aid, actId)
 	assert.Equal(t, []byte(tm), b)
+}
+
+func TestHttpRemote_ListCompletions(t *testing.T) {
+	_, toc, err := utils.ReadRequiredFile("../../test/data/list/tm-catalog.toc.json")
+	assert.NoError(t, err)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/.tmc/"+TOCFilename, r.URL.Path)
+		_, _ = w.Write(toc)
+	}))
+	defer srv.Close()
+	config, err := createHttpRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+	assert.NoError(t, err)
+	r, err := NewHttpRemote(config, NewRemoteSpec("nameless"))
+	assert.NoError(t, err)
+
+	t.Run("names", func(t *testing.T) {
+		completions, err := r.ListCompletions(CompletionKindNames, "")
+		assert.NoError(t, err)
+
+		slices.Sort(completions)
+		assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall", "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b", "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath"}, completions)
+	})
+	t.Run("fetch names", func(t *testing.T) {
+		completions, err := r.ListCompletions(CompletionKindFetchNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:")
+		assert.NoError(t, err)
+
+		slices.Sort(completions)
+		assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:1.0.1"}, completions)
+
+		completions, err = r.ListCompletions(CompletionKindFetchNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:v1")
+		assert.NoError(t, err)
+
+		slices.Sort(completions)
+		assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:1.0.1"}, completions)
+	})
 }

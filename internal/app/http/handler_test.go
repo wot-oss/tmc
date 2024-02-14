@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/stretchr/testify/mock"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
@@ -585,6 +586,60 @@ func Test_PushThingModel(t *testing.T) {
 			Recorder
 		// then: it returns status 500
 		assertResponse500(t, rec, route)
+	})
+}
+
+func Test_Completions(t *testing.T) {
+
+	route := "/.completions"
+
+	hs := NewMockHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("no parameters", func(t *testing.T) {
+		hs.On("GetCompletions", mock.Anything, "", "").Return(nil, remotes.ErrInvalidCompletionParams).Once()
+
+		// when: calling the route
+		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+		// and then: the body is of correct type
+		var response server.ErrorResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+	})
+
+	t.Run("unknown completion kind", func(t *testing.T) {
+		hs.On("GetCompletions", mock.Anything, "something", "").Return(nil, remotes.ErrInvalidCompletionParams).Once()
+
+		// when: calling the route
+		rr := fmt.Sprintf("%s?kind=something", route)
+		rec := testutil.NewRequest().Get(rr).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 400
+		assertResponse400(t, rec, rr)
+		// and then: the body is of correct type
+		var response server.ErrorResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+	})
+
+	t.Run("known completion kind", func(t *testing.T) {
+		hs.On("GetCompletions", mock.Anything, "names", "").Return([]string{"abc", "def"}, nil).Once()
+
+		// when: calling the route
+		rec := testutil.NewRequest().Get(fmt.Sprintf("%s?kind=names&toComplete=", route)).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 200
+		assert.Equal(t, http.StatusOK, rec.Code)
+		// and then: the body is of correct type
+		assert.Equal(t, mimeText, rec.Header().Get(headerContentType))
+		assert.Equal(t, []byte("abc\ndef\n"), rec.Body.Bytes())
+	})
+
+	t.Run("with unknown error", func(t *testing.T) {
+		hs.On("GetCompletions", mock.Anything, "names", "").Return(nil, unknownErr).Once()
+		// when: calling the route
+		rr := fmt.Sprintf("%s?kind=names&toComplete=", route)
+		rec := testutil.NewRequest().Get(rr).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 500 and json error as body
+		assertResponse500(t, rec, rr)
 	})
 }
 

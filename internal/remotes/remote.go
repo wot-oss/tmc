@@ -21,9 +21,14 @@ const (
 	KeyRemoteAuth    = "auth"
 	KeyRemoteEnabled = "enabled"
 
-	RemoteTypeFile = "file"
-	RemoteTypeHttp = "http"
-	RemoteTypeTmc  = "tmc"
+	RemoteTypeFile           = "file"
+	RemoteTypeHttp           = "http"
+	RemoteTypeTmc            = "tmc"
+	CompletionKindNames      = "names"
+	CompletionKindFetchNames = "fetchNames"
+	RepoConfDir              = ".tmc"
+	TOCFilename              = "tm-catalog.toc.json"
+	TmNamesFile              = "tmnames.txt"
 )
 
 var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -49,6 +54,8 @@ type Remote interface {
 	Versions(name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Remote has been created from
 	Spec() RepoSpec
+
+	ListCompletions(kind string, toComplete string) ([]string, error)
 }
 
 //go:generate mockery --name RemoteManager --inpackage
@@ -362,13 +369,17 @@ func AsRemoteConfig(bytes []byte) (map[string]any, error) {
 }
 
 // GetSpecdOrAll returns the remote specified by spec in a slice, or all remotes, if the spec is empty
-func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) ([]Remote, error) {
+func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) (Remote, error) {
 	if spec.remoteName != "" || spec.dir != "" {
 		remote, err := manager.Get(spec)
 		if err != nil {
 			return nil, err
 		}
-		return []Remote{remote}, nil
+		return remote, nil
 	}
-	return manager.All()
+	all, err := manager.All()
+	if err != nil {
+		return nil, err
+	}
+	return NewUnionRemote(all...), nil
 }

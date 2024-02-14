@@ -194,6 +194,25 @@ func Test_ListInventory(t *testing.T) {
 	})
 }
 
+func Test_GetCompletions(t *testing.T) {
+	rm := remotes.NewMockRemoteManager(t)
+	underTest, _ := NewDefaultHandlerService(rm, remotes.EmptySpec, remote)
+
+	t.Run("list names", func(t *testing.T) {
+		// given: remote having some inventory entries
+		r := remotes.NewMockRemote(t)
+		names := []string{"a/b/c", "d/e/f"}
+		r.On("ListCompletions", "names", "toComplete").Return(names, nil)
+		rm.On("All").Return([]remotes.Remote{r}, nil)
+		// when: list all
+		res, err := underTest.GetCompletions(nil, "names", "toComplete")
+		// then: there is no error
+		assert.NoError(t, err)
+		// and then: the search result is returned
+		assert.Equal(t, names, res)
+	})
+}
+
 func Test_FindInventoryEntry(t *testing.T) {
 
 	rm := remotes.NewMockRemoteManager(t)

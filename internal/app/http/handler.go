@@ -1,7 +1,9 @@
 package http
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -205,6 +207,32 @@ func (h *TmcHandler) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	HandleHealthyResponse(w, r)
+}
+
+func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, params server.GetCompletionsParams) {
+	kind := ""
+	if params.Kind != nil {
+		kind = string(*params.Kind)
+	}
+	toComplete := ""
+	if params.ToComplete != nil {
+		toComplete = *params.ToComplete
+	}
+	vals, err := h.Service.GetCompletions(context.TODO(), kind, toComplete)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	buf := bytes.NewBuffer(nil)
+	for _, line := range vals {
+		_, err := fmt.Fprintf(buf, "%s\n", line)
+		if err != nil {
+			HandleErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	HandleByteResponse(w, r, http.StatusOK, mimeText, buf.Bytes())
 }
 
 func (h *TmcHandler) createContext(r *http.Request) context.Context {

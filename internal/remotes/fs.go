@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -17,8 +18,15 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-const defaultDirPermissions = 0775
-const defaultFilePermissions = 0664
+const (
+	defaultDirPermissions  = 0775
+	defaultFilePermissions = 0664
+	tocLockTimeout         = 5 * time.Second
+	tocLocRetryDelay       = 13 * time.Millisecond
+	errTmExistsPrefix      = "Thing Model already exists under id: "
+
+	TMExt = ".tm.json"
+)
 
 var ErrRootInvalid = errors.New("root is not a directory")
 var ErrTocLocked = errors.New("could not acquire lock on TOC file")
@@ -102,7 +110,7 @@ func (f *FileRemote) getExistingID(ids string) (idMatch, string) {
 	if err != nil {
 		return idMatchNone, ""
 	}
-	version, err := model.ParseTMVersion(strings.TrimSuffix(base, model.TMFileExtension))
+	version, err := model.ParseTMVersion(strings.TrimSuffix(base, TMExt))
 	if err != nil {
 		slog.Default().Error("invalid TM version in TM id", "id", ids, "error", err)
 		return idMatchNone, ""
@@ -115,7 +123,7 @@ func (f *FileRemote) getExistingID(ids string) (idMatch, string) {
 		} else {
 			for _, v := range existingTMVersions {
 				if version.Timestamp == v.Timestamp {
-					return idMatchTimestamp, strings.TrimSuffix(ids, base) + v.String() + model.TMFileExtension
+					return idMatchTimestamp, strings.TrimSuffix(ids, base) + v.String() + TMExt
 				}
 			}
 		}
@@ -135,7 +143,7 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 			continue
 		}
 
-		ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name(), model.TMFileExtension))
+		ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name(), TMExt))
 		if err != nil {
 			continue
 		}
@@ -212,7 +220,7 @@ func (f *FileRemote) readTOC() (model.TOC, error) {
 }
 
 func (f *FileRemote) tocFilename() string {
-	return filepath.Join(f.root, TOCFilename)
+	return filepath.Join(f.root, RepoConfDir, TOCFilename)
 }
 
 func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
@@ -289,9 +297,6 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-const TMExt = ".tm.json"
-const TOCFilename = "tm-catalog.toc.json"
-
 func (f *FileRemote) updateToc(ids []string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
@@ -305,6 +310,7 @@ func (f *FileRemote) updateToc(ids []string) error {
 	}
 
 	var newTOC *model.TOC
+	names := f.readNamesFile()
 
 	if len(ids) == 0 { // full rebuild
 		newTOC = &model.TOC{
@@ -312,12 +318,13 @@ func (f *FileRemote) updateToc(ids []string) error {
 			Data: []*model.TOCEntry{},
 		}
 		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
-			upd, err := f.updateTocWithFile(newTOC, path, info, log, err)
+			upd, name, err := f.updateTocWithFile(newTOC, path, info, log, err)
 			if err != nil {
 				return err
 			}
 			if upd {
 				fileCount++
+				names = append(names, name)
 			}
 			return nil
 		})
@@ -338,9 +345,10 @@ func (f *FileRemote) updateToc(ids []string) error {
 		for _, id := range ids {
 			path := filepath.Join(f.root, id)
 			info, err := osStat(path)
-			upd, _ := f.updateTocWithFile(newTOC, path, info, log, err)
+			upd, name, _ := f.updateTocWithFile(newTOC, path, info, log, err)
 			if upd {
 				fileCount++
+				names = append(names, name)
 			}
 		}
 	}
@@ -352,18 +360,22 @@ func (f *FileRemote) updateToc(ids []string) error {
 	if err != nil {
 		return err
 	}
+	err = f.writeNamesFile(names)
+	if err != nil {
+		return err
+	}
 	msg := "Created table of content with %d entries in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
 	return nil
 }
 
-func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (bool, error) {
+func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (bool, string, error) {
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 	if info.IsDir() || !strings.HasSuffix(info.Name(), TMExt) {
-		return false, nil
+		return false, "", nil
 	}
 	thingMeta, err := getThingMetadata(path)
 	if err != nil {
@@ -372,28 +384,38 @@ func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.F
 		log.Error(msg)
 		log.Error(err.Error())
 		log.Error("The file will be excluded from the table of contents.")
-		return false, nil
+		return false, "", nil
 	}
-	err = newTOC.Insert(&thingMeta)
+	tmid, err := newTOC.Insert(&thingMeta)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to insert %s into toc:", path))
 		log.Error(err.Error())
 		log.Error("The file will be excluded from the table of contents.")
-		return false, nil
+		return false, "", nil
 	}
-	return true, nil
+	return true, tmid.Name, nil
 }
 
 type unlockFunc func()
 
 func (f *FileRemote) lockTOC() (unlockFunc, error) {
-	fl := flock.New(f.tocFilename() + ".lock")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	rd := filepath.Join(f.root, RepoConfDir)
+	stat, err := os.Stat(rd)
+	if err != nil || !stat.IsDir() {
+		err := os.MkdirAll(rd, defaultDirPermissions)
+		if err != nil {
+			return func() {}, err
+		}
+	}
+	tocFile := f.tocFilename()
+
+	fl := flock.New(tocFile + ".lock")
+	ctx, cancel := context.WithTimeout(context.Background(), tocLockTimeout)
 	unlock := func() {
 		cancel()
 		_ = fl.Unlock()
 	}
-	locked, err := fl.TryLockContext(ctx, 13*time.Millisecond)
+	locked, err := fl.TryLockContext(ctx, tocLocRetryDelay)
 	if err != nil {
 		return unlock, err
 	}
@@ -401,7 +423,31 @@ func (f *FileRemote) lockTOC() (unlockFunc, error) {
 		return unlock, ErrTocLocked
 	}
 
+	f.moveOldToc(tocFile)
+
 	return unlock, nil
+}
+
+// moveOldToc attempts to move the TOC file at root to .tmc folder and remove old lock file
+// ignores all errors
+func (f *FileRemote) moveOldToc(tocFile string) {
+	oldToc := filepath.Join(f.root, TOCFilename)
+	_, errOld := os.Stat(oldToc)
+	_, errNew := os.Stat(tocFile)
+	if errOld == nil && errNew != nil {
+		_ = os.Rename(oldToc, tocFile)
+	}
+	_ = os.Remove(oldToc + ".lock")
+}
+
+func (f *FileRemote) readNamesFile() []string {
+	lines, _ := utils.ReadFileLines(filepath.Join(f.root, RepoConfDir, TmNamesFile))
+	return lines
+}
+func (f *FileRemote) writeNamesFile(names []string) error {
+	slices.Sort(names)
+	names = slices.Compact(names)
+	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, TmNamesFile), defaultFilePermissions)
 }
 
 func getThingMetadata(path string) (model.ThingModel, error) {
@@ -417,4 +463,47 @@ func getThingMetadata(path string) (model.ThingModel, error) {
 	}
 
 	return ctm, nil
+}
+
+func (f *FileRemote) ListCompletions(kind string, toComplete string) ([]string, error) {
+	switch kind {
+	case CompletionKindNames:
+		unlock, err := f.lockTOC()
+		defer unlock()
+		if err != nil {
+			return nil, err
+		}
+		return f.readNamesFile(), nil
+	case CompletionKindFetchNames:
+		if strings.Contains(toComplete, "..") {
+			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
+		}
+
+		name, _, _ := strings.Cut(toComplete, ":")
+
+		dir := filepath.Join(f.root, name)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, err
+		}
+		vm := make(map[string]struct{})
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), TMExt) {
+				ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name(), TMExt))
+				if err != nil {
+					continue
+				}
+				vm[ver.BaseString()] = struct{}{}
+			}
+		}
+		var vs []string
+		for v, _ := range vm {
+			vs = append(vs, fmt.Sprintf("%s:%s", name, v))
+		}
+		slices.Sort(vs)
+		return vs, nil
+
+	default:
+		return nil, ErrInvalidCompletionParams
+	}
 }
