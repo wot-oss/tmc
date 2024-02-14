@@ -68,13 +68,7 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 		return err
 	}
 
-	if len(errs) > 0 {
-		fmt.Println("Errors occurred while listing TMs for pull:")
-		for _, e := range errs {
-			fmt.Println(e)
-		}
-		fmt.Println()
-	}
+	printErrs("Errors occurred while listing TMs for pull:", errs)
 
 	fmt.Printf("Pulling %d ThingModels ...\n", len(searchResult.Entries))
 
