@@ -634,7 +634,7 @@ func Test_Completions(t *testing.T) {
 
 		// when: calling the route
 		rec := testutil.NewRequest().Get(fmt.Sprintf("%s?kind=names&toComplete=", route)).GoWithHTTPHandler(t, httpHandler).Recorder
-		// then: it returns status 400
+		// then: it returns status 200
 		assert.Equal(t, http.StatusOK, rec.Code)
 		// and then: the body is of correct type
 		assert.Equal(t, mimeText, rec.Header().Get(headerContentType))
