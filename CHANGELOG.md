@@ -4,6 +4,7 @@
 
 ### Added
 
+- Implemented `version` command to show the version of the tm-catalog-cli
 - Implemented autocompletion for most flags and arguments for the shell autocompletion script
 
 ## [v0.0.0-alpha.4]
@@ -33,6 +34,7 @@
 - Print information about used config file in `help`
 - Implemented a 'tmc' remote type, which uses our own REST API as the underlying TM storage
 - Added 'filter.name' parameter to REST API '/inventory' listing
+- Added '--exact' flag to `list` and `pull`
 
 ### Changed
 
