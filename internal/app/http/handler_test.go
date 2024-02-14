@@ -558,6 +558,22 @@ func Test_PushThingModel(t *testing.T) {
 		assertResponse400(t, rec, route)
 	})
 
+	t.Run("with conflicting id", func(t *testing.T) {
+		// given: a thing model file that conflicts with existing id
+		cErr := &remotes.ErrTMIDConflict{
+			Type:       remotes.IdConflictSameTimestamp,
+			ExistingId: "existing-id",
+		}
+		hs.On("PushThingModel", nil, tmContent).Return("", cErr).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Post(route).
+			WithHeader(headerContentType, mimeJSON).
+			WithBody(tmContent).GoWithHTTPHandler(t, httpHandler).
+			Recorder
+		// then: it returns status 409 with appropriate error
+		assertResponse409(t, rec, route, cErr)
+	})
+
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
@@ -595,6 +611,23 @@ func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assert.Equal(t, http.StatusBadRequest, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
 	assert.Equal(t, error400Title, errResponse.Title)
+
+	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
+	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+}
+
+func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *remotes.ErrTMIDConflict) {
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	var errResponse server.ErrorResponse
+	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
+	assert.Equal(t, http.StatusConflict, errResponse.Status)
+	assert.Equal(t, route, *errResponse.Instance)
+	assert.Equal(t, error409Title, errResponse.Title)
+	if assert.NotNil(t, errResponse.Code) {
+		cErr, err := remotes.ParseErrTMIDConflict(*errResponse.Code)
+		assert.NoError(t, err)
+		assert.Equal(t, idErr, cErr)
+	}
 
 	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
 	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))

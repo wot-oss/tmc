@@ -201,12 +201,17 @@ func TestFileRemote_Push(t *testing.T) {
 
 	id2 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-a49617d2e4fc.tm.json"
 	err = r.Push(model.MustParseTMID(id2, false), []byte("{}"))
-	assert.Equal(t, &ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}, err)
+	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}, err)
 
 	id3 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-f49617d2e4fc.tm.json"
 	err = r.Push(model.MustParseTMID(id3, false), []byte("{}"))
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id3))
+
+	id4 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-b49617d2e4fc.tm.json"
+	err = r.Push(model.MustParseTMID(id4, false), []byte("{\"val\":1}"))
+	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}, err)
+
 }
 
 func TestFileRemote_List(t *testing.T) {

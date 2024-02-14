@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -143,9 +145,21 @@ func TestPrepareToImport(t *testing.T) {
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20231010123243-7ae21a619c71.tm.json\"}"), "opt/dir")
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-7ae21a619c71.tm.json\"}"), "opt/dir")
 		assert.NoError(t, err)
-		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231010123243-7ae21a619c71.tm.json")))
+		// no change in id
+		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-7ae21a619c71.tm.json")))
+	})
+	t.Run("our string id in original/incorrect author", func(t *testing.T) {
+		b, _, err := prepareToImport(now, &model.ThingModel{
+			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
+			Mpn:          "senseall",
+			Author:       model.SchemaAuthor{Name: "author"},
+			Version:      model.Version{Model: "v3.2.1"},
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"publisher/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-e7dac5728be6.tm.json\"}"), "opt/dir")
+		assert.NoError(t, err)
+		// new generated id
+		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
 	})
 	t.Run("our string id in original/incorrect hash", func(t *testing.T) {
 		b, _, err := prepareToImport(now, &model.ThingModel{
@@ -153,8 +167,9 @@ func TestPrepareToImport(t *testing.T) {
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20231010123243-863e9f0f950a.tm.json\"}"), "opt/dir")
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-863e9f0f950a.tm.json\"}"), "opt/dir")
 		assert.NoError(t, err)
+		// new generated id
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
 	})
 
@@ -194,7 +209,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	t.Run("attempt overwriting with the same content", func(t *testing.T) {
 		// attempt overwriting with the same content - no change
 		id, err := c.PushFile(raw, remote, "")
-		var errExists *remotes.ErrTMExists
+		var errExists *remotes.ErrTMIDConflict
 		assert.ErrorAs(t, err, &errExists)
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 		assert.Len(t, entries, 1)
@@ -222,6 +237,30 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 		assert.Equal(t, firstSaved, entries[0].Name())
 	})
 
+	t.Run("write multiple content versions in the same second", func(t *testing.T) {
+		c = NewPushCommand(time.Now) // use real clock to be able to produce timestamp clash
+		// change content and write multiple times in the same second - produces no files with the same timestamp
+		var id string
+		for i := 0; i < 5; i++ {
+			content := bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing Model"+strconv.Itoa(i)), 1)
+			var err error
+			id, err = c.PushFile(content, remote, "")
+			assert.NoError(t, err)
+		}
+		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
+		assert.Len(t, entries, 8)
+		var timestamps []string
+		for _, e := range entries {
+			b, _ := strings.CutSuffix(e.Name(), model.TMFileExtension)
+			v, _ := model.ParseTMVersion(b)
+			timestamps = append(timestamps, v.Timestamp)
+		}
+		assert.Equal(t, 8, len(timestamps))
+		slices.Sort(timestamps)
+		timestamps = slices.Compact(timestamps)
+		assert.Equal(t, 8, len(timestamps))
+
+	})
 }
 func TestPushToRemoteVersioned(t *testing.T) {
 	root, err := os.MkdirTemp(os.TempDir(), "tm-catalog")

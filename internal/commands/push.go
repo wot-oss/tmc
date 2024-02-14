@@ -16,6 +16,8 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
+const maxPushRetries = 3
+
 type Now func() time.Time
 type PushCommand struct {
 	now Now
@@ -29,7 +31,7 @@ func NewPushCommand(now Now) *PushCommand {
 
 // PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to remote.
 // Returns the ID that the TM has been stored under, and error.
-// If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMExists
+// If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMIDConflict
 func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string) (string, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
@@ -37,7 +39,9 @@ func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string
 		log.Error("validation failed", "error", err)
 		return "", err
 	}
-
+	retriesLeft := maxPushRetries
+RETRY:
+	retriesLeft--
 	versioned, id, err := prepareToImport(c.now, tm, raw, optPath)
 	if err != nil {
 		return "", err
@@ -45,10 +49,17 @@ func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string
 
 	err = remote.Push(id, versioned)
 	if err != nil {
-		var errExists *remotes.ErrTMExists
-		if errors.As(err, &errExists) {
-			log.Info("Thing Model already exists", "existing-id", errExists.ExistingId)
-			return errExists.ExistingId, err
+		var errConflict *remotes.ErrTMIDConflict
+		if errors.As(err, &errConflict) {
+			if errConflict.Type == remotes.IdConflictSameTimestamp {
+				if retriesLeft >= 0 {
+					time.Sleep(1 * time.Second) // sleep 1 sec to get a different timestamp in id
+					goto RETRY
+				}
+				return errConflict.ExistingId, err
+			}
+			log.Info("Thing Model conflicts with existing", "id", id, "existing-id", errConflict.ExistingId, "conflictType", errConflict.Type)
+			return errConflict.ExistingId, err
 		}
 		log.Error("error pushing to remote", "error", err)
 		return id.String(), err
@@ -58,33 +69,35 @@ func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string
 }
 
 func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
-	manuf := tm.Manufacturer.Name
-	auth := tm.Author.Name
-	if tm == nil || len(auth) == 0 || len(manuf) == 0 || len(tm.Mpn) == 0 {
-		return nil, model.TMID{}, errors.New("ThingModel cannot be nil or have empty mandatory fields")
-	}
-	value, dataType, _, err := jsonparser.Get(raw, "id")
+	var intermediate = make([]byte, len(raw))
+	copy(intermediate, raw)
+
+	// see if there's an id in the file that needs to be preserved
+	value, dataType, _, err := jsonparser.Get(intermediate, "id")
 	if err != nil && dataType != jsonparser.NotExist {
 		return nil, model.TMID{}, err
 	}
-	var prepared = make([]byte, len(raw))
-	copy(prepared, raw)
 	var idFromFile model.TMID
 	switch dataType {
 	case jsonparser.String:
 		origId := string(value)
+		// check if the id from file is ours or external
 		idFromFile, err = model.ParseTMID(origId, tm.Author.Name == tm.Manufacturer.Name)
 		if err != nil {
-			if errors.Is(err, model.ErrInvalidId) || idFromFile.AssertValidFor(tm) != nil {
-				prepared = moveIdToOriginalLink(prepared, origId)
+			if errors.Is(err, model.ErrInvalidId) {
+				// move the existing id to original link if it's external
+				intermediate = moveIdToOriginalLink(intermediate, origId)
 			} else {
+				// ParseTMID returned unexpected error. better stop here
 				return nil, model.TMID{}, err
 			}
 		}
 	}
 
-	generatedId, normalized := generateNewId(now, tm, prepared, optPath)
+	// generate a new id for the file
+	generatedId, normalized := generateNewId(now, tm, intermediate, optPath)
 	finalId := idFromFile
+	// overwrite the id from file with the newly generated if idFromFile is invalid for given content
 	if !generatedId.Equals(idFromFile) {
 		finalId = generatedId
 	}
@@ -138,6 +151,9 @@ func moveIdToOriginalLink(raw []byte, id string) []byte {
 	return raw
 }
 
+// generateNewId normalizes file content for digest calculation and generates a new id for the file with current timestamp
+// normalized file has the "id" set to empty string
+// returns the generated id and normalized file content that the id was generated for
 func generateNewId(now Now, tm *model.ThingModel, raw []byte, optPath string) (model.TMID, []byte) {
 	hashStr, raw, _ := CalculateFileDigest(raw) // ignore the error, because the file has been validated already
 	ver := model.TMVersionFromOriginal(tm.Version.Model)

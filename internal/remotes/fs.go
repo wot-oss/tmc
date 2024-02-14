@@ -22,7 +22,6 @@ const defaultFilePermissions = 0664
 
 var ErrRootInvalid = errors.New("root is not a directory")
 var ErrTocLocked = errors.New("could not acquire lock on TOC file")
-
 var osStat = os.Stat         // mockable for testing
 var osReadFile = os.ReadFile // mockable for testing
 
@@ -30,21 +29,6 @@ var osReadFile = os.ReadFile // mockable for testing
 type FileRemote struct {
 	root string
 	spec RepoSpec
-}
-
-type ErrTMExists struct {
-	ExistingId string
-}
-
-const errTmExistsPrefix = "Thing Model already exists under id: "
-
-func (e *ErrTMExists) Error() string {
-	return fmt.Sprintf(errTmExistsPrefix+"%v", e.ExistingId)
-}
-
-func (e *ErrTMExists) FromString(s string) {
-	id, _ := strings.CutPrefix(s, errTmExistsPrefix)
-	e.ExistingId = id
 }
 
 func NewFileRemote(config map[string]any, spec RepoSpec) (*FileRemote, error) {
@@ -72,9 +56,14 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 		return fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
 
-	if found, existingId := f.getExistingID(id.String()); found {
-		slog.Default().Info(fmt.Sprintf("TM already exists under ID %v", existingId))
-		return &ErrTMExists{ExistingId: existingId}
+	match, existingId := f.getExistingID(id.String())
+	switch match {
+	case idMatchDigest:
+		slog.Default().Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
+		return &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
+	case idMatchTimestamp:
+		slog.Default().Info(fmt.Sprintf("Version and timestamp clash with existing %v", existingId))
+		return &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: existingId}
 	}
 
 	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)
@@ -93,29 +82,46 @@ func (f *FileRemote) filenames(id string) (string, string, string) {
 	return fullPath, dir, base
 }
 
-func (f *FileRemote) getExistingID(ids string) (bool, string) {
+type idMatch int
+
+const (
+	idMatchNone = iota
+	idMatchFull
+	idMatchDigest    // semver and digest match
+	idMatchTimestamp // semver and timestamp match
+)
+
+func (f *FileRemote) getExistingID(ids string) (idMatch, string) {
 	fullName, dir, base := f.filenames(ids)
 	// try full remoteName as given
 	if _, err := os.Stat(fullName); err == nil {
-		return true, ids
+		return idMatchFull, ids
 	}
 	// try without timestamp
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return false, ""
+		return idMatchNone, ""
 	}
 	version, err := model.ParseTMVersion(strings.TrimSuffix(base, model.TMFileExtension))
 	if err != nil {
 		slog.Default().Error("invalid TM version in TM id", "id", ids, "error", err)
-		return false, ""
+		return idMatchNone, ""
 	}
 	existingTMVersions := findTMFileEntriesByBaseVersion(entries, version)
-	if len(existingTMVersions) > 0 && existingTMVersions[0].Hash == version.Hash {
-		return true,
-			strings.TrimSuffix(ids, base) + existingTMVersions[0].String() + model.TMFileExtension
+	if len(existingTMVersions) > 0 {
+		if existingTMVersions[0].Hash == version.Hash {
+			return idMatchDigest,
+				strings.TrimSuffix(ids, base) + existingTMVersions[0].String() + model.TMFileExtension
+		} else {
+			for _, v := range existingTMVersions {
+				if version.Timestamp == v.Timestamp {
+					return idMatchTimestamp, strings.TrimSuffix(ids, base) + v.String() + model.TMFileExtension
+				}
+			}
+		}
 	}
 
-	return false, ""
+	return idMatchNone, ""
 }
 
 // findTMFileEntriesByBaseVersion finds directory entries that correspond to TM file names, converts those to TMVersions,
@@ -149,8 +155,8 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	exists, actualId := f.getExistingID(id)
-	if !exists {
+	match, actualId := f.getExistingID(id)
+	if match != idMatchFull && match != idMatchDigest {
 		return "", nil, ErrTmNotFound
 	}
 	actualFilename, _, _ := f.filenames(actualId)

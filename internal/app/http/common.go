@@ -72,8 +72,9 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errTitle := error500Title
 	errDetail := error500Detail
 	errStatus := http.StatusInternalServerError
+	errCode := ""
 
-	var eErr *remotes.ErrTMExists
+	var eErr *remotes.ErrTMIDConflict
 	var bErr *BaseHttpError
 	if errors.Is(err, remotes.ErrTmNotFound) {
 		errTitle = error404Title
@@ -90,6 +91,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	} else if errors.As(err, &eErr) {
 		errTitle = error409Title
 		errDetail = eErr.Error()
+		errCode = eErr.Code()
 		errStatus = http.StatusConflict
 	} else {
 		switch err.(type) {
@@ -111,6 +113,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		Detail:   &errDetail,
 		Status:   errStatus,
 		Instance: &r.RequestURI,
+		Code:     &errCode,
 	}
 
 	respBody, _ := json.MarshalIndent(problem, "", "  ")

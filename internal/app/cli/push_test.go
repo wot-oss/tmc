@@ -48,7 +48,8 @@ func TestPushExecutor_Push(t *testing.T) {
 			return time.Date(2023, time.November, 11, 12, 32, 43, 0, time.UTC)
 		}
 		e := NewPushExecutor(rm, now)
-		r.On("Push", tmid2, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
+		r.On("Push", tmid2, mock.Anything).Return(&remotes.ErrTMIDConflict{Type: remotes.IdConflictSameContent,
+			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
 		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", remotes.NewRemoteSpec("remote"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
@@ -97,9 +98,11 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json", false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123245-98b3fbd291f4.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
+		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMIDConflict{Type: remotes.IdConflictSameContent,
+			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123246-575dfac219e2.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMExists{ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"})
+		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMIDConflict{Type: remotes.IdConflictSameContent,
+			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"})
 		r.On("UpdateToc",
 			"omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
 			"omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
