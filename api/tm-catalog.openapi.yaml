@@ -771,6 +771,8 @@ components:
           type: string
         instance:
           type: string
+        code:
+          type: string
         status:
           type: integer
   examples:

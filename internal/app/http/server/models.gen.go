@@ -16,6 +16,7 @@ type AuthorsResponse struct {
 
 // ErrorResponse defines model for ErrorResponse.
 type ErrorResponse struct {
+	Code     *string `json:"code,omitempty"`
 	Detail   *string `json:"detail,omitempty"`
 	Instance *string `json:"instance,omitempty"`
 	Status   int     `json:"status"`
@@ -159,7 +160,7 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
-	// FilterName Filters the inventory by inventory entry name (consisting of 'author/manufacturer/mpn') having a prefix match.
+	// FilterName Filters the inventory by inventory entry name having a prefix match of full path parts.
 	// The filter works additive to other filters.
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
 

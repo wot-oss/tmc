@@ -324,7 +324,7 @@ func TestTmcRemote_Push(t *testing.T) {
 	assert.NoError(t, err)
 	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
-	tmErr := &ErrTMExists{ExistingId: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json"}
+	tmErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json"}
 
 	tests := []ht{
 		{
@@ -337,7 +337,7 @@ func TestTmcRemote_Push(t *testing.T) {
 		{
 			name:     "tm exists",
 			reqBody:  pushBody,
-			respBody: []byte(`{"detail":"` + tmErr.Error() + `"}`),
+			respBody: []byte(`{"detail":"` + tmErr.Error() + `", "code": "` + tmErr.Code() + `"}`),
 			status:   http.StatusConflict,
 			expErr:   tmErr,
 		},

@@ -35,20 +35,13 @@ var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
 type Config map[string]map[string]any
 
-var ErrAmbiguous = errors.New("multiple remotes configured, but remote target not specified")
-var ErrRemoteNotFound = errors.New("remote not found")
-var ErrInvalidRemoteName = errors.New("invalid remote remoteName")
-var ErrRemoteExists = errors.New("named remote already exists")
-var ErrTmNotFound = errors.New("TM not found")
-var ErrInvalidSpec = errors.New("illegal remote spec: both dir and remoteName given")
-var ErrInvalidCompletionParams = errors.New("invalid completion parameters")
-
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp, RemoteTypeTmc}
 
 //go:generate mockery --name Remote --inpackage
 type Remote interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
-	// Returns ErrTMExists if the same file is already stored with a different timestamp
+	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
+	// there is a file with the same semantic version and timestamp but different content
 	Push(id model.TMID, raw []byte) error
 	// Fetch retrieves the Thing Model file from remote
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
@@ -375,7 +368,7 @@ func AsRemoteConfig(bytes []byte) (map[string]any, error) {
 	return rc, nil
 }
 
-// GetSpecdOrAll returns the remote with remoteName remoteName in a slice, or all remotes, in case remoteName is empty string
+// GetSpecdOrAll returns the remote specified by spec in a slice, or all remotes, if the spec is empty
 func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) (Remote, error) {
 	if spec.remoteName != "" || spec.dir != "" {
 		remote, err := manager.Get(spec)

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
@@ -465,5 +466,39 @@ func Test_PushingThingModel(t *testing.T) {
 		assert.Error(t, err)
 		// and then: the error says that the remote cannot be found
 		assert.Equal(t, remotes.ErrRemoteNotFound, err)
+	})
+	t.Run("with content conflict", func(t *testing.T) {
+		// given: some valid content for a ThingModel
+		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
+		rm.On("Get", pushTarget).Return(r, nil).Once()
+		cErr := &remotes.ErrTMIDConflict{
+			Type:       remotes.IdConflictSameContent,
+			ExistingId: "existing-id",
+		}
+		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
+		// when: pushing ThingModel
+		res, err := underTest.PushThingModel(nil, tmContent)
+		// then: it returns empty tmID
+		assert.Equal(t, "", res)
+		// and then: there is an error
+		assert.Equal(t, cErr, err)
+	})
+	t.Run("with timestamp conflict", func(t *testing.T) {
+		// given: some valid content for a ThingModel
+		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
+		rm.On("Get", pushTarget).Return(r, nil).Once()
+		cErr := &remotes.ErrTMIDConflict{
+			Type:       remotes.IdConflictSameTimestamp,
+			ExistingId: "existing-id",
+		}
+		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
+		r.On("Push", mock.Anything, mock.Anything).Return(nil).Once() // expect a second push attempt
+		r.On("UpdateToc", mock.Anything).Return(nil)
+		// when: pushing ThingModel
+		res, err := underTest.PushThingModel(nil, tmContent)
+		// then: it returns non-empty tmID
+		assert.NotEmpty(t, res)
+		// and then: there is an error
+		assert.NoError(t, err)
 	})
 }
