@@ -34,6 +34,7 @@ jobs:
           
 
   build:
+    needs: openapi-lint
     runs-on: ubuntu-latest
 
     permissions:
