@@ -9,6 +9,10 @@ const (
 	Names      GetCompletionsParamsKind = "names"
 )
 
+const (
+	ApiKeyAuthScopes = "ApiKeyAuth.Scopes"
+)
+
 // AuthorsResponse defines model for AuthorsResponse.
 type AuthorsResponse struct {
 	Data []string `json:"data"`
@@ -127,6 +131,9 @@ type GetCompletionsParams struct {
 
 // GetCompletionsParamsKind defines parameters for GetCompletions.
 type GetCompletionsParamsKind string
+
+// UnauthorizedError defines model for UnauthorizedError.
+type UnauthorizedError = ErrorResponse
 
 // GetAuthorsParams defines parameters for GetAuthors.
 type GetAuthorsParams struct {

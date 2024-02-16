@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -14,6 +15,9 @@ const (
 	KeyCorsAllowedHeaders   = "corsAllowedHeaders"
 	KeyCorsAllowCredentials = "corsAllowCredentials"
 	KeyCorsMaxAge           = "corsMaxAge"
+	KeyJWTValidation        = "jwtValidation"
+	KeyJWKSInterval         = "jwksInterval"
+	KeyJWKSURL              = "jwksURL"
 	EnvPrefix               = "tmc"
 	LogLevelOff             = "off"
 )
@@ -28,12 +32,13 @@ func InitConfig() {
 		panic(err)
 	}
 	DefaultConfigDir = filepath.Join(HomeDir, ".tm-catalog")
-
 }
 
 func InitViper() {
 	viper.SetDefault("remotes", map[string]any{})
 	viper.SetDefault(KeyLogLevel, LogLevelOff)
+	viper.SetDefault(KeyJWKSInterval, 15*time.Minute)
+	viper.SetDefault(KeyJWTValidation, false)
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
@@ -57,4 +62,7 @@ func InitViper() {
 	_ = viper.BindEnv(KeyCorsAllowedHeaders)   // env variable name = tmc_corsallowedheaders
 	_ = viper.BindEnv(KeyCorsAllowCredentials) // env variable name = tmc_corsallowcredentials
 	_ = viper.BindEnv(KeyCorsMaxAge)           // env variable name = tmc_corsmaxage
+	_ = viper.BindEnv(KeyJWTValidation)        // env variable name = tmc_jwtvalidation
+	_ = viper.BindEnv(KeyJWKSInterval)         // env variable name = tmc_jwksinterval
+	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
 }

@@ -56,7 +56,7 @@ func setupTestHttpHandler(hs HandlerService) http.Handler {
 			UrlContextRoot: "",
 		})
 
-	return NewHttpHandler(handler)
+	return NewHttpHandler(handler, nil)
 }
 
 func Test_healthLive(t *testing.T) {

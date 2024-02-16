@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
@@ -16,7 +17,12 @@ import (
 var banner string
 
 func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTarget remotes.RepoSpec) error {
-
+	defer func() {
+		if r := recover(); r != nil {
+			Stderrf("could not start server:")
+			Stderrf(fmt.Sprint(r))
+		}
+	}()
 	err := validateContextRoot(urlCtxRoot)
 	if err != nil {
 		Stderrf(err.Error())
@@ -40,14 +46,17 @@ func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTar
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
 		return err
 	}
+
 	handler := http.NewTmcHandler(
 		handlerService,
 		http.TmcHandlerOptions{
 			UrlContextRoot: urlCtxRoot,
 		})
 
-	// create a http handler
-	httpHandler := http.NewHttpHandler(handler)
+	mws := http.CollectMiddlewares(opts)
+
+	// create an http handler
+	httpHandler := http.NewHttpHandler(handler, mws)
 	httpHandler = http.WithCORS(httpHandler, opts)
 
 	s := &nethttp.Server{
@@ -55,9 +64,16 @@ func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTar
 		Addr:    net.JoinHostPort(host, port),
 	}
 
+	if opts.JWTValidation == true {
+		jwt.StartJWKSFetch(opts.JWKSOpts)
+	}
+
+	// valid configuration, we can print the banner and start the server
 	fmt.Println(banner)
 	fmt.Printf("Version of tm-catalog-cli: %s\n", TmcVersion)
 	fmt.Printf("Starting tm-catalog server on %s:%s\n", host, port)
+
+	// start server
 	err = s.ListenAndServe()
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
