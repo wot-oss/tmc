@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 )
 
@@ -22,6 +23,8 @@ import (
 // //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package server -generate gorilla-server -o server/server.gen.go ../../../api/tm-catalog.openapi.yaml
 
 type ServerOptions struct {
+	JWTValidation bool
+	jwt.JWKSOpts
 	CORS CORSOptions
 }
 
@@ -56,12 +59,13 @@ func (co *CORSOptions) MaxAge(max int) {
 	co.maxAge = max
 }
 
-func NewHttpHandler(si server.ServerInterface) http.Handler {
+func NewHttpHandler(si server.ServerInterface, mws []server.MiddlewareFunc) http.Handler {
 	r := mux.NewRouter()
 	r.NotFoundHandler = http.HandlerFunc(handleNoRoute)
 	options := server.GorillaServerOptions{
 		BaseRouter:       r,
 		ErrorHandlerFunc: HandleErrorResponse,
+		Middlewares:      mws,
 	}
 	return server.HandlerWithOptions(si, options)
 }

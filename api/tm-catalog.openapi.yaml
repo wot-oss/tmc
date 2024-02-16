@@ -1,12 +1,14 @@
 openapi: 3.0.3
 info:
   title: Thing Model Catalog - OpenAPI 3.0
-  version: 0.0.2
+  version: 0.1.2
 externalDocs:
   description: Find out more about Thing Model Catalog
   url: https://github.com/web-of-things-open-source/tm-catalog-cli
 servers:
   - url: ''
+security:
+  - ApiKeyAuth: []
 tags:
   - name: inventory
     description: Access to the inventory of the catalog
@@ -85,6 +87,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
           description: Internal error
           content:
@@ -122,6 +126,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: Inventory entry not found
           content:
@@ -139,7 +145,7 @@ paths:
       tags:
         - inventory
       summary: Get the versions of an inventory entry
-      description: Returns the versions of an inventory entry by it`s name
+      description: Returns the versions of an inventory entry by its name
       operationId: getInventoryVersionsByName
       parameters:
         - name: name
@@ -165,6 +171,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: Inventory entry not found
           content:
@@ -220,6 +228,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: Content of the Thing Model not found
           content:
@@ -265,6 +275,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '409':
           description: Conflict, Thing Model already exists
           content:
@@ -328,6 +340,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
           description: Internal error
           content:
@@ -384,6 +398,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
           description: Internal error
           content:
@@ -438,6 +454,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
           description: Internal error
           content:
@@ -449,6 +467,8 @@ paths:
       tags:
         - health
       summary: Get the overall health of the service
+      security:
+        - {}
       description: Get the overall health of the service, aggregates the responses from the /health/live and /health/ready
       operationId: getHealth
       responses:
@@ -471,6 +491,8 @@ paths:
       tags:
         - health
       summary: Returns the liveliness of the service
+      security:
+        - {}
       description: Returns the liveliness of the service, or whether it encountered a bug or deadlock
       operationId: getHealthLive
       responses:
@@ -493,6 +515,8 @@ paths:
       tags:
         - health
       summary: Returns the readiness of the service
+      security:
+        - {}
       description: Returns the readiness of the service, or whether it is ready to process requests
       operationId: getHealthReady
       responses:
@@ -515,6 +539,8 @@ paths:
       tags:
         - health
       summary: Returns whether the service is initialized
+      security:
+        - {}
       description: Returns whether the service is initialized
       operationId: getHealthStartup
       responses:
@@ -641,7 +667,7 @@ components:
       properties:
         self:
           type: string
-          format: uri
+          format: uri-reference
           example: './inventory/siemens/POC1000'
     InventoryEntryVersionLinks:
       type: object
@@ -650,7 +676,7 @@ components:
       properties:
         content:
           type: string
-          format: uri
+          format: uri-reference
           example: './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
     InventoryResponse:
       type: object
@@ -775,6 +801,17 @@ components:
           type: string
         status:
           type: integer
+  responses:
+    UnauthorizedError:
+      description: API key is missing or invalid
+      headers:
+        WWW_Authenticate:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   examples:
     InventoryEntryVersionsResponseExample:
       value:
@@ -950,4 +987,8 @@ components:
             'description': 'Lamp reaches a critical temperature (overheating)'
             'data':
               'type': 'string'
-
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
