@@ -17,6 +17,7 @@ import (
 
 const (
 	error400Title  = "Bad Request"
+	error401Title  = "Unauthorized"
 	error404Title  = "Not Found"
 	error409Title  = "Conflict"
 	error503Title  = "Service Unavailable"

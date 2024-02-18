@@ -8,7 +8,7 @@ externalDocs:
 servers:
   - url: ''
 security:
-  - ApiKeyAuth: []
+  - BearerAuth: []
 tags:
   - name: inventory
     description: Access to the inventory of the catalog
@@ -988,7 +988,7 @@ components:
             'data':
               'type': 'string'
   securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: apikey
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

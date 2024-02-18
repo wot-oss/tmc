@@ -8,7 +8,7 @@ import (
 func CollectMiddlewares(opts ServerOptions) []server.MiddlewareFunc {
 	var mws []server.MiddlewareFunc
 	if opts.JWTValidation == true {
-		mws = append(mws, jwt.JWTValidationMiddleware)
+		mws = append(mws, jwt.GetMiddleware(opts.JWKSOpts))
 	}
 	return mws
 }
