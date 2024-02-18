@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/MicahParks/keyfunc/v3"
 )
 
 // TODO(pedram): set this to 15 Min after testing
 const MinIntervalDuration = 2 * time.Second
-
-var jwksURL *url.URL
 
 type JWKSOpts struct {
 	JWKSInterval  time.Duration
@@ -26,7 +26,7 @@ func validateOptions(opts JWKSOpts) {
 
 	// JWKS URL must be initialized
 	var err error
-	jwksURL, err = url.ParseRequestURI(opts.JWKSURLString)
+	_, err = url.ParseRequestURI(opts.JWKSURLString)
 	if err != nil {
 		msg := fmt.Sprintf(`jwt validation activated, but jwks URL could not be initialized:
 %s
@@ -36,19 +36,13 @@ Check documentation to "serve" to configure correctly
 	}
 }
 
-func StartJWKSFetch(opts JWKSOpts) {
+func startJWKSFetch(opts JWKSOpts) keyfunc.Keyfunc {
 	validateOptions(opts)
-	go func() {
-		ticker := time.NewTicker(opts.JWKSInterval)
-		for {
-			select {
-			case <-ticker.C:
-				fetchJWKS()
-			}
-		}
-	}()
-}
-
-func fetchJWKS() {
-
+	// start a new go routine fetching the jwks periodically
+	k, err := keyfunc.NewDefault([]string{opts.JWKSURLString})
+	if err != nil {
+		msg := fmt.Sprintf("Failed to create a keyfunc.Keyfunc from the server's URL.\nError: %s", err)
+		panic(msg)
+	}
+	return k
 }

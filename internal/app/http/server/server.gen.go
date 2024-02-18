@@ -73,7 +73,7 @@ func (siw *ServerInterfaceWrapper) GetCompletions(w http.ResponseWriter, r *http
 
 	var err error
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetCompletionsParams
@@ -111,7 +111,7 @@ func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Req
 
 	var err error
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetAuthorsParams
@@ -217,7 +217,7 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 
 	var err error
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetInventoryParams
@@ -288,7 +288,7 @@ func (siw *ServerInterfaceWrapper) GetInventoryByName(w http.ResponseWriter, r *
 		return
 	}
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInventoryByName(w, r, name)
@@ -316,7 +316,7 @@ func (siw *ServerInterfaceWrapper) GetInventoryVersionsByName(w http.ResponseWri
 		return
 	}
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInventoryVersionsByName(w, r, name)
@@ -335,7 +335,7 @@ func (siw *ServerInterfaceWrapper) GetManufacturers(w http.ResponseWriter, r *ht
 
 	var err error
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetManufacturersParams
@@ -381,7 +381,7 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 
 	var err error
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetMpnsParams
@@ -425,7 +425,7 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 func (siw *ServerInterfaceWrapper) PushThingModel(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PushThingModel(w, r)
@@ -508,7 +508,7 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 		return
 	}
 
-	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{})
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetThingModelById(w, r, tmIDOrName, params)
