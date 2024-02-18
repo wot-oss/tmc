@@ -9,7 +9,6 @@ import (
 	"net/url"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
@@ -62,10 +61,6 @@ func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTar
 	s := &nethttp.Server{
 		Handler: httpHandler,
 		Addr:    net.JoinHostPort(host, port),
-	}
-
-	if opts.JWTValidation == true {
-		jwt.StartJWKSFetch(opts.JWKSOpts)
 	}
 
 	// valid configuration, we can print the banner and start the server
