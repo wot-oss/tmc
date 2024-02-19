@@ -11,12 +11,14 @@ import (
 )
 
 var JWKSKeyFunc keyfunc.Keyfunc
+var JWTServiceID string
 
 // GetMiddleware starts a go routine that periodically fetches the JWKS
 // key set and returns a middleware that uses that keyset to validate a
 // token
-func GetMiddleware(opts JWKSOpts) server.MiddlewareFunc {
+func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
 	JWKSKeyFunc = startJWKSFetch(opts)
+	JWTServiceID = opts.JWTServiceID
 	return jwtValidationMiddleware
 }
 
@@ -26,19 +28,25 @@ func jwtValidationMiddleware(h http.Handler) http.Handler {
 		scopes := r.Context().Value(server.BearerAuthScopes)
 
 		if scopes != nil {
-			// protected endpoint, check for bearer token in header
-			token, err := extractBearerToken(r)
+			// protected endpoint, check for bearer tokenString in header
+			tokenString, err := extractBearerToken(r)
 			if err != nil {
 				writeErrorResponse(w, err, http.StatusUnauthorized)
 				return
 			}
 			// got token, validate it
-			if _, err := jwt.Parse(token, JWKSKeyFunc.Keyfunc); err != nil {
+			var token *jwt.Token
+			if token, err = jwt.Parse(tokenString, JWKSKeyFunc.Keyfunc); err != nil {
+				writeErrorResponse(w, err, http.StatusUnauthorized)
+				return
+			}
+			// valid token, identify our service in the "aud" claim
+			// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
+			if err := validateAudClaim(token); err != nil {
 				writeErrorResponse(w, err, http.StatusUnauthorized)
 				return
 			}
 		}
-
 		h.ServeHTTP(w, r)
 	})
 }
@@ -54,4 +62,18 @@ func extractBearerToken(r *http.Request) (string, error) {
 
 	token := parts[1]
 	return token, nil
+}
+
+func validateAudClaim(token *jwt.Token) error {
+	audClaims, err := token.Claims.GetAudience()
+	if err != nil {
+		return err
+	}
+	for _, audClaim := range audClaims {
+		if audClaim == JWTServiceID {
+			return nil
+		}
+	}
+	return errors.New("Claim 'aud' did not contain valid service id")
+
 }

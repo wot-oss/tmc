@@ -11,12 +11,13 @@ import (
 // TODO(pedram): set this to 15 Min after testing
 const MinIntervalDuration = 2 * time.Second
 
-type JWKSOpts struct {
-	JWKSInterval  time.Duration
+type JWTValidationOpts struct {
+	JWTServiceID  string
 	JWKSURLString string
+	JWKSInterval  time.Duration
 }
 
-func validateOptions(opts JWKSOpts) {
+func validateOptions(opts JWTValidationOpts) {
 	// disallow intervals that are too short
 	if opts.JWKSInterval < MinIntervalDuration {
 		msg := "jwks fetch interval must be set to a minimum of 15 minutes: %s"
@@ -36,7 +37,7 @@ Check documentation to "serve" to configure correctly
 	}
 }
 
-func startJWKSFetch(opts JWKSOpts) keyfunc.Keyfunc {
+func startJWKSFetch(opts JWTValidationOpts) keyfunc.Keyfunc {
 	validateOptions(opts)
 	// start a new go routine fetching the jwks periodically
 	k, err := keyfunc.NewDefault([]string{opts.JWKSURLString})

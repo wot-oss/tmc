@@ -14,6 +14,8 @@ func logRSAKeyPair() {
 
 }
 
+// TODO(pedram): test missing aud claim
+
 // Test_validateToken
 func Test_validateToken(t *testing.T) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 1024)
