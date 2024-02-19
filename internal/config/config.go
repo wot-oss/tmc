@@ -16,6 +16,7 @@ const (
 	KeyCorsAllowCredentials = "corsAllowCredentials"
 	KeyCorsMaxAge           = "corsMaxAge"
 	KeyJWTValidation        = "jwtValidation"
+	KeyJWTServiceID         = "jwtServiceID"
 	KeyJWKSInterval         = "jwksInterval"
 	KeyJWKSURL              = "jwksURL"
 	EnvPrefix               = "tmc"
@@ -63,6 +64,7 @@ func InitViper() {
 	_ = viper.BindEnv(KeyCorsAllowCredentials) // env variable name = tmc_corsallowcredentials
 	_ = viper.BindEnv(KeyCorsMaxAge)           // env variable name = tmc_corsmaxage
 	_ = viper.BindEnv(KeyJWTValidation)        // env variable name = tmc_jwtvalidation
+	_ = viper.BindEnv(KeyJWTServiceID)         // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWKSInterval)         // env variable name = tmc_jwksinterval
 	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
 }

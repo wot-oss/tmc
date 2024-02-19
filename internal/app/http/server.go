@@ -23,7 +23,7 @@ import (
 
 type ServerOptions struct {
 	JWTValidation bool
-	jwt.JWKSOpts
+	jwt.JWTValidationOpts
 	CORS CORSOptions
 }
 
