@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/common"
+
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 )
 
@@ -85,13 +87,13 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, t
 		return
 	}
 
-	HandleByteResponse(w, r, http.StatusOK, mimeJSON, data)
+	HandleByteResponse(w, r, http.StatusOK, common.MimeJSON, data)
 }
 
 func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
-	contentType := r.Header.Get(headerContentType)
+	contentType := r.Header.Get(common.HeaderContentType)
 
-	if contentType != mimeJSON {
+	if contentType != common.MimeJSON {
 		HandleErrorResponse(w, r, NewBadRequestError(nil, "Invalid Content-Type header: %s", contentType))
 		return
 	}
@@ -232,7 +234,7 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 		}
 	}
 
-	HandleByteResponse(w, r, http.StatusOK, mimeText, buf.Bytes())
+	HandleByteResponse(w, r, http.StatusOK, common.MimeText, buf.Bytes())
 }
 
 func (h *TmcHandler) createContext(r *http.Request) context.Context {

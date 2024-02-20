@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"slices"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/common"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
@@ -72,7 +74,7 @@ func NewHttpHandler(si server.ServerInterface, mws []server.MiddlewareFunc) http
 
 func WithCORS(h http.Handler, opts ServerOptions) http.Handler {
 	// add supported default values to the CORS options
-	opts.CORS.AddAllowedHeaders(headerContentType)
+	opts.CORS.AddAllowedHeaders(common.HeaderContentType)
 
 	// add CORS middleware to the http handler
 	var corsOpts []handlers.CORSOption

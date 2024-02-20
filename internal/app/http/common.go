@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/common"
+
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
@@ -16,23 +18,6 @@ import (
 )
 
 const (
-	error400Title  = "Bad Request"
-	error401Title  = "Unauthorized"
-	error404Title  = "Not Found"
-	error409Title  = "Conflict"
-	error503Title  = "Service Unavailable"
-	error500Title  = "Internal Server Error"
-	error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
-
-	headerContentType         = "Content-Type"
-	headerCacheControl        = "Cache-Control"
-	headerXContentTypeOptions = "X-Content-Type-Options"
-	mimeText                  = "text/plain"
-	mimeJSON                  = "application/json"
-	mimeProblemJSON           = "application/problem+json"
-	noSniff                   = "nosniff"
-	noCache                   = "no-cache, no-store, max-age=0, must-revalidate"
-
 	basePathInventory   = "/inventory"
 	basePathThingModels = "/thing-models"
 
@@ -47,19 +32,19 @@ func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data
 		return
 	}
 
-	w.Header().Set(headerContentType, mimeJSON)
+	w.Header().Set(common.HeaderContentType, common.MimeJSON)
 	w.WriteHeader(status)
 	_, _ = w.Write(body)
 }
 
 func HandleByteResponse(w http.ResponseWriter, r *http.Request, status int, mime string, data []byte) {
-	w.Header().Set(headerContentType, mime)
+	w.Header().Set(common.HeaderContentType, mime)
 	w.WriteHeader(status)
 	_, _ = w.Write(data)
 }
 
 func HandleHealthyResponse(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(headerCacheControl, noCache)
+	w.Header().Set(common.HeaderCacheControl, common.NoCache)
 	w.WriteHeader(http.StatusNoContent)
 	_, _ = w.Write(nil)
 }
@@ -71,19 +56,19 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		fmt.Println(err)
 	}
 
-	errTitle := error500Title
-	errDetail := error500Detail
+	errTitle := common.Error500Title
+	errDetail := common.Error500Detail
 	errStatus := http.StatusInternalServerError
 	errCode := ""
 
 	var eErr *remotes.ErrTMIDConflict
 	var bErr *BaseHttpError
 	if errors.Is(err, remotes.ErrTmNotFound) {
-		errTitle = error404Title
+		errTitle = common.Error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
 	} else if errors.Is(err, model.ErrInvalidId) || errors.Is(err, commands.ErrInvalidFetchName) || errors.Is(err, remotes.ErrInvalidCompletionParams) {
-		errTitle = error400Title
+		errTitle = common.Error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
 	} else if errors.As(err, &bErr) {
@@ -91,19 +76,19 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errDetail = bErr.Detail
 		errStatus = bErr.Status
 	} else if errors.As(err, &eErr) {
-		errTitle = error409Title
+		errTitle = common.Error409Title
 		errDetail = eErr.Error()
 		errCode = eErr.Code()
 		errStatus = http.StatusConflict
 	} else {
 		switch err.(type) {
 		case *jsonschema.ValidationError, *json.SyntaxError:
-			errTitle = error400Title
+			errTitle = common.Error400Title
 			errDetail = err.Error()
 			errStatus = http.StatusBadRequest
 		case *server.InvalidParamFormatError, *server.RequiredParamError, *server.RequiredHeaderError,
 			*server.UnmarshalingParamError, *server.TooManyValuesForParamError, *server.UnescapedCookieParamError:
-			errTitle = error400Title
+			errTitle = common.Error400Title
 			errDetail = err.Error()
 			errStatus = http.StatusBadRequest
 		default:
@@ -119,8 +104,8 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	respBody, _ := json.MarshalIndent(problem, "", "  ")
-	w.Header().Set(headerContentType, mimeProblemJSON)
-	w.Header().Set(headerXContentTypeOptions, noSniff)
+	w.Header().Set(common.HeaderContentType, common.MimeProblemJSON)
+	w.Header().Set(common.HeaderXContentTypeOptions, common.NoSniff)
 	w.WriteHeader(errStatus)
 	_, _ = w.Write(respBody)
 }
@@ -145,15 +130,15 @@ func (e *BaseHttpError) Unwrap() error {
 }
 
 func NewNotFoundError(err error, detail string, args ...any) error {
-	return newBaseHttpError(err, http.StatusNotFound, error404Title, detail, args...)
+	return newBaseHttpError(err, http.StatusNotFound, common.Error404Title, detail, args...)
 }
 
 func NewBadRequestError(err error, detail string, args ...any) error {
-	return newBaseHttpError(err, http.StatusBadRequest, error400Title, detail, args...)
+	return newBaseHttpError(err, http.StatusBadRequest, common.Error400Title, detail, args...)
 }
 
 func NewServiceUnavailableError(err error, detail string) error {
-	return newBaseHttpError(err, http.StatusServiceUnavailable, error503Title, detail)
+	return newBaseHttpError(err, http.StatusServiceUnavailable, common.Error503Title, detail)
 }
 
 func newBaseHttpError(err error, status int, title string, detail string, args ...any) error {

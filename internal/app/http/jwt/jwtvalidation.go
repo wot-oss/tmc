@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/common"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 )
@@ -61,7 +63,7 @@ var TokenNotFoundError = errors.New("Authorization header does not contain a bea
 
 var extractBearerToken = func(r *http.Request) (string, error) {
 	// get header and extract token string
-	header := r.Header.Get(headerAuthorization)
+	header := r.Header.Get(common.HeaderAuthorization)
 	parts := strings.Split(header, " ")
 
 	if !(len(parts) == 2 && parts[0] == "Bearer") {
@@ -90,14 +92,14 @@ func validateAudClaim(token *jwt.Token) error {
 // TODO(pedram): refactor common.go into its own package to be reused here
 func writeErrorResponse(w http.ResponseWriter, err error, status int) {
 	slog.Default().Debug("jwt: " + err.Error())
-	w.Header().Set(headerContentType, mimeJSON)
+	w.Header().Set(common.HeaderContentType, common.MimeJSON)
 	w.WriteHeader(status)
 
 	errString := fmt.Sprint(err)
 	errorResponse := server.ErrorResponse{
 		Status: status,
 		Detail: &errString,
-		Title:  error401Title,
+		Title:  common.Error401Title,
 	}
 	body, _ := json.MarshalIndent(errorResponse, "", "    ")
 	_, _ = w.Write(body)
