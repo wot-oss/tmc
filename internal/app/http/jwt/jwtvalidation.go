@@ -1,7 +1,9 @@
 package jwt
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -59,7 +61,7 @@ var TokenNotFoundError = errors.New("Authorization header does not contain a bea
 
 var extractBearerToken = func(r *http.Request) (string, error) {
 	// get header and extract token string
-	header := r.Header.Get(HTTPHeaderAuthorization)
+	header := r.Header.Get(headerAuthorization)
 	parts := strings.Split(header, " ")
 
 	if !(len(parts) == 2 && parts[0] == "Bearer") {
@@ -83,4 +85,20 @@ func validateAudClaim(token *jwt.Token) error {
 		}
 	}
 	return InvalidAudClaimError
+}
+
+// TODO(pedram): refactor common.go into its own package to be reused here
+func writeErrorResponse(w http.ResponseWriter, err error, status int) {
+	slog.Default().Debug("jwt: " + err.Error())
+	w.Header().Set(headerContentType, mimeJSON)
+	w.WriteHeader(status)
+
+	errString := fmt.Sprint(err)
+	errorResponse := server.ErrorResponse{
+		Status: status,
+		Detail: &errString,
+		Title:  error401Title,
+	}
+	body, _ := json.MarshalIndent(errorResponse, "", "    ")
+	_, _ = w.Write(body)
 }
