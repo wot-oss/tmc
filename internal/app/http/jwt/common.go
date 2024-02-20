@@ -3,6 +3,7 @@ package jwt
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
@@ -39,6 +40,7 @@ const (
 
 // TODO(pedram): refactor common.go into its own package to be reused here
 func writeErrorResponse(w http.ResponseWriter, err error, status int) {
+	slog.Default().Debug("jwt: " + err.Error())
 	w.Header().Set(headerContentType, mimeJSON)
 	w.WriteHeader(status)
 

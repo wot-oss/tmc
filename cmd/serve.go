@@ -44,7 +44,6 @@ func init() {
 	serveCmd.Flags().Bool(config.KeyJWTValidation, false, "If set to 'true', jwt tokens are used to grant access to the API (env var TMC_JWTVALIDATION)")
 	serveCmd.Flags().Bool(config.KeyJWTServiceID, false, "If set to an identifier, value will be compared to 'aud' claim in validated JWT (env var TMC_JWTSERVICEID)")
 	serveCmd.Flags().String(config.KeyJWKSURL, "", "URL to periodically fetch JSON Web Key Sets for token validation (env var TMC_JWKSURL)")
-	serveCmd.Flags().String(config.KeyJWKSInterval, "", "Duration between fetch calls for jwks renewal, specified as duration string, e.g. 3h10m3s (default 15m, env var TMC_JWKSINTERVAL)")
 
 	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup(config.KeyUrlContextRoot))
 	_ = viper.BindPFlag(config.KeyCorsAllowedOrigins, serveCmd.Flags().Lookup(config.KeyCorsAllowedOrigins))
@@ -54,7 +53,6 @@ func init() {
 	_ = viper.BindPFlag(config.KeyJWTValidation, serveCmd.Flags().Lookup(config.KeyJWTValidation))
 	_ = viper.BindPFlag(config.KeyJWTServiceID, serveCmd.Flags().Lookup(config.KeyJWTServiceID))
 	_ = viper.BindPFlag(config.KeyJWKSURL, serveCmd.Flags().Lookup(config.KeyJWKSURL))
-	_ = viper.BindPFlag(config.KeyJWKSInterval, serveCmd.Flags().Lookup(config.KeyJWKSInterval))
 }
 
 func serve(cmd *cobra.Command, args []string) {
@@ -103,6 +101,5 @@ func getServerOptions() http.ServerOptions {
 
 func getJWKSOptions(opts *http.ServerOptions) {
 	opts.JWTServiceID = viper.GetString(config.KeyJWTServiceID)
-	opts.JWKSInterval = viper.GetDuration(config.KeyJWKSInterval)
 	opts.JWKSURLString = viper.GetString(config.KeyJWKSURL)
 }
