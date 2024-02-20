@@ -5,7 +5,8 @@ name: Go
 
 env:
   FILENAME_PREFIX: ${{ github.event.repository.name }}
-  GOOS_GARCH_TARGETS: "linux,amd64;darwin,amd64;darwin,arm64;windows,amd64;windows,arm64" 
+  GOOS_GARCH_TARGETS: "linux,amd64;darwin,amd64;darwin,arm64;windows,amd64;windows,arm64"
+  OPENAPI_SPEC: ./api/tm-catalog.openapi.yaml
 
 on:
   push:
@@ -17,7 +18,23 @@ on:
       - 'v*.*.*'
       
 jobs:
+  openapi-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: stoplight/spectral:6.11
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run spectral linting
+        run: |
+          echo 'extends: ["spectral:oas"]' > .spectral.yaml
+          spectral lint ${OPENAPI_SPEC}
+          
+
   build:
+    needs: openapi-lint
     runs-on: ubuntu-latest
 
     permissions:
