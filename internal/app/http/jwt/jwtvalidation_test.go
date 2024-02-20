@@ -130,11 +130,3 @@ func Test_Authorization(t *testing.T) {
 		authorized = false
 	}
 }
-
-func Test_invalidToken(t *testing.T) {
-
-}
-
-func logRSAKeyPair(keyPair *rsa.PrivateKey) {
-
-}
