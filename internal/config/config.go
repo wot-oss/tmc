@@ -3,7 +3,6 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/spf13/viper"
 )
@@ -17,7 +16,6 @@ const (
 	KeyCorsMaxAge           = "corsMaxAge"
 	KeyJWTValidation        = "jwtValidation"
 	KeyJWTServiceID         = "jwtServiceID"
-	KeyJWKSInterval         = "jwksInterval"
 	KeyJWKSURL              = "jwksURL"
 	EnvPrefix               = "tmc"
 	LogLevelOff             = "off"
@@ -38,7 +36,6 @@ func InitConfig() {
 func InitViper() {
 	viper.SetDefault("remotes", map[string]any{})
 	viper.SetDefault(KeyLogLevel, LogLevelOff)
-	viper.SetDefault(KeyJWKSInterval, 15*time.Minute)
 	viper.SetDefault(KeyJWTValidation, false)
 
 	viper.SetConfigType("json")
@@ -65,6 +62,5 @@ func InitViper() {
 	_ = viper.BindEnv(KeyCorsMaxAge)           // env variable name = tmc_corsmaxage
 	_ = viper.BindEnv(KeyJWTValidation)        // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWTServiceID)         // env variable name = tmc_jwtvalidation
-	_ = viper.BindEnv(KeyJWKSInterval)         // env variable name = tmc_jwksinterval
 	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
 }
