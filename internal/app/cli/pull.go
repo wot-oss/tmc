@@ -68,8 +68,6 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 		return err
 	}
 
-	printErrs("Errors occurred while listing TMs for pull:", errs)
-
 	fmt.Printf("Pulling %d ThingModels ...\n", len(searchResult.Entries))
 
 	fc := commands.NewFetchCommand(e.rm)
@@ -87,6 +85,7 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 	for _, res := range totalRes {
 		fmt.Println(res)
 	}
+	printErrs("Errors occurred while listing TMs for pull:", errs)
 
 	return err
 }

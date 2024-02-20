@@ -16,8 +16,8 @@ func ListVersions(spec remotes.RepoSpec, name string) error {
 		Stderrf("Could not list versions of %s: %v", name, err)
 		return err
 	}
-	printErrs("Errors occurred while listing versions:", errs)
 	printToCThing(name, tocVersions)
+	printErrs("Errors occurred while listing versions:", errs)
 	return nil
 }
 

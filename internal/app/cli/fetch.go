@@ -28,7 +28,7 @@ func (e *FetchExecutor) Fetch(remote remotes.RepoSpec, idOrName, outputPath stri
 		Stderrf("Could not fetch from remote: %v", err)
 		return err
 	}
-	printErrs("Errors occurred while fetching:", errs)
+	defer printErrs("Errors occurred while fetching:", errs)
 
 	thing = utils.ConvertToNativeLineEndings(thing)
 

@@ -21,9 +21,9 @@ func List(remote remotes.RepoSpec, search *model.SearchParams) error {
 		Stderrf("Error listing: %v", err)
 		return err
 	}
-	printErrs("Errors occurred while listing:", errs)
 
 	printToC(toc)
+	printErrs("Errors occurred while listing:", errs)
 	return nil
 }
 
