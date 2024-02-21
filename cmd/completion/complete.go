@@ -43,15 +43,12 @@ func CompleteFetchNames(cmd *cobra.Command, args []string, toComplete string) ([
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	fns, err := rs.ListCompletions(remotes.CompletionKindFetchNames, toComplete)
-	if err != nil {
-		return nil, cobra.ShellCompDirectiveError
-	}
+	fns := rs.ListCompletions(remotes.CompletionKindFetchNames, toComplete)
 	return fns, cobra.ShellCompDirectiveNoFileComp
 
 }
 
-func getRemote(cmd *cobra.Command) (remotes.Remote, error) {
+func getRemote(cmd *cobra.Command) (*remotes.Union, error) {
 	remoteName := cmd.Flag("remote").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 
@@ -60,11 +57,11 @@ func getRemote(cmd *cobra.Command) (remotes.Remote, error) {
 		return nil, err
 	}
 
-	rs, err := remotes.GetSpecdOrAll(remotes.DefaultManager(), spec)
+	u, err := remotes.GetSpecdOrAll(remotes.DefaultManager(), spec)
 	if err != nil {
 		return nil, err
 	}
-	return rs, nil
+	return u, nil
 }
 func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	rs, err := getRemote(cmd)
@@ -72,9 +69,6 @@ func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]st
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	cs, err := rs.ListCompletions(remotes.CompletionKindNames, toComplete)
-	if err != nil {
-		return nil, cobra.ShellCompDirectiveError
-	}
+	cs := rs.ListCompletions(remotes.CompletionKindNames, toComplete)
 	return cs, cobra.ShellCompDirectiveNoFileComp
 }

@@ -14,10 +14,11 @@ func NewVersionsCommand(manager remotes.RemoteManager) *VersionsCommand {
 		remoteMgr: manager,
 	}
 }
-func (c *VersionsCommand) ListVersions(spec remotes.RepoSpec, name string) ([]model.FoundVersion, error) {
+func (c *VersionsCommand) ListVersions(spec remotes.RepoSpec, name string) ([]model.FoundVersion, error, []*remotes.RepoAccessError) {
 	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, spec)
 	if err != nil {
-		return nil, err
+		return nil, err, nil
 	}
-	return rs.Versions(name)
+	versions, errors := rs.Versions(name)
+	return versions, nil, errors
 }

@@ -192,6 +192,22 @@ func Test_ListInventory(t *testing.T) {
 		// and then: the search result is returned
 		assert.Equal(t, &listResult, res)
 	})
+	t.Run("list with one upstream error", func(t *testing.T) {
+		// given: remote having some inventory entries
+		r := remotes.NewMockRemote(t)
+		r2 := remotes.NewMockRemote(t)
+		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
+		r2.On("List", &model.SearchParams{}).Return(model.SearchResult{}, errors.New("unexpected")).Once()
+		r2.On("Spec").Return(remotes.NewRemoteSpec("r2")).Once()
+		rm.On("All").Return([]remotes.Remote{r, r2}, nil).Once()
+		// when: list all
+		res, err := underTest.ListInventory(nil, &model.SearchParams{})
+		// then: there is an error of type remotes.RepoAccessError
+		var aErr *remotes.RepoAccessError
+		assert.ErrorAs(t, err, &aErr)
+		// and then: the search result is returned
+		assert.Nil(t, res)
+	})
 }
 
 func Test_GetCompletions(t *testing.T) {

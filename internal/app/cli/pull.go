@@ -62,7 +62,7 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 		return errors.New("output target folder --output is not a folder")
 	}
 
-	searchResult, err := commands.NewListCommand(e.rm).List(remote, search)
+	searchResult, err, errs := commands.NewListCommand(e.rm).List(remote, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
@@ -85,16 +85,20 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 	for _, res := range totalRes {
 		fmt.Println(res)
 	}
+	printErrs("Errors occurred while listing TMs for pull:", errs)
 
 	return err
 }
 
 func (e *PullExecutor) pullThingModel(fc *commands.FetchCommand, outputPath string, version model.FoundVersion) (PullResult, error) {
 	spec := remotes.NewSpecFromFoundSource(version.FoundIn)
-	id, thing, err := fc.FetchByTMID(spec, version.TMID)
+	id, thing, err, errs := fc.FetchByTMID(spec, version.TMID)
+	if err == nil && len(errs) > 0 { // spec cannot be empty, therefore, there can be at most one RepoAccessError
+		err = errs[0]
+	}
 	if err != nil {
 		Stderrf("Error fetch %s: %v", version.TMID, err)
-		return PullResult{PullErr, version.TMID, fmt.Sprintf("(cannot fetch from remote %s)", spec.ToFoundSource())}, err
+		return PullResult{PullErr, version.TMID, fmt.Sprintf("(cannot fetch from remote %s)", version.FoundIn)}, err
 	}
 	thing = utils.ConvertToNativeLineEndings(thing)
 

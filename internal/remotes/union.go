@@ -9,83 +9,93 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
-type UnionRemote struct {
+type Union struct {
 	rs []Remote
 }
 
-func NewUnionRemote(rs ...Remote) *UnionRemote {
+type RepoAccessError struct {
+	spec RepoSpec
+	err  error
+}
+
+func NewRepoAccessError(spec RepoSpec, err error) *RepoAccessError {
+	return &RepoAccessError{
+		spec: spec,
+		err:  err,
+	}
+}
+
+func (e *RepoAccessError) Error() string {
+	return fmt.Sprintf("%v returned: %v", e.spec, e.err)
+}
+
+func (e *RepoAccessError) Unwrap() error {
+	return e.err
+}
+func (e *RepoAccessError) Spec() RepoSpec {
+	return e.spec
+}
+
+func NewUnion(rs ...Remote) *Union {
 	// paranoia calling: flatten the list to disallow union of union until it's necessary
 	var ers []Remote
 	for _, r := range rs {
-		if u, ok := r.(*UnionRemote); ok {
-			ers = append(ers, u.rs...)
-		} else {
-			ers = append(ers, r)
-		}
+		ers = append(ers, r)
 	}
 
-	return &UnionRemote{
+	return &Union{
 		rs: ers,
 	}
 }
-func (u *UnionRemote) Push(model.TMID, []byte) error {
-	return ErrNotSupported
-}
 
-func (u *UnionRemote) Fetch(id string) (string, []byte, error) {
+func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
+	var errs []*RepoAccessError
 	for _, r := range u.rs {
 		id, thing, err := r.Fetch(id)
 		if err == nil {
-			return id, thing, nil
+			return id, thing, nil, nil
+		} else {
+			if !errors.Is(err, ErrTmNotFound) {
+				errs = append(errs, NewRepoAccessError(r.Spec(), err))
+			}
 		}
 	}
-
 	msg := fmt.Sprintf("No thing model found for %v", id)
 	slog.Default().Error(msg)
-	return "", nil, ErrTmNotFound
+	return "", nil, ErrTmNotFound, errs
 }
 
-func (u *UnionRemote) UpdateToc(...string) error {
-	return ErrNotSupported
-}
-
-func (u *UnionRemote) List(search *model.SearchParams) (model.SearchResult, error) {
+func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
+	var errs []*RepoAccessError
 	res := &model.SearchResult{}
 	for _, remote := range u.rs {
 		toc, err := remote.List(search)
 		if err != nil {
-			return model.SearchResult{}, fmt.Errorf("could not list %s: %w", remote.Spec(), err)
+			errs = append(errs, NewRepoAccessError(remote.Spec(), err))
+			continue
 		}
 		res.Merge(&toc)
 	}
-	return *res, nil
+	return *res, errs
 }
 
-func (u *UnionRemote) Versions(name string) ([]model.FoundVersion, error) {
+func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError) {
+	var errs []*RepoAccessError
 	var res []model.FoundVersion
-	found := false
 	for _, remote := range u.rs {
 		vers, err := remote.Versions(name)
-		if err != nil && errors.Is(err, ErrTmNotFound) {
+		if err != nil {
+			if !errors.Is(err, ErrTmNotFound) {
+				errs = append(errs, NewRepoAccessError(remote.Spec(), err))
+			}
 			continue
 		}
-		if err != nil {
-			return nil, err
-		}
-		found = true
 		res = model.MergeFoundVersions(res, vers)
 	}
-	if !found {
-		return nil, ErrTmNotFound
-	}
-	return res, nil
+	return res, errs
 }
 
-func (u *UnionRemote) Spec() RepoSpec {
-	return EmptySpec
-}
-
-func (u *UnionRemote) ListCompletions(kind string, toComplete string) ([]string, error) {
+func (u *Union) ListCompletions(kind string, toComplete string) []string {
 	var cs []string
 	for _, r := range u.rs {
 		rcs, err := r.ListCompletions(kind, toComplete)
@@ -94,5 +104,5 @@ func (u *UnionRemote) ListCompletions(kind string, toComplete string) ([]string,
 		}
 	}
 	slices.Sort(cs)
-	return slices.Compact(cs), nil
+	return slices.Compact(cs)
 }

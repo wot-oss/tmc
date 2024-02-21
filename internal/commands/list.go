@@ -14,10 +14,11 @@ func NewListCommand(m remotes.RemoteManager) *ListCommand {
 		remoteMgr: m,
 	}
 }
-func (c *ListCommand) List(rSpec remotes.RepoSpec, search *model.SearchParams) (model.SearchResult, error) {
+func (c *ListCommand) List(rSpec remotes.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []*remotes.RepoAccessError) {
 	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, rSpec)
 	if err != nil {
-		return model.SearchResult{}, err
+		return model.SearchResult{}, err, nil
 	}
-	return rs.List(search)
+	sr, errs := rs.List(search)
+	return sr, nil, errs
 }

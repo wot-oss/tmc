@@ -22,6 +22,8 @@ const (
 	error503Title  = "Service Unavailable"
 	error500Title  = "Internal Server Error"
 	error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
+	error502Title  = "Bad Gateway"
+	error502Detail = "An upstream Thing Model repository returned an error"
 
 	headerContentType         = "Content-Type"
 	headerCacheControl        = "Cache-Control"
@@ -76,6 +78,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errCode := ""
 
 	var eErr *remotes.ErrTMIDConflict
+	var aErr *remotes.RepoAccessError
 	var bErr *BaseHttpError
 	if errors.Is(err, remotes.ErrTmNotFound) {
 		errTitle = error404Title
@@ -89,6 +92,10 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errTitle = bErr.Title
 		errDetail = bErr.Detail
 		errStatus = bErr.Status
+	} else if errors.As(err, &aErr) {
+		errTitle = error502Title
+		errDetail = error502Detail
+		errStatus = http.StatusBadGateway
 	} else if errors.As(err, &eErr) {
 		errTitle = error409Title
 		errDetail = eErr.Error()
