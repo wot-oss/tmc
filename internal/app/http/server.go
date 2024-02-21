@@ -6,7 +6,6 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 )
 
@@ -22,8 +21,6 @@ import (
 //go:generate go run server/patch/patch.go
 
 type ServerOptions struct {
-	JWTValidation bool
-	jwt.JWTValidationOpts
 	CORS CORSOptions
 }
 
@@ -71,7 +68,7 @@ func NewHttpHandler(si server.ServerInterface, mws []server.MiddlewareFunc) http
 
 func WithCORS(h http.Handler, opts ServerOptions) http.Handler {
 	// add supported default values to the CORS options
-	opts.CORS.AddAllowedHeaders(headerContentType)
+	opts.CORS.AddAllowedHeaders(HeaderContentType)
 
 	// add CORS middleware to the http handler
 	var corsOpts []handlers.CORSOption

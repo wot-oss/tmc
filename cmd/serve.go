@@ -4,6 +4,8 @@ import (
 	"errors"
 	"os"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
+
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
@@ -67,27 +69,31 @@ func serve(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	urlCtxRoot := viper.GetString(config.KeyUrlContextRoot)
-	opts := getServerOptions()
+	opts := serveOptions()
 
 	pushSpec := spec
 	if remote == "" && dir == "" && pushTarget != "" {
 		pushSpec = remotes.NewRemoteSpec(pushTarget)
 	}
-	err = cli.Serve(host, port, urlCtxRoot, opts, spec, pushSpec)
+	err = cli.Serve(host, port, opts, spec, pushSpec)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)
 	}
 }
 
+func serveOptions() cli.ServeOptions {
+	opts := cli.ServeOptions{}
+
+	opts.UrlCtxRoot = viper.GetString(config.KeyUrlContextRoot)
+	opts.JWTValidation = viper.GetBool(config.KeyJWTValidation)
+	opts.ServerOptions = getServerOptions()
+	opts.JWTValidationOpts = getJWKSOptions()
+	return opts
+}
+
 func getServerOptions() http.ServerOptions {
 	opts := http.ServerOptions{}
-
-	opts.JWTValidation = viper.GetBool(config.KeyJWTValidation)
-	if opts.JWTValidation == true {
-		getJWKSOptions(&opts)
-	}
 
 	opts.CORS.AddAllowedOrigins(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedOrigins), cli.DefaultListSeparator, true)...)
 	opts.CORS.AddAllowedHeaders(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedHeaders), cli.DefaultListSeparator, true)...)
@@ -97,7 +103,9 @@ func getServerOptions() http.ServerOptions {
 	return opts
 }
 
-func getJWKSOptions(opts *http.ServerOptions) {
+func getJWKSOptions() jwt.JWTValidationOpts {
+	opts := jwt.JWTValidationOpts{}
 	opts.JWTServiceID = viper.GetString(config.KeyJWTServiceID)
 	opts.JWKSURLString = viper.GetString(config.KeyJWKSURL)
+	return opts
 }
