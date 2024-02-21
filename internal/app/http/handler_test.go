@@ -527,7 +527,7 @@ func Test_PushThingModel(t *testing.T) {
 		hs.On("PushThingModel", nil, tmContent).Return(tmID, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Post(route).
-			WithHeader(headerContentType, mimeJSON).
+			WithHeader(HeaderContentType, MimeJSON).
 			WithBody(tmContent).GoWithHTTPHandler(t, httpHandler).
 			Recorder
 		// then: it returns status 201
@@ -546,7 +546,7 @@ func Test_PushThingModel(t *testing.T) {
 
 		for _, c := range contentTypes {
 			rec := testutil.NewRequest().Post(route).
-				WithHeader(headerContentType, c).
+				WithHeader(HeaderContentType, c).
 				WithBody(tmContent).GoWithHTTPHandler(t, httpHandler).
 				Recorder
 			// then: it returns status 400
@@ -560,7 +560,7 @@ func Test_PushThingModel(t *testing.T) {
 		hs.On("PushThingModel", nil, invalidContent).Return("", &jsonschema.ValidationError{}).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Post(route).
-			WithHeader(headerContentType, mimeJSON).
+			WithHeader(HeaderContentType, MimeJSON).
 			WithBody(invalidContent).GoWithHTTPHandler(t, httpHandler).
 			Recorder
 		// then: it returns status 400
@@ -576,7 +576,7 @@ func Test_PushThingModel(t *testing.T) {
 		hs.On("PushThingModel", nil, tmContent).Return("", cErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Post(route).
-			WithHeader(headerContentType, mimeJSON).
+			WithHeader(HeaderContentType, MimeJSON).
 			WithBody(tmContent).GoWithHTTPHandler(t, httpHandler).
 			Recorder
 		// then: it returns status 409 with appropriate error
@@ -589,7 +589,7 @@ func Test_PushThingModel(t *testing.T) {
 		hs.On("PushThingModel", nil, invalidContent).Return("", unknownErr).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Post(route).
-			WithHeader(headerContentType, mimeJSON).
+			WithHeader(HeaderContentType, MimeJSON).
 			WithBody(invalidContent).GoWithHTTPHandler(t, httpHandler).
 			Recorder
 		// then: it returns status 500
@@ -637,7 +637,7 @@ func Test_Completions(t *testing.T) {
 		// then: it returns status 200
 		assert.Equal(t, http.StatusOK, rec.Code)
 		// and then: the body is of correct type
-		assert.Equal(t, mimeText, rec.Header().Get(headerContentType))
+		assert.Equal(t, MimeText, rec.Header().Get(HeaderContentType))
 		assert.Equal(t, []byte("abc\ndef\n"), rec.Body.Bytes())
 	})
 
@@ -654,17 +654,17 @@ func Test_Completions(t *testing.T) {
 func assertHealthyResponse204(t *testing.T, rec *httptest.ResponseRecorder) {
 	assert.Equal(t, http.StatusNoContent, rec.Code)
 	assert.Equal(t, 0, rec.Body.Len())
-	assert.Equal(t, noCache, rec.Header().Get(headerCacheControl))
+	assert.Equal(t, NoCache, rec.Header().Get(HeaderCacheControl))
 }
 
 func assertResponse200(t *testing.T, rec *httptest.ResponseRecorder) {
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, mimeJSON, rec.Header().Get(headerContentType))
+	assert.Equal(t, MimeJSON, rec.Header().Get(HeaderContentType))
 }
 
 func assertResponse201(t *testing.T, rec *httptest.ResponseRecorder) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
-	assert.Equal(t, mimeJSON, rec.Header().Get(headerContentType))
+	assert.Equal(t, MimeJSON, rec.Header().Get(HeaderContentType))
 }
 
 func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route string) {
@@ -673,10 +673,10 @@ func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusBadRequest, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
-	assert.Equal(t, error400Title, errResponse.Title)
+	assert.Equal(t, Error400Title, errResponse.Title)
 
-	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
-	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
 func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *remotes.ErrTMIDConflict) {
@@ -685,15 +685,15 @@ func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusConflict, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
-	assert.Equal(t, error409Title, errResponse.Title)
+	assert.Equal(t, Error409Title, errResponse.Title)
 	if assert.NotNil(t, errResponse.Code) {
 		cErr, err := remotes.ParseErrTMIDConflict(*errResponse.Code)
 		assert.NoError(t, err)
 		assert.Equal(t, idErr, cErr)
 	}
 
-	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
-	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
 func assertResponse404(t *testing.T, rec *httptest.ResponseRecorder, route string) {
@@ -702,10 +702,10 @@ func assertResponse404(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusNotFound, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
-	assert.Equal(t, error404Title, errResponse.Title)
+	assert.Equal(t, Error404Title, errResponse.Title)
 
-	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
-	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
 func assertResponse500(t *testing.T, rec *httptest.ResponseRecorder, route string) {
@@ -714,11 +714,11 @@ func assertResponse500(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusInternalServerError, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
-	assert.Equal(t, error500Title, errResponse.Title)
-	assert.Equal(t, error500Detail, *errResponse.Detail)
+	assert.Equal(t, Error500Title, errResponse.Title)
+	assert.Equal(t, Error500Detail, *errResponse.Detail)
 
-	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
-	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
 func assertResponse502(t *testing.T, rec *httptest.ResponseRecorder, route string) {
@@ -727,11 +727,11 @@ func assertResponse502(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusBadGateway, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
-	assert.Equal(t, error502Title, errResponse.Title)
-	assert.Equal(t, error502Detail, *errResponse.Detail)
+	assert.Equal(t, Error502Title, errResponse.Title)
+	assert.Equal(t, Error502Detail, *errResponse.Detail)
 
-	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
-	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
 func assertResponse503(t *testing.T, rec *httptest.ResponseRecorder, route string) {
@@ -740,10 +740,10 @@ func assertResponse503(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 	assert.Equal(t, http.StatusServiceUnavailable, errResponse.Status)
 	assert.Equal(t, route, *errResponse.Instance)
-	assert.Equal(t, error503Title, errResponse.Title)
+	assert.Equal(t, Error503Title, errResponse.Title)
 
-	assert.Equal(t, mimeProblemJSON, rec.Header().Get(headerContentType))
-	assert.Equal(t, noSniff, rec.Header().Get(headerXContentTypeOptions))
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
 func assertUnmarshalResponse(t *testing.T, data []byte, v any) {

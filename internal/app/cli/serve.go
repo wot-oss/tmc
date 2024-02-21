@@ -8,6 +8,9 @@ import (
 	nethttp "net/http"
 	"net/url"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
+
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -15,14 +18,21 @@ import (
 //go:embed banner.txt
 var banner string
 
-func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTarget remotes.RepoSpec) error {
+type ServeOptions struct {
+	UrlCtxRoot string
+	http.ServerOptions
+	jwt.JWTValidationOpts
+	JWTValidation bool
+}
+
+func Serve(host, port string, opts ServeOptions, repo, pushTarget remotes.RepoSpec) error {
 	defer func() {
 		if r := recover(); r != nil {
 			Stderrf("could not start server:")
 			Stderrf(fmt.Sprint(r))
 		}
 	}()
-	err := validateContextRoot(urlCtxRoot)
+	err := validateContextRoot(opts.UrlCtxRoot)
 	if err != nil {
 		Stderrf(err.Error())
 		return err
@@ -49,14 +59,18 @@ func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTar
 	handler := http.NewTmcHandler(
 		handlerService,
 		http.TmcHandlerOptions{
-			UrlContextRoot: urlCtxRoot,
+			UrlContextRoot: opts.UrlCtxRoot,
 		})
 
-	mws := http.CollectMiddlewares(opts)
+	var mws []server.MiddlewareFunc
+
+	if opts.JWTValidation == true {
+		mws = append(mws, jwt.GetMiddleware(opts.JWTValidationOpts))
+	}
 
 	// create an http handler
 	httpHandler := http.NewHttpHandler(handler, mws)
-	httpHandler = http.WithCORS(httpHandler, opts)
+	httpHandler = http.WithCORS(httpHandler, opts.ServerOptions)
 
 	s := &nethttp.Server{
 		Handler: httpHandler,
