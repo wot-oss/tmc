@@ -389,7 +389,7 @@ func Test_FetchingThingModel(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		invalidTmID := ""
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, invalidTmID)
+		res, err := underTest.FetchThingModel(nil, invalidTmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
@@ -398,7 +398,7 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with invalid fetch name", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, "b-corp\\eagle/PM20")
+		res, err := underTest.FetchThingModel(nil, "b-corp\\eagle/PM20", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
@@ -407,7 +407,7 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with invalid semantic version", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, "b-corp/eagle/PM20:v1.")
+		res, err := underTest.FetchThingModel(nil, "b-corp/eagle/PM20:v1.", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
@@ -419,7 +419,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		r.On("Fetch", tmID).Return(tmID, nil, remotes.ErrTmNotFound).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID)
+		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
@@ -431,7 +431,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		r.On("Versions", fn).Return(nil, nil).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, fn)
+		res, err := underTest.FetchThingModel(nil, fn, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
@@ -444,7 +444,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		r.On("Fetch", tmID).Return(tmID, raw, nil).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID)
+		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns the unchanged ThingModel content
 		assert.NotNil(t, res)
 		assert.Equal(t, raw, res)

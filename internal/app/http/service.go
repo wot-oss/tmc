@@ -18,7 +18,7 @@ type HandlerService interface {
 	ListManufacturers(ctx context.Context, search *model.SearchParams) ([]string, error)
 	ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error)
 	FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error)
-	FetchThingModel(ctx context.Context, tmID string) ([]byte, error)
+	FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error)
 	PushThingModel(ctx context.Context, file []byte) (string, error)
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
@@ -128,14 +128,14 @@ func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name s
 	return &toc.Entries[0], nil
 }
 
-func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID string) ([]byte, error) {
+func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error) {
 	_, _, err := commands.ParseAsTMIDOrFetchName(tmID)
 	if err != nil {
 		return nil, err
 	}
 
 	rm := dhs.remoteManager
-	_, data, err, _ := commands.NewFetchCommand(rm).FetchByTMIDOrName(dhs.serveRemote, tmID)
+	_, data, err, _ := commands.NewFetchCommand(rm).FetchByTMIDOrName(dhs.serveRemote, tmID, restoreId)
 	if err != nil {
 		return nil, err
 	}
