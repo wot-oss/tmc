@@ -8,6 +8,8 @@ import (
 	nethttp "net/http"
 	"net/url"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
+
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 
@@ -20,7 +22,7 @@ var banner string
 
 type ServeOptions struct {
 	UrlCtxRoot string
-	http.ServerOptions
+	cors.CORSOptions
 	jwt.JWTValidationOpts
 	JWTValidation bool
 }
@@ -62,15 +64,12 @@ func Serve(host, port string, opts ServeOptions, repo, pushTarget remotes.RepoSp
 			UrlContextRoot: opts.UrlCtxRoot,
 		})
 
-	var mws []server.MiddlewareFunc
-
-	if opts.JWTValidation == true {
-		mws = append(mws, jwt.GetMiddleware(opts.JWTValidationOpts))
-	}
-
-	// create an http handler
+	// collect Middlewares for the main http handler
+	var mws = getMiddlewares(opts)
+	// create a http handler
 	httpHandler := http.NewHttpHandler(handler, mws)
-	httpHandler = http.WithCORS(httpHandler, opts.ServerOptions)
+	// protect main handler with CORS
+	httpHandler = cors.Protect(httpHandler, opts.CORSOptions)
 
 	s := &nethttp.Server{
 		Handler: httpHandler,
@@ -99,4 +98,12 @@ func validateContextRoot(ctxRoot string) error {
 		return fmt.Errorf("invalid urlContextRoot: %s", ctxRoot)
 	}
 	return nil
+}
+
+func getMiddlewares(opts ServeOptions) []server.MiddlewareFunc {
+	var mws []server.MiddlewareFunc
+	if opts.JWTValidation == true {
+		mws = append(mws, jwt.GetMiddleware(opts.JWTValidationOpts))
+	}
+	return mws
 }
