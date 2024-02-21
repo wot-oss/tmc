@@ -2,6 +2,8 @@ openapi: 3.0.3
 info:
   title: Thing Model Catalog - OpenAPI 3.0
   version: 0.0.2
+  description: "This is the Thing Model Catalog API specification."
+  contact: {}
 externalDocs:
   description: Find out more about Thing Model Catalog
   url: https://github.com/web-of-things-open-source/tm-catalog-cli
@@ -20,6 +22,8 @@ tags:
     description: Access to mpns (manufacturer part numbers) information
   - name: health
     description: Access to health information
+  - name: internal
+    description: Access to internal information
 paths:
   /inventory:
     get:
@@ -647,7 +651,7 @@ components:
       properties:
         self:
           type: string
-          format: uri
+          format: uri-reference
           example: './inventory/siemens/POC1000'
     InventoryEntryVersionLinks:
       type: object
@@ -656,7 +660,7 @@ components:
       properties:
         content:
           type: string
-          format: uri
+          format: uri-reference
           example: './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
     InventoryResponse:
       type: object
