@@ -81,8 +81,6 @@ func serve(cmd *cobra.Command, args []string) {
 	}
 }
 
-// TODO(pedram): initialization should go into the app/http package?
-// initialization should still happen here, but key to struct field mapping not
 func getServerOptions() http.ServerOptions {
 	opts := http.ServerOptions{}
 
