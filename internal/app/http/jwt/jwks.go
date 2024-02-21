@@ -14,17 +14,9 @@ const MinIntervalDuration = 2 * time.Second
 type JWTValidationOpts struct {
 	JWTServiceID  string
 	JWKSURLString string
-	JWKSInterval  time.Duration
 }
 
 func validateOptions(opts JWTValidationOpts) {
-	// disallow intervals that are too short
-	if opts.JWKSInterval < MinIntervalDuration {
-		msg := "jwks fetch interval must be set to a minimum of 15 minutes: %s"
-		msg = fmt.Sprintf(msg, opts.JWKSInterval)
-		panic(msg)
-	}
-
 	// JWKS URL must be initialized
 	var err error
 	_, err = url.ParseRequestURI(opts.JWKSURLString)
