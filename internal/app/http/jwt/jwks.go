@@ -3,13 +3,9 @@ package jwt
 import (
 	"fmt"
 	"net/url"
-	"time"
 
 	"github.com/MicahParks/keyfunc/v3"
 )
-
-// TODO(pedram): set this to 15 Min after testing
-const MinIntervalDuration = 2 * time.Second
 
 type JWTValidationOpts struct {
 	JWTServiceID  string
