@@ -42,7 +42,7 @@ func init() {
 	serveCmd.Flags().Bool(config.KeyCorsAllowCredentials, false, "set CORS allow credentials (env var TMC_CORSALLOWCREDENTIALS)")
 	serveCmd.Flags().Int(config.KeyCorsMaxAge, 0, "set how long result of CORS preflight request can be cached in seconds (default 0, max 600) (env varTMC_CORSMAXAGE)")
 	serveCmd.Flags().Bool(config.KeyJWTValidation, false, "If set to 'true', jwt tokens are used to grant access to the API (env var TMC_JWTVALIDATION)")
-	serveCmd.Flags().Bool(config.KeyJWTServiceID, false, "If set to an identifier, value will be compared to 'aud' claim in validated JWT (env var TMC_JWTSERVICEID)")
+	serveCmd.Flags().String(config.KeyJWTServiceID, "", "If set to an identifier, value will be compared to 'aud' claim in validated JWT (env var TMC_JWTSERVICEID)")
 	serveCmd.Flags().String(config.KeyJWKSURL, "", "URL to periodically fetch JSON Web Key Sets for token validation (env var TMC_JWKSURL)")
 
 	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup(config.KeyUrlContextRoot))
