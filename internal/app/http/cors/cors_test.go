@@ -1,4 +1,4 @@
-package http
+package cors
 
 import (
 	"fmt"
@@ -41,15 +41,11 @@ func TestWithCORS(t *testing.T) {
 	cOpts.AllowCredentials(true)
 	cOpts.MaxAge(120)
 
-	sOpts := ServerOptions{
-		CORS: cOpts,
-	}
-
 	// and given: a http handler not CORS aware
 	hf := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 	// when: setting CORS on the http handler
-	corsHdl := WithCORS(hf, sOpts)
+	corsHdl := Protect(hf, cOpts)
 
 	immutable := reflect.ValueOf(corsHdl)
 	corsOrigins := fmt.Sprintf("%v", reflect.Indirect(immutable).FieldByName("allowedOrigins"))
@@ -73,18 +69,15 @@ func TestWithCORSOnRequest(t *testing.T) {
 	notAllowedOrigin := "http://not-allowed.org"
 
 	// given: CORS options with an allowed origin
-	co := CORSOptions{}
-	co.AddAllowedOrigins(allowedOrigin)
-	co.MaxAge(120)
-	opts := ServerOptions{
-		CORS: co,
-	}
+	opts := CORSOptions{}
+	opts.AddAllowedOrigins(allowedOrigin)
+	opts.MaxAge(120)
 
 	// and given: a http handler without CORS
 	hf := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 	// when setting CORS on the handler
-	hdl := WithCORS(hf, opts)
+	hdl := Protect(hf, opts)
 
 	t.Run("request with an allowed origin", func(t *testing.T) {
 		// and when: making an options request

@@ -4,11 +4,12 @@ import (
 	"errors"
 	"os"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
+
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
@@ -69,7 +70,7 @@ func serve(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	opts := serveOptions()
+	opts := getServeOptions()
 
 	pushSpec := spec
 	if remote == "" && dir == "" && pushTarget != "" {
@@ -82,23 +83,23 @@ func serve(cmd *cobra.Command, args []string) {
 	}
 }
 
-func serveOptions() cli.ServeOptions {
+func getServeOptions() cli.ServeOptions {
 	opts := cli.ServeOptions{}
 
 	opts.UrlCtxRoot = viper.GetString(config.KeyUrlContextRoot)
 	opts.JWTValidation = viper.GetBool(config.KeyJWTValidation)
-	opts.ServerOptions = getServerOptions()
 	opts.JWTValidationOpts = getJWKSOptions()
+	opts.CORSOptions = getCORSOptions()
 	return opts
 }
 
-func getServerOptions() http.ServerOptions {
-	opts := http.ServerOptions{}
+func getCORSOptions() cors.CORSOptions {
+	opts := cors.CORSOptions{}
 
-	opts.CORS.AddAllowedOrigins(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedOrigins), cli.DefaultListSeparator, true)...)
-	opts.CORS.AddAllowedHeaders(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedHeaders), cli.DefaultListSeparator, true)...)
-	opts.CORS.AllowCredentials(viper.GetBool(config.KeyCorsAllowCredentials))
-	opts.CORS.MaxAge(viper.GetInt(config.KeyCorsMaxAge))
+	opts.AddAllowedOrigins(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedOrigins), cli.DefaultListSeparator, true)...)
+	opts.AddAllowedHeaders(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedHeaders), cli.DefaultListSeparator, true)...)
+	opts.AllowCredentials(viper.GetBool(config.KeyCorsAllowCredentials))
+	opts.MaxAge(viper.GetInt(config.KeyCorsMaxAge))
 
 	return opts
 }
