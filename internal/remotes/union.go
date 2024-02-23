@@ -147,7 +147,7 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T,
 	}
 }
 
-// mapFirst maps all remotes concurrently and returns the first successful result
+// mapFirst maps all remotes concurrently and returns the first successful result or none if none of the results were successful
 func mapFirst[T any](remotes []Remote, mapper func(r Remote) mapResult[T], isSuccess func(t T) bool, none T) (T, []*RepoAccessError) {
 	results := make(chan mapResult[T])
 	out := make(chan joinedResult[T])
@@ -177,8 +177,7 @@ func mapFirst[T any](remotes []Remote, mapper func(r Remote) mapResult[T], isSuc
 	return r.res, r.errs
 }
 
-// selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess. If no successful result found,
-// returns joinedResult with none and any accumulated errors
+// selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess or until ch is closed
 func selectFirstSuccessful[T any](ch <-chan mapResult[T], done chan struct{}, isSuccess func(res T) bool, none T, out chan<- joinedResult[T]) {
 	var errs []*RepoAccessError
 	for res := range ch {
