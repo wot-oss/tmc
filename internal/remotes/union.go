@@ -214,11 +214,8 @@ func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError)
 			err: raErr,
 		}
 	}
-	reducer := func(t1, t2 []model.FoundVersion) []model.FoundVersion {
-		return model.MergeFoundVersions(t1, t2)
-	}
 	var ident []model.FoundVersion
-	out := mapReduce[[]model.FoundVersion](u.rs, mapper, ident, reducer)
+	out := mapReduce[[]model.FoundVersion](u.rs, mapper, ident, model.MergeFoundVersions)
 	res := <-out
 
 	return res.res, res.errs
