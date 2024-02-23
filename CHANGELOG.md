@@ -7,6 +7,10 @@
 - Implemented `version` command to show the version of the tm-catalog-cli
 - Implemented autocompletion for most flags and arguments for the shell autocompletion script
 
+### Changed
+
+- Request results from multiple remotes concurrently instead of sequentially
+
 ### Fixed
 
 - handle timestamp collisions on push by retrying after one second, forcing generation of new id, or reporting the error if all else fails
