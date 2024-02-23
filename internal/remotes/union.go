@@ -74,16 +74,15 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 		}
 		return mapResult[fetchRes]{res: res, err: nil}
 	}
-	out := mapFirst[fetchRes](u.rs, mapper, func(res fetchRes) bool { return res.err == nil }, fetchRes{err: ErrTmNotFound})
-	res := <-out
+	res, errs := mapFirst[fetchRes](u.rs, mapper, func(r fetchRes) bool { return r.err == nil }, fetchRes{err: ErrTmNotFound})
 
-	if res.res.err != nil {
+	if res.err != nil {
 		msg := fmt.Sprintf("No thing model found for %v", id)
 		slog.Default().Error(msg)
-		return "", nil, ErrTmNotFound, res.errs
+		return "", nil, ErrTmNotFound, errs
 	}
 
-	return res.res.id, res.res.b, nil, res.errs
+	return res.id, res.b, nil, errs
 }
 
 func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
@@ -104,14 +103,12 @@ func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAcc
 		return t1
 	}
 
-	out := mapReduce[*model.SearchResult](u.rs, mapper, &model.SearchResult{}, reducer)
-	res := <-out
-	return *res.res, res.errs
+	res, errs := mapReduce[*model.SearchResult](u.rs, mapper, &model.SearchResult{}, reducer)
+	return *res, errs
 }
 
 // mapReduce performs a concurrent map of remotes to mapResult[T], then reduces the results to a single joinedResult[T]
-// returns a channel which is guaranteed to receive exactly one value
-func mapReduce[T any](remotes []Remote, mapper func(r Remote) mapResult[T], identity T, reducer func(t1, t2 T) T) <-chan joinedResult[T] {
+func mapReduce[T any](remotes []Remote, mapper func(r Remote) mapResult[T], identity T, reducer func(t1, t2 T) T) (T, []*RepoAccessError) {
 	results := make(chan mapResult[T])
 	wg := sync.WaitGroup{}
 	wg.Add(len(remotes))
@@ -130,7 +127,8 @@ func mapReduce[T any](remotes []Remote, mapper func(r Remote) mapResult[T], iden
 
 	out := make(chan joinedResult[T])
 	go reduce(results, identity, reducer, out)
-	return out
+	r := <-out
+	return r.res, r.errs
 }
 
 // reduce reads results from ch until ch is closed and reduces them to a single joinedResult with identity as the starting value
@@ -150,8 +148,7 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T,
 }
 
 // mapFirst maps all remotes concurrently and returns the first successful result
-// returns a channel which is guaranteed to receive exactly one value
-func mapFirst[T any](remotes []Remote, mapf func(r Remote) mapResult[T], isSuccess func(res T) bool, none T) <-chan joinedResult[T] {
+func mapFirst[T any](remotes []Remote, mapper func(r Remote) mapResult[T], isSuccess func(t T) bool, none T) (T, []*RepoAccessError) {
 	results := make(chan mapResult[T])
 	out := make(chan joinedResult[T])
 
@@ -168,14 +165,16 @@ func mapFirst[T any](remotes []Remote, mapf func(r Remote) mapResult[T], isSucce
 		go func(r Remote) {
 			select {
 			case <-done:
-			case results <- mapf(r):
+			case results <- mapper(r):
 			}
 			wg.Done()
 		}(remote)
 	}
 
 	go selectFirstSuccessful(results, done, isSuccess, none, out)
-	return out
+	r := <-out
+
+	return r.res, r.errs
 }
 
 // selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess. If no successful result found,
@@ -215,10 +214,8 @@ func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError)
 		}
 	}
 	var ident []model.FoundVersion
-	out := mapReduce[[]model.FoundVersion](u.rs, mapper, ident, model.MergeFoundVersions)
-	res := <-out
-
-	return res.res, res.errs
+	res, errs := mapReduce[[]model.FoundVersion](u.rs, mapper, ident, model.MergeFoundVersions)
+	return res, errs
 }
 
 func (u *Union) ListCompletions(kind string, toComplete string) []string {
@@ -231,8 +228,7 @@ func (u *Union) ListCompletions(kind string, toComplete string) []string {
 	}
 	reducer := func(r1, r2 []string) []string { return append(r1, r2...) }
 	var cs []string
-	out := mapReduce(u.rs, mapper, cs, reducer)
-	cs = (<-out).res
+	cs, _ = mapReduce(u.rs, mapper, cs, reducer)
 	slices.Sort(cs)
 	return slices.Compact(cs)
 }
