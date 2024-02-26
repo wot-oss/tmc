@@ -214,6 +214,12 @@ paths:
               value: 'siemens/POC1000:1'
             majorMinor:
               value: 'siemens/POC1000:1.2'
+        - name: restoreId
+          in: query
+          description: restore the TM's original external id, if it had one
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: |

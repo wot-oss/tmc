@@ -77,9 +77,13 @@ func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.R
 
 // GetThingModelById Get the content of a Thing Model by its ID
 // (GET /thing-models/{tmID})
-func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string) {
+func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string, params server.GetThingModelByIdParams) {
+	restoreId := false
+	if params.RestoreId != nil {
+		restoreId = *params.RestoreId
+	}
 
-	data, err := h.Service.FetchThingModel(nil, tmID)
+	data, err := h.Service.FetchThingModel(nil, tmID, restoreId)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
