@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -9,8 +10,10 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/buger/jsonparser"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 type FetchName struct {
@@ -72,26 +75,89 @@ func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
 	return nil, nil, err
 }
 
-func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string) (string, []byte, error, []*remotes.RepoAccessError) {
+func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
 	tmid, fn, err := ParseAsTMIDOrFetchName(idOrName)
 	if err != nil {
 		return "", nil, err, nil
 	}
 	if tmid != nil {
-		return c.FetchByTMID(spec, idOrName)
+		return c.FetchByTMID(spec, idOrName, restoreId)
 	}
-	return c.FetchByName(spec, *fn)
+	return c.FetchByName(spec, *fn, restoreId)
 }
 
-func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string) (string, []byte, error, []*remotes.RepoAccessError) {
+func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
 	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, spec)
 	if err != nil {
 		return "", nil, err, nil
 	}
 
-	return rs.Fetch(tmid)
+	fetch, bytes, err, accessErrors := rs.Fetch(tmid)
+	if err == nil && restoreId {
+		bytes = restoreExternalId(bytes)
+	}
+	return fetch, bytes, err, accessErrors
 }
-func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string, []byte, error, []*remotes.RepoAccessError) {
+
+func restoreExternalId(raw []byte) []byte {
+	linksValue, dataType, _, err := jsonparser.Get(raw, "links")
+	if err != nil && dataType != jsonparser.NotExist {
+		return raw
+	}
+
+	if dataType != jsonparser.Array {
+		return raw
+	}
+
+	var originalId string
+	var linksArray []map[string]any
+
+	err = json.Unmarshal(linksValue, &linksArray)
+	if err != nil {
+		slog.Default().Error("error unmarshalling links", "error", err)
+		return raw
+	}
+	var newLinks []map[string]any
+	for _, eLink := range linksArray {
+		rel, relOk := eLink["rel"]
+		href := utils.JsGetString(eLink, "href")
+		if relOk && rel == "original" && href != nil {
+			originalId = *href
+		} else {
+			newLinks = append(newLinks, eLink)
+		}
+	}
+	if len(linksArray) != len(newLinks) { // original id found
+		var withLinks []byte
+		if len(newLinks) > 0 {
+			linksBytes, err := json.Marshal(newLinks)
+			if err != nil {
+				slog.Default().Error("unexpected marshal error", "error", err)
+				return raw
+			}
+			withLinks, err = jsonparser.Set(raw, linksBytes, "links")
+			if err != nil {
+				slog.Default().Error("unexpected json set value error", "error", err)
+				return raw
+			}
+		} else {
+			withLinks = jsonparser.Delete(raw, "links")
+		}
+		idBytes, _ := json.Marshal(originalId)
+
+		withId, err := jsonparser.Set(withLinks, idBytes, "id")
+		if err != nil {
+			slog.Default().Error("unexpected json set value error", "error", err)
+			return raw
+		}
+		return withId
+	}
+
+	return raw
+
+}
+
+func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
 	log := slog.Default()
 	tocVersions, err, errs := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
 	if err != nil {
@@ -120,7 +186,7 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName) (string,
 	}
 
 	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
-	tmid, bytes, err, _ := c.FetchByTMID(foundIn, id)
+	tmid, bytes, err, _ := c.FetchByTMID(foundIn, id, restoreId)
 	return tmid, bytes, err, errs
 }
 

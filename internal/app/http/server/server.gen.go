@@ -51,7 +51,7 @@ type ServerInterface interface {
 	PushThingModel(w http.ResponseWriter, r *http.Request)
 	// Get the content of a Thing Model by its ID or fetch name
 	// (GET /thing-models/{tmIDOrName})
-	GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string)
+	GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params GetThingModelByIdParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -433,8 +433,19 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 		return
 	}
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetThingModelByIdParams
+
+	// ------------- Optional query parameter "restoreId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "restoreId", r.URL.Query(), &params.RestoreId)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "restoreId", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetThingModelById(w, r, tmIDOrName)
+		siw.Handler.GetThingModelById(w, r, tmIDOrName, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {

@@ -21,9 +21,9 @@ func NewFetchExecutor(rm remotes.RemoteManager) *FetchExecutor {
 	}
 }
 
-func (e *FetchExecutor) Fetch(remote remotes.RepoSpec, idOrName, outputPath string) error {
+func (e *FetchExecutor) Fetch(remote remotes.RepoSpec, idOrName, outputPath string, restoreId bool) error {
 
-	id, thing, err, errs := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remote, idOrName)
+	id, thing, err, errs := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remote, idOrName, restoreId)
 	if err != nil {
 		Stderrf("Could not fetch from remote: %v", err)
 		return err

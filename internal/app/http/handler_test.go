@@ -485,7 +485,7 @@ func Test_FetchThingModel(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with valid remotes", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID).Return(tmContent, nil).Once()
+		hs.On("FetchThingModel", nil, tmID, false).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, httpHandler).Recorder
 		// then: it returns status 200
@@ -493,10 +493,33 @@ func Test_FetchThingModel(t *testing.T) {
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 
+	t.Run("with false restoreId", func(t *testing.T) {
+		hs.On("FetchThingModel", nil, tmID, false).Return(tmContent, nil).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Get(route+"?restoreId=false").GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		assert.Equal(t, tmContent, rec.Body.Bytes())
+	})
+	t.Run("with true restoreId", func(t *testing.T) {
+		hs.On("FetchThingModel", nil, tmID, true).Return(tmContent, nil).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Get(route+"?restoreId=true").GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		assert.Equal(t, tmContent, rec.Body.Bytes())
+	})
+	t.Run("with invalid restoreId", func(t *testing.T) {
+		// when: calling the route
+		rr := route + "?restoreId=value"
+		rec := testutil.NewRequest().Get(rr).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 400
+		assertResponse400(t, rec, rr)
+	})
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		invalidRoute := "/thing-models/some-invalid-tm-id"
-		hs.On("FetchThingModel", nil, "some-invalid-tm-id").Return(nil, model.ErrInvalidId).Once()
+		hs.On("FetchThingModel", nil, "some-invalid-tm-id", false).Return(nil, model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(invalidRoute).GoWithHTTPHandler(t, httpHandler).Recorder
 		// then: it returns status 400 and json error as body
@@ -504,7 +527,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID).Return(nil, remotes.ErrTmNotFound).Once()
+		hs.On("FetchThingModel", nil, tmID, false).Return(nil, remotes.ErrTmNotFound).Once()
 		// when: calling the route
 		rec := testutil.NewRequest().Get(route).GoWithHTTPHandler(t, httpHandler).Recorder
 		// then: it returns status 404 and json error as body

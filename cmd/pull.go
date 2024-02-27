@@ -39,12 +39,14 @@ func init() {
 	pullCmd.Flags().StringVar(&pFilterFlags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
 	pullCmd.Flags().StringVarP(&pFilterFlags.Search, "search", "s", "", "search TMs by their content matching the search term")
 	_ = pullCmd.MarkFlagRequired("output")
+	pullCmd.Flags().BoolP("restore-id", "R", false, "restore the TMs' original external ids, if they had one")
 }
 
 func executePull(cmd *cobra.Command, args []string) {
 	remoteName := cmd.Flag("remote").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 	outputPath := cmd.Flag("output").Value.String()
+	restoreId, _ := cmd.Flags().GetBool("restore-id")
 
 	spec, err := remotes.NewSpec(remoteName, dirName)
 	if errors.Is(err, remotes.ErrInvalidSpec) {
@@ -57,7 +59,7 @@ func executePull(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	search := cli.CreateSearchParamsFromCLI(pFilterFlags, name)
-	err = cli.NewPullExecutor(remotes.DefaultManager()).Pull(spec, search, outputPath)
+	err = cli.NewPullExecutor(remotes.DefaultManager()).Pull(spec, search, outputPath, restoreId)
 
 	if err != nil {
 		cli.Stderrf("pull failed")

@@ -116,6 +116,14 @@ func JsGetMap(js map[string]any, key string) map[string]any {
 	}
 	return nil
 }
+func JsGetArray(js map[string]any, key string) []any {
+	if v, ok := js[key]; ok {
+		if m, ok := v.([]any); ok {
+			return m
+		}
+	}
+	return nil
+}
 
 // ConvertToNativeLineEndings converts all instances of '\n' to native line endings for the platform.
 // Assumes that line endings are normalized, i.e. there are no '\r' or "\r\n" line endings in the data
