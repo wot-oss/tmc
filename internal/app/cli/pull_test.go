@@ -94,7 +94,7 @@ func TestPullExecutor_Pull(t *testing.T) {
 	// and given: a PullExecutor under test
 	underTest := NewPullExecutor(rm)
 	// when: pulling from remote
-	err = underTest.Pull(remotes.NewRemoteSpec("r1"), search, tempDir)
+	err = underTest.Pull(remotes.NewRemoteSpec("r1"), search, tempDir, false)
 	// then: there is no error
 	assert.NoError(t, err)
 	// and then: the pulled ThingModels are written to the output path
@@ -125,7 +125,7 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 		// given: ThingModel can be fetched successfully
 		r.On("Fetch", tmID).Return(tmID, []byte("some TM content"), nil).Once()
 		// when: pulling from remote
-		res, err := underTest.pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0])
+		res, err := underTest.pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0], false)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is PullOK
@@ -138,7 +138,7 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 		// given: ThingModel cannot be fetched successfully
 		r.On("Fetch", tmID).Return(tmID, nil, errors.New("fetch failed")).Once()
 		// when: pulling from remote
-		res, err := underTest.pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0])
+		res, err := underTest.pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0], false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: the result is PullErr
@@ -163,7 +163,7 @@ func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 		// given: an empty output path
 		outputPath := ""
 		// when: pulling from remote
-		err := underTest.Pull(remotes.NewRemoteSpec("r1"), search, outputPath)
+		err := underTest.Pull(remotes.NewRemoteSpec("r1"), search, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: there are no calls on RemoteManager or Remote
@@ -181,7 +181,7 @@ func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 		outputPath := filepath.Join(tempDir, "foo.bar")
 		_ = os.WriteFile(outputPath, []byte("foobar"), 0660)
 		// when: pulling from remote
-		err = underTest.Pull(remotes.NewRemoteSpec("r1"), search, outputPath)
+		err = underTest.Pull(remotes.NewRemoteSpec("r1"), search, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: there are no calls on RemoteManager or Remote

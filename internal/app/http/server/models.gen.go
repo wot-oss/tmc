@@ -204,5 +204,11 @@ type GetMpnsParams struct {
 // PushThingModelJSONBody defines parameters for PushThingModel.
 type PushThingModelJSONBody = map[string]interface{}
 
+// GetThingModelByIdParams defines parameters for GetThingModelById.
+type GetThingModelByIdParams struct {
+	// RestoreId restore the TM's original external id, if it had one
+	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
+}
+
 // PushThingModelJSONRequestBody defines body for PushThingModel for application/json ContentType.
 type PushThingModelJSONRequestBody = PushThingModelJSONBody
