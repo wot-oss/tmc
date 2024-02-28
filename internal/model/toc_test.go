@@ -300,3 +300,62 @@ func TestTOC_Insert(t *testing.T) {
 	assert.Equal(t, 2, len(toc.Data[0].Versions))
 	assert.Equal(t, 1, len(toc.Data[1].Versions))
 }
+
+func TestTOC_Delete(t *testing.T) {
+	tests := []struct {
+		name       string
+		id         string
+		expUpdated bool
+		expName    string
+		expErr     error
+	}{
+		{
+			name:       "invalid id",
+			id:         "invalid-id",
+			expUpdated: false,
+			expName:    "",
+			expErr:     ErrInvalidId,
+		},
+		{
+			name:       "non-existing id",
+			id:         "aut/man/mpn/opt/v0.0.0-20231024121314-abcd12345690.tm.json",
+			expUpdated: false,
+			expName:    "",
+			expErr:     nil,
+		},
+		{
+			name:       "existing id",
+			id:         "aut/man/mpn2/v1.0.0-20231023121314-abcd12345680.tm.json",
+			expUpdated: true,
+			expName:    "",
+			expErr:     nil,
+		},
+		{
+			name:       "last id for a name",
+			id:         "man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json",
+			expUpdated: true,
+			expName:    "man/mpn",
+			expErr:     nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// prepare a toc where one of the names has only one version
+			toc := prepareToc()
+			toc.Data[0].Versions = toc.Data[0].Versions[1:]
+
+			updated, name, err := toc.Delete(test.id)
+
+			if test.expErr != nil {
+				assert.ErrorIs(t, err, test.expErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expUpdated, updated)
+				assert.Equal(t, test.expName, name)
+			}
+		})
+	}
+
+}

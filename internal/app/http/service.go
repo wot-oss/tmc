@@ -20,6 +20,7 @@ type HandlerService interface {
 	FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error)
 	PushThingModel(ctx context.Context, file []byte) (string, error)
+	DeleteThingModel(ctx context.Context, tmID string) error
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
 	CheckHealthReady(ctx context.Context) error
@@ -160,6 +161,14 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 	}
 
 	return tmID, nil
+}
+
+func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
+	rm := dhs.remoteManager
+	pushRemote := dhs.pushRemote
+
+	err := commands.NewDeleteCommand(rm).Delete(pushRemote, tmID)
+	return err
 }
 
 func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error) {

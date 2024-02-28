@@ -463,3 +463,80 @@ func TestTmcRemote_ListCompletions(t *testing.T) {
 		})
 	}
 }
+
+func TestTmcRemote_Delete(t *testing.T) {
+	type ht struct {
+		name     string
+		id       string
+		status   int
+		respBody []byte
+		expErr   error
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/thing-models/"+h.id, r.URL.Path)
+		assert.Equal(t, url.Values{"force": []string{"true"}}, r.URL.Query())
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.respBody)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRemoteConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:     "invalid id",
+			id:       "invalid-id",
+			status:   http.StatusBadRequest,
+			expErr:   model.ErrInvalidId,
+			respBody: []byte(`{"detail":"id invalid"}`),
+		},
+		{
+			name:     "non-existing id",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusNotFound,
+			respBody: []byte(`{"detail":"TM not found"}`),
+			expErr:   ErrTmNotFound,
+		},
+		{
+			name:     "existing id",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusNoContent,
+			respBody: nil,
+			expErr:   nil,
+		},
+		{
+			name:     "internal error",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusInternalServerError,
+			respBody: []byte(`{"detail":"something bad happened"}`),
+			expErr:   errors.New("something bad happened"),
+		},
+		{
+			name:     "unexpected status",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusTeapot,
+			respBody: nil,
+			expErr:   errors.New("received unexpected HTTP response from remote TM catalog: 418 I'm a teapot"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+
+			err := r.Delete(test.id)
+			if test.expErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.Equal(t, test.expErr, err)
+			}
+		})
+	}
+}

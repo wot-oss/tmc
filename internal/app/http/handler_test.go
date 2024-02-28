@@ -620,6 +620,59 @@ func Test_PushThingModel(t *testing.T) {
 	})
 }
 
+func Test_DeleteThingModelById(t *testing.T) {
+	tmID := listResult2.Entries[0].Versions[0].TMID
+
+	hs := NewMockHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("without force parameter", func(t *testing.T) {
+		route := "/thing-models/" + tmID
+		// when: calling the route
+		rec := testutil.NewRequest().Delete(route).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with invalid force parameter", func(t *testing.T) {
+		route := "/thing-models/" + tmID + "?force=yes"
+		// when: calling the route
+		rec := testutil.NewRequest().Delete(route).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with valid tmID", func(t *testing.T) {
+		route := "/thing-models/" + tmID + "?force=true"
+		hs.On("DeleteThingModel", mock.Anything, tmID).Return(nil).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Delete(route).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 204
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, 0, rec.Body.Len())
+	})
+
+	t.Run("with invalid tmID", func(t *testing.T) {
+		// given: route with invalid tmID
+		route := "/thing-models/some-invalid-tm-id?force=true"
+		hs.On("DeleteThingModel", mock.Anything, "some-invalid-tm-id").Return(model.ErrInvalidId).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Delete(route).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 400 and json error as body
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with not found error", func(t *testing.T) {
+		route := "/thing-models/" + tmID + "?force=true"
+		hs.On("DeleteThingModel", mock.Anything, tmID).Return(remotes.ErrTmNotFound).Once()
+		// when: calling the route
+		rec := testutil.NewRequest().Delete(route).GoWithHTTPHandler(t, httpHandler).Recorder
+		// then: it returns status 404 and json error as body
+		assertResponse404(t, rec, route)
+	})
+
+}
+
 func Test_Completions(t *testing.T) {
 
 	route := "/.completions"

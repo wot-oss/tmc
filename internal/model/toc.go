@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -168,4 +169,31 @@ func (toc *TOC) Insert(ctm *ThingModel) (TMID, error) {
 	}
 	tocEntry.Versions = append(tocEntry.Versions, tv)
 	return tmid, nil
+}
+
+// Delete deletes the record for the given id. Returns TM name to be removed from names file if no more versions are left
+func (toc *TOC) Delete(id string) (updated bool, deletedName string, err error) {
+	var tocEntry *TOCEntry
+
+	name, found := strings.CutSuffix(id, "/"+filepath.Base(id))
+	if !found {
+		return false, "", ErrInvalidId
+	}
+	tocEntry = toc.findByName(name)
+	if tocEntry != nil {
+		tocEntry.Versions = slices.DeleteFunc(tocEntry.Versions, func(version TOCVersion) bool {
+			fnd := version.TMID == id
+			if fnd {
+				updated = true
+			}
+			return fnd
+		})
+		if len(tocEntry.Versions) == 0 {
+			toc.Data = slices.DeleteFunc(toc.Data, func(entry *TOCEntry) bool {
+				return entry.Name == name
+			})
+			return updated, name, nil
+		}
+	}
+	return updated, "", nil
 }
