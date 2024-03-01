@@ -27,7 +27,7 @@ func init() {
 	_ = deleteCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
 	deleteCmd.Flags().StringP("directory", "d", "", "TM repository directory")
 	_ = deleteCmd.MarkFlagDirname("directory")
-	deleteCmd.Flags().StringP("force", "", "", "force the deletion") // intentionally a string flag, not boolean, so that the user has to make that much extra effort to type
+	deleteCmd.Flags().String("force", "", "force the deletion") // intentionally a string flag, not boolean, so that the user has to make that much extra effort to type
 }
 
 func executeDelete(cmd *cobra.Command, args []string) {

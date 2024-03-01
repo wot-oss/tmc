@@ -97,12 +97,34 @@ func (f *FileRemote) Delete(id string) error {
 	if match != idMatchFull {
 		return ErrTmNotFound
 	}
-	fullFilename, _, _ := f.filenames(id)
+	fullFilename, dir, _ := f.filenames(id)
 	err = os.Remove(fullFilename)
 	if os.IsNotExist(err) {
 		return ErrTmNotFound
 	}
+	_ = rmEmptyDirs(dir, f.root)
 	return err
+}
+
+func rmEmptyDirs(from string, upTo string) error {
+	if !strings.HasPrefix(from, upTo) {
+		return errors.New("from is not below upTo")
+	}
+
+	for len(from) > len(upTo) {
+		entries, err := os.ReadDir(from)
+		if err != nil {
+			return err
+		}
+		if len(entries) == 0 {
+			err = os.Remove(from)
+			if err != nil {
+				return err
+			}
+		}
+		from = filepath.Dir(from)
+	}
+	return nil
 }
 
 func (f *FileRemote) filenames(id string) (string, string, string) {

@@ -311,6 +311,22 @@ func TestFileRemote_Delete(t *testing.T) {
 		_, err = os.Stat(filepath.Join(r.root, id))
 		assert.True(t, os.IsNotExist(err))
 	})
+	t.Run("cleans up empty folders", func(t *testing.T) {
+		id1 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json"
+		id2 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json"
+		id3 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"
+		assert.NoError(t, r.Delete(id1))
+		assert.NoError(t, r.Delete(id2))
+		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
+		assert.True(t, os.IsNotExist(err))
+		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp"))
+		assert.NoError(t, err)
+		assert.NoError(t, r.Delete(id3))
+		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department"))
+		assert.True(t, os.IsNotExist(err))
+		_, err = os.Stat(r.root)
+		assert.NoError(t, err)
+	})
 }
 
 func TestFileRemote_UpdateTOC(t *testing.T) {
