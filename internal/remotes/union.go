@@ -74,7 +74,9 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 		}
 		return mapResult[fetchRes]{res: res, err: nil}
 	}
-	res, errs := mapFirst[fetchRes](u.rs, mapper, func(r fetchRes) bool { return r.err == nil }, fetchRes{err: ErrTmNotFound})
+	results, done := mapConcurrent(u.rs, mapper)
+	r := selectFirstSuccessful(results, done, func(r fetchRes) bool { return r.err == nil }, fetchRes{err: ErrTmNotFound})
+	res, errs := r.res, r.errs
 
 	if res.err != nil {
 		msg := fmt.Sprintf("No thing model found for %v", id)
@@ -158,19 +160,13 @@ func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) 
 	return res, done
 }
 
-// mapFirst maps all remotes concurrently and returns the first successful result or none if none of the results were successful
-func mapFirst[T any](remotes []Remote, mapper func(r Remote) mapResult[T], isSuccess func(t T) bool, none T) (T, []*RepoAccessError) {
-	results, done := mapConcurrent(remotes, mapper)
-	r := selectFirstSuccessful(results, done, isSuccess, none)
-	return r.res, r.errs
-}
-
-// selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess or until ch is closed
+// selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess or until ch is closed.
+// Closes done before returning to signal that no more reads from ch will be made
 func selectFirstSuccessful[T any](ch <-chan mapResult[T], done chan struct{}, isSuccess func(res T) bool, none T) joinedResult[T] {
+	defer close(done)
 	var errs []*RepoAccessError
 	for res := range ch {
 		if isSuccess(res.res) {
-			close(done)
 			return joinedResult[T]{
 				res:  res.res,
 				errs: nil,
