@@ -110,15 +110,12 @@ func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAcc
 // mapReduce performs a concurrent map of remotes to mapResult[T], then reduces the results to a single joinedResult[T]
 func mapReduce[T any](remotes []Remote, mapper func(r Remote) mapResult[T], identity T, reducer func(t1, t2 T) T) (T, []*RepoAccessError) {
 	results, _ := mapConcurrent(remotes, mapper)
-	out := make(chan joinedResult[T])
-	// start processing results
-	go reduce(results, identity, reducer, out)
-	r := <-out
+	r := reduce(results, identity, reducer)
 	return r.res, r.errs
 }
 
 // reduce reads results from ch until ch is closed and reduces them to a single joinedResult with identity as the starting value
-func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T, out chan<- joinedResult[T]) {
+func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T) joinedResult[T] {
 	accumulator := identity
 	var errs []*RepoAccessError
 	for res := range ch {
@@ -127,7 +124,7 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T,
 			errs = append(errs, res.err)
 		}
 	}
-	out <- joinedResult[T]{
+	return joinedResult[T]{
 		res:  accumulator,
 		errs: errs,
 	}
@@ -163,31 +160,27 @@ func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) 
 
 // mapFirst maps all remotes concurrently and returns the first successful result or none if none of the results were successful
 func mapFirst[T any](remotes []Remote, mapper func(r Remote) mapResult[T], isSuccess func(t T) bool, none T) (T, []*RepoAccessError) {
-	out := make(chan joinedResult[T])
 	results, done := mapConcurrent(remotes, mapper)
-	go selectFirstSuccessful(results, done, isSuccess, none, out)
-	r := <-out
-
+	r := selectFirstSuccessful(results, done, isSuccess, none)
 	return r.res, r.errs
 }
 
 // selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess or until ch is closed
-func selectFirstSuccessful[T any](ch <-chan mapResult[T], done chan struct{}, isSuccess func(res T) bool, none T, out chan<- joinedResult[T]) {
+func selectFirstSuccessful[T any](ch <-chan mapResult[T], done chan struct{}, isSuccess func(res T) bool, none T) joinedResult[T] {
 	var errs []*RepoAccessError
 	for res := range ch {
 		if isSuccess(res.res) {
 			close(done)
-			out <- joinedResult[T]{
+			return joinedResult[T]{
 				res:  res.res,
 				errs: nil,
 			}
-			return
 		}
 		if res.err != nil {
 			errs = append(errs, res.err)
 		}
 	}
-	out <- joinedResult[T]{
+	return joinedResult[T]{
 		res:  none,
 		errs: errs,
 	}
