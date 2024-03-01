@@ -109,23 +109,9 @@ func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAcc
 
 // mapReduce performs a concurrent map of remotes to mapResult[T], then reduces the results to a single joinedResult[T]
 func mapReduce[T any](remotes []Remote, mapper func(r Remote) mapResult[T], identity T, reducer func(t1, t2 T) T) (T, []*RepoAccessError) {
-	results := make(chan mapResult[T])
-	wg := sync.WaitGroup{}
-	wg.Add(len(remotes))
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
-
-	// start mapping goroutines
-	for _, remote := range remotes {
-		go func(r Remote) {
-			results <- mapper(r)
-			wg.Done()
-		}(remote)
-	}
-
+	results, _ := mapConcurrent(remotes, mapper)
 	out := make(chan joinedResult[T])
+	// start processing results
 	go reduce(results, identity, reducer, out)
 	r := <-out
 	return r.res, r.errs
@@ -147,30 +133,38 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T,
 	}
 }
 
-// mapFirst maps all remotes concurrently and returns the first successful result or none if none of the results were successful
-func mapFirst[T any](remotes []Remote, mapper func(r Remote) mapResult[T], isSuccess func(t T) bool, none T) (T, []*RepoAccessError) {
-	results := make(chan mapResult[T])
-	out := make(chan joinedResult[T])
-
-	done := make(chan struct{})
+// mapConcurrent concurrently maps all remotes with the mapper to a mapResult.
+// Returns channels with results and a done channel, which can be close to abort processing (e.g. if enough results have been received)
+func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) (results <-chan mapResult[T], done chan struct{}) {
+	res := make(chan mapResult[T])
+	done = make(chan struct{})
 	wg := sync.WaitGroup{}
 	wg.Add(len(remotes))
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
 
 	// start goroutines with cancellable mapping functions
 	for _, remote := range remotes {
 		go func(r Remote) {
 			select {
 			case <-done:
-			case results <- mapper(r):
+			case res <- mapper(r):
 			}
 			wg.Done()
 		}(remote)
 	}
 
+	// stop processing results when all mapping goroutines are done
+	go func() {
+		wg.Wait()
+		close(res)
+	}()
+
+	return res, done
+}
+
+// mapFirst maps all remotes concurrently and returns the first successful result or none if none of the results were successful
+func mapFirst[T any](remotes []Remote, mapper func(r Remote) mapResult[T], isSuccess func(t T) bool, none T) (T, []*RepoAccessError) {
+	out := make(chan joinedResult[T])
+	results, done := mapConcurrent(remotes, mapper)
 	go selectFirstSuccessful(results, done, isSuccess, none, out)
 	r := <-out
 
