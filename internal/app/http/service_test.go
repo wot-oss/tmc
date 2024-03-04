@@ -389,7 +389,7 @@ func Test_FetchingThingModel(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		invalidTmID := ""
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, invalidTmID)
+		res, err := underTest.FetchThingModel(nil, invalidTmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
@@ -398,7 +398,7 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with invalid fetch name", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, "b-corp\\eagle/PM20")
+		res, err := underTest.FetchThingModel(nil, "b-corp\\eagle/PM20", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
@@ -407,7 +407,7 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with invalid semantic version", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, "b-corp/eagle/PM20:v1.")
+		res, err := underTest.FetchThingModel(nil, "b-corp/eagle/PM20:v1.", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
@@ -419,7 +419,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		r.On("Fetch", tmID).Return(tmID, nil, remotes.ErrTmNotFound).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID)
+		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
@@ -431,7 +431,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		r.On("Versions", fn).Return(nil, nil).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, fn)
+		res, err := underTest.FetchThingModel(nil, fn, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
@@ -444,12 +444,48 @@ func Test_FetchingThingModel(t *testing.T) {
 		r.On("Fetch", tmID).Return(tmID, raw, nil).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID)
+		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns the unchanged ThingModel content
 		assert.NotNil(t, res)
 		assert.Equal(t, raw, res)
 		// and then: there is no error
 		assert.NoError(t, err)
+	})
+}
+func Test_DeleteThingModel(t *testing.T) {
+
+	rm := remotes.NewMockRemoteManager(t)
+	r := remotes.NewMockRemote(t)
+	rm.On("Get", remote).Return(r, nil)
+	underTest, _ := NewDefaultHandlerService(rm, remotes.EmptySpec, remote)
+
+	t.Run("without errors", func(t *testing.T) {
+		tmid := "some-id"
+		r.On("Delete", tmid).Return(nil).Once()
+		r.On("UpdateToc", tmid).Return(nil).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns nil result
+		assert.NoError(t, err)
+	})
+
+	t.Run("with error when deleting", func(t *testing.T) {
+		tmid := "some-id2"
+		r.On("Delete", tmid).Return(remotes.ErrTmNotFound).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns error result
+		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+	})
+
+	t.Run("with error when updating toc", func(t *testing.T) {
+		tmid := "some-id3"
+		r.On("Delete", tmid).Return(nil).Once()
+		r.On("UpdateToc", tmid).Return(errors.New("could not update toc")).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns error result
+		assert.ErrorContains(t, err, "could not update toc")
 	})
 }
 

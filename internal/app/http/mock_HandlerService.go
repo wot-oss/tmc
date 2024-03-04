@@ -86,9 +86,27 @@ func (_m *MockHandlerService) CheckHealthStartup(ctx context.Context) error {
 	return r0
 }
 
-// FetchThingModel provides a mock function with given fields: ctx, tmID
-func (_m *MockHandlerService) FetchThingModel(ctx context.Context, tmID string) ([]byte, error) {
+// DeleteThingModel provides a mock function with given fields: ctx, tmID
+func (_m *MockHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
 	ret := _m.Called(ctx, tmID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteThingModel")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, tmID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// FetchThingModel provides a mock function with given fields: ctx, tmID, restoreId
+func (_m *MockHandlerService) FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error) {
+	ret := _m.Called(ctx, tmID, restoreId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchThingModel")
@@ -96,19 +114,19 @@ func (_m *MockHandlerService) FetchThingModel(ctx context.Context, tmID string) 
 
 	var r0 []byte
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) ([]byte, error)); ok {
-		return rf(ctx, tmID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) ([]byte, error)); ok {
+		return rf(ctx, tmID, restoreId)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) []byte); ok {
-		r0 = rf(ctx, tmID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) []byte); ok {
+		r0 = rf(ctx, tmID, restoreId)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, tmID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, bool) error); ok {
+		r1 = rf(ctx, tmID, restoreId)
 	} else {
 		r1 = ret.Error(1)
 	}

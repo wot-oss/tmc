@@ -214,6 +214,12 @@ paths:
               value: 'siemens/POC1000:1'
             majorMinor:
               value: 'siemens/POC1000:1.2'
+        - name: restoreId
+          in: query
+          description: restore the TM's original external id, if it had one
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: |
@@ -232,6 +238,51 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Content of the Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - thing-models
+      summary: Delete a Thing Model by ID
+      description: >
+        Deletes a Thing Model. Only accepts a complete ID as tmIDOrName
+        Normally, the catalog is write-only and no TMs are ever deleted.
+        The delete function is implemented for the rare cases when a TM has been pushed whilst containing major errors 
+        or by mistake. Therefore, it is mandatory to provide the query parameter ?force=true to delete a TM.
+      operationId: deleteThingModelById
+      parameters:
+        - name: tmIDOrName
+          in: path
+          description: ID of the Thing Model
+          required: true
+          schema:
+            type: string
+          example: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+        - name: force
+          in: query
+          description: flag to force the deletion. must be set to "true"
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid ID or 'force' parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Thing Model not found
           content:
             application/json:
               schema:

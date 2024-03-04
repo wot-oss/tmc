@@ -75,17 +75,39 @@ func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.R
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetThingModelById Get the content of a Thing Model by its ID
-// (GET /thing-models/{tmID})
-func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string) {
+// GetThingModelById Get the content of a Thing Model by its ID or fetch name
+// (GET /thing-models/{tmIDOrName})
+func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params server.GetThingModelByIdParams) {
+	restoreId := false
+	if params.RestoreId != nil {
+		restoreId = *params.RestoreId
+	}
 
-	data, err := h.Service.FetchThingModel(nil, tmID)
+	data, err := h.Service.FetchThingModel(nil, tmIDOrName, restoreId)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
 	HandleByteResponse(w, r, http.StatusOK, mimeJSON, data)
+}
+
+// DeleteThingModelById Delete a Thing Model by ID
+// (DELETE /thing-models/{tmIDOrName})
+func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params server.DeleteThingModelByIdParams) {
+	if params.Force != "true" {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "invalid value of 'force' query parameter"))
+		return
+	}
+
+	err := h.Service.DeleteThingModel(context.TODO(), tmIDOrName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
 }
 
 func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {

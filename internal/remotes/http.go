@@ -81,6 +81,9 @@ func newBaseHttpRemote(config map[string]any, spec RepoSpec) (baseHttpRemote, er
 func (h *HttpRemote) Push(_ model.TMID, _ []byte) error {
 	return ErrNotSupported
 }
+func (h *HttpRemote) Delete(id string) error {
+	return ErrNotSupported
+}
 
 func (h *HttpRemote) Fetch(id string) (string, []byte, error) {
 	reqUrl := h.buildUrl(id)
