@@ -74,8 +74,8 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 		}
 		return mapResult[fetchRes]{res: res, err: nil}
 	}
-	results, done := mapConcurrent(u.rs, mapper)
-	r := selectFirstSuccessful(results, done, func(r fetchRes) bool { return r.err == nil }, fetchRes{err: ErrTmNotFound})
+	results, cancel := mapConcurrent(u.rs, mapper)
+	r := selectFirstSuccessful(results, cancel, func(r fetchRes) bool { return r.err == nil }, fetchRes{err: ErrTmNotFound})
 	res, errs := r.res, r.errs
 
 	if res.err != nil {
@@ -133,10 +133,10 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T)
 }
 
 // mapConcurrent concurrently maps all remotes with the mapper to a mapResult.
-// Returns channels with results and a done channel, which can be close to abort processing (e.g. if enough results have been received)
-func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) (results <-chan mapResult[T], done chan struct{}) {
+// Returns channel with results and a cancel channel, which can be closed to abort processing (e.g. if enough results have been received)
+func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) (results <-chan mapResult[T], cancel chan struct{}) {
 	res := make(chan mapResult[T])
-	done = make(chan struct{})
+	cancel = make(chan struct{})
 	wg := sync.WaitGroup{}
 	wg.Add(len(remotes))
 
@@ -144,20 +144,20 @@ func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) 
 	for _, remote := range remotes {
 		go func(r Remote) {
 			select {
-			case <-done:
+			case <-cancel:
 			case res <- mapper(r):
 			}
 			wg.Done()
 		}(remote)
 	}
 
-	// stop processing results when all mapping goroutines are done
+	// close results channel when all mapping goroutines have finished
 	go func() {
 		wg.Wait()
 		close(res)
 	}()
 
-	return res, done
+	return res, cancel
 }
 
 // selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess or until ch is closed.
