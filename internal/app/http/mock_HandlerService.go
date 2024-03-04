@@ -86,6 +86,24 @@ func (_m *MockHandlerService) CheckHealthStartup(ctx context.Context) error {
 	return r0
 }
 
+// DeleteThingModel provides a mock function with given fields: ctx, tmID
+func (_m *MockHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
+	ret := _m.Called(ctx, tmID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteThingModel")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, tmID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // FetchThingModel provides a mock function with given fields: ctx, tmID, restoreId
 func (_m *MockHandlerService) FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error) {
 	ret := _m.Called(ctx, tmID, restoreId)

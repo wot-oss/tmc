@@ -58,13 +58,14 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	if len(raw) == 0 {
 		return errors.New("nothing to write")
 	}
-	fullPath, dir, _ := f.filenames(id.String())
+	idS := id.String()
+	fullPath, dir, _ := f.filenames(idS)
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
 		return fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
 
-	match, existingId := f.getExistingID(id.String())
+	match, existingId := f.getExistingID(idS)
 	switch match {
 	case idMatchDigest:
 		slog.Default().Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
@@ -80,6 +81,49 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	}
 	slog.Default().Info("saved Thing Model file", "filename", fullPath)
 
+	return nil
+}
+
+func (f *FileRemote) Delete(id string) error {
+	err := f.checkRootValid()
+	if err != nil {
+		return err
+	}
+	err = checkIdValid(id)
+	if err != nil {
+		return err
+	}
+	match, _ := f.getExistingID(id)
+	if match != idMatchFull {
+		return ErrTmNotFound
+	}
+	fullFilename, dir, _ := f.filenames(id)
+	err = os.Remove(fullFilename)
+	if os.IsNotExist(err) {
+		return ErrTmNotFound
+	}
+	_ = rmEmptyDirs(dir, f.root)
+	return err
+}
+
+func rmEmptyDirs(from string, upTo string) error {
+	if !strings.HasPrefix(from, upTo) {
+		return errors.New("from is not below upTo")
+	}
+
+	for len(from) > len(upTo) {
+		entries, err := os.ReadDir(from)
+		if err != nil {
+			return err
+		}
+		if len(entries) == 0 {
+			err = os.Remove(from)
+			if err != nil {
+				return err
+			}
+		}
+		from = filepath.Dir(from)
+	}
 	return nil
 }
 
@@ -163,6 +207,10 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	if err != nil {
 		return "", nil, err
 	}
+	err = checkIdValid(id)
+	if err != nil {
+		return "", nil, err
+	}
 	match, actualId := f.getExistingID(id)
 	if match != idMatchFull && match != idMatchDigest {
 		return "", nil, ErrTmNotFound
@@ -170,6 +218,11 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	actualFilename, _, _ := f.filenames(actualId)
 	b, err := os.ReadFile(actualFilename)
 	return actualId, b, err
+}
+
+func checkIdValid(id string) error {
+	_, err := model.ParseTMID(id, true) // official does not matter here. only interested in valid id format
+	return err
 }
 
 func (f *FileRemote) UpdateToc(ids ...string) error {
@@ -317,8 +370,9 @@ func (f *FileRemote) updateToc(ids []string) error {
 			Meta: model.TOCMeta{Created: time.Now()},
 			Data: []*model.TOCEntry{},
 		}
+		names = nil
 		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
-			upd, name, err := f.updateTocWithFile(newTOC, path, info, log, err)
+			upd, name, _, err := f.updateTocWithFile(newTOC, path, info, log, err)
 			if err != nil {
 				return err
 			}
@@ -345,10 +399,16 @@ func (f *FileRemote) updateToc(ids []string) error {
 		for _, id := range ids {
 			path := filepath.Join(f.root, id)
 			info, err := osStat(path)
-			upd, name, _ := f.updateTocWithFile(newTOC, path, info, log, err)
+			upd, name, nameDeleted, _ := f.updateTocWithFile(newTOC, path, info, log, err)
 			if upd {
 				fileCount++
-				names = append(names, name)
+				if nameDeleted != "" {
+					names = slices.DeleteFunc(names, func(s string) bool {
+						return s == nameDeleted
+					})
+				} else if name != "" {
+					names = append(names, name)
+				}
 			}
 		}
 	}
@@ -364,18 +424,30 @@ func (f *FileRemote) updateToc(ids []string) error {
 	if err != nil {
 		return err
 	}
-	msg := "Created table of content with %d entries in %s "
+	msg := "Updated table of content with %d entries in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
 	return nil
 }
 
-func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (bool, string, error) {
+func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
+	if os.IsNotExist(err) {
+		id, found := strings.CutPrefix(path, f.root)
+		if !found {
+			return false, "", "", err
+		}
+		id, _ = strings.CutPrefix(filepath.ToSlash(id), "/")
+		upd, name, err := newTOC.Delete(id)
+		if err != nil {
+			return false, "", "", err
+		}
+		return upd, "", name, nil
+	}
 	if err != nil {
-		return false, "", err
+		return false, "", "", err
 	}
 	if info.IsDir() || !strings.HasSuffix(info.Name(), TMExt) {
-		return false, "", nil
+		return false, "", "", nil
 	}
 	thingMeta, err := getThingMetadata(path)
 	if err != nil {
@@ -384,16 +456,16 @@ func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.F
 		log.Error(msg)
 		log.Error(err.Error())
 		log.Error("The file will be excluded from the table of contents.")
-		return false, "", nil
+		return false, "", "", nil
 	}
 	tmid, err := newTOC.Insert(&thingMeta)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to insert %s into toc:", path))
 		log.Error(err.Error())
 		log.Error("The file will be excluded from the table of contents.")
-		return false, "", nil
+		return false, "", "", nil
 	}
-	return true, tmid.Name, nil
+	return true, tmid.Name, "", nil
 }
 
 type unlockFunc func()

@@ -49,6 +49,9 @@ type ServerInterface interface {
 	// Push a new Thing Model
 	// (POST /thing-models)
 	PushThingModel(w http.ResponseWriter, r *http.Request)
+	// Delete a Thing Model by ID
+	// (DELETE /thing-models/{tmIDOrName})
+	DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params DeleteThingModelByIdParams)
 	// Get the content of a Thing Model by its ID or fetch name
 	// (GET /thing-models/{tmIDOrName})
 	GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params GetThingModelByIdParams)
@@ -418,6 +421,50 @@ func (siw *ServerInterfaceWrapper) PushThingModel(w http.ResponseWriter, r *http
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// DeleteThingModelById operation middleware
+func (siw *ServerInterfaceWrapper) DeleteThingModelById(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmIDOrName" -------------
+	var tmIDOrName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmIDOrName", mux.Vars(r)["tmIDOrName"], &tmIDOrName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmIDOrName", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteThingModelByIdParams
+
+	// ------------- Required query parameter "force" -------------
+
+	if paramValue := r.URL.Query().Get("force"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "force"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "force", r.URL.Query(), &params.Force)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteThingModelById(w, r, tmIDOrName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetThingModelById operation middleware
 func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -569,6 +616,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	}
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}", wrapper.GetThingModelById).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}", wrapper.DeleteThingModelById).Methods("DELETE")
 
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.PushThingModel).Methods("POST")
 

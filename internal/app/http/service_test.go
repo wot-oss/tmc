@@ -452,6 +452,42 @@ func Test_FetchingThingModel(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+func Test_DeleteThingModel(t *testing.T) {
+
+	rm := remotes.NewMockRemoteManager(t)
+	r := remotes.NewMockRemote(t)
+	rm.On("Get", remote).Return(r, nil)
+	underTest, _ := NewDefaultHandlerService(rm, remotes.EmptySpec, remote)
+
+	t.Run("without errors", func(t *testing.T) {
+		tmid := "some-id"
+		r.On("Delete", tmid).Return(nil).Once()
+		r.On("UpdateToc", tmid).Return(nil).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns nil result
+		assert.NoError(t, err)
+	})
+
+	t.Run("with error when deleting", func(t *testing.T) {
+		tmid := "some-id2"
+		r.On("Delete", tmid).Return(remotes.ErrTmNotFound).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns error result
+		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+	})
+
+	t.Run("with error when updating toc", func(t *testing.T) {
+		tmid := "some-id3"
+		r.On("Delete", tmid).Return(nil).Once()
+		r.On("UpdateToc", tmid).Return(errors.New("could not update toc")).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns error result
+		assert.ErrorContains(t, err, "could not update toc")
+	})
+}
 
 func Test_PushingThingModel(t *testing.T) {
 	rm := remotes.NewMockRemoteManager(t)

@@ -85,6 +85,50 @@ func (t TmcRemote) Push(id model.TMID, raw []byte) error {
 		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
 }
+func (t TmcRemote) Delete(id string) error {
+	reqUrl := t.parsedRoot.JoinPath("thing-models", id)
+	vals := url.Values{
+		"force": []string{"true"},
+	}
+	reqUrl.RawQuery = vals.Encode()
+
+	req, err := http.NewRequest(http.MethodDelete, reqUrl.String(), nil)
+	if err != nil {
+		return err
+	}
+	resp, err := doHttp(req, t.auth)
+	if err != nil {
+		return err
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusBadRequest:
+		// there are two reasons why we could receive a 400 response: invalid 'force' flag or invalid id
+		// we're sure that we've passed a valid 'force' flag, so it must be the id
+		return model.ErrInvalidId
+	case http.StatusNotFound:
+		return ErrTmNotFound
+	case http.StatusInternalServerError:
+		var e server.ErrorResponse
+		err = json.Unmarshal(b, &e)
+		if err != nil {
+			return err
+		}
+		detail := e.Title
+		if e.Detail != nil {
+			detail = *e.Detail
+		}
+		return errors.New(detail)
+	default:
+		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+	}
+}
 
 func (t TmcRemote) Spec() RepoSpec {
 	return t.spec
