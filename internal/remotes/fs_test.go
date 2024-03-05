@@ -12,7 +12,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/otiai10/copy"
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"golang.org/x/exp/rand"
@@ -227,6 +226,31 @@ func TestFileRemote_List(t *testing.T) {
 	assert.Len(t, list.Entries, 3)
 }
 
+func copyDir(from, to string) {
+	fds, err := os.ReadDir(from)
+	if err != nil {
+		fmt.Println(err)
+	}
+	for _, fd := range fds {
+		src := filepath.Join(from, fd.Name())
+		dst := filepath.Join(to, fd.Name())
+
+		if fd.IsDir() {
+			absDst, err := filepath.Abs(dst)
+			if err != nil {
+				fmt.Println(err)
+			}
+			err = os.MkdirAll(absDst, defaultDirPermissions)
+			if err != nil {
+				fmt.Println(err)
+			}
+			copyDir(src, dst)
+		} else {
+			copyFile(src, dst)
+		}
+	}
+}
+
 func copyFile(from, to string) {
 	from, err := filepath.Abs(from)
 	if err != nil {
@@ -240,14 +264,19 @@ func copyFile(from, to string) {
 	if err != nil {
 		fmt.Println(err)
 	}
+
 	fromF, err := os.OpenFile(from, os.O_RDONLY, 0)
 	if err != nil {
 		fmt.Println(err)
 	}
+	defer fromF.Close()
+
 	toF, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE, 0700)
 	if err != nil {
 		fmt.Println(err)
 	}
+	defer toF.Close()
+
 	_, err = io.Copy(toF, fromF)
 	if err != nil {
 		fmt.Println(err)
@@ -289,8 +318,7 @@ func TestFileRemote_Delete(t *testing.T) {
 		root: temp,
 		spec: spec,
 	}
-	err := copy.Copy("../../test/data/toc", temp)
-	assert.NoError(t, err)
+	copyDir("../../test/data/toc", temp)
 
 	t.Run("invalid id", func(t *testing.T) {
 		err := r.Delete("invalid-id")
@@ -317,7 +345,7 @@ func TestFileRemote_Delete(t *testing.T) {
 		id3 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"
 		assert.NoError(t, r.Delete(id1))
 		assert.NoError(t, r.Delete(id2))
-		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
+		_, err := os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
 		assert.True(t, os.IsNotExist(err))
 		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp"))
 		assert.NoError(t, err)
@@ -337,11 +365,10 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		root: temp,
 		spec: spec,
 	}
-	err := copy.Copy("../../test/data/toc", temp)
-	assert.NoError(t, err)
+	copyDir("../../test/data/toc", temp)
 
 	t.Run("single id/no toc file", func(t *testing.T) {
-		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
@@ -356,7 +383,7 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 
 	})
 	t.Run("single id/existing toc file", func(t *testing.T) {
-		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
+		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
@@ -369,7 +396,7 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 	})
 
 	t.Run("full update/existing toc file", func(t *testing.T) {
-		err = r.UpdateToc()
+		err := r.UpdateToc()
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()

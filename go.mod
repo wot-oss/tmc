@@ -12,7 +12,6 @@ require (
 	github.com/kennygrant/sanitize v1.2.4
 	github.com/kinbiko/jsonassert v1.1.1
 	github.com/oapi-codegen/runtime v1.1.0
-	github.com/otiai10/copy v1.14.0
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.17.0
@@ -43,7 +42,6 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
