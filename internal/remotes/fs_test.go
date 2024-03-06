@@ -3,7 +3,6 @@ package remotes
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -12,7 +11,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/otiai10/copy"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"golang.org/x/exp/rand"
@@ -144,36 +144,36 @@ func TestFileRemote_Fetch(t *testing.T) {
 	fileB := []byte("{\"ver\":\"b\"}")
 	fileC := []byte("{\"ver\":\"c\"}")
 	fileD := []byte("{\"ver\":\"d\"}")
-	idA := filepath.Join(tmName, "v1.0.0-20231208142856-a49617d2e4fc.tm.json")
-	idB := filepath.Join(tmName, "v1.0.0-20231207142856-b49617d2e4fc.tm.json")
-	idC := filepath.Join(tmName, "v1.2.1-20231209142856-c49617d2e4fc.tm.json")
-	idD := filepath.Join(tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json")
-	nameA := filepath.Join(temp, idA)
-	nameB := filepath.Join(temp, idB)
-	nameC := filepath.Join(temp, idC)
-	nameD := filepath.Join(temp, idD)
+	idA := tmName + "/v1.0.0-20231208142856-a49617d2e4fc.tm.json"
+	idB := tmName + "/v1.0.0-20231207142856-b49617d2e4fc.tm.json"
+	idC := tmName + "/v1.2.1-20231209142856-c49617d2e4fc.tm.json"
+	idD := tmName + "/v0.0.1-20231208142856-d49617d2e4fc.tm.json"
+	fNameA := filepath.Join(temp, idA)
+	fNameB := filepath.Join(temp, idB)
+	fNameC := filepath.Join(temp, idC)
+	fNameD := filepath.Join(temp, idD)
 	_ = os.MkdirAll(filepath.Join(temp, tmName), defaultDirPermissions)
-	_ = os.WriteFile(nameA, fileA, defaultFilePermissions)
-	_ = os.WriteFile(nameB, fileB, defaultFilePermissions)
-	_ = os.WriteFile(nameC, fileC, defaultFilePermissions)
-	_ = os.WriteFile(nameD, fileD, defaultFilePermissions)
+	_ = os.WriteFile(fNameA, fileA, defaultFilePermissions)
+	_ = os.WriteFile(fNameB, fileB, defaultFilePermissions)
+	_ = os.WriteFile(fNameC, fileC, defaultFilePermissions)
+	_ = os.WriteFile(fNameD, fileD, defaultFilePermissions)
 
-	actId, bytes, err := r.Fetch(idA)
+	actId, content, err := r.Fetch(idA)
 	assert.NoError(t, err)
 	assert.Equal(t, idA, actId)
-	assert.Equal(t, fileA, bytes)
+	assert.Equal(t, fileA, content)
 
-	actId, bytes, err = r.Fetch(idB)
+	actId, content, err = r.Fetch(idB)
 	assert.NoError(t, err)
 	assert.Equal(t, idB, actId)
-	assert.Equal(t, fileB, bytes)
+	assert.Equal(t, fileB, content)
 
-	actId, bytes, err = r.Fetch(filepath.Join(tmName, "v1.0.0-20231212142856-a49617d2e4fc.tm.json"))
+	actId, content, err = r.Fetch(tmName + "/v1.0.0-20231212142856-a49617d2e4fc.tm.json")
 	assert.NoError(t, err)
 	assert.Equal(t, idA, actId)
-	assert.Equal(t, fileA, bytes)
+	assert.Equal(t, fileA, content)
 
-	actId, bytes, err = r.Fetch(filepath.Join(tmName, "v1.0.0-20231212142856-e49617d2e4fc.tm.json"))
+	actId, content, err = r.Fetch(tmName + "/v1.0.0-20231212142856-e49617d2e4fc.tm.json")
 	assert.ErrorIs(t, err, ErrTmNotFound)
 	assert.Equal(t, "", actId)
 
@@ -221,37 +221,10 @@ func TestFileRemote_List(t *testing.T) {
 		root: temp,
 		spec: NewRemoteSpec("fr"),
 	}
-	copyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	list, err := r.List(&model.SearchParams{})
 	assert.NoError(t, err)
 	assert.Len(t, list.Entries, 3)
-}
-
-func copyFile(from, to string) {
-	from, err := filepath.Abs(from)
-	if err != nil {
-		fmt.Println(err)
-	}
-	to, err = filepath.Abs(to)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.MkdirAll(filepath.Dir(to), defaultDirPermissions)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fromF, err := os.OpenFile(from, os.O_RDONLY, 0)
-	if err != nil {
-		fmt.Println(err)
-	}
-	toF, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE, 0700)
-	if err != nil {
-		fmt.Println(err)
-	}
-	_, err = io.Copy(toF, fromF)
-	if err != nil {
-		fmt.Println(err)
-	}
 }
 
 func TestFileRemote_Versions(t *testing.T) {
@@ -261,7 +234,7 @@ func TestFileRemote_Versions(t *testing.T) {
 		root: temp,
 		spec: NewRemoteSpec("fr"),
 	}
-	copyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	vers, err := r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
 	assert.NoError(t, err)
 	assert.Len(t, vers, 1)
@@ -289,8 +262,7 @@ func TestFileRemote_Delete(t *testing.T) {
 		root: temp,
 		spec: spec,
 	}
-	err := copy.Copy("../../test/data/toc", temp)
-	assert.NoError(t, err)
+	testutils.CopyDir("../../test/data/toc", temp)
 
 	t.Run("invalid id", func(t *testing.T) {
 		err := r.Delete("invalid-id")
@@ -317,7 +289,7 @@ func TestFileRemote_Delete(t *testing.T) {
 		id3 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"
 		assert.NoError(t, r.Delete(id1))
 		assert.NoError(t, r.Delete(id2))
-		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
+		_, err := os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
 		assert.True(t, os.IsNotExist(err))
 		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp"))
 		assert.NoError(t, err)
@@ -337,11 +309,10 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		root: temp,
 		spec: spec,
 	}
-	err := copy.Copy("../../test/data/toc", temp)
-	assert.NoError(t, err)
+	testutils.CopyDir("../../test/data/toc", temp)
 
 	t.Run("single id/no toc file", func(t *testing.T) {
-		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
@@ -356,7 +327,7 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 
 	})
 	t.Run("single id/existing toc file", func(t *testing.T) {
-		err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
+		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
@@ -369,7 +340,7 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 	})
 
 	t.Run("full update/existing toc file", func(t *testing.T) {
-		err = r.UpdateToc()
+		err := r.UpdateToc()
 		assert.NoError(t, err)
 
 		toc, err := r.readTOC()
