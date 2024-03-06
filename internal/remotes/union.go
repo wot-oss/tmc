@@ -69,26 +69,21 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 	defer cancel()
 	results := mapConcurrent(ctx, u.rs, mapper)
 	res := fetchRes{err: ErrTmNotFound}
-	var errs []*RepoAccessError
-	for fr := range results {
-		if fr.res.err == nil {
+	res, errs := reduce(results, res, func(r1, r2 fetchRes) fetchRes {
+		// the starting value cannot have err == nil, as cannot any intermediate accumulated result (r1)
+		// hence, only the r2 could possibly be a successful fetch result
+		if r2.err == nil {
 			cancel()
-			res = fr.res
-			errs = nil
-			break
 		}
-		if fr.err != nil {
-			errs = append(errs, fr.err)
-		}
-	}
-
+		return r2
+	})
 	if res.err != nil {
 		msg := fmt.Sprintf("No thing model found for %v", id)
 		slog.Default().Error(msg)
 		return "", nil, ErrTmNotFound, errs
 	}
 
-	return res.id, res.b, nil, errs
+	return res.id, res.b, nil, nil
 }
 
 func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
