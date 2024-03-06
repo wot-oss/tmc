@@ -95,10 +95,7 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
 	mapper := func(r Remote) mapResult[*model.SearchResult] {
 		toc, err := r.List(search)
-		return mapResult[*model.SearchResult]{
-			res: &toc,
-			err: newRepoAccessError(r, err),
-		}
+		return mapResult[*model.SearchResult]{res: &toc, err: newRepoAccessError(r, err)}
 	}
 
 	reducer := func(t1, t2 *model.SearchResult) *model.SearchResult {
@@ -158,10 +155,7 @@ func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError)
 		if !errors.Is(err, ErrTmNotFound) {
 			raErr = newRepoAccessError(r, err)
 		}
-		return mapResult[[]model.FoundVersion]{
-			res: vers,
-			err: raErr,
-		}
+		return mapResult[[]model.FoundVersion]{res: vers, err: raErr}
 	}
 	var ident []model.FoundVersion
 	results := mapConcurrent(context.Background(), u.rs, mapper)
