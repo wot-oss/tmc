@@ -26,10 +26,17 @@ type RepoAccessError struct {
 }
 
 func NewRepoAccessError(spec RepoSpec, err error) *RepoAccessError {
-	return &RepoAccessError{
-		spec: spec,
-		err:  err,
+	if err == nil {
+		return nil
 	}
+	return &RepoAccessError{spec: spec, err: err}
+}
+func newRepoAccessError(remote Remote, err error) *RepoAccessError {
+	// the only reason for this check (and the whole function) is to spare setting up all the mocks throughout tests with .On("Spec",...)
+	if err == nil {
+		return nil
+	}
+	return NewRepoAccessError(remote.Spec(), err)
 }
 
 func (e *RepoAccessError) Error() string {
@@ -38,9 +45,6 @@ func (e *RepoAccessError) Error() string {
 
 func (e *RepoAccessError) Unwrap() error {
 	return e.err
-}
-func (e *RepoAccessError) Spec() RepoSpec {
-	return e.spec
 }
 
 func NewUnion(rs ...Remote) *Union {
@@ -59,8 +63,8 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 	mapper := func(r Remote) mapResult[fetchRes] {
 		fid, thing, err := r.Fetch(id)
 		res := fetchRes{id: fid, b: thing, err: err}
-		if err != nil && !errors.Is(err, ErrTmNotFound) {
-			return mapResult[fetchRes]{res: res, err: NewRepoAccessError(r.Spec(), err)}
+		if !errors.Is(err, ErrTmNotFound) {
+			return mapResult[fetchRes]{res: res, err: newRepoAccessError(r, err)}
 		}
 		return mapResult[fetchRes]{res: res, err: nil}
 	}
@@ -70,8 +74,10 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 	results := mapConcurrent(ctx, u.rs, mapper)
 	res := fetchRes{err: ErrTmNotFound}
 	res, errs := reduce(results, res, func(r1, r2 fetchRes) fetchRes {
-		// the starting value cannot have err == nil, as cannot any intermediate accumulated result (r1)
-		// hence, only the r2 could possibly be a successful fetch result
+		if r1.err == nil {
+			cancel()
+			return r1
+		}
 		if r2.err == nil {
 			cancel()
 		}
@@ -88,14 +94,10 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 
 func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
 	mapper := func(r Remote) mapResult[*model.SearchResult] {
-		var raErr *RepoAccessError
 		toc, err := r.List(search)
-		if err != nil {
-			raErr = NewRepoAccessError(r.Spec(), err)
-		}
 		return mapResult[*model.SearchResult]{
 			res: &toc,
-			err: raErr,
+			err: newRepoAccessError(r, err),
 		}
 	}
 
@@ -153,10 +155,8 @@ func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError)
 	mapper := func(r Remote) mapResult[[]model.FoundVersion] {
 		var raErr *RepoAccessError
 		vers, err := r.Versions(name)
-		if err != nil {
-			if !errors.Is(err, ErrTmNotFound) {
-				raErr = NewRepoAccessError(r.Spec(), err)
-			}
+		if !errors.Is(err, ErrTmNotFound) {
+			raErr = newRepoAccessError(r, err)
 		}
 		return mapResult[[]model.FoundVersion]{
 			res: vers,
