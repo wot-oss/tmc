@@ -63,10 +63,10 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 	mapper := func(r Remote) mapResult[fetchRes] {
 		fid, thing, err := r.Fetch(id)
 		res := fetchRes{id: fid, b: thing, err: err}
-		if !errors.Is(err, ErrTmNotFound) {
-			return mapResult[fetchRes]{res: res, err: newRepoAccessError(r, err)}
+		if errors.Is(err, ErrTmNotFound) {
+			return mapResult[fetchRes]{res: res, err: nil}
 		}
-		return mapResult[fetchRes]{res: res, err: nil}
+		return mapResult[fetchRes]{res: res, err: newRepoAccessError(r, err)}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -150,12 +150,11 @@ func mapConcurrent[T any](ctx context.Context, remotes []Remote, mapper func(r R
 
 func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError) {
 	mapper := func(r Remote) mapResult[[]model.FoundVersion] {
-		var raErr *RepoAccessError
 		vers, err := r.Versions(name)
-		if !errors.Is(err, ErrTmNotFound) {
-			raErr = newRepoAccessError(r, err)
+		if errors.Is(err, ErrTmNotFound) {
+			return mapResult[[]model.FoundVersion]{res: vers, err: nil}
 		}
-		return mapResult[[]model.FoundVersion]{res: vers, err: raErr}
+		return mapResult[[]model.FoundVersion]{res: vers, err: newRepoAccessError(r, err)}
 	}
 	var ident []model.FoundVersion
 	results := mapConcurrent(context.Background(), u.rs, mapper)
