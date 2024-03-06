@@ -1,6 +1,7 @@
 package remotes
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -17,11 +18,6 @@ type Union struct {
 type mapResult[T any] struct {
 	res T
 	err *RepoAccessError
-}
-
-type joinedResult[T any] struct {
-	res  T
-	errs []*RepoAccessError
 }
 
 type RepoAccessError struct {
@@ -48,14 +44,8 @@ func (e *RepoAccessError) Spec() RepoSpec {
 }
 
 func NewUnion(rs ...Remote) *Union {
-	// paranoia calling: flatten the list to disallow union of union until it's necessary
-	var ers []Remote
-	for _, r := range rs {
-		ers = append(ers, r)
-	}
-
 	return &Union{
-		rs: ers,
+		rs: rs,
 	}
 }
 
@@ -74,9 +64,23 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 		}
 		return mapResult[fetchRes]{res: res, err: nil}
 	}
-	results, cancel := mapConcurrent(u.rs, mapper)
-	r := selectFirstSuccessful(results, cancel, func(r fetchRes) bool { return r.err == nil }, fetchRes{err: ErrTmNotFound})
-	res, errs := r.res, r.errs
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	results := mapConcurrent(ctx, u.rs, mapper)
+	res := fetchRes{err: ErrTmNotFound}
+	var errs []*RepoAccessError
+	for fr := range results {
+		if fr.res.err == nil {
+			cancel()
+			res = fr.res
+			errs = nil
+			break
+		}
+		if fr.err != nil {
+			errs = append(errs, fr.err)
+		}
+	}
 
 	if res.err != nil {
 		msg := fmt.Sprintf("No thing model found for %v", id)
@@ -105,19 +109,13 @@ func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAcc
 		return t1
 	}
 
-	res, errs := mapReduce[*model.SearchResult](u.rs, mapper, &model.SearchResult{}, reducer)
-	return *res, errs
+	results := mapConcurrent(context.Background(), u.rs, mapper)
+	r, errs := reduce(results, &model.SearchResult{}, reducer)
+	return *r, errs
 }
 
-// mapReduce performs a concurrent map of remotes to mapResult[T], then reduces the results to a single joinedResult[T]
-func mapReduce[T any](remotes []Remote, mapper func(r Remote) mapResult[T], identity T, reducer func(t1, t2 T) T) (T, []*RepoAccessError) {
-	results, _ := mapConcurrent(remotes, mapper)
-	r := reduce(results, identity, reducer)
-	return r.res, r.errs
-}
-
-// reduce reads results from ch until ch is closed and reduces them to a single joinedResult with identity as the starting value
-func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T) joinedResult[T] {
+// reduce reads results from ch until ch is closed and reduces them to a single result with identity as the starting value
+func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T) (T, []*RepoAccessError) {
 	accumulator := identity
 	var errs []*RepoAccessError
 	for res := range ch {
@@ -126,28 +124,24 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T)
 			errs = append(errs, res.err)
 		}
 	}
-	return joinedResult[T]{
-		res:  accumulator,
-		errs: errs,
-	}
+	return accumulator, errs
 }
 
 // mapConcurrent concurrently maps all remotes with the mapper to a mapResult.
 // Returns channel with results and a cancel channel, which can be closed to abort processing (e.g. if enough results have been received)
-func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) (results <-chan mapResult[T], cancel chan struct{}) {
+func mapConcurrent[T any](ctx context.Context, remotes []Remote, mapper func(r Remote) mapResult[T]) (results <-chan mapResult[T]) {
 	res := make(chan mapResult[T])
-	cancel = make(chan struct{})
 	wg := sync.WaitGroup{}
 	wg.Add(len(remotes))
 
 	// start goroutines with cancellable mapping functions
 	for _, remote := range remotes {
 		go func(r Remote) {
+			defer wg.Done()
 			select {
-			case <-cancel:
+			case <-ctx.Done():
 			case res <- mapper(r):
 			}
-			wg.Done()
 		}(remote)
 	}
 
@@ -157,30 +151,9 @@ func mapConcurrent[T any](remotes []Remote, mapper func(r Remote) mapResult[T]) 
 		close(res)
 	}()
 
-	return res, cancel
+	return res
 }
 
-// selectFirstSuccessful reads results from ch until it finds the first successful with isSuccess or until ch is closed.
-// Closes done before returning to signal that no more reads from ch will be made
-func selectFirstSuccessful[T any](ch <-chan mapResult[T], done chan struct{}, isSuccess func(res T) bool, none T) joinedResult[T] {
-	defer close(done)
-	var errs []*RepoAccessError
-	for res := range ch {
-		if isSuccess(res.res) {
-			return joinedResult[T]{
-				res:  res.res,
-				errs: nil,
-			}
-		}
-		if res.err != nil {
-			errs = append(errs, res.err)
-		}
-	}
-	return joinedResult[T]{
-		res:  none,
-		errs: errs,
-	}
-}
 func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError) {
 	mapper := func(r Remote) mapResult[[]model.FoundVersion] {
 		var raErr *RepoAccessError
@@ -196,7 +169,8 @@ func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError)
 		}
 	}
 	var ident []model.FoundVersion
-	res, errs := mapReduce[[]model.FoundVersion](u.rs, mapper, ident, model.MergeFoundVersions)
+	results := mapConcurrent(context.Background(), u.rs, mapper)
+	res, errs := reduce(results, ident, model.MergeFoundVersions)
 	return res, errs
 }
 
@@ -210,7 +184,8 @@ func (u *Union) ListCompletions(kind string, toComplete string) []string {
 	}
 	reducer := func(r1, r2 []string) []string { return append(r1, r2...) }
 	var cs []string
-	cs, _ = mapReduce(u.rs, mapper, cs, reducer)
-	slices.Sort(cs)
-	return slices.Compact(cs)
+	results := mapConcurrent(context.Background(), u.rs, mapper)
+	res, _ := reduce(results, cs, reducer)
+	slices.Sort(res)
+	return slices.Compact(res)
 }
