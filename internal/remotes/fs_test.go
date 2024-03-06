@@ -3,7 +3,6 @@ package remotes
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -11,6 +10,8 @@ import (
 	"testing"
 	"text/template"
 	"time"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
@@ -220,67 +221,10 @@ func TestFileRemote_List(t *testing.T) {
 		root: temp,
 		spec: NewRemoteSpec("fr"),
 	}
-	copyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	list, err := r.List(&model.SearchParams{})
 	assert.NoError(t, err)
 	assert.Len(t, list.Entries, 3)
-}
-
-func copyDir(from, to string) {
-	fds, err := os.ReadDir(from)
-	if err != nil {
-		fmt.Println(err)
-	}
-	for _, fd := range fds {
-		src := filepath.Join(from, fd.Name())
-		dst := filepath.Join(to, fd.Name())
-
-		if fd.IsDir() {
-			absDst, err := filepath.Abs(dst)
-			if err != nil {
-				fmt.Println(err)
-			}
-			err = os.MkdirAll(absDst, defaultDirPermissions)
-			if err != nil {
-				fmt.Println(err)
-			}
-			copyDir(src, dst)
-		} else {
-			copyFile(src, dst)
-		}
-	}
-}
-
-func copyFile(from, to string) {
-	from, err := filepath.Abs(from)
-	if err != nil {
-		fmt.Println(err)
-	}
-	to, err = filepath.Abs(to)
-	if err != nil {
-		fmt.Println(err)
-	}
-	err = os.MkdirAll(filepath.Dir(to), defaultDirPermissions)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	fromF, err := os.OpenFile(from, os.O_RDONLY, 0)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer fromF.Close()
-
-	toF, err := os.OpenFile(to, os.O_WRONLY|os.O_CREATE, 0700)
-	if err != nil {
-		fmt.Println(err)
-	}
-	defer toF.Close()
-
-	_, err = io.Copy(toF, fromF)
-	if err != nil {
-		fmt.Println(err)
-	}
 }
 
 func TestFileRemote_Versions(t *testing.T) {
@@ -290,7 +234,7 @@ func TestFileRemote_Versions(t *testing.T) {
 		root: temp,
 		spec: NewRemoteSpec("fr"),
 	}
-	copyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	vers, err := r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
 	assert.NoError(t, err)
 	assert.Len(t, vers, 1)
@@ -318,7 +262,7 @@ func TestFileRemote_Delete(t *testing.T) {
 		root: temp,
 		spec: spec,
 	}
-	copyDir("../../test/data/toc", temp)
+	testutils.CopyDir("../../test/data/toc", temp)
 
 	t.Run("invalid id", func(t *testing.T) {
 		err := r.Delete("invalid-id")
@@ -365,7 +309,7 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		root: temp,
 		spec: spec,
 	}
-	copyDir("../../test/data/toc", temp)
+	testutils.CopyDir("../../test/data/toc", temp)
 
 	t.Run("single id/no toc file", func(t *testing.T) {
 		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
