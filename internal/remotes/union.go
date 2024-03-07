@@ -122,7 +122,7 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T)
 }
 
 // mapConcurrent concurrently maps all remotes with the mapper to a mapResult.
-// Returns channel with results and a cancel channel, which can be closed to abort processing (e.g. if enough results have been received)
+// Returns channel with results
 func mapConcurrent[T any](ctx context.Context, remotes []Remote, mapper func(r Remote) mapResult[T]) (results <-chan mapResult[T]) {
 	res := make(chan mapResult[T])
 	wg := sync.WaitGroup{}
