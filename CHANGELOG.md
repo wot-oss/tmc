@@ -8,6 +8,10 @@
 - Implemented autocompletion for most flags and arguments for the shell autocompletion script
 - Added an optional flag to fetch to restore original external id to the fetched TM
 
+### Changed
+
+- Request results from multiple remotes concurrently instead of sequentially
+
 ### Fixed
 
 - handle timestamp collisions on push by retrying after one second, forcing generation of new id, or reporting the error if all else fails
