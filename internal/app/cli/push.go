@@ -91,6 +91,7 @@ func (p *PushExecutor) Push(filename string, spec remotes.RepoSpec, optPath stri
 		tocErr := remote.UpdateToc(okIds...)
 		if tocErr != nil {
 			Stderrf("Cannot create TOC: %v", tocErr)
+			return res, tocErr
 		}
 	}
 	return res, err
@@ -137,7 +138,7 @@ func (p *PushExecutor) pushFile(filename string, remote remotes.Remote, optPath 
 	}
 	id, err := commands.NewPushCommand(p.now).PushFile(raw, remote, optPath)
 	if err != nil {
-		var errExists *remotes.ErrTMExists
+		var errExists *remotes.ErrTMIDConflict
 		if errors.As(err, &errExists) {
 			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId), errExists.ExistingId}, nil
 		}

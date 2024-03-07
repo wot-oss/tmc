@@ -135,12 +135,11 @@ func TestTmcRemote_List(t *testing.T) {
 				Author:       []string{"author1", "author2"},
 				Manufacturer: []string{"manuf1", "man&uf2"},
 				Mpn:          []string{"mpn"},
-				ExternalID:   []string{"ext1", "ext2"},
 				Name:         "autho",
 				Query:        "some string",
 				Options:      model.SearchOptions{NameFilterType: model.PrefixMatch},
 			},
-			expUrl: "/inventory?filter.name=autho&filter.author=author1%2Cauthor2&filter.externalID=ext1%2Cext2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&search=some+string",
+			expUrl: "/inventory?filter.name=autho&filter.author=author1%2Cauthor2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&search=some+string",
 			expErr: "",
 			expRes: 3,
 		},
@@ -152,7 +151,6 @@ func TestTmcRemote_List(t *testing.T) {
 				Author:       []string{"author1", "author2"},
 				Manufacturer: []string{"manuf1", "man&uf2"},
 				Mpn:          []string{"mpn"},
-				ExternalID:   []string{"ext1", "ext2"},
 				Name:         "corp/mpn",
 				Query:        "some string",
 				Options:      model.SearchOptions{NameFilterType: model.FullMatch},
@@ -253,7 +251,7 @@ func TestTmcRemote_Versions(t *testing.T) {
 			body:    versionsResp,
 			status:  http.StatusOK,
 			reqName: "author/manufacturer/mpn/folder",
-			expUrl:  "/inventory/author%2Fmanufacturer%2Fmpn%2Ffolder/versions",
+			expUrl:  "/inventory/author%2Fmanufacturer%2Fmpn%2Ffolder/.versions",
 			expErr:  "",
 			expRes:  1,
 		},
@@ -262,7 +260,7 @@ func TestTmcRemote_Versions(t *testing.T) {
 			body:    []byte(`{"detail":"invalid name"}`),
 			status:  http.StatusBadRequest,
 			reqName: "zzzzzz",
-			expUrl:  "/inventory/zzzzzz/versions",
+			expUrl:  "/inventory/zzzzzz/.versions",
 			expErr:  "invalid name",
 			expRes:  0,
 		},
@@ -271,7 +269,7 @@ func TestTmcRemote_Versions(t *testing.T) {
 			body:    []byte(`{"detail":"something bad happened"}`),
 			status:  http.StatusInternalServerError,
 			reqName: "author/manufacturer/mpn",
-			expUrl:  "/inventory/author%2Fmanufacturer%2Fmpn/versions",
+			expUrl:  "/inventory/author%2Fmanufacturer%2Fmpn/.versions",
 			expErr:  "something bad happened",
 			expRes:  0,
 		},
@@ -280,7 +278,7 @@ func TestTmcRemote_Versions(t *testing.T) {
 			body:    []byte(`{"detail":"no coffee for you"}`),
 			status:  http.StatusTeapot,
 			reqName: "author/manufacturer/mpn",
-			expUrl:  "/inventory/author%2Fmanufacturer%2Fmpn/versions",
+			expUrl:  "/inventory/author%2Fmanufacturer%2Fmpn/.versions",
 			expErr:  "received unexpected HTTP response",
 			expRes:  0,
 		},
@@ -326,7 +324,7 @@ func TestTmcRemote_Push(t *testing.T) {
 	assert.NoError(t, err)
 	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
-	tmErr := &ErrTMExists{ExistingId: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json"}
+	tmErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json"}
 
 	tests := []ht{
 		{
@@ -339,7 +337,7 @@ func TestTmcRemote_Push(t *testing.T) {
 		{
 			name:     "tm exists",
 			reqBody:  pushBody,
-			respBody: []byte(`{"detail":"` + tmErr.Error() + `"}`),
+			respBody: []byte(`{"detail":"` + tmErr.Error() + `", "code": "` + tmErr.Code() + `"}`),
 			status:   http.StatusConflict,
 			expErr:   tmErr,
 		},
@@ -370,6 +368,170 @@ func TestTmcRemote_Push(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
 			err := r.Push(model.TMID{Name: "ignored in tmc remote"}, pushBody)
+			if test.expErr == nil {
+				assert.NoError(t, err)
+			} else {
+				assert.Equal(t, test.expErr, err)
+			}
+		})
+	}
+}
+
+func TestTmcRemote_ListCompletions(t *testing.T) {
+
+	type ht struct {
+		name       string
+		kind       string
+		toComplete string
+		status     int
+		respBody   []byte
+		expUrl     string
+		expErr     error
+		expComps   []string
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		eu, _ := url.Parse(h.expUrl)
+		assert.Equal(t, eu.RequestURI(), r.RequestURI)
+		assert.Equal(t, eu.Query(), r.URL.Query())
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.respBody)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRemoteConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:       "invalid kind",
+			kind:       "invalid",
+			toComplete: "",
+			status:     http.StatusBadRequest,
+			respBody:   []byte(`{"detail":"` + "" + `"}`),
+			expUrl:     "/.completions?kind=invalid&toComplete=",
+			expErr:     ErrInvalidCompletionParams,
+			expComps:   nil,
+		},
+		{
+			name:       "names",
+			kind:       "names",
+			toComplete: "",
+			status:     http.StatusOK,
+			respBody:   []byte("abc\ndef\n"),
+			expUrl:     "/.completions?kind=names&toComplete=",
+			expErr:     nil,
+			expComps:   []string{"abc", "def"},
+		},
+		{
+			name:       "fetchNames",
+			kind:       "fetchNames",
+			toComplete: "abc:",
+			status:     http.StatusOK,
+			respBody:   []byte("abc:v1.0.2\nabc:v3.2.1\n"),
+			expUrl:     "/.completions?kind=fetchNames&toComplete=abc%3A",
+			expErr:     nil,
+			expComps:   []string{"abc:v1.0.2", "abc:v3.2.1"},
+		},
+		{
+			name:       "unexpected status",
+			kind:       "names",
+			toComplete: "",
+			status:     http.StatusTeapot,
+			respBody:   []byte(`{"detail":"something bad happened"}`),
+			expUrl:     "/.completions?kind=names&toComplete=",
+			expErr:     errors.New("received unexpected HTTP response from remote TM catalog: 418 I'm a teapot"),
+			expComps:   nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+
+			cs, err := r.ListCompletions(test.kind, test.toComplete)
+			if test.expErr == nil {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expComps, cs)
+			} else {
+				assert.Equal(t, test.expErr, err)
+			}
+		})
+	}
+}
+
+func TestTmcRemote_Delete(t *testing.T) {
+	type ht struct {
+		name     string
+		id       string
+		status   int
+		respBody []byte
+		expErr   error
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/thing-models/"+h.id, r.URL.Path)
+		assert.Equal(t, url.Values{"force": []string{"true"}}, r.URL.Query())
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.respBody)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRemoteConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:     "invalid id",
+			id:       "invalid-id",
+			status:   http.StatusBadRequest,
+			expErr:   model.ErrInvalidId,
+			respBody: []byte(`{"detail":"id invalid"}`),
+		},
+		{
+			name:     "non-existing id",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusNotFound,
+			respBody: []byte(`{"detail":"TM not found"}`),
+			expErr:   ErrTmNotFound,
+		},
+		{
+			name:     "existing id",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusNoContent,
+			respBody: nil,
+			expErr:   nil,
+		},
+		{
+			name:     "internal error",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusInternalServerError,
+			respBody: []byte(`{"detail":"something bad happened"}`),
+			expErr:   errors.New("something bad happened"),
+		},
+		{
+			name:     "unexpected status",
+			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
+			status:   http.StatusTeapot,
+			respBody: nil,
+			expErr:   errors.New("received unexpected HTTP response from remote TM catalog: 418 I'm a teapot"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+
+			err := r.Delete(test.id)
 			if test.expErr == nil {
 				assert.NoError(t, err)
 			} else {

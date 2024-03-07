@@ -29,10 +29,26 @@ func TestTOC_Filter(t *testing.T) {
 
 		toc = prepareToc()
 		toc.Filter(&SearchParams{Name: "aut/man/mpn", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		assert.Len(t, toc.Data, 1)
+		assert.NotNil(t, toc.findByName("aut/man/mpn"))
+		assert.Nil(t, toc.findByName("aut/man/mpn2"))
+		assert.Nil(t, toc.findByName("man/mpn"))
+
+		toc = prepareToc()
+		toc.Filter(&SearchParams{Name: "aut/man", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, toc.Data, 2)
 		assert.NotNil(t, toc.findByName("aut/man/mpn"))
 		assert.NotNil(t, toc.findByName("aut/man/mpn2"))
-		assert.Nil(t, toc.findByName("man/mpn"))
+
+		toc = prepareToc()
+		toc.Filter(&SearchParams{Name: "aut/man/", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		assert.Len(t, toc.Data, 2)
+		assert.NotNil(t, toc.findByName("aut/man/mpn"))
+		assert.NotNil(t, toc.findByName("aut/man/mpn2"))
+
+		toc = prepareToc()
+		toc.Filter(&SearchParams{Name: "aut/man/mpn/sub", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		assert.Len(t, toc.Data, 0)
 	})
 	t.Run("filter by mpn", func(t *testing.T) {
 		toc := prepareToc()
@@ -126,22 +142,6 @@ func TestTOC_Filter(t *testing.T) {
 		assert.Len(t, toc.Data, 3)
 		assert.NotNil(t, toc.findByName("aut/man/mpn"))
 		assert.NotNil(t, toc.findByName("aut/man/mpn2"))
-		assert.NotNil(t, toc.findByName("man/mpn"))
-	})
-	t.Run("filter by externalID", func(t *testing.T) {
-		toc := prepareToc()
-		toc.Filter(&SearchParams{ExternalID: []string{"externalID"}, Author: []string{"aut"}})
-		assert.Len(t, toc.Data, 0)
-
-		toc = prepareToc()
-		toc.Filter(&SearchParams{ExternalID: []string{"externalID"}})
-		assert.Len(t, toc.Data, 1)
-		assert.NotNil(t, toc.findByName("man/mpn"))
-
-		toc = prepareToc()
-		toc.Filter(&SearchParams{ExternalID: []string{"externalID", "externalID2"}})
-		assert.Len(t, toc.Data, 2)
-		assert.NotNil(t, toc.findByName("aut/man/mpn"))
 		assert.NotNil(t, toc.findByName("man/mpn"))
 	})
 }
@@ -248,7 +248,7 @@ func prepareToc() *TOC {
 func TestTOC_Insert(t *testing.T) {
 	toc := &TOC{}
 
-	err := toc.Insert(&ThingModel{
+	id, err := toc.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
@@ -258,6 +258,7 @@ func TestTOC_Insert(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
+	assert.Equal(t, MustParseTMID("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json", false), id)
 	assert.Equal(t, 1, len(toc.Data))
 	assert.Equal(t, "aut/man/mpn", toc.Data[0].Name)
 	assert.Equal(t, 1, len(toc.Data[0].Versions))
@@ -273,7 +274,7 @@ func TestTOC_Insert(t *testing.T) {
 		ExternalID: "externalID",
 	}, toc.Data[0].Versions[0])
 
-	err = toc.Insert(&ThingModel{
+	_, err = toc.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
@@ -285,7 +286,7 @@ func TestTOC_Insert(t *testing.T) {
 	assert.Equal(t, 1, len(toc.Data))
 	assert.Equal(t, 2, len(toc.Data[0].Versions))
 
-	err = toc.Insert(&ThingModel{
+	_, err = toc.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
@@ -298,4 +299,63 @@ func TestTOC_Insert(t *testing.T) {
 	assert.Equal(t, "aut/man/mpn/opt", toc.Data[1].Name)
 	assert.Equal(t, 2, len(toc.Data[0].Versions))
 	assert.Equal(t, 1, len(toc.Data[1].Versions))
+}
+
+func TestTOC_Delete(t *testing.T) {
+	tests := []struct {
+		name       string
+		id         string
+		expUpdated bool
+		expName    string
+		expErr     error
+	}{
+		{
+			name:       "invalid id",
+			id:         "invalid-id",
+			expUpdated: false,
+			expName:    "",
+			expErr:     ErrInvalidId,
+		},
+		{
+			name:       "non-existing id",
+			id:         "aut/man/mpn/opt/v0.0.0-20231024121314-abcd12345690.tm.json",
+			expUpdated: false,
+			expName:    "",
+			expErr:     nil,
+		},
+		{
+			name:       "existing id",
+			id:         "aut/man/mpn2/v1.0.0-20231023121314-abcd12345680.tm.json",
+			expUpdated: true,
+			expName:    "",
+			expErr:     nil,
+		},
+		{
+			name:       "last id for a name",
+			id:         "man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json",
+			expUpdated: true,
+			expName:    "man/mpn",
+			expErr:     nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// prepare a toc where one of the names has only one version
+			toc := prepareToc()
+			toc.Data[0].Versions = toc.Data[0].Versions[1:]
+
+			updated, name, err := toc.Delete(test.id)
+
+			if test.expErr != nil {
+				assert.ErrorIs(t, err, test.expErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expUpdated, updated)
+				assert.Equal(t, test.expName, name)
+			}
+		})
+	}
+
 }

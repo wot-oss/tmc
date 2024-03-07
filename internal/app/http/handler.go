@@ -1,7 +1,9 @@
 package http
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -58,7 +60,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 }
 
 // GetInventoryVersionsByName Get the versions of an inventory entry
-// (GET /inventory/{inventoryId}/versions)
+// (GET /inventory/{inventoryId}/.versions)
 func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
 
 	entry, err := h.Service.FindInventoryEntry(nil, name)
@@ -73,17 +75,39 @@ func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.R
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetThingModelById Get the content of a Thing Model by its ID
-// (GET /thing-models/{tmID})
-func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmID string) {
+// GetThingModelById Get the content of a Thing Model by its ID or fetch name
+// (GET /thing-models/{tmIDOrName})
+func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params server.GetThingModelByIdParams) {
+	restoreId := false
+	if params.RestoreId != nil {
+		restoreId = *params.RestoreId
+	}
 
-	data, err := h.Service.FetchThingModel(nil, tmID)
+	data, err := h.Service.FetchThingModel(nil, tmIDOrName, restoreId)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
 	HandleByteResponse(w, r, http.StatusOK, mimeJSON, data)
+}
+
+// DeleteThingModelById Delete a Thing Model by ID
+// (DELETE /thing-models/{tmIDOrName})
+func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params server.DeleteThingModelByIdParams) {
+	if params.Force != "true" {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "invalid value of 'force' query parameter"))
+		return
+	}
+
+	err := h.Service.DeleteThingModel(context.TODO(), tmIDOrName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
 }
 
 func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
@@ -205,6 +229,32 @@ func (h *TmcHandler) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	HandleHealthyResponse(w, r)
+}
+
+func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, params server.GetCompletionsParams) {
+	kind := ""
+	if params.Kind != nil {
+		kind = string(*params.Kind)
+	}
+	toComplete := ""
+	if params.ToComplete != nil {
+		toComplete = *params.ToComplete
+	}
+	vals, err := h.Service.GetCompletions(context.TODO(), kind, toComplete)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	buf := bytes.NewBuffer(nil)
+	for _, line := range vals {
+		_, err := fmt.Fprintf(buf, "%s\n", line)
+		if err != nil {
+			HandleErrorResponse(w, r, err)
+			return
+		}
+	}
+
+	HandleByteResponse(w, r, http.StatusOK, mimeText, buf.Bytes())
 }
 
 func (h *TmcHandler) createContext(r *http.Request) context.Context {

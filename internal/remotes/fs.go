@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -17,12 +18,18 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-const defaultDirPermissions = 0775
-const defaultFilePermissions = 0664
+const (
+	defaultDirPermissions  = 0775
+	defaultFilePermissions = 0664
+	tocLockTimeout         = 5 * time.Second
+	tocLocRetryDelay       = 13 * time.Millisecond
+	errTmExistsPrefix      = "Thing Model already exists under id: "
+
+	TMExt = ".tm.json"
+)
 
 var ErrRootInvalid = errors.New("root is not a directory")
 var ErrTocLocked = errors.New("could not acquire lock on TOC file")
-
 var osStat = os.Stat         // mockable for testing
 var osReadFile = os.ReadFile // mockable for testing
 
@@ -30,21 +37,6 @@ var osReadFile = os.ReadFile // mockable for testing
 type FileRemote struct {
 	root string
 	spec RepoSpec
-}
-
-type ErrTMExists struct {
-	ExistingId string
-}
-
-const errTmExistsPrefix = "Thing Model already exists under id: "
-
-func (e *ErrTMExists) Error() string {
-	return fmt.Sprintf(errTmExistsPrefix+"%v", e.ExistingId)
-}
-
-func (e *ErrTMExists) FromString(s string) {
-	id, _ := strings.CutPrefix(s, errTmExistsPrefix)
-	e.ExistingId = id
 }
 
 func NewFileRemote(config map[string]any, spec RepoSpec) (*FileRemote, error) {
@@ -66,15 +58,21 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	if len(raw) == 0 {
 		return errors.New("nothing to write")
 	}
-	fullPath, dir, _ := f.filenames(id.String())
+	idS := id.String()
+	fullPath, dir, _ := f.filenames(idS)
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
 		return fmt.Errorf("could not create directory %s: %w", dir, err)
 	}
 
-	if found, existingId := f.getExistingID(id.String()); found {
-		slog.Default().Info(fmt.Sprintf("TM already exists under ID %v", existingId))
-		return &ErrTMExists{ExistingId: existingId}
+	match, existingId := f.getExistingID(idS)
+	switch match {
+	case idMatchDigest:
+		slog.Default().Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
+		return &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
+	case idMatchTimestamp:
+		slog.Default().Info(fmt.Sprintf("Version and timestamp clash with existing %v", existingId))
+		return &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: existingId}
 	}
 
 	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)
@@ -86,6 +84,49 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	return nil
 }
 
+func (f *FileRemote) Delete(id string) error {
+	err := f.checkRootValid()
+	if err != nil {
+		return err
+	}
+	err = checkIdValid(id)
+	if err != nil {
+		return err
+	}
+	match, _ := f.getExistingID(id)
+	if match != idMatchFull {
+		return ErrTmNotFound
+	}
+	fullFilename, dir, _ := f.filenames(id)
+	err = os.Remove(fullFilename)
+	if os.IsNotExist(err) {
+		return ErrTmNotFound
+	}
+	_ = rmEmptyDirs(dir, f.root)
+	return err
+}
+
+func rmEmptyDirs(from string, upTo string) error {
+	if !strings.HasPrefix(from, upTo) {
+		return errors.New("from is not below upTo")
+	}
+
+	for len(from) > len(upTo) {
+		entries, err := os.ReadDir(from)
+		if err != nil {
+			return err
+		}
+		if len(entries) == 0 {
+			err = os.Remove(from)
+			if err != nil {
+				return err
+			}
+		}
+		from = filepath.Dir(from)
+	}
+	return nil
+}
+
 func (f *FileRemote) filenames(id string) (string, string, string) {
 	fullPath := filepath.Join(f.root, id)
 	dir := filepath.Dir(fullPath)
@@ -93,29 +134,46 @@ func (f *FileRemote) filenames(id string) (string, string, string) {
 	return fullPath, dir, base
 }
 
-func (f *FileRemote) getExistingID(ids string) (bool, string) {
+type idMatch int
+
+const (
+	idMatchNone = iota
+	idMatchFull
+	idMatchDigest    // semver and digest match
+	idMatchTimestamp // semver and timestamp match
+)
+
+func (f *FileRemote) getExistingID(ids string) (idMatch, string) {
 	fullName, dir, base := f.filenames(ids)
 	// try full remoteName as given
 	if _, err := os.Stat(fullName); err == nil {
-		return true, ids
+		return idMatchFull, ids
 	}
 	// try without timestamp
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return false, ""
+		return idMatchNone, ""
 	}
-	version, err := model.ParseTMVersion(strings.TrimSuffix(base, model.TMFileExtension))
+	version, err := model.ParseTMVersion(strings.TrimSuffix(base, TMExt))
 	if err != nil {
 		slog.Default().Error("invalid TM version in TM id", "id", ids, "error", err)
-		return false, ""
+		return idMatchNone, ""
 	}
 	existingTMVersions := findTMFileEntriesByBaseVersion(entries, version)
-	if len(existingTMVersions) > 0 && existingTMVersions[0].Hash == version.Hash {
-		return true,
-			strings.TrimSuffix(ids, base) + existingTMVersions[0].String() + model.TMFileExtension
+	if len(existingTMVersions) > 0 {
+		if existingTMVersions[0].Hash == version.Hash {
+			return idMatchDigest,
+				strings.TrimSuffix(ids, base) + existingTMVersions[0].String() + model.TMFileExtension
+		} else {
+			for _, v := range existingTMVersions {
+				if version.Timestamp == v.Timestamp {
+					return idMatchTimestamp, strings.TrimSuffix(ids, base) + v.String() + TMExt
+				}
+			}
+		}
 	}
 
-	return false, ""
+	return idMatchNone, ""
 }
 
 // findTMFileEntriesByBaseVersion finds directory entries that correspond to TM file names, converts those to TMVersions,
@@ -129,7 +187,7 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 			continue
 		}
 
-		ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name(), model.TMFileExtension))
+		ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name(), TMExt))
 		if err != nil {
 			continue
 		}
@@ -149,13 +207,22 @@ func (f *FileRemote) Fetch(id string) (string, []byte, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	exists, actualId := f.getExistingID(id)
-	if !exists {
-		return "", nil, ErrEntryNotFound
+	err = checkIdValid(id)
+	if err != nil {
+		return "", nil, err
+	}
+	match, actualId := f.getExistingID(id)
+	if match != idMatchFull && match != idMatchDigest {
+		return "", nil, ErrTmNotFound
 	}
 	actualFilename, _, _ := f.filenames(actualId)
 	b, err := os.ReadFile(actualFilename)
 	return actualId, b, err
+}
+
+func checkIdValid(id string) error {
+	_, err := model.ParseTMID(id, true) // official does not matter here. only interested in valid id format
+	return err
 }
 
 func (f *FileRemote) UpdateToc(ids ...string) error {
@@ -206,15 +273,11 @@ func (f *FileRemote) readTOC() (model.TOC, error) {
 }
 
 func (f *FileRemote) tocFilename() string {
-	return filepath.Join(f.root, TOCFilename)
+	return filepath.Join(f.root, RepoConfDir, TOCFilename)
 }
 
 func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
-	if len(name) == 0 {
-		log.Error("Please specify a remoteName to show the TM.")
-		return nil, errors.New("please specify a remoteName to show the TM")
-	}
 	name = strings.TrimSpace(name)
 	toc, err := f.List(&model.SearchParams{Name: name})
 	if err != nil {
@@ -222,8 +285,9 @@ func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
 	}
 
 	if len(toc.Entries) != 1 {
-		log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
-		return nil, ErrEntryNotFound
+		err := fmt.Errorf("%w: %s", ErrTmNotFound, name)
+		log.Error(err.Error())
+		return nil, err
 	}
 
 	return toc.Entries[0].Versions, nil
@@ -286,9 +350,6 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-const TMExt = ".tm.json"
-const TOCFilename = "tm-catalog.toc.json"
-
 func (f *FileRemote) updateToc(ids []string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
@@ -302,19 +363,22 @@ func (f *FileRemote) updateToc(ids []string) error {
 	}
 
 	var newTOC *model.TOC
+	names := f.readNamesFile()
 
 	if len(ids) == 0 { // full rebuild
 		newTOC = &model.TOC{
 			Meta: model.TOCMeta{Created: time.Now()},
 			Data: []*model.TOCEntry{},
 		}
+		names = nil
 		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
-			upd, err := f.updateTocWithFile(newTOC, path, info, log, err)
+			upd, name, _, err := f.updateTocWithFile(newTOC, path, info, log, err)
 			if err != nil {
 				return err
 			}
 			if upd {
 				fileCount++
+				names = append(names, name)
 			}
 			return nil
 		})
@@ -335,9 +399,16 @@ func (f *FileRemote) updateToc(ids []string) error {
 		for _, id := range ids {
 			path := filepath.Join(f.root, id)
 			info, err := osStat(path)
-			upd, _ := f.updateTocWithFile(newTOC, path, info, log, err)
+			upd, name, nameDeleted, _ := f.updateTocWithFile(newTOC, path, info, log, err)
 			if upd {
 				fileCount++
+				if nameDeleted != "" {
+					names = slices.DeleteFunc(names, func(s string) bool {
+						return s == nameDeleted
+					})
+				} else if name != "" {
+					names = append(names, name)
+				}
 			}
 		}
 	}
@@ -349,18 +420,34 @@ func (f *FileRemote) updateToc(ids []string) error {
 	if err != nil {
 		return err
 	}
-	msg := "Created table of content with %d entries in %s "
+	err = f.writeNamesFile(names)
+	if err != nil {
+		return err
+	}
+	msg := "Updated table of content with %d entries in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
 	return nil
 }
 
-func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (bool, error) {
+func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
+	if os.IsNotExist(err) {
+		id, found := strings.CutPrefix(path, f.root)
+		if !found {
+			return false, "", "", err
+		}
+		id, _ = strings.CutPrefix(filepath.ToSlash(id), "/")
+		upd, name, err := newTOC.Delete(id)
+		if err != nil {
+			return false, "", "", err
+		}
+		return upd, "", name, nil
+	}
 	if err != nil {
-		return false, err
+		return false, "", "", err
 	}
 	if info.IsDir() || !strings.HasSuffix(info.Name(), TMExt) {
-		return false, nil
+		return false, "", "", nil
 	}
 	thingMeta, err := getThingMetadata(path)
 	if err != nil {
@@ -369,28 +456,38 @@ func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.F
 		log.Error(msg)
 		log.Error(err.Error())
 		log.Error("The file will be excluded from the table of contents.")
-		return false, nil
+		return false, "", "", nil
 	}
-	err = newTOC.Insert(&thingMeta)
+	tmid, err := newTOC.Insert(&thingMeta)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to insert %s into toc:", path))
 		log.Error(err.Error())
 		log.Error("The file will be excluded from the table of contents.")
-		return false, nil
+		return false, "", "", nil
 	}
-	return true, nil
+	return true, tmid.Name, "", nil
 }
 
 type unlockFunc func()
 
 func (f *FileRemote) lockTOC() (unlockFunc, error) {
-	fl := flock.New(f.tocFilename() + ".lock")
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	rd := filepath.Join(f.root, RepoConfDir)
+	stat, err := os.Stat(rd)
+	if err != nil || !stat.IsDir() {
+		err := os.MkdirAll(rd, defaultDirPermissions)
+		if err != nil {
+			return func() {}, err
+		}
+	}
+	tocFile := f.tocFilename()
+
+	fl := flock.New(tocFile + ".lock")
+	ctx, cancel := context.WithTimeout(context.Background(), tocLockTimeout)
 	unlock := func() {
 		cancel()
 		_ = fl.Unlock()
 	}
-	locked, err := fl.TryLockContext(ctx, 13*time.Millisecond)
+	locked, err := fl.TryLockContext(ctx, tocLocRetryDelay)
 	if err != nil {
 		return unlock, err
 	}
@@ -398,7 +495,31 @@ func (f *FileRemote) lockTOC() (unlockFunc, error) {
 		return unlock, ErrTocLocked
 	}
 
+	f.moveOldToc(tocFile)
+
 	return unlock, nil
+}
+
+// moveOldToc attempts to move the TOC file at root to .tmc folder and remove old lock file
+// ignores all errors
+func (f *FileRemote) moveOldToc(tocFile string) {
+	oldToc := filepath.Join(f.root, TOCFilename)
+	_, errOld := os.Stat(oldToc)
+	_, errNew := os.Stat(tocFile)
+	if errOld == nil && errNew != nil {
+		_ = os.Rename(oldToc, tocFile)
+	}
+	_ = os.Remove(oldToc + ".lock")
+}
+
+func (f *FileRemote) readNamesFile() []string {
+	lines, _ := utils.ReadFileLines(filepath.Join(f.root, RepoConfDir, TmNamesFile))
+	return lines
+}
+func (f *FileRemote) writeNamesFile(names []string) error {
+	slices.Sort(names)
+	names = slices.Compact(names)
+	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, TmNamesFile), defaultFilePermissions)
 }
 
 func getThingMetadata(path string) (model.ThingModel, error) {
@@ -414,4 +535,47 @@ func getThingMetadata(path string) (model.ThingModel, error) {
 	}
 
 	return ctm, nil
+}
+
+func (f *FileRemote) ListCompletions(kind string, toComplete string) ([]string, error) {
+	switch kind {
+	case CompletionKindNames:
+		unlock, err := f.lockTOC()
+		defer unlock()
+		if err != nil {
+			return nil, err
+		}
+		return f.readNamesFile(), nil
+	case CompletionKindFetchNames:
+		if strings.Contains(toComplete, "..") {
+			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
+		}
+
+		name, _, _ := strings.Cut(toComplete, ":")
+
+		dir := filepath.Join(f.root, name)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return nil, err
+		}
+		vm := make(map[string]struct{})
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), TMExt) {
+				ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name(), TMExt))
+				if err != nil {
+					continue
+				}
+				vm[ver.BaseString()] = struct{}{}
+			}
+		}
+		var vs []string
+		for v, _ := range vm {
+			vs = append(vs, fmt.Sprintf("%s:%s", name, v))
+		}
+		slices.Sort(vs)
+		return vs, nil
+
+	default:
+		return nil, ErrInvalidCompletionParams
+	}
 }

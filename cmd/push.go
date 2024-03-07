@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -37,8 +38,11 @@ Specifying the repository with --directory or --remote is optional if there's ex
 func init() {
 	RootCmd.AddCommand(pushCmd)
 	pushCmd.Flags().StringP("remote", "r", "", "the target remote. can be omitted if there's only one")
+	_ = pushCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
 	pushCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	_ = pushCmd.MarkFlagDirname("directory")
 	pushCmd.Flags().StringP("opt-path", "p", "", "append optional path to mandatory target directory structure")
+	_ = pushCmd.RegisterFlagCompletionFunc("remote", completion.NoCompletionNoFile)
 	pushCmd.Flags().BoolP("opt-tree", "t", false, "use original directory tree as optional path for each file. Has no effect with a single file. Overrides -p")
 }
 

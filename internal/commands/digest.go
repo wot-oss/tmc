@@ -10,7 +10,8 @@ import (
 
 // CalculateFileDigest calculates the hash string for TM version. Returns the 12-char hash string, the file contents
 // that were hashed, and an error. The contents that were hashed may differ from the input.
-// The changes to the contents are made to make the hashing reliable and idempotent: normalizing line endings, and removing the existing 'id'
+// The changes to the contents are made to make the hashing reliable and idempotent: normalizing line endings,
+// and setting 'id' to empty string
 // If the file is not a valid json, the function is not guaranteed to return with an error
 func CalculateFileDigest(raw []byte) (string, []byte, error) {
 	raw = utils.NormalizeLineEndings(raw)

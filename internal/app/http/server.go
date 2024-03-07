@@ -9,17 +9,16 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 )
 
+// READ ME !!!
 // Hint for generating the server code based on the openapi spec:
-// 1. uncomment lines "// //go:generate" to "//go:generate" to be considered when calling "go generate"
-// 2. after calling "go generate":
-//       2.1. maybe reorder the properties in model.gen.go for a nicer JSON output, as oapi-codegen orders them alphabetically
-//       2.2. for path parameters "name" and "tmID", add a regex for any character -> {name:.+}, {tmID:.+}
-//       2.3. in server.gen.go, order the handler functions, in the way that the more specific routes are above the less specific
-//          e.g. r.HandleFunc(options.BaseURL+"/inventory/{name:.+}/versions" should be on top of r.HandleFunc(options.BaseURL+"/inventory/{name:.+}
-// 3. when 2. is done, comment lines "// //go:generate" again, to prevent unwanted changes by calling "go generate"
-
-// //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package server -generate types -o server/models.gen.go ../../../api/tm-catalog.openapi.yaml
-// //go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.0.0 -package server -generate gorilla-server -o server/server.gen.go ../../../api/tm-catalog.openapi.yaml
+// oapi-codegen does not support all features of an OpenAPI spec like "pattern" in path variables, they will be lost in code after fresh generation.
+// To prevent manual work after code generation, we execute the server/patch/patch.go as last step to fix these details.
+//
+// IF YOU ADD A NEW ROUTE to tm-catalog.openapi.yaml, AND YOUR ROUTE HAS A PATH VARIABLE WITH A REGEX PATTERN,
+// ADD THE PATH VARIABLE REPLACEMENT TO server/patch/patch.go -> routePathVarPatch FOR PERMANENT FIXING.
+//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.1.0 -package server -generate types -o server/models.gen.go ../../../api/tm-catalog.openapi.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/v2/cmd/oapi-codegen@v2.1.0 -package server -generate gorilla-server -o server/server.gen.go ../../../api/tm-catalog.openapi.yaml
+//go:generate go run server/patch/patch.go
 
 type ServerOptions struct {
 	CORS CORSOptions

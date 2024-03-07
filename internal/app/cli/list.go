@@ -16,12 +16,14 @@ const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
 func List(remote remotes.RepoSpec, search *model.SearchParams) error {
-	toc, err := commands.NewListCommand(remotes.DefaultManager()).List(remote, search)
+	toc, err, errs := commands.NewListCommand(remotes.DefaultManager()).List(remote, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
 	}
+
 	printToC(toc)
+	printErrs("Errors occurred while listing:", errs)
 	return nil
 }
 
@@ -30,12 +32,13 @@ func printToC(toc model.SearchResult) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "MANUFACTURER\tMODEL\tNAME\n")
+	_, _ = fmt.Fprintf(table, "NAME\tAUTHOR\tMANUFACTURER\tMPN\n")
 	for _, value := range toc.Entries {
 		name := value.Name
 		man := elideString(value.Manufacturer.Name, colWidth)
-		mdl := elideString(value.Mpn, colWidth)
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\n", man, mdl, name)
+		mpn := elideString(value.Mpn, colWidth)
+		auth := elideString(value.Author.Name, colWidth)
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n", name, auth, man, mpn)
 	}
 	_ = table.Flush()
 }

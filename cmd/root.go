@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"slices"
 
@@ -20,7 +21,7 @@ var RootCmd = &cobra.Command{
 ThingModel catalogs.`,
 }
 
-var log bool
+var loglevel string
 var logEnabledDefaultCmd = []string{"serve"}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -43,17 +44,21 @@ func init() {
 	// will be global for your application.
 
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tm-catalog-cli.yaml)")
-	RootCmd.PersistentFlags().BoolVarP(&log, "log", "l", false, "enable logging")
+	RootCmd.PersistentFlags().StringVarP(&loglevel, "loglevel", "l", "", "enable logging by setting a log level, one of [error, warn, info, debug, off]")
 	RootCmd.PersistentPreRun = preRunAll
 	config.InitViper()
-	// bind viper variable "log" to CLI flag --log of root command
-	_ = viper.BindPFlag(config.KeyLog, RootCmd.PersistentFlags().Lookup("log"))
+	// bind viper variable "loglevel" to CLI flag --loglevel of root command
+	_ = viper.BindPFlag(config.KeyLogLevel, RootCmd.PersistentFlags().Lookup("loglevel"))
 }
 
 func preRunAll(cmd *cobra.Command, args []string) {
-	// set default logging enabled/disabled depending on subcommand
+	// set default loglevel depending on subcommand
 	logDefault := cmd != nil && slices.Contains(logEnabledDefaultCmd, cmd.CalledAs())
-	viper.SetDefault(config.KeyLog, logDefault)
+	if logDefault {
+		viper.SetDefault(config.KeyLogLevel, slog.LevelInfo.String())
+	} else {
+		viper.SetDefault(config.KeyLogLevel, config.LogLevelOff)
+	}
 
 	internal.InitLogging()
 }

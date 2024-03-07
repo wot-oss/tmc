@@ -6,7 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/oapi-codegen/testutil"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,11 +89,10 @@ func TestWithCORSOnRequest(t *testing.T) {
 
 	t.Run("request with an allowed origin", func(t *testing.T) {
 		// and when: making an options request
-		rec := testutil.NewRequest().WithMethod(http.MethodOptions, route).
+		rec := testutils.NewRequest(http.MethodOptions, route).
 			WithHeader("origin", allowedOrigin).
 			WithHeader("Access-Control-Request-Method", http.MethodPost).
-			GoWithHTTPHandler(t, hdl).
-			Recorder
+			RunOnHandler(hdl)
 
 		// then: the response header "Access-Control-Allow-Origin" contains the allowed origin
 		assert.Equal(t, allowedOrigin, rec.Header().Get("Access-Control-Allow-Origin"))
@@ -102,11 +102,10 @@ func TestWithCORSOnRequest(t *testing.T) {
 
 	t.Run("request with a not allowed origin", func(t *testing.T) {
 		// and when: making an options request
-		rec := testutil.NewRequest().WithMethod(http.MethodOptions, route).
+		rec := testutils.NewRequest(http.MethodOptions, route).
 			WithHeader("origin", notAllowedOrigin).
 			WithHeader("Access-Control-Request-Method", http.MethodPost).
-			GoWithHTTPHandler(t, hdl).
-			Recorder
+			RunOnHandler(hdl)
 
 		// then: the response header "Access-Control-Allow-Origin" is not present
 		assert.Equal(t, "", rec.Header().Get("Access-Control-Allow-Origin"))

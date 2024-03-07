@@ -21,33 +21,33 @@ const (
 	KeyRemoteAuth    = "auth"
 	KeyRemoteEnabled = "enabled"
 
-	RemoteTypeFile = "file"
-	RemoteTypeHttp = "http"
-	RemoteTypeTmc  = "tmc"
+	RemoteTypeFile           = "file"
+	RemoteTypeHttp           = "http"
+	RemoteTypeTmc            = "tmc"
+	CompletionKindNames      = "names"
+	CompletionKindFetchNames = "fetchNames"
+	RepoConfDir              = ".tmc"
+	TOCFilename              = "tm-catalog.toc.json"
+	TmNamesFile              = "tmnames.txt"
 )
 
 var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
 type Config map[string]map[string]any
 
-var ErrAmbiguous = errors.New("multiple remotes configured, but remote target not specified")
-var ErrRemoteNotFound = errors.New("remote not found")
-var ErrInvalidRemoteName = errors.New("invalid remote remoteName")
-var ErrRemoteExists = errors.New("named remote already exists")
-var ErrEntryNotFound = errors.New("entry not found")
-var ErrInvalidSpec = errors.New("illegal remote spec: both dir and remoteName given")
-
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp, RemoteTypeTmc}
 
 //go:generate mockery --name Remote --inpackage
 type Remote interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
-	// Returns ErrTMExists if the same file is already stored with a different timestamp
+	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
+	// there is a file with the same semantic version and timestamp but different content
 	Push(id model.TMID, raw []byte) error
 	// Fetch retrieves the Thing Model file from remote
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(id string) (string, []byte, error)
-	// UpdateToc updates table of contents file with data from given TM files. Performs a full update if no updatedIds given
+	// UpdateToc updates table of contents file with data from given TM files. For ids that refer to non-existing files,
+	// removes those from table of contents. Performs a full update if no updatedIds given
 	UpdateToc(updatedIds ...string) error
 	// List searches the catalog for TMs matching search parameters
 	List(search *model.SearchParams) (model.SearchResult, error)
@@ -55,6 +55,10 @@ type Remote interface {
 	Versions(name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Remote has been created from
 	Spec() RepoSpec
+	// Delete deletes the TM with given id from remote. Returns ErrTmNotFound if TM does not exist
+	Delete(id string) error
+
+	ListCompletions(kind string, toComplete string) ([]string, error)
 }
 
 //go:generate mockery --name RemoteManager --inpackage
@@ -113,7 +117,13 @@ func (r RepoSpec) ToFoundSource() model.FoundSource {
 }
 
 func (r RepoSpec) String() string {
-	return fmt.Sprintf("repository spec {dir: %s, remoteName: %s}", r.dir, r.remoteName)
+	if r.dir == "" {
+		if r.remoteName == "" {
+			return fmt.Sprintf("undefined repository")
+		}
+		return fmt.Sprintf("remote <%s>", r.remoteName)
+	}
+	return fmt.Sprintf("directory %s", r.dir)
 }
 
 var EmptySpec, _ = NewSpec("", "")
@@ -367,14 +377,18 @@ func AsRemoteConfig(bytes []byte) (map[string]any, error) {
 	return rc, nil
 }
 
-// GetSpecdOrAll returns the remote with remoteName remoteName in a slice, or all remotes, in case remoteName is empty string
-func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) ([]Remote, error) {
+// GetSpecdOrAll returns the remote specified by spec in a slice, or all remotes, if the spec is empty
+func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) (*Union, error) {
 	if spec.remoteName != "" || spec.dir != "" {
 		remote, err := manager.Get(spec)
 		if err != nil {
 			return nil, err
 		}
-		return []Remote{remote}, nil
+		return NewUnion(remote), nil
 	}
-	return manager.All()
+	all, err := manager.All()
+	if err != nil {
+		return nil, err
+	}
+	return NewUnion(all...), nil
 }

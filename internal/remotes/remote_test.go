@@ -39,7 +39,7 @@ func TestSaveConfigOverwritesOnlyRemotes(t *testing.T) {
 	viper.SetConfigFile(configFile)
 	defer viper.Reset()
 
-	viper.Set(config.KeyLog, false)
+	viper.Set(config.KeyLogLevel, "")
 	err = defaultManager.saveConfig(Config{
 		"remote": map[string]any{
 			"type": "http",
@@ -269,16 +269,16 @@ func TestGetSpecdOrAll(t *testing.T) {
 	rm.On("All").Return([]Remote{r1, r2}, nil)
 	all, err := GetSpecdOrAll(rm, EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, []Remote{r1, r2}, all)
+	assert.Equal(t, &Union{rs: []Remote{r1, r2}}, all)
 
 	rm.On("Get", NewRemoteSpec("r1")).Return(r1, nil)
 	all, err = GetSpecdOrAll(rm, NewRemoteSpec("r1"))
 	assert.NoError(t, err)
-	assert.Equal(t, []Remote{r1}, all)
+	assert.Equal(t, &Union{rs: []Remote{r1}}, all)
 
 	rm.On("Get", NewDirSpec("dir1")).Return(r3, nil)
 	all, err = GetSpecdOrAll(rm, NewDirSpec("dir1"))
 	assert.NoError(t, err)
-	assert.Equal(t, []Remote{r3}, all)
+	assert.Equal(t, &Union{rs: []Remote{r3}}, all)
 
 }

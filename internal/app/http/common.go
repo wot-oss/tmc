@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-
-	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -23,10 +22,13 @@ const (
 	error503Title  = "Service Unavailable"
 	error500Title  = "Internal Server Error"
 	error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
+	error502Title  = "Bad Gateway"
+	error502Detail = "An upstream Thing Model repository returned an error"
 
 	headerContentType         = "Content-Type"
 	headerCacheControl        = "Cache-Control"
 	headerXContentTypeOptions = "X-Content-Type-Options"
+	mimeText                  = "text/plain"
 	mimeJSON                  = "application/json"
 	mimeProblemJSON           = "application/problem+json"
 	noSniff                   = "nosniff"
@@ -73,22 +75,31 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errTitle := error500Title
 	errDetail := error500Detail
 	errStatus := http.StatusInternalServerError
+	errCode := ""
 
-	if errors.Is(err, commands.ErrTmNotFound) {
+	var eErr *remotes.ErrTMIDConflict
+	var aErr *remotes.RepoAccessError
+	var bErr *BaseHttpError
+	if errors.Is(err, remotes.ErrTmNotFound) {
 		errTitle = error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
-	} else if errors.Is(err, model.ErrInvalidId) {
+	} else if errors.Is(err, model.ErrInvalidId) || errors.Is(err, commands.ErrInvalidFetchName) || errors.Is(err, remotes.ErrInvalidCompletionParams) {
 		errTitle = error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
-	} else if sErr, ok := err.(*BaseHttpError); ok {
-		errTitle = sErr.Title
-		errDetail = sErr.Detail
-		errStatus = sErr.Status
-	} else if sErr, ok := err.(*remotes.ErrTMExists); ok {
+	} else if errors.As(err, &bErr) {
+		errTitle = bErr.Title
+		errDetail = bErr.Detail
+		errStatus = bErr.Status
+	} else if errors.As(err, &aErr) {
+		errTitle = error502Title
+		errDetail = error502Detail
+		errStatus = http.StatusBadGateway
+	} else if errors.As(err, &eErr) {
 		errTitle = error409Title
-		errDetail = sErr.Error()
+		errDetail = eErr.Error()
+		errCode = eErr.Code()
 		errStatus = http.StatusConflict
 	} else {
 		switch err.(type) {
@@ -110,6 +121,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		Detail:   &errDetail,
 		Status:   errStatus,
 		Instance: &r.RequestURI,
+		Code:     &errCode,
 	}
 
 	respBody, _ := json.MarshalIndent(problem, "", "  ")
@@ -139,32 +151,31 @@ func (e *BaseHttpError) Unwrap() error {
 }
 
 func NewNotFoundError(err error, detail string, args ...any) error {
-	detail = fmt.Sprintf(detail, args...)
-	return &BaseHttpError{
-		Status: http.StatusNotFound,
-		Title:  error404Title,
-		Detail: detail,
-		Err:    err,
-	}
+	return newBaseHttpError(err, http.StatusNotFound, error404Title, detail, args...)
 }
 
 func NewBadRequestError(err error, detail string, args ...any) error {
-	detail = fmt.Sprintf(detail, args...)
-	return &BaseHttpError{
-		Status: http.StatusBadRequest,
-		Title:  error400Title,
-		Detail: detail,
-		Err:    err,
-	}
+	return newBaseHttpError(err, http.StatusBadRequest, error400Title, detail, args...)
 }
 
 func NewServiceUnavailableError(err error, detail string) error {
-	return &BaseHttpError{
-		Status: http.StatusServiceUnavailable,
-		Title:  error503Title,
-		Detail: detail,
+	return newBaseHttpError(err, http.StatusServiceUnavailable, error503Title, detail)
+}
+
+func newBaseHttpError(err error, status int, title string, detail string, args ...any) error {
+	msg := fmt.Sprintf(detail, args...)
+
+	if err != nil {
+		msg = fmt.Sprintf(msg+": %s", err.Error())
+	}
+
+	be := &BaseHttpError{
+		Status: status,
+		Title:  title,
+		Detail: msg,
 		Err:    err,
 	}
+	return be
 }
 
 func convertParams(params any) *model.SearchParams {
@@ -172,7 +183,6 @@ func convertParams(params any) *model.SearchParams {
 	var filterAuthor *string
 	var filterManufacturer *string
 	var filterMpn *string
-	var filterExternalID *string
 	var filterName *string
 	var search *string
 
@@ -180,28 +190,24 @@ func convertParams(params any) *model.SearchParams {
 		filterAuthor = invParams.FilterAuthor
 		filterManufacturer = invParams.FilterManufacturer
 		filterMpn = invParams.FilterMpn
-		filterExternalID = invParams.FilterExternalID
 		filterName = invParams.FilterName
 		search = invParams.Search
 	} else if authorsParams, ok := params.(server.GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
-		filterExternalID = authorsParams.FilterExternalID
 		search = authorsParams.Search
 	} else if manParams, ok := params.(server.GetManufacturersParams); ok {
 		filterAuthor = manParams.FilterAuthor
 		filterMpn = manParams.FilterMpn
-		filterExternalID = manParams.FilterExternalID
 		search = manParams.Search
 	} else if mpnsParams, ok := params.(server.GetMpnsParams); ok {
 		filterAuthor = mpnsParams.FilterAuthor
 		filterManufacturer = mpnsParams.FilterManufacturer
-		filterExternalID = mpnsParams.FilterExternalID
 		search = mpnsParams.Search
 	}
 
 	var searchParams model.SearchParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterExternalID != nil || filterName != nil || search != nil {
+	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterName != nil || search != nil {
 		searchParams = model.SearchParams{}
 		if filterAuthor != nil {
 			searchParams.Author = strings.Split(*filterAuthor, ",")
@@ -211,9 +217,6 @@ func convertParams(params any) *model.SearchParams {
 		}
 		if filterMpn != nil {
 			searchParams.Mpn = strings.Split(*filterMpn, ",")
-		}
-		if filterExternalID != nil {
-			searchParams.ExternalID = strings.Split(*filterExternalID, ",")
 		}
 		if filterName != nil {
 			searchParams.Name = *filterName

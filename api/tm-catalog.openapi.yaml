@@ -1,7 +1,9 @@
 openapi: 3.0.3
 info:
   title: Thing Model Catalog - OpenAPI 3.0
-  version: 0.0.1
+  version: 0.0.2
+  description: "This is the Thing Model Catalog API specification."
+  contact: {}
 externalDocs:
   description: Find out more about Thing Model Catalog
   url: https://github.com/web-of-things-open-source/tm-catalog-cli
@@ -20,6 +22,8 @@ tags:
     description: Access to mpns (manufacturer part numbers) information
   - name: health
     description: Access to health information
+  - name: internal
+    description: Access to internal information
 paths:
   /inventory:
     get:
@@ -36,7 +40,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.author=MyCompany,YourCompany
+          example: 'MyCompany,siemens'
         - name: 'filter.manufacturer'
           in: query
           description: |
@@ -44,7 +48,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.manufacturer=ABB,Danfoss
+          example: 'BarTech,siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -52,23 +56,15 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.mpn=B21,FC102
+          example: 'BazLamp,POC1000'
         - name: 'filter.name'
           in: query
           description: |
-            Filters the inventory by inventory entry name (consisting of 'author/manufacturer/mpn') having a prefix match.   
+            Filters the inventory by inventory entry name having a prefix match of full path parts.   
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.name=darthvader/omnicorp/deathstar
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the inventory by one or more external ID having exact match.   
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: 'siemens/POC1000'
         - name: 'search'
           in: query
           description: |
@@ -76,17 +72,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
-        - name: sort
-          in: query
-          description: |
-            Sorts the inventory by one or more fields. The sort is applied in the order of the fields.   
-            The sorting is done ascending per field by default. If a field needs to be sorted descending,  
-            prefix it with a HYPHEN-MINUS "-")
-          schema:
-            type: string
-            enum: [author, manufacturer, mpn]
-          example: sort=author,-manufacturer
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -109,6 +95,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream repository error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /inventory/{name}:
     get:
       tags:
@@ -123,7 +115,7 @@ paths:
           required: true
           schema:
             type: string
-          example: mycompany/abb/B21
+          example: 'siemens/POC1000'
       responses:
         '200':
           description: Successful operation
@@ -152,7 +144,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /inventory/{name}/versions:
+  /inventory/{name}/.versions:
     get:
       tags:
         - inventory
@@ -166,7 +158,7 @@ paths:
           required: true
           schema:
             type: string
-          example: mycompany/abb/B21
+          example: 'siemens/POC1000'
       responses:
         '200':
           description: Successful operation
@@ -175,7 +167,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/InventoryEntryVersionsResponse'
               examples:
-                versionsExample:
+                inventoryVersions:
                   $ref: '#/components/examples/InventoryEntryVersionsResponseExample'
         '400':
           description: Invalid ID supplied
@@ -195,20 +187,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /thing-models/{tmID}:
+  /thing-models/{tmIDOrName}:
     get:
       tags:
         - thing-models
-      summary: Get the content of a Thing Model by it's ID
-      description: Returns the actual content of a Thing Model
+      summary: Get the content of a Thing Model by its ID or fetch name
+      description: > 
+        Returns the actual content of a Thing Model.
+        The Thing Model is selected by the ID or fetch name. Fetch name is defined as \<name\>[:\<semver\>], 
+        where \<name\> is the inventory name, \<semver\> is a full or partial semantic version.
+        Using \<semver\> will return the most recent version of the TM that matches the provided part of semantic version
       operationId: getThingModelById
       parameters:
-        - name: tmID
+        - name: tmIDOrName
           in: path
-          description: ID of the Thing Model
+          description: ID or fetch name of the Thing Model
           required: true
           schema:
             type: string
+          examples:
+            id:
+              value: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+            fullVersion:
+              value: 'siemens/POC1000:v1.2.3'
+            major:
+              value: 'siemens/POC1000:1'
+            majorMinor:
+              value: 'siemens/POC1000:1.2'
+        - name: restoreId
+          in: query
+          description: restore the TM's original external id, if it had one
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: |
@@ -220,13 +231,58 @@ paths:
               schema:
                 type: object
         '400':
-          description: Invalid ID supplied
+          description: Invalid ID or fetch name supplied
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Content of the Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - thing-models
+      summary: Delete a Thing Model by ID
+      description: >
+        Deletes a Thing Model. Only accepts a complete ID as tmIDOrName
+        Normally, the catalog is write-only and no TMs are ever deleted.
+        The delete function is implemented for the rare cases when a TM has been pushed whilst containing major errors 
+        or by mistake. Therefore, it is mandatory to provide the query parameter ?force=true to delete a TM.
+      operationId: deleteThingModelById
+      parameters:
+        - name: tmIDOrName
+          in: path
+          description: ID of the Thing Model
+          required: true
+          schema:
+            type: string
+          example: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+        - name: force
+          in: query
+          description: flag to force the deletion. must be set to "true"
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid ID or 'force' parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Thing Model not found
           content:
             application/json:
               schema:
@@ -253,6 +309,9 @@ paths:
           application/json:
             schema:
               type: object
+            examples:
+              payload:
+                $ref: '#/components/examples/PushPayloadExample'
         required: true
       responses:
         '201':
@@ -295,7 +354,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.manufacturer=ABB,Danfoss
+          example: 'BarTech,siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -304,16 +363,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.mpn=B21,FC102
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the authors according to whether they have inventory entries   
-            which belong to at least one of the given external ID's with an exact match.    
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: 'BazLamp,POC1000'
         - name: 'search'
           in: query
           description: |
@@ -322,7 +372,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -360,7 +410,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.author=MyCompany,YourCompany
+          example: 'MyCompany,siemens'
         - name: 'filter.mpn'
           in: query
           description: |
@@ -369,16 +419,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.mpn=B21,FC102
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the manufacturers according to whether they have inventory entries   
-            which belong to at least one of the given external ID's with an exact match.    
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: 'BazLamp,POC1000'
         - name: 'search'
           in: query
           description: |
@@ -387,7 +428,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -425,7 +466,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.author=MyCompany,YourCompany
+          example: 'MyCompany,siemens'
         - name: 'filter.manufacturer'
           in: query
           description: |
@@ -433,16 +474,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: filter.manufacturer=ABB,Danfoss
-        - name: 'filter.externalID'
-          in: query
-          description: |
-            Filters the mpns according to whether their inventory entry   
-            belongs to at least one of the given external ID's with an exact match.    
-            The filter works additive to other filters.
-          schema:
-            type: string
-          example: filter.externalID=12345,7c9691d0-8b05-11ee-b9d1-0242ac120002
+          example: 'BarTech,siemens'
         - name: 'search'
           in: query
           description: |
@@ -450,7 +482,7 @@ paths:
             The search works additive to other filters.
           schema:
             type: string
-          example: search=
+          example: ''
       responses:
         '200':
           description: Successful operation
@@ -488,7 +520,7 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
           content:
@@ -510,7 +542,7 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
           content:
@@ -532,7 +564,7 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
           content:
@@ -554,9 +586,55 @@ paths:
               schema:
                 type: string
                 default: 'no-cache, no-store, max-age=0, must-revalidate'
-              description: "no-cache, no-store, max-age=0, must-revalidate"
+              description: 'no-cache, no-store, max-age=0, must-revalidate'
         '503':
           description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /.completions:
+    get:
+      tags:
+        - internal
+      summary: Get completions for shell completion script
+      description: |
+        For internal use only! Not to be relied on for any production purposes. 
+        Returned results may not be complete or the signature may change incompatibly at any time.
+        
+        Get completions for shell completion script
+      operationId: getCompletions
+      parameters:
+        - name: 'kind'
+          in: query
+          description: |
+            Kind of data to complete
+          schema:
+            type: string
+            enum:
+              - 'names'
+              - 'fetchNames'
+        - name: 'toComplete'
+          in: query
+          description: |
+            Data to complete
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            text/plain:
+              schema:
+                type: array
+        '400':
+          description: Illegal query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Completions could not be built
           content:
             application/json:
               schema:
@@ -574,14 +652,14 @@ components:
       properties:
         name:
           type: string
-          example: mycompany/abb/B21
+          example: 'siemens/POC1000'
         schema:author:
           $ref: '#/components/schemas/SchemaAuthor'
         schema:manufacturer:
           $ref: '#/components/schemas/SchemaManufacturer'
         schema:mpn:
           type: string
-          example: B21
+          example: 'POC1000'
         versions:
           type: array
           items:
@@ -600,21 +678,21 @@ components:
       properties:
         tmID:
           type: string
-          example: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          example: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
         externalID:
           type: string
-          example: e7f19370-84a3-11ee-b962-0242ac120002
+          example: 'e7f19370-84a3-11ee-b962-0242ac120002'
         description:
           type: string
-          example: Some description of the thing
+          example: 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
         digest:
           type: string
-          example: 7256fc6baeec
+          example: 'e1594d08a01b'
         version:
           $ref: '#/components/schemas/ModelVersion'
         timestamp:
           type: string
-          example: 20231116091345
+          example: '20231201133246'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
     InventoryEntryLinks:
@@ -624,8 +702,8 @@ components:
       properties:
         self:
           type: string
-          format: uri
-          example: /inventory/mycompany/abb/B21
+          format: uri-reference
+          example: './inventory/siemens/POC1000'
     InventoryEntryVersionLinks:
       type: object
       required:
@@ -633,8 +711,8 @@ components:
       properties:
         content:
           type: string
-          format: uri
-          example: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
+          format: uri-reference
+          example: './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
     InventoryResponse:
       type: object
       required:
@@ -703,7 +781,7 @@ components:
       properties:
         schema:name:
           type: string
-          example: MyCompany
+          example: 'siemens'
     SchemaManufacturer:
       required:
         - schema:name
@@ -711,16 +789,19 @@ components:
       properties:
         schema:name:
           type: string
-          example: ABB
+          example: 'siemens'
     Meta:
-      required:
-        - created
       type: object
       properties:
-        created:
-          type: string
-          format: date-time
-          example: '2023-11-16T11:06:18.8213578+01:00'
+        page:
+          $ref: '#/components/schemas/MetaPage'
+    MetaPage:
+      required:
+        - elements
+      type: object
+      properties:
+        elements:
+          type: integer
     ModelVersion:
       required:
         - model
@@ -728,7 +809,7 @@ components:
       properties:
         model:
           type: string
-          example: 1.0.1
+          example: '0.0.0'
     PushThingModelResult:
       required:
         - tmID
@@ -736,7 +817,7 @@ components:
       properties:
         tmID:
           type: string
-          example: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
+          example: 'MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
     ErrorResponse:
       required:
         - title
@@ -751,143 +832,183 @@ components:
           type: string
         instance:
           type: string
+        code:
+          type: string
         status:
           type: integer
   examples:
     InventoryEntryVersionsResponseExample:
       value:
         data:
-          - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-            externalID: e7f19370-84a3-11ee-b962-0242ac120002
-            description: Some new description of the device
-            timestamp: 20231116091345
-            digest: 7256fc6baeec
-            version:
-              model: 1.0.1
-            links:
-              content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-          - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            externalID: e7f19370-84a3-11ee-b962-0242ac120002
-            description: Some description of the device
-            timestamp: 20231017080730
-            digest: 4832ab7bbeac
-            version:
-              model: 1.0.0
-            links:
-              content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-          - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-            externalID: e7f19370-84a3-11ee-b962-0242ac120002
-            description: Some description of the device
-            timestamp: 20231015102132
-            digest: 6391fe4bcefc
-            version:
-              model: 1.0.0
-            links:
-              content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
+          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+            'digest': '2cd14601ef09'
+            'externalID': '{{ID}}'
+            'links':
+              'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'timestamp': '20240108112117'
+            'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'version':
+              'model': '1.0.0'
+          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+            'digest': 'f4184d08a02c'
+            'externalID': '{{ID}}'
+            'links':
+              'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+            'timestamp': '20231217140234'
+            'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+            'version':
+              'model': '0.0.0'
+          - 'description': ''
+            'digest': 'e1594d08a01b'
+            'externalID': '{{ID}}'
+            'links':
+              'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+            'timestamp': '20231201133246'
+            'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+            'version':
+              'model': '0.0.0'
     InventoryEntryResponseExample:
       value:
         data:
-          name: mycompany/abb/B21
-          schema:author:
-            schema:name: MyCompany
-          schema:manufacturer:
-            schema:name: ABB
-          schema:mpn: B21
-          versions:
-            - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-              externalID: e7f19370-84a3-11ee-b962-0242ac120002
-              description: Some new description of the device
-              timestamp: 20231116091345
-              digest: 7256fc6baeec
-              version:
-                model: 1.0.1
-              links:
-                content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-            - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-              externalID: e7f19370-84a3-11ee-b962-0242ac120002
-              description: Some description of the device
-              timestamp: 20231017080730
-              digest: 4832ab7bbeac
-              version:
-                model: 1.0.0
-              links:
-                content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            - tmID: mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-              externalID: e7f19370-84a3-11ee-b962-0242ac120002
-              description: Some description of the device
-              timestamp: 20231015102132
-              digest: 6391fe4bcefc
-              version:
-                model: 1.0.0
-              links:
-                content: /thing-models/mycompany/abb/B21/v1.0.0-20231015102132-6391fe4bcefc.tm.json
-          links:
-            self: /inventory/mycompany/abb/B21
+          'links':
+            'self': './inventory/siemens/POC1000'
+          'name': 'siemens/POC1000'
+          'schema:author':
+            'schema:name': 'siemens'
+          'schema:manufacturer':
+            'schema:name': 'siemens'
+          'schema:mpn': 'POC1000'
+          'versions':
+            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+              'digest': '2cd14601ef09'
+              'externalID': '{{ID}}'
+              'links':
+                'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+              'timestamp': '20240108112117'
+              'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+              'version':
+                'model': '1.0.0'
+            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+              'digest': 'f4184d08a02c'
+              'externalID': '{{ID}}'
+              'links':
+                'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+              'timestamp': '20231217140234'
+              'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+              'version':
+                'model': '0.0.0'
+            - 'description': ''
+              'digest': 'e1594d08a01b'
+              'externalID': '{{ID}}'
+              'links':
+                'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+              'timestamp': '20231201133246'
+              'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+              'version':
+                'model': '0.0.0'
     InventoryResponseExample:
       value:
         meta:
-          created: "2023-11-16T18:07:18.8213578+01:00"
+          page:
+            elements: 2
         data:
-          - name: mycompany/abb/B21
-            schema:author:
-              schema:name: MyCompany
-            schema:manufacturer:
-              schema:name: ABB
-            schema:mpn: B21
-            versions:
-              - tmID: mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-                externalID: e7f19370-84a3-11ee-b962-0242ac120002
-                description: Some new description of the device
-                timestamp: 20231116091345
-                digest: 7256fc6baeec
-                version:
-                  model: 1.0.1
-                links:
-                  content: /thing-models/mycompany/abb/B21/v1.0.1-20231116091345-7256fc6baeec.tm.json
-              - tmID: mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-                externalID: e7f19370-84a3-11ee-b962-0242ac120002
-                description: Some description of the device
-                timestamp: 20231017080730
-                digest: 4832ab7bbeac
-                version:
-                  model: 1.0.0
-                links:
-                  content: /thing-models/mycompany/abb/B21/v1.0.0-20231017080730-4832ab7bbeac.tm.json
-            links:
-              self: /inventory/mycompany/abb/B21
-          - name: yourcompany/danfoss/FC102
-            schema:author:
-              schema:name: YourCompany
-            schema:manufacturer:
-              schema:name: Danfoss
-            schema:mpn: FC 102
-            versions:
-              - tmID: yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
-                externalID: danfoss-kxf19370
-                description: Some description of the device
-                timestamp: 2023082112103
-                digest: 2522cf7bbead
-                version:
-                  model: 1.0.0
-                links:
-                  content: /thing-models/yourcompany/danfoss/FC102/v1.0.0-20230821121030-2522cf7bbead.tm.json
-            links:
-              self: /inventory/yourcompany/danfoss/FC102
+          - 'links':
+              'self': './inventory/siemens/POC1000'
+            'name': 'siemens/POC1000'
+            'schema:author':
+              'schema:name': 'siemens'
+            'schema:manufacturer':
+              'schema:name': 'siemens'
+            'schema:mpn': 'POC1000'
+            'versions':
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': '2cd14601ef09'
+                'externalID': '{{ID}}'
+                'links':
+                  'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'timestamp': '20240108112117'
+                'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'version':
+                  'model': '1.0.0'
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': 'f4184d08a02c'
+                'externalID': '{{ID}}'
+                'links':
+                  'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'timestamp': '20231217140234'
+                'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'version':
+                  'model': '0.0.0'
+              - 'description': ''
+                'digest': 'e1594d08a01b'
+                'externalID': '{{ID}}'
+                'links':
+                  'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'timestamp': '20231201133246'
+                'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'version':
+                  'model': '0.0.0'
+          - 'links':
+              'self': './inventory/MyCompany/BarTech/BazLamp'
+            'name': 'MyCompany/BarTech/BazLamp'
+            'schema:author':
+              'schema:name': 'MyCompany'
+            'schema:manufacturer':
+              'schema:name': 'BarTech'
+            'schema:mpn': 'BazLamp'
+            'versions':
+               - 'description': 'The BarTech BazLamp is a modern smart floor lamp.'
+                 'digest': '1fc13316b7d8'
+                 'externalID': 'e7f19370-84a3-11ee-b962-0242ac120002'
+                 'links':
+                   'content': './thing-models/MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
+                 'timestamp': '20240206122430'
+                 'tmID': 'MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
+                 'version':
+                  'model': '0.0.1'
     AuthorsResponseExample:
       value:
         data:
-          - My Company
-          - Your Company
-          - Another Company
+          - 'MyCompany'
+          - 'siemens'
     ManufacturersResponseExample:
       value:
         data:
-          - ABB
-          - Antarc
-          - Siemens
+          - 'BarTech'
+          - 'siemens'
     MpnsResponseExample:
       value:
         data:
-          - B21
-          - FC102
-          - PAC4200
+          - 'BazLamp'
+          - 'POC1000'
+    PushPayloadExample:
+      value:
+        '@context':
+           -  'https://www.w3.org/2022/wot/td/v1.1'
+           - schema:
+               'https://schema.org/'
+        '@type': 'tm:ThingModel'
+        'id': 'e7f19370-84a3-11ee-b962-0242ac120002'
+        'title': 'BazLamp Smart'
+        'description': 'The BarTech BazLamp is a modern smart floor lamp.'
+        'schema:author':
+          'schema:name': 'MyCompany'
+        'schema:manufacturer':
+          'schema:name': 'BarTech'
+        'schema:mpn': 'BazLamp'
+        'version':
+          'model': 'v0.0.1'
+        'properties':
+          'status':
+            'description': 'current status of the lamp (on|off)'
+            'type': 'string'
+            'readOnly': true
+        'actions':
+          'toggle':
+            'description': 'Turn the lamp on or off'
+        'events':
+          'overheating':
+            'description': 'Lamp reaches a critical temperature (overheating)'
+            'data':
+              'type': 'string'
+

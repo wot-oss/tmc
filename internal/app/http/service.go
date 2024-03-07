@@ -18,12 +18,14 @@ type HandlerService interface {
 	ListManufacturers(ctx context.Context, search *model.SearchParams) ([]string, error)
 	ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error)
 	FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error)
-	FetchThingModel(ctx context.Context, tmID string) ([]byte, error)
+	FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error)
 	PushThingModel(ctx context.Context, file []byte) (string, error)
+	DeleteThingModel(ctx context.Context, tmID string) error
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
 	CheckHealthReady(ctx context.Context) error
 	CheckHealthStartup(ctx context.Context) error
+	GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error)
 }
 
 type defaultHandlerService struct {
@@ -46,9 +48,13 @@ func NewDefaultHandlerService(rm remotes.RemoteManager, servedRepo remotes.RepoS
 
 func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
 	c := commands.NewListCommand(dhs.remoteManager)
-	toc, err := c.List(dhs.serveRemote, search)
+	toc, err, errs := c.List(dhs.serveRemote, search)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(errs) > 0 {
+		return nil, errs[0]
 	}
 
 	return &toc, nil
@@ -118,24 +124,20 @@ func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name s
 		return nil, err
 	}
 	if len(toc.Entries) != 1 {
-		return nil, NewNotFoundError(nil, "Inventory with name %s not found", name)
+		return nil, NewNotFoundError(nil, "Inventory item with name %s not found", name)
 	}
 	return &toc.Entries[0], nil
 }
 
-func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID string) ([]byte, error) {
-	_, err := model.ParseTMID(tmID, true)
-	if errors.Is(err, model.ErrInvalidId) {
-		return nil, NewBadRequestError(err, "Invalid parameter: %s", tmID)
-	} else if err != nil {
+func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error) {
+	_, _, err := commands.ParseAsTMIDOrFetchName(tmID)
+	if err != nil {
 		return nil, err
 	}
 
 	rm := dhs.remoteManager
-	_, data, err := commands.NewFetchCommand(rm).FetchByTMID(dhs.serveRemote, tmID)
-	if errors.Is(err, commands.ErrTmNotFound) {
-		return nil, NewNotFoundError(err, "File does not exist")
-	} else if err != nil {
+	_, data, err, _ := commands.NewFetchCommand(rm).FetchByTMIDOrName(dhs.serveRemote, tmID, restoreId)
+	if err != nil {
 		return nil, err
 	}
 	return data, nil
@@ -159,6 +161,22 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 	}
 
 	return tmID, nil
+}
+
+func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
+	rm := dhs.remoteManager
+	pushRemote := dhs.pushRemote
+
+	err := commands.NewDeleteCommand(rm).Delete(pushRemote, tmID)
+	return err
+}
+
+func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error) {
+	rs, err := remotes.GetSpecdOrAll(dhs.remoteManager, dhs.serveRemote)
+	if err != nil {
+		return nil, err
+	}
+	return rs.ListCompletions(kind, toComplete), nil
 }
 
 func (dhs *defaultHandlerService) CheckHealth(ctx context.Context) error {

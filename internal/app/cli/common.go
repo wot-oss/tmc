@@ -9,9 +9,12 @@ import (
 	"strings"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 const DefaultListSeparator = ","
+
+var TmcVersion = "n/a"
 
 // Stderrf prints a message to os.Stderr, followed by newline
 func Stderrf(format string, args ...any) {
@@ -23,18 +26,16 @@ type FilterFlags struct {
 	FilterAuthor       string
 	FilterManufacturer string
 	FilterMpn          string
-	FilterExternalID   string
 	Search             string
 }
 
 func (ff *FilterFlags) IsSet() bool {
-	return ff.FilterAuthor != "" || ff.FilterManufacturer != "" || ff.FilterMpn != "" ||
-		ff.FilterExternalID != "" || ff.Search != ""
+	return ff.FilterAuthor != "" || ff.FilterManufacturer != "" || ff.FilterMpn != "" || ff.Search != ""
 }
 
-func CreateSearchParamsFromCLI(flags FilterFlags, name string, exactName bool) *model.SearchParams {
+func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
 	var search *model.SearchParams
-	if flags.IsSet() || name != "" || !exactName {
+	if flags.IsSet() || name != "" {
 		search = &model.SearchParams{}
 		if flags.FilterAuthor != "" {
 			search.Author = strings.Split(flags.FilterAuthor, DefaultListSeparator)
@@ -45,18 +46,23 @@ func CreateSearchParamsFromCLI(flags FilterFlags, name string, exactName bool) *
 		if flags.FilterMpn != "" {
 			search.Mpn = strings.Split(flags.FilterMpn, DefaultListSeparator)
 		}
-		if flags.FilterExternalID != "" {
-			search.ExternalID = strings.Split(flags.FilterExternalID, DefaultListSeparator)
-		}
 		if flags.Search != "" {
 			search.Query = flags.Search
 		}
 		if name != "" {
 			search.Name = name
 		}
-		if !exactName {
-			search.Options.NameFilterType = model.PrefixMatch
-		}
+		search.Options.NameFilterType = model.PrefixMatch
 	}
 	return search
+}
+
+func printErrs(hdr string, errs []*remotes.RepoAccessError) {
+	if len(errs) == 0 {
+		return
+	}
+	Stderrf("%s", hdr)
+	for _, e := range errs {
+		Stderrf("%v", e)
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
@@ -19,6 +20,16 @@ var remoteSetAuthCmd = &cobra.Command{
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
+		}
+	},
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		switch len(args) {
+		case 0:
+			return completion.CompleteRemoteNames(cmd, args, toComplete)
+		case 1:
+			return []string{"bearer"}, cobra.ShellCompDirectiveNoFileComp
+		default:
+			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 	},
 }

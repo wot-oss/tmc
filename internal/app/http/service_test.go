@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
@@ -191,6 +192,41 @@ func Test_ListInventory(t *testing.T) {
 		// and then: the search result is returned
 		assert.Equal(t, &listResult, res)
 	})
+	t.Run("list with one upstream error", func(t *testing.T) {
+		// given: remote having some inventory entries
+		r := remotes.NewMockRemote(t)
+		r2 := remotes.NewMockRemote(t)
+		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
+		r2.On("List", &model.SearchParams{}).Return(model.SearchResult{}, errors.New("unexpected")).Once()
+		r2.On("Spec").Return(remotes.NewRemoteSpec("r2")).Once()
+		rm.On("All").Return([]remotes.Remote{r, r2}, nil).Once()
+		// when: list all
+		res, err := underTest.ListInventory(nil, &model.SearchParams{})
+		// then: there is an error of type remotes.RepoAccessError
+		var aErr *remotes.RepoAccessError
+		assert.ErrorAs(t, err, &aErr)
+		// and then: the search result is returned
+		assert.Nil(t, res)
+	})
+}
+
+func Test_GetCompletions(t *testing.T) {
+	rm := remotes.NewMockRemoteManager(t)
+	underTest, _ := NewDefaultHandlerService(rm, remotes.EmptySpec, remote)
+
+	t.Run("list names", func(t *testing.T) {
+		// given: remote having some inventory entries
+		r := remotes.NewMockRemote(t)
+		names := []string{"a/b/c", "d/e/f"}
+		r.On("ListCompletions", "names", "toComplete").Return(names, nil)
+		rm.On("All").Return([]remotes.Remote{r}, nil)
+		// when: list all
+		res, err := underTest.GetCompletions(nil, "names", "toComplete")
+		// then: there is no error
+		assert.NoError(t, err)
+		// and then: the search result is returned
+		assert.Equal(t, names, res)
+	})
 }
 
 func Test_FindInventoryEntry(t *testing.T) {
@@ -353,43 +389,103 @@ func Test_FetchingThingModel(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		invalidTmID := ""
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, invalidTmID)
+		res, err := underTest.FetchThingModel(nil, invalidTmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is status code 400
-		assert.Error(t, err)
-		sErr, ok := err.(*BaseHttpError)
-		assert.True(t, ok)
-		assert.Equal(t, http.StatusBadRequest, sErr.Status)
+		// and then: error is ErrInvalidFetchName
+		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
 	})
 
-	t.Run("with tmID not found ", func(t *testing.T) {
+	t.Run("with invalid fetch name", func(t *testing.T) {
+		// when: fetching ThingModel
+		res, err := underTest.FetchThingModel(nil, "b-corp\\eagle/PM20", false)
+		// then: it returns nil result
+		assert.Nil(t, res)
+		// and then: error is ErrInvalidFetchName
+		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
+	})
+
+	t.Run("with invalid semantic version", func(t *testing.T) {
+		// when: fetching ThingModel
+		res, err := underTest.FetchThingModel(nil, "b-corp/eagle/PM20:v1.", false)
+		// then: it returns nil result
+		assert.Nil(t, res)
+		// and then: error is ErrInvalidFetchName
+		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
+	})
+
+	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", tmID).Return(tmID, nil, commands.ErrTmNotFound).Once()
+		r.On("Fetch", tmID).Return(tmID, nil, remotes.ErrTmNotFound).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID)
+		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is status code 404
-		assert.Error(t, err)
-		sErr, ok := err.(*BaseHttpError)
-		assert.True(t, ok)
-		assert.Equal(t, http.StatusNotFound, sErr.Status)
+		// and then: error is ErrTmNotFound
+		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
 	})
 
-	t.Run("with tmID found ", func(t *testing.T) {
+	t.Run("with fetch name not found", func(t *testing.T) {
+		fn := "b-corp/eagle/PM20"
+		r.On("Versions", fn).Return(nil, nil).Once()
+		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
+		// when: fetching ThingModel
+		res, err := underTest.FetchThingModel(nil, fn, false)
+		// then: it returns nil result
+		assert.Nil(t, res)
+		// and then: error is ErrTmNotFound
+		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+	})
+
+	t.Run("with tmID found", func(t *testing.T) {
 		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", tmID).Return(tmID, raw, nil).Once()
 		rm.On("All").Return([]remotes.Remote{r}, nil).Once()
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID)
+		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns the unchanged ThingModel content
 		assert.NotNil(t, res)
 		assert.Equal(t, raw, res)
 		// and then: there is no error
 		assert.NoError(t, err)
+	})
+}
+func Test_DeleteThingModel(t *testing.T) {
+
+	rm := remotes.NewMockRemoteManager(t)
+	r := remotes.NewMockRemote(t)
+	rm.On("Get", remote).Return(r, nil)
+	underTest, _ := NewDefaultHandlerService(rm, remotes.EmptySpec, remote)
+
+	t.Run("without errors", func(t *testing.T) {
+		tmid := "some-id"
+		r.On("Delete", tmid).Return(nil).Once()
+		r.On("UpdateToc", tmid).Return(nil).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns nil result
+		assert.NoError(t, err)
+	})
+
+	t.Run("with error when deleting", func(t *testing.T) {
+		tmid := "some-id2"
+		r.On("Delete", tmid).Return(remotes.ErrTmNotFound).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns error result
+		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+	})
+
+	t.Run("with error when updating toc", func(t *testing.T) {
+		tmid := "some-id3"
+		r.On("Delete", tmid).Return(nil).Once()
+		r.On("UpdateToc", tmid).Return(errors.New("could not update toc")).Once()
+		// when: deleting ThingModel
+		err := underTest.DeleteThingModel(nil, tmid)
+		// then: it returns error result
+		assert.ErrorContains(t, err, "could not update toc")
 	})
 }
 
@@ -422,5 +518,39 @@ func Test_PushingThingModel(t *testing.T) {
 		assert.Error(t, err)
 		// and then: the error says that the remote cannot be found
 		assert.Equal(t, remotes.ErrRemoteNotFound, err)
+	})
+	t.Run("with content conflict", func(t *testing.T) {
+		// given: some valid content for a ThingModel
+		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
+		rm.On("Get", pushTarget).Return(r, nil).Once()
+		cErr := &remotes.ErrTMIDConflict{
+			Type:       remotes.IdConflictSameContent,
+			ExistingId: "existing-id",
+		}
+		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
+		// when: pushing ThingModel
+		res, err := underTest.PushThingModel(nil, tmContent)
+		// then: it returns empty tmID
+		assert.Equal(t, "", res)
+		// and then: there is an error
+		assert.Equal(t, cErr, err)
+	})
+	t.Run("with timestamp conflict", func(t *testing.T) {
+		// given: some valid content for a ThingModel
+		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
+		rm.On("Get", pushTarget).Return(r, nil).Once()
+		cErr := &remotes.ErrTMIDConflict{
+			Type:       remotes.IdConflictSameTimestamp,
+			ExistingId: "existing-id",
+		}
+		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
+		r.On("Push", mock.Anything, mock.Anything).Return(nil).Once() // expect a second push attempt
+		r.On("UpdateToc", mock.Anything).Return(nil)
+		// when: pushing ThingModel
+		res, err := underTest.PushThingModel(nil, tmContent)
+		// then: it returns non-empty tmID
+		assert.NotEmpty(t, res)
+		// and then: there is an error
+		assert.NoError(t, err)
 	})
 }

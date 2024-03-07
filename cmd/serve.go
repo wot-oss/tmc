@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/viper"
+	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
@@ -29,8 +30,11 @@ func init() {
 	serveCmd.Flags().StringP("host", "", "0.0.0.0", "serve with this host name")
 	serveCmd.Flags().StringP("port", "", "8080", "serve with this port")
 	serveCmd.Flags().StringP("remote", "r", "", "name of the remote to serve")
+	_ = serveCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
 	serveCmd.Flags().StringP("directory", "d", "", "TM repository directory to serve")
+	_ = serveCmd.MarkFlagDirname("directory")
 	serveCmd.Flags().StringP("pushTarget", "t", "", "name of the remote to use as target for push operations")
+	_ = serveCmd.RegisterFlagCompletionFunc("pushTarget", completion.CompleteRemoteNames)
 	serveCmd.Flags().StringP("urlContextRoot", "", "",
 		"define additional URL context root path to be considered in hypermedia links,\ncan also be set via environment variable TMC_URLCONTEXTROOT")
 	serveCmd.Flags().StringP("corsAllowedOrigins", "", "", "set comma-separated list for CORS allowed origins")
