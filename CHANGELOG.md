@@ -4,6 +4,7 @@
 
 ### Added
 
+- Implemented REST API authentication with JWT tokens and JWKS validation
 - Implemented `version` command to show the version of the tm-catalog-cli
 - Implemented autocompletion for most flags and arguments for the shell autocompletion script
 - Added an optional flag to fetch to restore original external id to the fetched TM
