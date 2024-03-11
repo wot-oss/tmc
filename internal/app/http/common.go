@@ -16,23 +16,25 @@ import (
 )
 
 const (
-	error400Title  = "Bad Request"
-	error404Title  = "Not Found"
-	error409Title  = "Conflict"
-	error503Title  = "Service Unavailable"
-	error500Title  = "Internal Server Error"
-	error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
-	error502Title  = "Bad Gateway"
-	error502Detail = "An upstream Thing Model repository returned an error"
+	Error400Title  = "Bad Request"
+	Error401Title  = "Unauthorized"
+	Error404Title  = "Not Found"
+	Error409Title  = "Conflict"
+	Error503Title  = "Service Unavailable"
+	Error500Title  = "Internal Server Error"
+	Error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
+	Error502Title  = "Bad Gateway"
+	Error502Detail = "An upstream Thing Model repository returned an error"
 
-	headerContentType         = "Content-Type"
-	headerCacheControl        = "Cache-Control"
-	headerXContentTypeOptions = "X-Content-Type-Options"
-	mimeText                  = "text/plain"
-	mimeJSON                  = "application/json"
-	mimeProblemJSON           = "application/problem+json"
-	noSniff                   = "nosniff"
-	noCache                   = "no-cache, no-store, max-age=0, must-revalidate"
+	HeaderAuthorization       = "Authorization"
+	HeaderContentType         = "Content-Type"
+	HeaderCacheControl        = "Cache-Control"
+	HeaderXContentTypeOptions = "X-Content-Type-Options"
+	MimeText                  = "text/plain"
+	MimeJSON                  = "application/json"
+	MimeProblemJSON           = "application/problem+json"
+	NoSniff                   = "nosniff"
+	NoCache                   = "no-cache, no-store, max-age=0, must-revalidate"
 
 	basePathInventory   = "/inventory"
 	basePathThingModels = "/thing-models"
@@ -48,19 +50,19 @@ func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data
 		return
 	}
 
-	w.Header().Set(headerContentType, mimeJSON)
+	w.Header().Set(HeaderContentType, MimeJSON)
 	w.WriteHeader(status)
 	_, _ = w.Write(body)
 }
 
 func HandleByteResponse(w http.ResponseWriter, r *http.Request, status int, mime string, data []byte) {
-	w.Header().Set(headerContentType, mime)
+	w.Header().Set(HeaderContentType, mime)
 	w.WriteHeader(status)
 	_, _ = w.Write(data)
 }
 
 func HandleHealthyResponse(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set(headerCacheControl, noCache)
+	w.Header().Set(HeaderCacheControl, NoCache)
 	w.WriteHeader(http.StatusNoContent)
 	_, _ = w.Write(nil)
 }
@@ -72,8 +74,8 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		fmt.Println(err)
 	}
 
-	errTitle := error500Title
-	errDetail := error500Detail
+	errTitle := Error500Title
+	errDetail := Error500Detail
 	errStatus := http.StatusInternalServerError
 	errCode := ""
 
@@ -81,11 +83,11 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	var aErr *remotes.RepoAccessError
 	var bErr *BaseHttpError
 	if errors.Is(err, remotes.ErrTmNotFound) {
-		errTitle = error404Title
+		errTitle = Error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
 	} else if errors.Is(err, model.ErrInvalidId) || errors.Is(err, commands.ErrInvalidFetchName) || errors.Is(err, remotes.ErrInvalidCompletionParams) {
-		errTitle = error400Title
+		errTitle = Error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
 	} else if errors.As(err, &bErr) {
@@ -93,23 +95,23 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errDetail = bErr.Detail
 		errStatus = bErr.Status
 	} else if errors.As(err, &aErr) {
-		errTitle = error502Title
-		errDetail = error502Detail
+		errTitle = Error502Title
+		errDetail = Error502Detail
 		errStatus = http.StatusBadGateway
 	} else if errors.As(err, &eErr) {
-		errTitle = error409Title
+		errTitle = Error409Title
 		errDetail = eErr.Error()
 		errCode = eErr.Code()
 		errStatus = http.StatusConflict
 	} else {
 		switch err.(type) {
 		case *jsonschema.ValidationError, *json.SyntaxError:
-			errTitle = error400Title
+			errTitle = Error400Title
 			errDetail = err.Error()
 			errStatus = http.StatusBadRequest
 		case *server.InvalidParamFormatError, *server.RequiredParamError, *server.RequiredHeaderError,
 			*server.UnmarshalingParamError, *server.TooManyValuesForParamError, *server.UnescapedCookieParamError:
-			errTitle = error400Title
+			errTitle = Error400Title
 			errDetail = err.Error()
 			errStatus = http.StatusBadRequest
 		default:
@@ -125,8 +127,8 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	respBody, _ := json.MarshalIndent(problem, "", "  ")
-	w.Header().Set(headerContentType, mimeProblemJSON)
-	w.Header().Set(headerXContentTypeOptions, noSniff)
+	w.Header().Set(HeaderContentType, MimeProblemJSON)
+	w.Header().Set(HeaderXContentTypeOptions, NoSniff)
 	w.WriteHeader(errStatus)
 	_, _ = w.Write(respBody)
 }
@@ -150,16 +152,20 @@ func (e *BaseHttpError) Unwrap() error {
 	return e.Err
 }
 
+func NewUnauthorizedError(err error, detail string, args ...any) error {
+	return newBaseHttpError(err, http.StatusUnauthorized, Error401Title, detail, args...)
+}
+
 func NewNotFoundError(err error, detail string, args ...any) error {
-	return newBaseHttpError(err, http.StatusNotFound, error404Title, detail, args...)
+	return newBaseHttpError(err, http.StatusNotFound, Error404Title, detail, args...)
 }
 
 func NewBadRequestError(err error, detail string, args ...any) error {
-	return newBaseHttpError(err, http.StatusBadRequest, error400Title, detail, args...)
+	return newBaseHttpError(err, http.StatusBadRequest, Error400Title, detail, args...)
 }
 
 func NewServiceUnavailableError(err error, detail string) error {
-	return newBaseHttpError(err, http.StatusServiceUnavailable, error503Title, detail)
+	return newBaseHttpError(err, http.StatusServiceUnavailable, Error503Title, detail)
 }
 
 func newBaseHttpError(err error, status int, title string, detail string, args ...any) error {

@@ -89,7 +89,7 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, t
 		return
 	}
 
-	HandleByteResponse(w, r, http.StatusOK, mimeJSON, data)
+	HandleByteResponse(w, r, http.StatusOK, MimeJSON, data)
 }
 
 // DeleteThingModelById Delete a Thing Model by ID
@@ -111,9 +111,9 @@ func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request
 }
 
 func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
-	contentType := r.Header.Get(headerContentType)
+	contentType := r.Header.Get(HeaderContentType)
 
-	if contentType != mimeJSON {
+	if contentType != MimeJSON {
 		HandleErrorResponse(w, r, NewBadRequestError(nil, "Invalid Content-Type header: %s", contentType))
 		return
 	}
@@ -254,7 +254,7 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 		}
 	}
 
-	HandleByteResponse(w, r, http.StatusOK, mimeText, buf.Bytes())
+	HandleByteResponse(w, r, http.StatusOK, MimeText, buf.Bytes())
 }
 
 func (h *TmcHandler) createContext(r *http.Request) context.Context {

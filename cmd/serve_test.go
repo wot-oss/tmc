@@ -28,12 +28,12 @@ func TestGetServerOptionsReadsFromEnvironment(t *testing.T) {
 		t.Setenv(envMaxAge, "120")
 		config.InitViper()
 
-		opts := getServerOptions()
+		opts := getCORSOptions()
 
-		corsOrigins := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("allowedOrigins"))
-		corsHeaders := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("allowedHeaders"))
-		corsCredentials := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("allowCredentials"))
-		corsMaxAge := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("maxAge"))
+		corsOrigins := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("allowedOrigins"))
+		corsHeaders := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("allowedHeaders"))
+		corsCredentials := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("allowCredentials"))
+		corsMaxAge := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("maxAge"))
 
 		assert.True(t, strings.Contains(corsOrigins, "http://example.org"))
 		assert.True(t, strings.Contains(corsOrigins, "https://sample.com"))
@@ -46,12 +46,12 @@ func TestGetServerOptionsReadsFromEnvironment(t *testing.T) {
 	t.Run("without set environment variables", func(t *testing.T) {
 		config.InitViper()
 
-		opts := getServerOptions()
+		opts := getCORSOptions()
 
-		corsOrigins := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("allowedOrigins"))
-		corsHeaders := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("allowedHeaders"))
-		corsCredentials := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("allowCredentials"))
-		corsMaxAge := fmt.Sprintf("%v", reflect.ValueOf(opts.CORS).FieldByName("maxAge"))
+		corsOrigins := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("allowedOrigins"))
+		corsHeaders := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("allowedHeaders"))
+		corsCredentials := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("allowCredentials"))
+		corsMaxAge := fmt.Sprintf("%v", reflect.ValueOf(opts).FieldByName("maxAge"))
 
 		assert.Equal(t, "[]", corsOrigins)
 		assert.Equal(t, "[]", corsHeaders)
