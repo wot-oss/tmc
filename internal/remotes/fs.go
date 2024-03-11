@@ -545,7 +545,10 @@ func (f *FileRemote) ListCompletions(kind string, toComplete string) ([]string, 
 		if err != nil {
 			return nil, err
 		}
-		return f.readNamesFile(), nil
+		ns := f.readNamesFile()
+		_, seg := longestPath(toComplete)
+		names := namesToCompletions(ns, toComplete, seg+1)
+		return names, nil
 	case CompletionKindFetchNames:
 		if strings.Contains(toComplete, "..") {
 			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)

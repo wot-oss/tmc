@@ -70,5 +70,5 @@ func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]st
 	}
 
 	cs := rs.ListCompletions(remotes.CompletionKindNames, toComplete)
-	return cs, cobra.ShellCompDirectiveNoFileComp
+	return cs, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
