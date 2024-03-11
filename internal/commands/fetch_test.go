@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -364,6 +366,7 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 			_, _, err, errs := f.FetchByName(remotes.EmptySpec, FetchName{Name: "author/manufacturer/mpn2"}, false)
 			assert.ErrorIs(t, err, remotes.ErrTmNotFound)
 			if assert.Len(t, errs, 2) {
+				slices.SortStableFunc(errs, func(a, b *remotes.RepoAccessError) int { return strings.Compare(a.Error(), b.Error()) })
 				assert.ErrorContains(t, errs[0], "unexpected1")
 				assert.ErrorContains(t, errs[1], "unexpected2")
 			}
