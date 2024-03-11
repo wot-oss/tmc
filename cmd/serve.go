@@ -4,9 +4,12 @@ import (
 	"errors"
 	"os"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
+
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
@@ -27,26 +30,32 @@ This may be omitted if there's exactly one remote configured`,
 
 func init() {
 	RootCmd.AddCommand(serveCmd)
-	serveCmd.Flags().StringP("host", "", "0.0.0.0", "serve with this host name")
-	serveCmd.Flags().StringP("port", "", "8080", "serve with this port")
-	serveCmd.Flags().StringP("remote", "r", "", "name of the remote to serve")
+	serveCmd.Flags().StringP("host", "", "0.0.0.0", "Serve with this host name")
+	serveCmd.Flags().StringP("port", "", "8080", "Serve with this port")
+	serveCmd.Flags().StringP("remote", "r", "", "Name of the remote to serve")
 	_ = serveCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
 	serveCmd.Flags().StringP("directory", "d", "", "TM repository directory to serve")
 	_ = serveCmd.MarkFlagDirname("directory")
-	serveCmd.Flags().StringP("pushTarget", "t", "", "name of the remote to use as target for push operations")
+	serveCmd.Flags().StringP("pushTarget", "t", "", "Name of the remote to use as target for push operations")
 	_ = serveCmd.RegisterFlagCompletionFunc("pushTarget", completion.CompleteRemoteNames)
-	serveCmd.Flags().StringP("urlContextRoot", "", "",
-		"define additional URL context root path to be considered in hypermedia links,\ncan also be set via environment variable TMC_URLCONTEXTROOT")
-	serveCmd.Flags().StringP("corsAllowedOrigins", "", "", "set comma-separated list for CORS allowed origins")
-	serveCmd.Flags().StringP("corsAllowedHeaders", "", "", "set comma-separated list for CORS allowed headers")
-	serveCmd.Flags().BoolP("corsAllowCredentials", "", false, "set CORS allow credentials")
-	serveCmd.Flags().IntP("corsMaxAge", "", 0, "set how long result of CORS preflight request can be cached in seconds (default 0, max 600)")
+	serveCmd.Flags().String(config.KeyUrlContextRoot, "",
+		"Define additional URL context root path to be considered in hypermedia links (env var TMC_URLCONTEXTROOT)")
+	serveCmd.Flags().String(config.KeyCorsAllowedOrigins, "", "Set comma-separated list for CORS allowed origins (env var TMC_CORSALLOWEDORIGINS)")
+	serveCmd.Flags().String(config.KeyCorsAllowedHeaders, "", "Set comma-separated list for CORS allowed headers (env var TMC_CORSALLOWEDHEADERS)")
+	serveCmd.Flags().Bool(config.KeyCorsAllowCredentials, false, "set CORS allow credentials (env var TMC_CORSALLOWCREDENTIALS)")
+	serveCmd.Flags().Int(config.KeyCorsMaxAge, 0, "set how long result of CORS preflight request can be cached in seconds (default 0, max 600) (env varTMC_CORSMAXAGE)")
+	serveCmd.Flags().Bool(config.KeyJWTValidation, false, "If set to 'true', jwt tokens are used to grant access to the API (env var TMC_JWTVALIDATION)")
+	serveCmd.Flags().String(config.KeyJWTServiceID, "", "If set to an identifier, value will be compared to 'aud' claim in validated JWT (env var TMC_JWTSERVICEID)")
+	serveCmd.Flags().String(config.KeyJWKSURL, "", "URL to periodically fetch JSON Web Key Sets for token validation (env var TMC_JWKSURL)")
 
-	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup("urlContextRoot"))
-	_ = viper.BindPFlag(config.KeyCorsAllowedOrigins, serveCmd.Flags().Lookup("corsAllowedOrigins"))
-	_ = viper.BindPFlag(config.KeyCorsAllowedHeaders, serveCmd.Flags().Lookup("corsAllowedHeaders"))
-	_ = viper.BindPFlag(config.KeyCorsAllowCredentials, serveCmd.Flags().Lookup("corsAllowCredentials"))
-	_ = viper.BindPFlag(config.KeyCorsMaxAge, serveCmd.Flags().Lookup("corsMaxAge"))
+	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup(config.KeyUrlContextRoot))
+	_ = viper.BindPFlag(config.KeyCorsAllowedOrigins, serveCmd.Flags().Lookup(config.KeyCorsAllowedOrigins))
+	_ = viper.BindPFlag(config.KeyCorsAllowedHeaders, serveCmd.Flags().Lookup(config.KeyCorsAllowedHeaders))
+	_ = viper.BindPFlag(config.KeyCorsAllowCredentials, serveCmd.Flags().Lookup(config.KeyCorsAllowCredentials))
+	_ = viper.BindPFlag(config.KeyCorsMaxAge, serveCmd.Flags().Lookup(config.KeyCorsMaxAge))
+	_ = viper.BindPFlag(config.KeyJWTValidation, serveCmd.Flags().Lookup(config.KeyJWTValidation))
+	_ = viper.BindPFlag(config.KeyJWTServiceID, serveCmd.Flags().Lookup(config.KeyJWTServiceID))
+	_ = viper.BindPFlag(config.KeyJWKSURL, serveCmd.Flags().Lookup(config.KeyJWKSURL))
 }
 
 func serve(cmd *cobra.Command, args []string) {
@@ -61,27 +70,43 @@ func serve(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	urlCtxRoot := viper.GetString(config.KeyUrlContextRoot)
-	opts := getServerOptions()
+	opts := getServeOptions()
 
 	pushSpec := spec
 	if remote == "" && dir == "" && pushTarget != "" {
 		pushSpec = remotes.NewRemoteSpec(pushTarget)
 	}
-	err = cli.Serve(host, port, urlCtxRoot, opts, spec, pushSpec)
+	err = cli.Serve(host, port, opts, spec, pushSpec)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)
 	}
 }
 
-func getServerOptions() http.ServerOptions {
-	opts := http.ServerOptions{}
+func getServeOptions() cli.ServeOptions {
+	opts := cli.ServeOptions{}
 
-	opts.CORS.AddAllowedOrigins(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedOrigins), cli.DefaultListSeparator, true)...)
-	opts.CORS.AddAllowedHeaders(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedHeaders), cli.DefaultListSeparator, true)...)
-	opts.CORS.AllowCredentials(viper.GetBool(config.KeyCorsAllowCredentials))
-	opts.CORS.MaxAge(viper.GetInt(config.KeyCorsMaxAge))
+	opts.UrlCtxRoot = viper.GetString(config.KeyUrlContextRoot)
+	opts.JWTValidation = viper.GetBool(config.KeyJWTValidation)
+	opts.JWTValidationOpts = getJWKSOptions()
+	opts.CORSOptions = getCORSOptions()
+	return opts
+}
 
+func getCORSOptions() cors.CORSOptions {
+	opts := cors.CORSOptions{}
+
+	opts.AddAllowedOrigins(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedOrigins), cli.DefaultListSeparator, true)...)
+	opts.AddAllowedHeaders(utils.ParseAsList(viper.GetString(config.KeyCorsAllowedHeaders), cli.DefaultListSeparator, true)...)
+	opts.AllowCredentials(viper.GetBool(config.KeyCorsAllowCredentials))
+	opts.MaxAge(viper.GetInt(config.KeyCorsMaxAge))
+
+	return opts
+}
+
+func getJWKSOptions() jwt.JWTValidationOpts {
+	opts := jwt.JWTValidationOpts{}
+	opts.JWTServiceID = viper.GetString(config.KeyJWTServiceID)
+	opts.JWKSURLString = viper.GetString(config.KeyJWKSURL)
 	return opts
 }

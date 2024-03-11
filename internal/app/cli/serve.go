@@ -8,6 +8,11 @@ import (
 	nethttp "net/http"
 	"net/url"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
+
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
+
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
@@ -15,9 +20,21 @@ import (
 //go:embed banner.txt
 var banner string
 
-func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTarget remotes.RepoSpec) error {
+type ServeOptions struct {
+	UrlCtxRoot string
+	cors.CORSOptions
+	jwt.JWTValidationOpts
+	JWTValidation bool
+}
 
-	err := validateContextRoot(urlCtxRoot)
+func Serve(host, port string, opts ServeOptions, repo, pushTarget remotes.RepoSpec) error {
+	defer func() {
+		if r := recover(); r != nil {
+			Stderrf("could not start server:")
+			Stderrf(fmt.Sprint(r))
+		}
+	}()
+	err := validateContextRoot(opts.UrlCtxRoot)
 	if err != nil {
 		Stderrf(err.Error())
 		return err
@@ -40,24 +57,31 @@ func Serve(host, port, urlCtxRoot string, opts http.ServerOptions, repo, pushTar
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
 		return err
 	}
+
 	handler := http.NewTmcHandler(
 		handlerService,
 		http.TmcHandlerOptions{
-			UrlContextRoot: urlCtxRoot,
+			UrlContextRoot: opts.UrlCtxRoot,
 		})
 
+	// collect Middlewares for the main http handler
+	var mws = getMiddlewares(opts)
 	// create a http handler
-	httpHandler := http.NewHttpHandler(handler)
-	httpHandler = http.WithCORS(httpHandler, opts)
+	httpHandler := http.NewHttpHandler(handler, mws)
+	// protect main handler with CORS
+	httpHandler = cors.Protect(httpHandler, opts.CORSOptions)
 
 	s := &nethttp.Server{
 		Handler: httpHandler,
 		Addr:    net.JoinHostPort(host, port),
 	}
 
+	// valid configuration, we can print the banner and start the server
 	fmt.Println(banner)
 	fmt.Printf("Version of tm-catalog-cli: %s\n", TmcVersion)
 	fmt.Printf("Starting tm-catalog server on %s:%s\n", host, port)
+
+	// start server
 	err = s.ListenAndServe()
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
@@ -74,4 +98,12 @@ func validateContextRoot(ctxRoot string) error {
 		return fmt.Errorf("invalid urlContextRoot: %s", ctxRoot)
 	}
 	return nil
+}
+
+func getMiddlewares(opts ServeOptions) []server.MiddlewareFunc {
+	var mws []server.MiddlewareFunc
+	if opts.JWTValidation == true {
+		mws = append(mws, jwt.GetMiddleware(opts.JWTValidationOpts))
+	}
+	return mws
 }
