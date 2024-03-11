@@ -1,9 +1,7 @@
 package jwt
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -34,19 +32,19 @@ func jwtValidationMiddleware(h http.Handler) http.Handler {
 			// protected endpoint, check for bearer tokenString in header
 			tokenString, err := extractBearerToken(r)
 			if err != nil {
-				writeErrorResponse(w, err, http.StatusUnauthorized)
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
 			// got token, validate it
 			var token *jwt.Token
 			if token, err = jwt.Parse(tokenString, jwksKeyFunc); err != nil {
-				writeErrorResponse(w, err, http.StatusUnauthorized)
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
 			// valid token, identify our service in the "aud" claim
 			// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
 			if err := validateAudClaim(token); err != nil {
-				writeErrorResponse(w, err, http.StatusUnauthorized)
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
 		}
@@ -86,20 +84,4 @@ func validateAudClaim(token *jwt.Token) error {
 		}
 	}
 	return InvalidAudClaimError
-}
-
-// TODO(pedram): refactor common.go into its own package to be reused here
-func writeErrorResponse(w http.ResponseWriter, err error, status int) {
-	slog.Default().Debug("jwt: " + err.Error())
-	w.Header().Set(httptmc.HeaderContentType, httptmc.MimeJSON)
-	w.WriteHeader(status)
-
-	errString := fmt.Sprint(err)
-	errorResponse := server.ErrorResponse{
-		Status: status,
-		Detail: &errString,
-		Title:  httptmc.Error401Title,
-	}
-	body, _ := json.MarshalIndent(errorResponse, "", "    ")
-	_, _ = w.Write(body)
 }
