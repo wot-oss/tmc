@@ -1,9 +1,11 @@
 # Thing Model Catalog CLI
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/web-of-things-open-source/tm-catalog-cli)](https://goreportcard.com/report/github.com/web-of-thing-open-source/tm-catalog-cli) [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/hadjian/tm-catalog-cli)](https://github.com/web-of-things-open-source/tm-catalog-cli/releases) [![PkgGoDev](https://img.shields.io/badge/go.dev-docs-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/web-of-things-open-source/tm-catalog-cli)
+[![Go Report Card](https://goreportcard.com/badge/github.com/web-of-things-open-source/tm-catalog-cli)](https://goreportcard.com/report/github.com/web-of-things-open-source/tm-catalog-cli) [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/hadjian/tm-catalog-cli)](https://github.com/web-of-things-open-source/tm-catalog-cli/releases) [![PkgGoDev](https://img.shields.io/badge/go.dev-docs-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/web-of-things-open-source/tm-catalog-cli)
 
 ![Thing Model Catalog Logo](https://github.com/hadjian/tm-catalog-cli/raw/main/docs/media/tm-catalog-logo.svg)
 
+https://goreportcard.com/report/github.com/web-of-thing-open-source/tm-catalog-cli
+https://goreportcard.com/report/github.com/web-of-thing-open-source/tm-catalog-cli
 
 ---
 Find, use and contribute device descriptions for industrial IoT devices!
