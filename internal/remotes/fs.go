@@ -398,8 +398,11 @@ func (f *FileRemote) updateToc(ids []string) error {
 		}
 		for _, id := range ids {
 			path := filepath.Join(f.root, id)
-			info, err := osStat(path)
-			upd, name, nameDeleted, _ := f.updateTocWithFile(newTOC, path, info, log, err)
+			info, statErr := osStat(path)
+			upd, name, nameDeleted, err := f.updateTocWithFile(newTOC, path, info, log, statErr)
+			if err != nil {
+				return err
+			}
 			if upd {
 				fileCount++
 				if nameDeleted != "" {
@@ -432,10 +435,7 @@ func (f *FileRemote) updateToc(ids []string) error {
 
 func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
 	if os.IsNotExist(err) {
-		id, found := strings.CutPrefix(path, f.root)
-		if !found {
-			return false, "", "", err
-		}
+		id, _ := strings.CutPrefix(path, f.root)
 		id, _ = strings.CutPrefix(filepath.ToSlash(id), "/")
 		upd, name, err := newTOC.Delete(id)
 		if err != nil {

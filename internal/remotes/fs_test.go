@@ -304,12 +304,15 @@ func TestFileRemote_Delete(t *testing.T) {
 func TestFileRemote_UpdateTOC(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	spec := NewRemoteSpec("fr")
+	testutils.CopyDir("../../test/data/toc", temp)
+	wd, _ := os.Getwd()
+	defer os.Chdir(wd)
+	os.Chdir(temp)
+	spec := NewDirSpec(".")
 	r := &FileRemote{
-		root: temp,
+		root: ".", // delete from toc must work when root is not an absolute path
 		spec: spec,
 	}
-	testutils.CopyDir("../../test/data/toc", temp)
 
 	t.Run("single id/no toc file", func(t *testing.T) {
 		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
@@ -391,6 +394,7 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 		})
 		t.Run("existing id", func(t *testing.T) {
 			err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+			assert.NoError(t, err)
 			toc, err := r.readTOC()
 			assert.NoError(t, err)
 			toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
@@ -407,6 +411,7 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 			err := os.Remove(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"))
 			assert.NoError(t, err)
 			err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json")
+			assert.NoError(t, err)
 			toc, err := r.readTOC()
 			assert.NoError(t, err)
 			toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
