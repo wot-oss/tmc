@@ -163,6 +163,10 @@ func (e *BaseHttpError) Unwrap() error {
 	return e.Err
 }
 
+func NewUnauthorizedError(err error, detail string, args ...any) error {
+	return newBaseHttpError(err, http.StatusUnauthorized, Error401Title, detail, args...)
+}
+
 func NewNotFoundError(err error, detail string, args ...any) error {
 	return newBaseHttpError(err, http.StatusNotFound, Error404Title, detail, args...)
 }
