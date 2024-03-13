@@ -262,7 +262,7 @@ func TestFileRemote_Delete(t *testing.T) {
 		root: temp,
 		spec: spec,
 	}
-	testutils.CopyDir("../../test/data/toc", temp)
+	assert.NoError(t, testutils.CopyDir("../../test/data/toc", temp))
 
 	t.Run("invalid id", func(t *testing.T) {
 		err := r.Delete("invalid-id")
@@ -301,16 +301,16 @@ func TestFileRemote_Delete(t *testing.T) {
 	})
 }
 
-func TestFileRemote_UpdateTOC(t *testing.T) {
+func TestFileRemote_UpdateToc(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	testutils.CopyDir("../../test/data/toc", temp)
+	assert.NoError(t, testutils.CopyDir("../../test/data/toc", temp))
 	wd, _ := os.Getwd()
 	defer os.Chdir(wd)
-	os.Chdir(temp)
-	spec := NewDirSpec(".")
+	_ = os.Chdir(temp)
+	spec := NewDirSpec(temp)
 	r := &FileRemote{
-		root: ".", // delete from toc must work when root is not an absolute path
+		root: temp,
 		spec: spec,
 	}
 
@@ -373,55 +373,125 @@ func TestFileRemote_UpdateTOC(t *testing.T) {
 			"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
 		}, names)
 	})
+}
 
-	t.Run("remove id from toc", func(t *testing.T) {
-		err := os.Remove(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json"))
-		assert.NoError(t, err)
+func TestFileRemote_UpdateToc_RemoveId(t *testing.T) {
+	tests := []struct {
+		name  string
+		root  string
+		setup func(string) (string, string)
+	}{
+		{"current", ".", func(temp string) (catalog string, workdir string) {
+			return temp, temp
+		}},
+		{"sibling", "../sibling", func(temp string) (catalog string, workdir string) {
+			catalogDir := filepath.Join(temp, "sibling")
+			_ = os.Mkdir(catalogDir, defaultDirPermissions)
+			workDir := filepath.Join(temp, "workdir")
+			_ = os.Mkdir(workDir, defaultDirPermissions)
+			return catalogDir, workDir
+		}},
+		{"below", "./below", func(temp string) (catalog string, workdir string) {
+			catalogDir := filepath.Join(temp, "below")
+			_ = os.Mkdir(catalogDir, defaultDirPermissions)
+			return catalogDir, temp
+		}},
+	}
 
-		t.Run("non-existing id", func(t *testing.T) {
-			err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20240109125023-be839ce9daf1.tm.json")
-			toc, err := r.readTOC()
-			assert.NoError(t, err)
-			toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
-			if assert.Equal(t, 1, len(toc.Data)) {
-				assert.Equal(t, 2, len(toc.Data[0].Versions))
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			temp, _ := os.MkdirTemp("", "fr")
+			defer os.RemoveAll(temp)
+
+			wd, _ := os.Getwd()
+			catalogDir, newWd := test.setup(temp)
+			assert.NoError(t, testutils.CopyDir("../../test/data/toc", catalogDir))
+			_ = os.Chdir(newWd)
+			defer os.Chdir(wd)
+			assert.NoError(t, os.Remove(filepath.Join(catalogDir, "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")))
+
+			spec := NewDirSpec(test.root)
+			r := &FileRemote{
+				root: test.root,
+				spec: spec,
 			}
-			names := r.readNamesFile()
-			assert.Equal(t, []string{
-				"omnicorp-TM-department/omnicorp/omnilamp",
-				"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
-			}, names)
+			err := r.UpdateToc()
+			assert.NoError(t, err)
+
+			t.Run("non-existing id", func(t *testing.T) {
+				// when: deleting a non-existing id from toc
+				err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v9.9.9-20240109125023-be839ce9daf1.tm.json")
+				toc, err := r.readTOC()
+				assert.NoError(t, err)
+				// then: nothing changes
+				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
+				if assert.Equal(t, 1, len(toc.Data)) {
+					assert.Equal(t, 2, len(toc.Data[0].Versions))
+				}
+				names := r.readNamesFile()
+				assert.Equal(t, []string{
+					"omnicorp-TM-department/omnicorp/omnilamp",
+					"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
+				}, names)
+			})
+			t.Run("existing id and file", func(t *testing.T) {
+				// when: updating toc for TM that has not been removed from disk
+				err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+				assert.NoError(t, err)
+				toc, err := r.readTOC()
+				assert.NoError(t, err)
+				// then: nothing changes
+				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
+				if assert.Equal(t, 1, len(toc.Data)) {
+					assert.Equal(t, 2, len(toc.Data[0].Versions))
+				}
+				names := r.readNamesFile()
+				assert.Equal(t, []string{
+					"omnicorp-TM-department/omnicorp/omnilamp",
+					"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
+				}, names)
+			})
+			t.Run("existing id of deleted file", func(t *testing.T) {
+				// given: a deleted TM file
+				_ = os.Remove(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json"))
+				// when: updating toc for the TM
+				err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+				assert.NoError(t, err)
+				toc, err := r.readTOC()
+				assert.NoError(t, err)
+				// then: version is removed from toc
+				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
+				if assert.Equal(t, 1, len(toc.Data)) {
+					assert.Equal(t, 1, len(toc.Data[0].Versions))
+				}
+				names := r.readNamesFile()
+				assert.Equal(t, []string{
+					"omnicorp-TM-department/omnicorp/omnilamp",
+					"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
+				}, names)
+			})
+			t.Run("last version", func(t *testing.T) {
+				// given: last version of a TM is removed
+				id := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json"
+				assert.NoError(t, os.Remove(filepath.Join(r.root, id)))
+				// when: updating toc for the id
+				err = r.UpdateToc(id)
+				assert.NoError(t, err)
+				toc, err := r.readTOC()
+				assert.NoError(t, err)
+				// then: name is removed from toc
+				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp/subfolder"})
+				assert.Equal(t, 0, len(toc.Data))
+				names := r.readNamesFile()
+				// then: name is removed from names file
+				assert.Equal(t, []string{
+					"omnicorp-TM-department/omnicorp/omnilamp",
+				}, names)
+			})
 		})
-		t.Run("existing id", func(t *testing.T) {
-			err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
-			assert.NoError(t, err)
-			toc, err := r.readTOC()
-			assert.NoError(t, err)
-			toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
-			if assert.Equal(t, 1, len(toc.Data)) {
-				assert.Equal(t, 1, len(toc.Data[0].Versions))
-			}
-			names := r.readNamesFile()
-			assert.Equal(t, []string{
-				"omnicorp-TM-department/omnicorp/omnilamp",
-				"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
-			}, names)
-		})
-		t.Run("last version", func(t *testing.T) {
-			err := os.Remove(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"))
-			assert.NoError(t, err)
-			err = r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json")
-			assert.NoError(t, err)
-			toc, err := r.readTOC()
-			assert.NoError(t, err)
-			toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
-			assert.Equal(t, 0, len(toc.Data))
-			names := r.readNamesFile()
-			assert.Equal(t, []string{
-				"omnicorp-TM-department/omnicorp/omnilamp/subfolder",
-			}, names)
-		})
-	})
+	}
+
 }
 
 func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {

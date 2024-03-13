@@ -435,8 +435,8 @@ func (f *FileRemote) updateToc(ids []string) error {
 
 func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
 	if os.IsNotExist(err) {
-		id, _ := strings.CutPrefix(path, f.root)
-		id, _ = strings.CutPrefix(filepath.ToSlash(id), "/")
+		id, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
+		id, _ = strings.CutPrefix(id, "/")
 		upd, name, err := newTOC.Delete(id)
 		if err != nil {
 			return false, "", "", err
