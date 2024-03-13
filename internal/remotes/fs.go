@@ -36,10 +36,10 @@ var osReadFile = os.ReadFile // mockable for testing
 // FileRemote implements a Remote TM repository backed by a file system
 type FileRemote struct {
 	root string
-	spec RepoSpec
+	spec model.RepoSpec
 }
 
-func NewFileRemote(config map[string]any, spec RepoSpec) (*FileRemote, error) {
+func NewFileRemote(config map[string]any, spec model.RepoSpec) (*FileRemote, error) {
 	loc := utils.JsGetString(config, KeyRemoteLoc)
 	if loc == nil {
 		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string")
@@ -233,7 +233,7 @@ func (f *FileRemote) UpdateToc(ids ...string) error {
 	return f.updateToc(ids)
 }
 
-func (f *FileRemote) Spec() RepoSpec {
+func (f *FileRemote) Spec() model.RepoSpec {
 	return f.spec
 }
 

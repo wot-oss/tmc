@@ -8,7 +8,6 @@ import (
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
@@ -41,16 +40,13 @@ func (r PullResult) String() string {
 }
 
 type PullExecutor struct {
-	rm remotes.RemoteManager
 }
 
-func NewPullExecutor(rm remotes.RemoteManager) *PullExecutor {
-	return &PullExecutor{
-		rm: rm,
-	}
+func NewPullExecutor() *PullExecutor {
+	return &PullExecutor{}
 }
 
-func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
+func (e *PullExecutor) Pull(remote model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
 	if len(outputPath) == 0 {
 		Stderrf("requires output target folder --output")
 		return errors.New("--output not provided")
@@ -62,7 +58,7 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 		return errors.New("output target folder --output is not a folder")
 	}
 
-	searchResult, err, errs := commands.NewListCommand(e.rm).List(remote, search)
+	searchResult, err, errs := commands.NewListCommand().List(remote, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
@@ -75,7 +71,7 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 
 	fmt.Printf("Pulling %d ThingModels with %d versions...\n", len(searchResult.Entries), vc)
 
-	fc := commands.NewFetchCommand(e.rm)
+	fc := commands.NewFetchCommand()
 	var totalRes []PullResult
 	for _, entry := range searchResult.Entries {
 		for _, version := range entry.Versions {
@@ -96,7 +92,7 @@ func (e *PullExecutor) Pull(remote remotes.RepoSpec, search *model.SearchParams,
 }
 
 func (e *PullExecutor) pullThingModel(fc *commands.FetchCommand, outputPath string, version model.FoundVersion, restoreId bool) (PullResult, error) {
-	spec := remotes.NewSpecFromFoundSource(version.FoundIn)
+	spec := model.NewSpecFromFoundSource(version.FoundIn)
 	id, thing, err, errs := fc.FetchByTMID(spec, version.TMID, restoreId)
 	if err == nil && len(errs) > 0 { // spec cannot be empty, therefore, there can be at most one RepoAccessError
 		err = errs[0]

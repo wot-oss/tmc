@@ -27,7 +27,7 @@ type TmcRemote struct {
 	baseHttpRemote
 }
 
-func NewTmcRemote(config map[string]any, spec RepoSpec) (*TmcRemote, error) {
+func NewTmcRemote(config map[string]any, spec model.RepoSpec) (*TmcRemote, error) {
 	base, err := newBaseHttpRemote(config, spec)
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (t TmcRemote) Delete(id string) error {
 	}
 }
 
-func (t TmcRemote) Spec() RepoSpec {
+func (t TmcRemote) Spec() model.RepoSpec {
 	return t.spec
 }
 func (t TmcRemote) Fetch(id string) (string, []byte, error) {

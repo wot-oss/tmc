@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
@@ -45,21 +46,19 @@ func (r PushResult) String() string {
 }
 
 type PushExecutor struct {
-	rm  remotes.RemoteManager
 	now commands.Now
 }
 
-func NewPushExecutor(rm remotes.RemoteManager, now commands.Now) *PushExecutor {
+func NewPushExecutor(now commands.Now) *PushExecutor {
 	return &PushExecutor{
-		rm:  rm,
 		now: now,
 	}
 }
 
 // Push pushes file or directory to remote repository
 // Returns the list of push results up to the first encountered error, and the error
-func (p *PushExecutor) Push(filename string, spec remotes.RepoSpec, optPath string, optTree bool) ([]PushResult, error) {
-	remote, err := p.rm.Get(spec)
+func (p *PushExecutor) Push(filename string, spec model.RepoSpec, optPath string, optTree bool) ([]PushResult, error) {
+	remote, err := remotes.Get(spec)
 	if err != nil {
 		Stderrf("Could not ìnitialize a remote instance for %s: %v\ncheck config", spec, err)
 		return nil, err

@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 var fetchCmd = &cobra.Command{
@@ -37,13 +37,13 @@ func executeFetch(cmd *cobra.Command, args []string) {
 	outputPath := cmd.Flag("output").Value.String()
 	restoreId, _ := cmd.Flags().GetBool("restore-id")
 
-	spec, err := remotes.NewSpec(remoteName, dirName)
-	if errors.Is(err, remotes.ErrInvalidSpec) {
+	spec, err := model.NewSpec(remoteName, dirName)
+	if errors.Is(err, model.ErrInvalidSpec) {
 		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 
-	err = cli.NewFetchExecutor(remotes.DefaultManager()).Fetch(spec, args[0], outputPath, restoreId)
+	err = cli.NewFetchExecutor().Fetch(spec, args[0], outputPath, restoreId)
 	if err != nil {
 		cli.Stderrf("fetch failed")
 		os.Exit(1)

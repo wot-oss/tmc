@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
@@ -27,7 +28,7 @@ type ServeOptions struct {
 	JWTValidation bool
 }
 
-func Serve(host, port string, opts ServeOptions, repo, pushTarget remotes.RepoSpec) error {
+func Serve(host, port string, opts ServeOptions, repo, pushTarget model.RepoSpec) error {
 	defer func() {
 		if r := recover(); r != nil {
 			Stderrf("could not start server:")
@@ -39,7 +40,7 @@ func Serve(host, port string, opts ServeOptions, repo, pushTarget remotes.RepoSp
 		Stderrf(err.Error())
 		return err
 	}
-	_, err = remotes.DefaultManager().Get(pushTarget)
+	_, err = remotes.Get(pushTarget)
 	if err != nil {
 		if errors.Is(err, remotes.ErrAmbiguous) {
 			Stderrf("must specify target for push with --pushTarget when there are multiple remotes configured")
@@ -52,7 +53,7 @@ func Serve(host, port string, opts ServeOptions, repo, pushTarget remotes.RepoSp
 	}
 
 	// create an instance of our handler (server interface)
-	handlerService, err := http.NewDefaultHandlerService(remotes.DefaultManager(), repo, pushTarget)
+	handlerService, err := http.NewDefaultHandlerService(repo, pushTarget)
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
 		return err

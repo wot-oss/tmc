@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 var filterFlags = cli.FilterFlags{}
@@ -45,8 +45,8 @@ func executeList(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		name = args[0]
 	}
-	spec, err := remotes.NewSpec(remoteName, dirName)
-	if errors.Is(err, remotes.ErrInvalidSpec) {
+	spec, err := model.NewSpec(remoteName, dirName)
+	if errors.Is(err, model.ErrInvalidSpec) {
 		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}

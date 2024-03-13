@@ -7,16 +7,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
 )
 
 func TestVersionsCommand_ListVersions(t *testing.T) {
 
 	t.Run("merged", func(t *testing.T) {
 
-		rm := remotes.NewMockRemoteManager(t)
-		r1 := remotes.NewMockRemote(t)
-		r2 := remotes.NewMockRemote(t)
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
+		r1 := mocks.NewRemote(t)
+		r2 := mocks.NewRemote(t)
+		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
+			return []remotes.Remote{r1, r2}, nil
+		})
 		r1.On("Versions", "senseall").Return(
 			[]model.FoundVersion{
 				{
@@ -46,8 +48,8 @@ func TestVersionsCommand_ListVersions(t *testing.T) {
 				FoundIn: model.FoundSource{RemoteName: "r2"},
 			},
 		}, nil)
-		c := NewVersionsCommand(rm)
-		res, err, errs := c.ListVersions(remotes.EmptySpec, "senseall")
+		c := NewVersionsCommand()
+		res, err, errs := c.ListVersions(model.EmptySpec, "senseall")
 
 		assert.NoError(t, err)
 		assert.Len(t, errs, 0)
@@ -71,11 +73,12 @@ func TestVersionsCommand_ListVersions(t *testing.T) {
 
 	t.Run("one error", func(t *testing.T) {
 
-		rm := remotes.NewMockRemoteManager(t)
-		r1 := remotes.NewMockRemote(t)
-		r2 := remotes.NewMockRemote(t)
-		r2.On("Spec").Return(remotes.NewRemoteSpec("r2"))
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
+		r1 := mocks.NewRemote(t)
+		r2 := mocks.NewRemote(t)
+		r2.On("Spec").Return(model.NewRemoteSpec("r2"))
+		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
+			return []remotes.Remote{r1, r2}, nil
+		})
 		r1.On("Versions", "senseall").Return(
 			[]model.FoundVersion{
 				{
@@ -92,8 +95,8 @@ func TestVersionsCommand_ListVersions(t *testing.T) {
 				},
 			}, nil)
 		r2.On("Versions", "senseall").Return(nil, errors.New("unexpected error"))
-		c := NewVersionsCommand(rm)
-		res, err, errs := c.ListVersions(remotes.EmptySpec, "senseall")
+		c := NewVersionsCommand()
+		res, err, errs := c.ListVersions(model.EmptySpec, "senseall")
 		if assert.Len(t, errs, 1) {
 			assert.ErrorContains(t, errs[0], "unexpected error")
 		}

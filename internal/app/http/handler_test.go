@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/mocks"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -63,7 +64,7 @@ func Test_healthLive(t *testing.T) {
 
 	route := "/healthz/live"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
@@ -87,7 +88,7 @@ func Test_healthReady(t *testing.T) {
 
 	route := "/healthz/ready"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
@@ -111,7 +112,7 @@ func Test_healthStartup(t *testing.T) {
 
 	route := "/healthz/startup"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
@@ -135,7 +136,7 @@ func Test_health(t *testing.T) {
 
 	route := "/healthz"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
@@ -159,7 +160,7 @@ func Test_Inventory(t *testing.T) {
 
 	route := "/inventory"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("list all", func(t *testing.T) {
@@ -219,7 +220,7 @@ func Test_Inventory(t *testing.T) {
 	})
 
 	t.Run("with repository access error", func(t *testing.T) {
-		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, remotes.NewRepoAccessError(remotes.NewRemoteSpec("rem"), errors.New("unexpected"))).Once()
+		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, remotes.NewRepoAccessError(model.NewRemoteSpec("rem"), errors.New("unexpected"))).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 502 and json error as body
@@ -235,7 +236,7 @@ func Test_InventoryByName(t *testing.T) {
 
 	route := "/inventory/" + inventoryName
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
@@ -268,7 +269,7 @@ func Test_InventoryEntryVersionsByName(t *testing.T) {
 
 	route := "/inventory/" + inventoryName + "/.versions"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
@@ -298,7 +299,7 @@ func Test_Authors(t *testing.T) {
 
 	route := "/authors"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	authors := []string{"author1", "author2", "author3"}
@@ -358,7 +359,7 @@ func Test_Manufacturers(t *testing.T) {
 
 	route := "/manufacturers"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	manufacturers := []string{"man1", "man2", "man3"}
@@ -418,7 +419,7 @@ func Test_Mpns(t *testing.T) {
 
 	route := "/mpns"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 	mpns := []string{"mpn1", "mpn2", "mpn3"}
 
@@ -481,7 +482,7 @@ func Test_FetchThingModel(t *testing.T) {
 
 	route := "/thing-models/" + tmID
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with valid remotes", func(t *testing.T) {
@@ -543,7 +544,7 @@ func Test_PushThingModel(t *testing.T) {
 
 	route := "/thing-models"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
@@ -632,7 +633,7 @@ func Test_PushThingModel(t *testing.T) {
 func Test_DeleteThingModelById(t *testing.T) {
 	tmID := listResult2.Entries[0].Versions[0].TMID
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("without force parameter", func(t *testing.T) {
@@ -686,7 +687,7 @@ func Test_Completions(t *testing.T) {
 
 	route := "/.completions"
 
-	hs := NewMockHandlerService(t)
+	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("no parameters", func(t *testing.T) {

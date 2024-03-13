@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 var updateTocCmd = &cobra.Command{
@@ -32,14 +32,14 @@ func executeCreateTOC(cmd *cobra.Command, args []string) {
 
 	remoteName := cmd.Flag("remote").Value.String()
 	dir := cmd.Flag("directory").Value.String()
-	spec, err := remotes.NewSpec(remoteName, dir)
-	if errors.Is(err, remotes.ErrInvalidSpec) {
+	spec, err := model.NewSpec(remoteName, dir)
+	if errors.Is(err, model.ErrInvalidSpec) {
 		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 	log.Debug(fmt.Sprintf("creating table of contents for remote %s", spec))
 
-	err = cli.UpdateToc(remotes.DefaultManager(), spec, args)
+	err = cli.UpdateToc(spec, args)
 	if err != nil {
 		os.Exit(1)
 	}

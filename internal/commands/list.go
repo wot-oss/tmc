@@ -6,16 +6,13 @@ import (
 )
 
 type ListCommand struct {
-	remoteMgr remotes.RemoteManager
 }
 
-func NewListCommand(m remotes.RemoteManager) *ListCommand {
-	return &ListCommand{
-		remoteMgr: m,
-	}
+func NewListCommand() *ListCommand {
+	return &ListCommand{}
 }
-func (c *ListCommand) List(rSpec remotes.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []*remotes.RepoAccessError) {
-	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, rSpec)
+func (c *ListCommand) List(rSpec model.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []*remotes.RepoAccessError) {
+	rs, err := remotes.GetSpecdOrAll(rSpec)
 	if err != nil {
 		return model.SearchResult{}, err, nil
 	}

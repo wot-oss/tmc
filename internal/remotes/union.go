@@ -21,11 +21,11 @@ type mapResult[T any] struct {
 }
 
 type RepoAccessError struct {
-	spec RepoSpec
+	spec model.RepoSpec
 	err  error
 }
 
-func NewRepoAccessError(spec RepoSpec, err error) *RepoAccessError {
+func NewRepoAccessError(spec model.RepoSpec, err error) *RepoAccessError {
 	if err == nil {
 		return nil
 	}

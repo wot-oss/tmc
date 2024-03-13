@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
 
 	"github.com/spf13/viper"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
 	"github.com/spf13/cobra"
@@ -64,8 +64,8 @@ func serve(cmd *cobra.Command, args []string) {
 	remote := cmd.Flag("remote").Value.String()
 	dir := cmd.Flag("directory").Value.String()
 	pushTarget := cmd.Flag("pushTarget").Value.String()
-	spec, err := remotes.NewSpec(remote, dir)
-	if errors.Is(err, remotes.ErrInvalidSpec) {
+	spec, err := model.NewSpec(remote, dir)
+	if errors.Is(err, model.ErrInvalidSpec) {
 		cli.Stderrf("Invalid specification of repository to be served. --remote and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
@@ -74,7 +74,7 @@ func serve(cmd *cobra.Command, args []string) {
 
 	pushSpec := spec
 	if remote == "" && dir == "" && pushTarget != "" {
-		pushSpec = remotes.NewRemoteSpec(pushTarget)
+		pushSpec = model.NewRemoteSpec(pushTarget)
 	}
 	err = cli.Serve(host, port, opts, spec, pushSpec)
 	if err != nil {

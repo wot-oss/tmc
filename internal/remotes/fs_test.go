@@ -23,7 +23,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err := NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, EmptySpec)
+	}, model.EmptySpec)
 	assert.NoError(t, err)
 	assert.Equal(t, root, remote.root)
 
@@ -31,7 +31,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, EmptySpec)
+	}, model.EmptySpec)
 	assert.NoError(t, err)
 	assert.Equal(t, root, remote.root)
 
@@ -39,7 +39,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, EmptySpec)
+	}, model.EmptySpec)
 	assert.NoError(t, err)
 	home, _ := os.UserHomeDir()
 	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
@@ -48,7 +48,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, EmptySpec)
+	}, model.EmptySpec)
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
 
@@ -56,7 +56,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, EmptySpec)
+	}, model.EmptySpec)
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
 
@@ -64,7 +64,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, EmptySpec)
+	}, model.EmptySpec)
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.ToSlash("c:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(remote.root))
 
@@ -72,7 +72,7 @@ func TestNewFileRemote(t *testing.T) {
 	remote, err = NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  root,
-	}, EmptySpec)
+	}, model.EmptySpec)
 	assert.NoError(t, err)
 	assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(remote.root))
 
@@ -121,7 +121,7 @@ func TestValidatesRoot(t *testing.T) {
 	remote, _ := NewFileRemote(map[string]any{
 		"type": "file",
 		"loc":  "/temp/surely-does-not-exist-5245874598745",
-	}, EmptySpec)
+	}, model.EmptySpec)
 
 	_, err := remote.List(&model.SearchParams{Query: ""})
 	assert.ErrorIs(t, err, ErrRootInvalid)
@@ -137,7 +137,7 @@ func TestFileRemote_Fetch(t *testing.T) {
 	defer os.RemoveAll(temp)
 	r := &FileRemote{
 		root: temp,
-		spec: NewRemoteSpec("fr"),
+		spec: model.NewRemoteSpec("fr"),
 	}
 	tmName := "omnicorp-TM-department/omnicorp/omnilamp"
 	fileA := []byte("{\"ver\":\"a\"}")
@@ -184,7 +184,7 @@ func TestFileRemote_Push(t *testing.T) {
 	defer os.RemoveAll(temp)
 	r := &FileRemote{
 		root: temp,
-		spec: NewRemoteSpec("fr"),
+		spec: model.NewRemoteSpec("fr"),
 	}
 	tmName := "omnicorp-TM-department/omnicorp/omnilamp"
 	id := tmName + "/v0.0.0-20231208142856-c49617d2e4fc.tm.json"
@@ -219,7 +219,7 @@ func TestFileRemote_List(t *testing.T) {
 	defer os.RemoveAll(temp)
 	r := &FileRemote{
 		root: temp,
-		spec: NewRemoteSpec("fr"),
+		spec: model.NewRemoteSpec("fr"),
 	}
 	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	list, err := r.List(&model.SearchParams{})
@@ -232,7 +232,7 @@ func TestFileRemote_Versions(t *testing.T) {
 	defer os.RemoveAll(temp)
 	r := &FileRemote{
 		root: temp,
-		spec: NewRemoteSpec("fr"),
+		spec: model.NewRemoteSpec("fr"),
 	}
 	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
 	vers, err := r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
@@ -257,7 +257,7 @@ func TestFileRemote_Versions(t *testing.T) {
 func TestFileRemote_Delete(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	spec := NewRemoteSpec("fr")
+	spec := model.NewRemoteSpec("fr")
 	r := &FileRemote{
 		root: temp,
 		spec: spec,
@@ -304,7 +304,7 @@ func TestFileRemote_Delete(t *testing.T) {
 func TestFileRemote_UpdateTOC(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	spec := NewRemoteSpec("fr")
+	spec := model.NewRemoteSpec("fr")
 	r := &FileRemote{
 		root: temp,
 		spec: spec,
@@ -446,7 +446,7 @@ func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
 		return fakeFileInfo{name: name}, nil
 	}
 	defer func() { osStat = os.Stat }()
-	spec := NewRemoteSpec("fr")
+	spec := model.NewRemoteSpec("fr")
 	r := &FileRemote{
 		root: temp,
 		spec: spec,
@@ -482,7 +482,7 @@ func TestFileRemote_ListCompletions(t *testing.T) {
 	defer os.RemoveAll(temp)
 	r := &FileRemote{
 		root: temp,
-		spec: NewRemoteSpec("fr"),
+		spec: model.NewRemoteSpec("fr"),
 	}
 	_ = os.MkdirAll(filepath.Join(temp, ".tmc"), defaultDirPermissions)
 

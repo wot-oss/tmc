@@ -2,16 +2,17 @@ package cli
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
 )
 
 var listResult = model.SearchResult{
@@ -74,9 +75,16 @@ func TestPullExecutor_Pull(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	// given: a RemoteManager and a Remote having 3 ThingModels
-	rm := remotes.NewMockRemoteManager(t)
-	r := remotes.NewMockRemote(t)
-	rm.On("Get", remotes.NewRemoteSpec("r1")).Return(r, nil)
+	r := mocks.NewRemote(t)
+	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
+		if assert.Equal(t, model.NewRemoteSpec("r1"), s) {
+			return r, nil
+		}
+		err := fmt.Errorf("unexpected spec in mock: %v", s)
+		remotes.MockFail(t, err)
+		return nil, err
+
+	})
 
 	tmID_1 := listResult.Entries[0].Versions[0].TMID
 	tmID_2 := listResult.Entries[0].Versions[1].TMID
@@ -92,9 +100,9 @@ func TestPullExecutor_Pull(t *testing.T) {
 	r.On("Fetch", tmID_3).Return(tmID_3, tmContent3, nil).Once()
 
 	// and given: a PullExecutor under test
-	underTest := NewPullExecutor(rm)
+	underTest := NewPullExecutor()
 	// when: pulling from remote
-	err = underTest.Pull(remotes.NewRemoteSpec("r1"), search, tempDir, false)
+	err = underTest.Pull(model.NewRemoteSpec("r1"), search, tempDir, false)
 	// then: there is no error
 	assert.NoError(t, err)
 	// and then: the pulled ThingModels are written to the output path
@@ -108,18 +116,25 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
-	// given: a RemoteManager and a Remote
-	rm := remotes.NewMockRemoteManager(t)
-	r := remotes.NewMockRemote(t)
-	spec := remotes.NewRemoteSpec("r1")
-	rm.On("Get", spec).Return(r, nil)
+	// given: a Remote
+	r := mocks.NewRemote(t)
+	spec := model.NewRemoteSpec("r1")
+	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
+		if assert.Equal(t, spec, s) {
+			return r, nil
+		}
+		err := fmt.Errorf("unexpected spec in mock: %v", s)
+		remotes.MockFail(t, err)
+		return nil, err
+
+	})
 	r.On("Spec").Return(spec)
 
-	fc := commands.NewFetchCommand(rm)
+	fc := commands.NewFetchCommand()
 	tmID := listResult.Entries[0].Versions[0].TMID
 
 	// and given: a PullExecutor under test
-	underTest := NewPullExecutor(rm)
+	underTest := NewPullExecutor()
 
 	t.Run("result with success", func(t *testing.T) {
 		// given: ThingModel can be fetched successfully
@@ -149,25 +164,25 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 }
 
 func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
-	// given: a RemoteManager and a Remote having 3 ThingModels
-	rm := remotes.NewMockRemoteManager(t)
-	r := remotes.NewMockRemote(t)
-	rm.On("Get", mock.Anything).Return(r, nil).Maybe()
+	// given: a Remote having 3 ThingModels
+	r := mocks.NewRemote(t)
+	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
+		return r, nil
+	})
 	r.On("List", mock.Anything).Return(listResult, nil).Maybe()
 	search := &model.SearchParams{}
 
 	// and given: a PullExecutor under test
-	underTest := NewPullExecutor(rm)
+	underTest := NewPullExecutor()
 
 	t.Run("with empty output path", func(t *testing.T) {
 		// given: an empty output path
 		outputPath := ""
 		// when: pulling from remote
-		err := underTest.Pull(remotes.NewRemoteSpec("r1"), search, outputPath, false)
+		err := underTest.Pull(model.NewRemoteSpec("r1"), search, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
-		// and then: there are no calls on RemoteManager or Remote
-		rm.AssertNotCalled(t, "Get", mock.Anything)
+		// and then: there are no calls on Remote
 		r.AssertNotCalled(t, "List", mock.Anything)
 		r.AssertNotCalled(t, "Fetch", mock.Anything)
 	})
@@ -181,11 +196,10 @@ func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 		outputPath := filepath.Join(tempDir, "foo.bar")
 		_ = os.WriteFile(outputPath, []byte("foobar"), 0660)
 		// when: pulling from remote
-		err = underTest.Pull(remotes.NewRemoteSpec("r1"), search, outputPath, false)
+		err = underTest.Pull(model.NewRemoteSpec("r1"), search, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
-		// and then: there are no calls on RemoteManager or Remote
-		rm.AssertNotCalled(t, "Get", mock.Anything)
+		// and then: there are no calls on Remote
 		r.AssertNotCalled(t, "List", mock.Anything)
 		r.AssertNotCalled(t, "Fetch", mock.Anything)
 	})
