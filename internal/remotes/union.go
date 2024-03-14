@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"slices"
 	"sync"
 
@@ -84,8 +83,6 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 		return r2
 	})
 	if res.err != nil {
-		msg := fmt.Sprintf("No thing model found for %v", id)
-		slog.Default().Error(msg)
 		return "", nil, ErrTmNotFound, errs
 	}
 

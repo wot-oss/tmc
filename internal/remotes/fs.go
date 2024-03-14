@@ -107,8 +107,18 @@ func (f *FileRemote) Delete(id string) error {
 }
 
 func rmEmptyDirs(from string, upTo string) error {
-	if !strings.HasPrefix(from, upTo) {
-		return errors.New("from is not below upTo")
+	from, errF := filepath.Abs(from)
+	upTo, errU := filepath.Abs(upTo)
+	if errF != nil {
+		slog.Default().Error("from path cannot be converted to absolute path", "error", errF)
+		return errF
+	} else if errU != nil {
+		slog.Default().Error("upTo path cannot be converted to absolute path", "error", errU)
+		return errU
+	} else if !strings.HasPrefix(from, upTo) {
+		err := errors.New("from path is not below upTo")
+		slog.Default().Error("error removing empty dirs", "error", err)
+		return err
 	}
 
 	for len(from) > len(upTo) {
@@ -398,8 +408,11 @@ func (f *FileRemote) updateToc(ids []string) error {
 		}
 		for _, id := range ids {
 			path := filepath.Join(f.root, id)
-			info, err := osStat(path)
-			upd, name, nameDeleted, _ := f.updateTocWithFile(newTOC, path, info, log, err)
+			info, statErr := osStat(path)
+			upd, name, nameDeleted, err := f.updateTocWithFile(newTOC, path, info, log, statErr)
+			if err != nil {
+				return err
+			}
 			if upd {
 				fileCount++
 				if nameDeleted != "" {
@@ -432,11 +445,8 @@ func (f *FileRemote) updateToc(ids []string) error {
 
 func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
 	if os.IsNotExist(err) {
-		id, found := strings.CutPrefix(path, f.root)
-		if !found {
-			return false, "", "", err
-		}
-		id, _ = strings.CutPrefix(filepath.ToSlash(id), "/")
+		id, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
+		id, _ = strings.CutPrefix(id, "/")
 		upd, name, err := newTOC.Delete(id)
 		if err != nil {
 			return false, "", "", err

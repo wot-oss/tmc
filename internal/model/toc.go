@@ -167,7 +167,13 @@ func (toc *TOC) Insert(ctm *ThingModel) (TMID, error) {
 		Digest:      tmid.Version.Hash,
 		Links:       map[string]string{"content": tmid.String()},
 	}
-	tocEntry.Versions = append(tocEntry.Versions, tv)
+	if idx := slices.IndexFunc(tocEntry.Versions, func(version TOCVersion) bool {
+		return version.TMID == ctm.ID
+	}); idx == -1 {
+		tocEntry.Versions = append(tocEntry.Versions, tv)
+	} else {
+		tocEntry.Versions[idx] = tv
+	}
 	return tmid, nil
 }
 
