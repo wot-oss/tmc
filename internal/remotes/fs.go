@@ -107,8 +107,18 @@ func (f *FileRemote) Delete(id string) error {
 }
 
 func rmEmptyDirs(from string, upTo string) error {
-	if !strings.HasPrefix(from, upTo) {
-		return errors.New("from is not below upTo")
+	from, errF := filepath.Abs(from)
+	upTo, errU := filepath.Abs(upTo)
+	if errF != nil {
+		slog.Default().Error("from path cannot be converted to absolute path", "error", errF)
+		return errF
+	} else if errU != nil {
+		slog.Default().Error("upTo path cannot be converted to absolute path", "error", errU)
+		return errU
+	} else if !strings.HasPrefix(from, upTo) {
+		err := errors.New("from path is not below upTo")
+		slog.Default().Error("error removing empty dirs", "error", err)
+		return err
 	}
 
 	for len(from) > len(upTo) {

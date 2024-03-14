@@ -255,50 +255,82 @@ func TestFileRemote_Versions(t *testing.T) {
 }
 
 func TestFileRemote_Delete(t *testing.T) {
-	temp, _ := os.MkdirTemp("", "fr")
-	defer os.RemoveAll(temp)
-	spec := NewRemoteSpec("fr")
-	r := &FileRemote{
-		root: temp,
-		spec: spec,
+	tests := []struct {
+		name  string
+		root  string
+		setup func(string) (string, string)
+	}{
+		{"current", ".", func(temp string) (catalog string, workdir string) {
+			return temp, temp
+		}},
+		{"sibling", "../sibling", func(temp string) (catalog string, workdir string) {
+			catalogDir := filepath.Join(temp, "sibling")
+			_ = os.Mkdir(catalogDir, defaultDirPermissions)
+			workDir := filepath.Join(temp, "workdir")
+			_ = os.Mkdir(workDir, defaultDirPermissions)
+			return catalogDir, workDir
+		}},
+		{"below", "./below", func(temp string) (catalog string, workdir string) {
+			catalogDir := filepath.Join(temp, "below")
+			_ = os.Mkdir(catalogDir, defaultDirPermissions)
+			return catalogDir, temp
+		}},
 	}
-	assert.NoError(t, testutils.CopyDir("../../test/data/toc", temp))
 
-	t.Run("invalid id", func(t *testing.T) {
-		err := r.Delete("invalid-id")
-		assert.ErrorIs(t, err, model.ErrInvalidId)
-	})
-	t.Run("non-existent id", func(t *testing.T) {
-		err := r.Delete("man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
-		assert.ErrorIs(t, err, ErrTmNotFound)
-	})
-	t.Run("hash matching id", func(t *testing.T) {
-		err := r.Delete("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20230101125023-be839ce9daf1.tm.json")
-		assert.ErrorIs(t, err, ErrTmNotFound)
-	})
-	t.Run("existing id", func(t *testing.T) {
-		id := "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json"
-		err := r.Delete(id)
-		assert.NoError(t, err)
-		_, err = os.Stat(filepath.Join(r.root, id))
-		assert.True(t, os.IsNotExist(err))
-	})
-	t.Run("cleans up empty folders", func(t *testing.T) {
-		id1 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json"
-		id2 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json"
-		id3 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"
-		assert.NoError(t, r.Delete(id1))
-		assert.NoError(t, r.Delete(id2))
-		_, err := os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
-		assert.True(t, os.IsNotExist(err))
-		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp"))
-		assert.NoError(t, err)
-		assert.NoError(t, r.Delete(id3))
-		_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department"))
-		assert.True(t, os.IsNotExist(err))
-		_, err = os.Stat(r.root)
-		assert.NoError(t, err)
-	})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			temp, _ := os.MkdirTemp("", "fr")
+			defer os.RemoveAll(temp)
+
+			wd, _ := os.Getwd()
+			catalog, newWd := test.setup(temp)
+			assert.NoError(t, testutils.CopyDir("../../test/data/toc", catalog))
+			_ = os.Chdir(newWd)
+			defer os.Chdir(wd)
+
+			spec := NewDirSpec(test.root)
+			r := &FileRemote{
+				root: test.root,
+				spec: spec,
+			}
+			t.Run("invalid id", func(t *testing.T) {
+				err := r.Delete("invalid-id")
+				assert.ErrorIs(t, err, model.ErrInvalidId)
+			})
+			t.Run("non-existent id", func(t *testing.T) {
+				err := r.Delete("man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
+				assert.ErrorIs(t, err, ErrTmNotFound)
+			})
+			t.Run("hash matching id", func(t *testing.T) {
+				err := r.Delete("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20230101125023-be839ce9daf1.tm.json")
+				assert.ErrorIs(t, err, ErrTmNotFound)
+			})
+			t.Run("existing id", func(t *testing.T) {
+				id := "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json"
+				err := r.Delete(id)
+				assert.NoError(t, err)
+				_, err = os.Stat(filepath.Join(r.root, id))
+				assert.True(t, os.IsNotExist(err))
+			})
+			t.Run("cleans up empty folders", func(t *testing.T) {
+				id1 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json"
+				id2 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json"
+				id3 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"
+				assert.NoError(t, r.Delete(id1))
+				assert.NoError(t, r.Delete(id2))
+				_, err := os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
+				assert.True(t, os.IsNotExist(err))
+				_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp"))
+				assert.NoError(t, err)
+				assert.NoError(t, r.Delete(id3))
+				_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department"))
+				assert.True(t, os.IsNotExist(err))
+				_, err = os.Stat(r.root)
+				assert.NoError(t, err)
+			})
+		})
+
+	}
 }
 
 func TestFileRemote_UpdateToc(t *testing.T) {
