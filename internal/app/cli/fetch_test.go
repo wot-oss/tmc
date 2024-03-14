@@ -2,18 +2,16 @@ package cli
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 )
 
 func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
@@ -21,15 +19,7 @@ func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 
 	r := mocks.NewRemote(t)
 
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if reflect.DeepEqual(model.NewRemoteSpec("remote"), s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
 	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").
 		Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
 
@@ -59,15 +49,7 @@ func TestFetchExecutor_Fetch_To_OutputFolder(t *testing.T) {
 	var tm = []byte("{}")
 
 	r := mocks.NewRemote(t)
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if reflect.DeepEqual(model.NewRemoteSpec("remote"), s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
 	r.On("Fetch", tmid).Return(aid, tm, nil)
 
 	// when: fetching to output folder

@@ -2,15 +2,14 @@ package http
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
-	"reflect"
 	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
 	"github.com/stretchr/testify/assert"
@@ -36,15 +35,7 @@ func Test_CheckHealthReady(t *testing.T) {
 
 	t.Run("with valid remote", func(t *testing.T) {
 		// given: a remote
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(remote, s) {
-				return r, nil
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
 
 		// when check health ready
 		err := underTest.CheckHealthReady(nil)
@@ -54,15 +45,7 @@ func Test_CheckHealthReady(t *testing.T) {
 
 	t.Run("with invalid remote", func(t *testing.T) {
 		// given: the remote cannot be found
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(remote, s) {
-				return nil, errors.New("invalid remote name")
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, nil, errors.New("invalid remote name")))
 		// when check health ready
 		err := underTest.CheckHealthReady(nil)
 		// then: an error is thrown
@@ -77,15 +60,7 @@ func Test_CheckHealthStartup(t *testing.T) {
 
 	t.Run("with valid remote", func(t *testing.T) {
 		// given: the remote can be found
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(remote, s) {
-				return r, nil
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
 		// when check health startup
 		err := underTest.CheckHealthStartup(nil)
 		// then: no error is thrown
@@ -94,14 +69,7 @@ func Test_CheckHealthStartup(t *testing.T) {
 
 	t.Run("with invalid remote", func(t *testing.T) {
 		// given: the remote cannot be found
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(remote, s) {
-				return nil, errors.New("invalid remote name")
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, nil, errors.New("invalid remote name")))
 		// when check health startup
 		err := underTest.CheckHealthStartup(nil)
 		// then: an error is thrown
@@ -116,15 +84,8 @@ func Test_CheckHealth(t *testing.T) {
 
 	t.Run("with valid remote", func(t *testing.T) {
 		// given: the remote can be found
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(remote, s) {
-				return r, nil
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
 
-		})
 		// when check health
 		err := underTest.CheckHealth(nil)
 		// then: no error is thrown
@@ -133,14 +94,7 @@ func Test_CheckHealth(t *testing.T) {
 
 	t.Run("with invalid remote", func(t *testing.T) {
 		// given: the remote cannot be found
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(remote, s) {
-				return nil, errors.New("invalid remote name")
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, nil, errors.New("invalid remote name")))
 		// when check health
 		err := underTest.CheckHealth(nil)
 		// then: an error is thrown
@@ -210,9 +164,7 @@ func Test_ListInventory(t *testing.T) {
 		// given: remote having some inventory entries
 		r := mocks.NewRemote(t)
 		r.On("List", &model.SearchParams{Author: []string{"a-corp", "b-corp"}}).Return(listResult, nil).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
 		res, err := underTest.ListInventory(nil, &model.SearchParams{Author: []string{"a-corp", "b-corp"}})
 		// then: there is no error
@@ -227,9 +179,7 @@ func Test_ListInventory(t *testing.T) {
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
 		r2.On("List", &model.SearchParams{}).Return(model.SearchResult{}, errors.New("unexpected")).Once()
 		r2.On("Spec").Return(model.NewRemoteSpec("r2")).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r, r2}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r, r2))
 		// when: list all
 		res, err := underTest.ListInventory(nil, &model.SearchParams{})
 		// then: there is an error of type remotes.RepoAccessError
@@ -248,9 +198,7 @@ func Test_GetCompletions(t *testing.T) {
 		r := mocks.NewRemote(t)
 		names := []string{"a/b/c", "d/e/f"}
 		r.On("ListCompletions", "names", "toComplete").Return(names, nil)
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
 		res, err := underTest.GetCompletions(nil, "names", "toComplete")
 		// then: there is no error
@@ -268,9 +216,7 @@ func Test_FindInventoryEntry(t *testing.T) {
 		// given: remote returns empty search result
 		r := mocks.NewRemote(t)
 		r.On("List", &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{}, nil).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: finding entry
 		res, err := underTest.FindInventoryEntry(nil, inventoryName)
 		// then: it returns nil result
@@ -308,9 +254,7 @@ func Test_ListAuthors(t *testing.T) {
 		// given: remote returning the inventory entries
 		r := mocks.NewRemote(t)
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all authors
 		res, err := underTest.ListAuthors(nil, &model.SearchParams{})
@@ -352,9 +296,7 @@ func Test_ListManufacturers(t *testing.T) {
 		// given: remote returning the inventory entries
 		r := mocks.NewRemote(t)
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all manufacturers
 		res, err := underTest.ListManufacturers(nil, &model.SearchParams{})
@@ -396,9 +338,7 @@ func Test_ListMpns(t *testing.T) {
 		// given: remote returning the inventory entries
 		r := mocks.NewRemote(t)
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all
 		res, err := underTest.ListMpns(nil, &model.SearchParams{})
@@ -450,9 +390,7 @@ func Test_FetchingThingModel(t *testing.T) {
 	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", tmID).Return(tmID, nil, remotes.ErrTmNotFound).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns nil result
@@ -464,9 +402,7 @@ func Test_FetchingThingModel(t *testing.T) {
 	t.Run("with fetch name not found", func(t *testing.T) {
 		fn := "b-corp/eagle/PM20"
 		r.On("Versions", fn).Return(nil, nil).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(nil, fn, false)
 		// then: it returns nil result
@@ -479,9 +415,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", tmID).Return(tmID, raw, nil).Once()
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns the unchanged ThingModel content
@@ -494,15 +428,7 @@ func Test_FetchingThingModel(t *testing.T) {
 func Test_DeleteThingModel(t *testing.T) {
 
 	r := mocks.NewRemote(t)
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if reflect.DeepEqual(remote, s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
 	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
 
 	t.Run("without errors", func(t *testing.T) {
@@ -543,14 +469,7 @@ func Test_PushingThingModel(t *testing.T) {
 	t.Run("with validation error", func(t *testing.T) {
 		// given: some invalid content for a ThingModel
 		invalidContent := []byte("invalid content")
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(pushTarget, s) {
-				return r, nil
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, invalidContent)
 		// then: it returns empty tmID
@@ -561,15 +480,7 @@ func Test_PushingThingModel(t *testing.T) {
 
 	t.Run("with push remote name that cannot be found", func(t *testing.T) {
 		// given: invalid pushTarget
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(pushTarget, s) {
-				return nil, remotes.ErrRemoteNotFound
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, nil, remotes.ErrRemoteNotFound))
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, []byte("some TM content"))
 		// then: it returns empty tmID
@@ -582,14 +493,7 @@ func Test_PushingThingModel(t *testing.T) {
 	t.Run("with content conflict", func(t *testing.T) {
 		// given: some valid content for a ThingModel
 		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(pushTarget, s) {
-				return r, nil
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
 		cErr := &remotes.ErrTMIDConflict{
 			Type:       remotes.IdConflictSameContent,
 			ExistingId: "existing-id",
@@ -605,14 +509,7 @@ func Test_PushingThingModel(t *testing.T) {
 	t.Run("with timestamp conflict", func(t *testing.T) {
 		// given: some valid content for a ThingModel
 		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
-		remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-			if reflect.DeepEqual(pushTarget, s) {
-				return r, nil
-			}
-			err := fmt.Errorf("unexpected spec in mock: %v", s)
-			remotes.MockFail(t, err)
-			return nil, err
-		})
+		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
 		cErr := &remotes.ErrTMIDConflict{
 			Type:       remotes.IdConflictSameTimestamp,
 			ExistingId: "existing-id",

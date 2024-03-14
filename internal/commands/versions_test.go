@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 )
 
 func TestVersionsCommand_ListVersions(t *testing.T) {
@@ -16,9 +16,7 @@ func TestVersionsCommand_ListVersions(t *testing.T) {
 
 		r1 := mocks.NewRemote(t)
 		r2 := mocks.NewRemote(t)
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r1, r2}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 		r1.On("Versions", "senseall").Return(
 			[]model.FoundVersion{
 				{
@@ -76,9 +74,7 @@ func TestVersionsCommand_ListVersions(t *testing.T) {
 		r1 := mocks.NewRemote(t)
 		r2 := mocks.NewRemote(t)
 		r2.On("Spec").Return(model.NewRemoteSpec("r2"))
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r1, r2}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 		r1.On("Versions", "senseall").Return(
 			[]model.FoundVersion{
 				{

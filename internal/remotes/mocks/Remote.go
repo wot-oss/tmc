@@ -215,7 +215,7 @@ func (_m *Remote) Versions(name string) ([]model.FoundVersion, error) {
 	return r0, r1
 }
 
-// NewRemote creates a new instance of Remote. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// NewRemote creates a new instance of Remote. It also registers a testing interface on the mock and a cleanup function to assert the remotesmocks expectations.
 // The first argument is typically a *testing.T value.
 func NewRemote(t interface {
 	mock.TestingT

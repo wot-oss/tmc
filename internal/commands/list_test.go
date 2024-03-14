@@ -6,17 +6,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 )
 
 func TestListCommand_List(t *testing.T) {
 	t.Run("merged", func(t *testing.T) {
 		r1 := mocks.NewRemote(t)
 		r2 := mocks.NewRemote(t)
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r1, r2}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 		r1.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
@@ -62,9 +60,7 @@ func TestListCommand_List(t *testing.T) {
 		r1 := mocks.NewRemote(t)
 		r2 := mocks.NewRemote(t)
 		r2.On("Spec").Return(model.NewRemoteSpec("r2"))
-		remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-			return []remotes.Remote{r1, r2}, nil
-		})
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 		r1.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{

@@ -2,8 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -13,19 +11,12 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 )
 
 func TestPushExecutor_Push(t *testing.T) {
 	r := mocks.NewRemote(t)
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if reflect.DeepEqual(model.NewRemoteSpec("remote"), s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
 
 	t.Run("push when none exists", func(t *testing.T) {
 
@@ -97,15 +88,7 @@ func TestPushExecutor_Push(t *testing.T) {
 
 func TestPushExecutor_Push_Directory(t *testing.T) {
 	r := mocks.NewRemote(t)
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if reflect.DeepEqual(model.NewRemoteSpec("remote"), s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
 
 	t.Run("push directory", func(t *testing.T) {
 		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)

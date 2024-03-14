@@ -317,31 +317,3 @@ func GetSpecdOrAll(spec model.RepoSpec) (*Union, error) {
 	}
 	return NewUnion(all...), nil
 }
-
-func MockRemotesAll(t interface {
-	Cleanup(func())
-}, mock func() ([]Remote, error)) {
-	org := All
-	All = mock
-	t.Cleanup(func() {
-		All = org
-	})
-}
-
-func MockRemotesGet(t interface {
-	Cleanup(func())
-}, mock func(spec model.RepoSpec) (Remote, error)) {
-	org := Get
-	Get = mock
-	t.Cleanup(func() {
-		Get = org
-	})
-}
-
-func MockFail(t interface {
-	Fail()
-	Error(args ...any)
-}, args ...any) {
-	t.Error(args...)
-	t.Fail()
-}

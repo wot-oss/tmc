@@ -343,7 +343,7 @@ func (_m *HandlerService) PushThingModel(ctx context.Context, file []byte) (stri
 	return r0, r1
 }
 
-// NewHandlerService creates a new instance of HandlerService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
+// NewHandlerService creates a new instance of HandlerService. It also registers a testing interface on the mock and a cleanup function to assert the remotesmocks expectations.
 // The first argument is typically a *testing.T value.
 func NewHandlerService(t interface {
 	mock.TestingT

@@ -1,7 +1,6 @@
 package remotes
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
 )
 
 func TestSaveConfigOverwritesOnlyRemotes(t *testing.T) {
@@ -263,34 +261,42 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 }
 
 func TestGetSpecdOrAll(t *testing.T) {
-	r1 := mocks.NewRemote(t)
-	r2 := mocks.NewRemote(t)
-	r3 := mocks.NewRemote(t)
-	MockRemotesAll(t, func() ([]Remote, error) {
-		return []Remote{r1, r2}, nil
+	viper.Set(KeyRemotes, map[string]any{
+		"r1": map[string]any{
+			"type": "file",
+			"loc":  "somewhere",
+		},
+		"r2": map[string]any{
+			"type": "file",
+			"loc":  "somewhere-else",
+		},
 	})
+
 	all, err := GetSpecdOrAll(model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, &Union{rs: []Remote{r1, r2}}, all)
-
-	MockRemotesGet(t, func(spec model.RepoSpec) (Remote, error) {
-		if assert.Equal(t, model.NewRemoteSpec("r1"), spec) {
-			return r1, nil
+	if assert.Len(t, all.rs, 2) {
+		if r1, ok := all.rs[0].(*FileRemote); assert.True(t, ok) {
+			assert.Equal(t, "somewhere", r1.root)
 		}
-		return nil, fmt.Errorf("unexpected spec in mock: %v", spec)
-	})
+		if r2, ok := all.rs[1].(*FileRemote); assert.True(t, ok) {
+			assert.Equal(t, "somewhere-else", r2.root)
+		}
+	}
+
 	all, err = GetSpecdOrAll(model.NewRemoteSpec("r1"))
 	assert.NoError(t, err)
-	assert.Equal(t, &Union{rs: []Remote{r1}}, all)
-
-	MockRemotesGet(t, func(spec model.RepoSpec) (Remote, error) {
-		if assert.Equal(t, model.NewDirSpec("dir1"), spec) {
-			return r3, nil
+	if assert.Len(t, all.rs, 1) {
+		if r1, ok := all.rs[0].(*FileRemote); assert.True(t, ok) {
+			assert.Equal(t, "somewhere", r1.root)
 		}
-		return nil, fmt.Errorf("unexpected spec in mock: %v", spec)
-	})
+	}
+
 	all, err = GetSpecdOrAll(model.NewDirSpec("dir1"))
 	assert.NoError(t, err)
-	assert.Equal(t, &Union{rs: []Remote{r3}}, all)
+	if assert.Len(t, all.rs, 1) {
+		if r1, ok := all.rs[0].(*FileRemote); assert.True(t, ok) {
+			assert.Equal(t, "dir1", r1.root)
+		}
+	}
 
 }

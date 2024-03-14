@@ -14,6 +14,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
@@ -54,18 +55,8 @@ func TestParseFetchName(t *testing.T) {
 
 func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	r := mocks.NewRemote(t)
-	remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-		return []remotes.Remote{r}, nil
-	})
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if assert.Equal(t, model.NewRemoteSpec("r1"), s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("r1"), r, nil))
 	setUpVersionsForFetchByTMIDOrName(r)
 
 	r.On("Fetch", "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
@@ -211,10 +202,8 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Remote) {
 func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
 	r1 := mocks.NewRemote(t)
 	r2 := mocks.NewRemote(t)
-	remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-		return []remotes.Remote{r1, r2}, nil
-	})
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
+	rMocks.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
 		if reflect.DeepEqual(model.NewRemoteSpec("r1"), s) {
 			return r1, nil
 		}
@@ -222,9 +211,8 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
 			return r2, nil
 		}
 		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
+		rMocks.FailTest(t, err)
 		return nil, err
-
 	})
 
 	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
@@ -311,9 +299,7 @@ func TestFetchCommand_FetchByTMID(t *testing.T) {
 	r1 := mocks.NewRemote(t)
 	r2 := mocks.NewRemote(t)
 	r1.On("Spec").Return(model.NewRemoteSpec("r1"))
-	remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-		return []remotes.Remote{r1, r2}, nil
-	})
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 
 	t.Run("success with unexpected error", func(t *testing.T) {
 		r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
@@ -344,18 +330,8 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 	r1 := mocks.NewRemote(t)
 	r2 := mocks.NewRemote(t)
 	r1Spec := model.NewRemoteSpec("r1")
-	remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-		return []remotes.Remote{r1, r2}, nil
-	})
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if reflect.DeepEqual(r1Spec, s) {
-			return r1, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, r1Spec, r1, nil))
 	r1.On("Spec").Return(r1Spec)
 	r2Spec := model.NewRemoteSpec("r2")
 	//rm.On("Get", r2Spec).Return(r2, nil)
@@ -482,19 +458,9 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 			}, nil)
 			r2 := mocks.NewRemote(t)
 			r2.On("Versions", "author/manufacturer/mpn").Return(nil, nil)
-			remotes.MockRemotesAll(t, func() ([]remotes.Remote, error) {
-				return []remotes.Remote{r1, r2}, nil
-			})
+			rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 			spec := model.NewRemoteSpec("r1")
-			remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-				if reflect.DeepEqual(spec, s) {
-					return r1, nil
-				}
-				err := fmt.Errorf("unexpected spec in mock: %v", s)
-				remotes.MockFail(t, err)
-				return nil, err
-
-			})
+			rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, spec, r1, nil))
 			f := NewFetchCommand()
 
 			t.Run("with multiple remotes", func(t *testing.T) {

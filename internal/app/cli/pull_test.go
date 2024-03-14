@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,6 +12,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 )
 
 var listResult = model.SearchResult{
@@ -76,15 +76,7 @@ func TestPullExecutor_Pull(t *testing.T) {
 
 	// given: a RemoteManager and a Remote having 3 ThingModels
 	r := mocks.NewRemote(t)
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if assert.Equal(t, model.NewRemoteSpec("r1"), s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("r1"), r, nil))
 
 	tmID_1 := listResult.Entries[0].Versions[0].TMID
 	tmID_2 := listResult.Entries[0].Versions[1].TMID
@@ -117,15 +109,7 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 	// given: a Remote
 	r := mocks.NewRemote(t)
 	spec := model.NewRemoteSpec("r1")
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		if assert.Equal(t, spec, s) {
-			return r, nil
-		}
-		err := fmt.Errorf("unexpected spec in mock: %v", s)
-		remotes.MockFail(t, err)
-		return nil, err
-
-	})
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("r1"), r, nil))
 	r.On("Spec").Return(spec)
 
 	fc := commands.NewFetchCommand()
@@ -161,9 +145,7 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 	// given: a Remote having 3 ThingModels
 	r := mocks.NewRemote(t)
-	remotes.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
-		return r, nil
-	})
+	rMocks.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) { return r, nil })
 	r.On("List", mock.Anything).Return(listResult, nil).Maybe()
 	search := &model.SearchParams{}
 
