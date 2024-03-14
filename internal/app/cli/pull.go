@@ -39,14 +39,7 @@ func (r PullResult) String() string {
 	return fmt.Sprintf("%v\t %s %s", r.typ, r.tmid, r.text)
 }
 
-type PullExecutor struct {
-}
-
-func NewPullExecutor() *PullExecutor {
-	return &PullExecutor{}
-}
-
-func (e *PullExecutor) Pull(remote model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
+func Pull(remote model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
 	if len(outputPath) == 0 {
 		Stderrf("requires output target folder --output")
 		return errors.New("--output not provided")
@@ -58,7 +51,7 @@ func (e *PullExecutor) Pull(remote model.RepoSpec, search *model.SearchParams, o
 		return errors.New("output target folder --output is not a folder")
 	}
 
-	searchResult, err, errs := commands.NewListCommand().List(remote, search)
+	searchResult, err, errs := commands.List(remote, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
@@ -75,7 +68,7 @@ func (e *PullExecutor) Pull(remote model.RepoSpec, search *model.SearchParams, o
 	var totalRes []PullResult
 	for _, entry := range searchResult.Entries {
 		for _, version := range entry.Versions {
-			res, pErr := e.pullThingModel(fc, outputPath, version, restoreId)
+			res, pErr := pullThingModel(fc, outputPath, version, restoreId)
 			totalRes = append(totalRes, res)
 			if pErr != nil {
 				err = pErr
@@ -91,7 +84,7 @@ func (e *PullExecutor) Pull(remote model.RepoSpec, search *model.SearchParams, o
 	return err
 }
 
-func (e *PullExecutor) pullThingModel(fc *commands.FetchCommand, outputPath string, version model.FoundVersion, restoreId bool) (PullResult, error) {
+func pullThingModel(fc *commands.FetchCommand, outputPath string, version model.FoundVersion, restoreId bool) (PullResult, error) {
 	spec := model.NewSpecFromFoundSource(version.FoundIn)
 	id, thing, err, errs := fc.FetchByTMID(spec, version.TMID, restoreId)
 	if err == nil && len(errs) > 0 { // spec cannot be empty, therefore, there can be at most one RepoAccessError

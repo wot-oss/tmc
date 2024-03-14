@@ -59,7 +59,7 @@ func executePull(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	search := cli.CreateSearchParamsFromCLI(pFilterFlags, name)
-	err = cli.NewPullExecutor().Pull(spec, search, outputPath, restoreId)
+	err = cli.Pull(spec, search, outputPath, restoreId)
 
 	if err != nil {
 		cli.Stderrf("pull failed")

@@ -99,10 +99,8 @@ func TestPullExecutor_Pull(t *testing.T) {
 	r.On("Fetch", tmID_2).Return(tmID_2, tmContent2, nil).Once()
 	r.On("Fetch", tmID_3).Return(tmID_3, tmContent3, nil).Once()
 
-	// and given: a PullExecutor under test
-	underTest := NewPullExecutor()
 	// when: pulling from remote
-	err = underTest.Pull(model.NewRemoteSpec("r1"), search, tempDir, false)
+	err = Pull(model.NewRemoteSpec("r1"), search, tempDir, false)
 	// then: there is no error
 	assert.NoError(t, err)
 	// and then: the pulled ThingModels are written to the output path
@@ -133,14 +131,11 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 	fc := commands.NewFetchCommand()
 	tmID := listResult.Entries[0].Versions[0].TMID
 
-	// and given: a PullExecutor under test
-	underTest := NewPullExecutor()
-
 	t.Run("result with success", func(t *testing.T) {
 		// given: ThingModel can be fetched successfully
 		r.On("Fetch", tmID).Return(tmID, []byte("some TM content"), nil).Once()
 		// when: pulling from remote
-		res, err := underTest.pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0], false)
+		res, err := pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0], false)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is PullOK
@@ -153,7 +148,7 @@ func TestPullExecutor_pullThingModel(t *testing.T) {
 		// given: ThingModel cannot be fetched successfully
 		r.On("Fetch", tmID).Return(tmID, nil, errors.New("fetch failed")).Once()
 		// when: pulling from remote
-		res, err := underTest.pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0], false)
+		res, err := pullThingModel(fc, tempDir, listResult.Entries[0].Versions[0], false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: the result is PullErr
@@ -172,14 +167,11 @@ func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 	r.On("List", mock.Anything).Return(listResult, nil).Maybe()
 	search := &model.SearchParams{}
 
-	// and given: a PullExecutor under test
-	underTest := NewPullExecutor()
-
 	t.Run("with empty output path", func(t *testing.T) {
 		// given: an empty output path
 		outputPath := ""
 		// when: pulling from remote
-		err := underTest.Pull(model.NewRemoteSpec("r1"), search, outputPath, false)
+		err := Pull(model.NewRemoteSpec("r1"), search, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: there are no calls on Remote
@@ -196,7 +188,7 @@ func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 		outputPath := filepath.Join(tempDir, "foo.bar")
 		_ = os.WriteFile(outputPath, []byte("foobar"), 0660)
 		// when: pulling from remote
-		err = underTest.Pull(model.NewRemoteSpec("r1"), search, outputPath, false)
+		err = Pull(model.NewRemoteSpec("r1"), search, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: there are no calls on Remote

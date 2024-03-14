@@ -15,7 +15,7 @@ const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
 func List(remote model.RepoSpec, search *model.SearchParams) error {
-	toc, err, errs := commands.NewListCommand().List(remote, search)
+	toc, err, errs := commands.List(remote, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err

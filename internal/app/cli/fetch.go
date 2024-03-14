@@ -11,14 +11,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-type FetchExecutor struct {
-}
-
-func NewFetchExecutor() *FetchExecutor {
-	return &FetchExecutor{}
-}
-
-func (e *FetchExecutor) Fetch(remote model.RepoSpec, idOrName, outputPath string, restoreId bool) error {
+func Fetch(remote model.RepoSpec, idOrName, outputPath string, restoreId bool) error {
 
 	id, thing, err, errs := commands.NewFetchCommand().FetchByTMIDOrName(remote, idOrName, restoreId)
 	if err != nil {

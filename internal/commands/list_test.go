@@ -50,8 +50,7 @@ func TestListCommand_List(t *testing.T) {
 			},
 		}, nil)
 
-		c := NewListCommand()
-		res, err, _ := c.List(model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
+		res, err, _ := List(model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
 
 		assert.NoError(t, err)
 		assert.Len(t, res.Entries, 3)
@@ -84,8 +83,7 @@ func TestListCommand_List(t *testing.T) {
 		}, nil)
 		r2.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{}, errors.New("unexpected error"))
 
-		c := NewListCommand()
-		res, err, errs := c.List(model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
+		res, err, errs := List(model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
 
 		assert.NoError(t, err)
 		if assert.Len(t, errs, 1) {
