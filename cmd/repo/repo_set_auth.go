@@ -1,4 +1,4 @@
-package remote
+package repo
 
 import (
 	"os"
@@ -8,15 +8,15 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
-// remoteSetConfigCmd represents the 'remote add' command
-var remoteSetAuthCmd = &cobra.Command{
-	Use:     "set-auth <remote-name> <auth-type> <auth-data>",
-	Short:   "Set authentication config for a remote repository",
-	Long:    `Overwrite auth config of a remote repository. <auth-type> must be one of: bearer`,
-	Example: "set-auth http-remote bearer qfdhjf83cblkju",
+// repoSetAuthCmd represents the 'repo add' command
+var repoSetAuthCmd = &cobra.Command{
+	Use:     "set-auth <repo-name> <auth-type> <auth-data>",
+	Short:   "Set authentication config for a repository",
+	Long:    `Overwrite auth config of a repository. <auth-type> must be one of: bearer`,
+	Example: "set-auth http-repo bearer qfdhjf83cblkju",
 	Args:    cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cli.RemoteSetAuth(args[0], args[1], args[2])
+		err := cli.RepoSetAuth(args[0], args[1], args[2])
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -25,7 +25,7 @@ var remoteSetAuthCmd = &cobra.Command{
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		switch len(args) {
 		case 0:
-			return completion.CompleteRemoteNames(cmd, args, toComplete)
+			return completion.CompleteRepoNames(cmd, args, toComplete)
 		case 1:
 			return []string{"bearer"}, cobra.ShellCompDirectiveNoFileComp
 		default:
@@ -35,5 +35,5 @@ var remoteSetAuthCmd = &cobra.Command{
 }
 
 func init() {
-	remoteCmd.AddCommand(remoteSetAuthCmd)
+	repoCmd.AddCommand(repoSetAuthCmd)
 }

@@ -1,4 +1,4 @@
-package remote
+package repo
 
 import (
 	"os"
@@ -8,21 +8,21 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
-// remoteShowCmd represents the 'remote show' command
-var remoteShowCmd = &cobra.Command{
+// repoShowCmd represents the 'repo show' command
+var repoShowCmd = &cobra.Command{
 	Use:   "show <name>",
-	Short: "Shows settings for the remote <name>",
-	Long:  `Shows settings for the remote <name>`,
+	Short: "Shows settings for the named repository",
+	Long:  `Shows settings for the named repository`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cli.RemoteShow(args[0])
+		err := cli.RepoShow(args[0])
 		if err != nil {
 			os.Exit(1)
 		}
 	},
-	ValidArgsFunction: completion.CompleteRemoteNames,
+	ValidArgsFunction: completion.CompleteRepoNames,
 }
 
 func init() {
-	remoteCmd.AddCommand(remoteShowCmd)
+	repoCmd.AddCommand(repoShowCmd)
 }

@@ -40,23 +40,23 @@ type Version struct {
 }
 
 type RepoSpec struct {
-	remoteName string
-	dir        string
+	repoName string
+	dir      string
 }
 
-func NewSpec(remoteName, dir string) (RepoSpec, error) {
-	if remoteName != "" && dir != "" {
+func NewSpec(repoName, dir string) (RepoSpec, error) {
+	if repoName != "" && dir != "" {
 		return RepoSpec{}, ErrInvalidSpec
 	}
 	return RepoSpec{
-		remoteName: remoteName,
-		dir:        dir,
+		repoName: repoName,
+		dir:      dir,
 	}, nil
 }
 
-func NewRemoteSpec(remoteName string) RepoSpec {
+func NewRepoSpec(repoName string) RepoSpec {
 	return RepoSpec{
-		remoteName: remoteName,
+		repoName: repoName,
 	}
 }
 
@@ -68,34 +68,34 @@ func NewDirSpec(dir string) RepoSpec {
 
 func NewSpecFromFoundSource(s FoundSource) RepoSpec {
 	return RepoSpec{
-		remoteName: s.RemoteName,
-		dir:        s.Directory,
+		repoName: s.RepoName,
+		dir:      s.Directory,
 	}
 }
 
 func (r RepoSpec) ToFoundSource() FoundSource {
 	return FoundSource{
-		Directory:  r.dir,
-		RemoteName: r.remoteName,
+		Directory: r.dir,
+		RepoName:  r.repoName,
 	}
 }
 
 func (r RepoSpec) Dir() string {
 	return r.dir
 }
-func (r RepoSpec) RemoteName() string {
-	return r.remoteName
+func (r RepoSpec) RepoName() string {
+	return r.repoName
 }
 func (r RepoSpec) String() string {
 	if r.dir == "" {
-		if r.remoteName == "" {
-			return fmt.Sprintf("undefined repository")
+		if r.repoName == "" {
+			return fmt.Sprintf("unspecified repo")
 		}
-		return fmt.Sprintf("remote <%s>", r.remoteName)
+		return fmt.Sprintf("named repo <%s>", r.repoName)
 	}
-	return fmt.Sprintf("directory %s", r.dir)
+	return fmt.Sprintf("local repo %s", r.dir)
 }
 
 var EmptySpec, _ = NewSpec("", "")
 
-var ErrInvalidSpec = errors.New("illegal remote spec: both dir and remoteName given")
+var ErrInvalidSpec = errors.New("illegal repo spec: both local directory and repo name given")

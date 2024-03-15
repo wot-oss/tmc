@@ -10,24 +10,24 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-type TOC struct {
-	Meta TOCMeta     `json:"meta"`
-	Data []*TOCEntry `json:"data"`
+type Index struct {
+	Meta IndexMeta     `json:"meta"`
+	Data []*IndexEntry `json:"data"`
 }
 
-type TOCMeta struct {
+type IndexMeta struct {
 	Created time.Time `json:"created"`
 }
 
-type TOCEntry struct {
+type IndexEntry struct {
 	Name         string             `json:"name"`
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
-	Versions     []TOCVersion       `json:"versions"`
+	Versions     []IndexVersion     `json:"versions"`
 }
 
-func (e *TOCEntry) MatchesSearchText(searchQuery string) bool {
+func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
 	if e == nil {
 		return false
 	}
@@ -55,7 +55,7 @@ func (e *TOCEntry) MatchesSearchText(searchQuery string) bool {
 
 const TMLinkRel = "content"
 
-type TOCVersion struct {
+type IndexVersion struct {
 	Description string            `json:"description"`
 	Version     Version           `json:"version"`
 	Links       map[string]string `json:"links"`
@@ -65,28 +65,28 @@ type TOCVersion struct {
 	ExternalID  string            `json:"externalID"`
 }
 
-func (toc *TOC) Filter(search *SearchParams) {
+func (idx *Index) Filter(search *SearchParams) {
 	if search == nil {
 		return
 	}
-	toc.Data = slices.DeleteFunc(toc.Data, func(tocEntry *TOCEntry) bool {
-		if !tocEntry.MatchesSearchText(search.Query) {
+	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
+		if !entry.MatchesSearchText(search.Query) {
 			return true
 		}
 
-		if !matchesNameFilter(search.Name, tocEntry.Name, search.Options) {
+		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
 			return true
 		}
 
-		if !matchesFilter(search.Author, tocEntry.Author.Name) {
+		if !matchesFilter(search.Author, entry.Author.Name) {
 			return true
 		}
 
-		if !matchesFilter(search.Manufacturer, tocEntry.Manufacturer.Name) {
+		if !matchesFilter(search.Manufacturer, entry.Manufacturer.Name) {
 			return true
 		}
 
-		if !matchesFilter(search.Mpn, tocEntry.Mpn) {
+		if !matchesFilter(search.Mpn, entry.Mpn) {
 			return true
 		}
 
@@ -123,9 +123,9 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, value)
 }
 
-// findByName searches by name and returns a pointer to the TOCEntry if found
-func (toc *TOC) findByName(name string) *TOCEntry {
-	for _, value := range toc.Data {
+// findByName searches by name and returns a pointer to the IndexEntry if found
+func (idx *Index) findByName(name string) *IndexEntry {
+	for _, value := range idx.Data {
 		if value.Name == name {
 			return value
 		}
@@ -135,21 +135,21 @@ func (toc *TOC) findByName(name string) *TOCEntry {
 
 // Insert uses CatalogThingModel to add a version, either to an existing
 // entry or as a new entry. Returns the TMID of the inserted entry
-func (toc *TOC) Insert(ctm *ThingModel) (TMID, error) {
+func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 	tmid, err := ParseTMID(ctm.ID, ctm.IsOfficial())
 	if err != nil {
 		return TMID{}, err
 	}
 	// find the right entry, or create if it doesn't exist
-	tocEntry := toc.findByName(tmid.Name)
-	if tocEntry == nil {
-		tocEntry = &TOCEntry{
+	idxEntry := idx.findByName(tmid.Name)
+	if idxEntry == nil {
+		idxEntry = &IndexEntry{
 			Name:         tmid.Name,
 			Manufacturer: SchemaManufacturer{Name: tmid.Manufacturer},
 			Mpn:          tmid.Mpn,
 			Author:       SchemaAuthor{Name: tmid.Author},
 		}
-		toc.Data = append(toc.Data, tocEntry)
+		idx.Data = append(idx.Data, idxEntry)
 	}
 	// TODO: check if id already exists?
 	// Append version information to entry
@@ -158,7 +158,7 @@ func (toc *TOC) Insert(ctm *ThingModel) (TMID, error) {
 	if original != nil {
 		externalID = original.HRef
 	}
-	tv := TOCVersion{
+	tv := IndexVersion{
 		Description: ctm.Description,
 		TimeStamp:   tmid.Version.Timestamp,
 		Version:     Version{Model: tmid.Version.Base.String()},
@@ -167,35 +167,35 @@ func (toc *TOC) Insert(ctm *ThingModel) (TMID, error) {
 		Digest:      tmid.Version.Hash,
 		Links:       map[string]string{"content": tmid.String()},
 	}
-	if idx := slices.IndexFunc(tocEntry.Versions, func(version TOCVersion) bool {
+	if idx := slices.IndexFunc(idxEntry.Versions, func(version IndexVersion) bool {
 		return version.TMID == ctm.ID
 	}); idx == -1 {
-		tocEntry.Versions = append(tocEntry.Versions, tv)
+		idxEntry.Versions = append(idxEntry.Versions, tv)
 	} else {
-		tocEntry.Versions[idx] = tv
+		idxEntry.Versions[idx] = tv
 	}
 	return tmid, nil
 }
 
 // Delete deletes the record for the given id. Returns TM name to be removed from names file if no more versions are left
-func (toc *TOC) Delete(id string) (updated bool, deletedName string, err error) {
-	var tocEntry *TOCEntry
+func (idx *Index) Delete(id string) (updated bool, deletedName string, err error) {
+	var idxEntry *IndexEntry
 
 	name, found := strings.CutSuffix(id, "/"+filepath.Base(id))
 	if !found {
 		return false, "", ErrInvalidId
 	}
-	tocEntry = toc.findByName(name)
-	if tocEntry != nil {
-		tocEntry.Versions = slices.DeleteFunc(tocEntry.Versions, func(version TOCVersion) bool {
+	idxEntry = idx.findByName(name)
+	if idxEntry != nil {
+		idxEntry.Versions = slices.DeleteFunc(idxEntry.Versions, func(version IndexVersion) bool {
 			fnd := version.TMID == id
 			if fnd {
 				updated = true
 			}
 			return fnd
 		})
-		if len(tocEntry.Versions) == 0 {
-			toc.Data = slices.DeleteFunc(toc.Data, func(entry *TOCEntry) bool {
+		if len(idxEntry.Versions) == 0 {
+			idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
 				return entry.Name == name
 			})
 			return updated, name, nil

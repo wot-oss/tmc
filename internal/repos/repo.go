@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"encoding/json"
@@ -15,89 +15,89 @@ import (
 )
 
 const (
-	KeyRemotes       = "remotes"
-	KeyRemoteType    = "type"
-	KeyRemoteLoc     = "loc"
-	KeyRemoteAuth    = "auth"
-	KeyRemoteEnabled = "enabled"
+	KeyRepos       = "remotes"
+	KeyRepoType    = "type"
+	KeyRepoLoc     = "loc"
+	KeyRepoAuth    = "auth"
+	KeyRepoEnabled = "enabled"
 
-	RemoteTypeFile           = "file"
-	RemoteTypeHttp           = "http"
-	RemoteTypeTmc            = "tmc"
+	RepoTypeFile             = "file"
+	RepoTypeHttp             = "http"
+	RepoTypeTmc              = "tmc"
 	CompletionKindNames      = "names"
 	CompletionKindFetchNames = "fetchNames"
 	RepoConfDir              = ".tmc"
-	TOCFilename              = "tm-catalog.toc.json"
+	IndexFilename            = "tm-catalog.toc.json"
 	TmNamesFile              = "tmnames.txt"
 )
 
-var ValidRemoteNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
+var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
 type Config map[string]map[string]any
 
-var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp, RemoteTypeTmc}
+var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
 
-//go:generate mockery --name Remote --outpkg mocks --output mocks
-type Remote interface {
+//go:generate mockery --name Repo --outpkg mocks --output mocks
+type Repo interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
 	// there is a file with the same semantic version and timestamp but different content
 	Push(id model.TMID, raw []byte) error
-	// Fetch retrieves the Thing Model file from remote
+	// Fetch retrieves the Thing Model file from repo
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(id string) (string, []byte, error)
-	// UpdateToc updates table of contents file with data from given TM files. For ids that refer to non-existing files,
-	// removes those from table of contents. Performs a full update if no updatedIds given
-	UpdateToc(updatedIds ...string) error
+	// Index updates repository's index file with data from given TM files. For ids that refer to non-existing files,
+	// removes those from index. Performs a full update if no updatedIds given
+	Index(updatedIds ...string) error
 	// List searches the catalog for TMs matching search parameters
 	List(search *model.SearchParams) (model.SearchResult, error)
 	// Versions lists versions of a TM with given name
 	Versions(name string) ([]model.FoundVersion, error)
-	// Spec returns the spec this Remote has been created from
+	// Spec returns the spec this Repo has been created from
 	Spec() model.RepoSpec
-	// Delete deletes the TM with given id from remote. Returns ErrTmNotFound if TM does not exist
+	// Delete deletes the TM with given id from repo. Returns ErrTmNotFound if TM does not exist
 	Delete(id string) error
 
 	ListCompletions(kind string, toComplete string) ([]string, error)
 }
 
-var Get = func(spec model.RepoSpec) (Remote, error) {
+var Get = func(spec model.RepoSpec) (Repo, error) {
 	if spec.Dir() != "" {
-		if spec.RemoteName() != "" {
+		if spec.RepoName() != "" {
 			return nil, model.ErrInvalidSpec
 		}
-		return NewFileRemote(map[string]any{KeyRemoteType: "file", KeyRemoteLoc: spec.Dir()}, spec)
+		return NewFileRepo(map[string]any{KeyRepoType: "file", KeyRepoLoc: spec.Dir()}, spec)
 	}
-	remotes, err := ReadConfig()
+	repos, err := ReadConfig()
 	if err != nil {
 		return nil, err
 	}
-	remotes = filterEnabled(remotes)
-	rc, ok := remotes[spec.RemoteName()]
-	if spec.RemoteName() == "" {
-		switch len(remotes) {
+	repos = filterEnabled(repos)
+	rc, ok := repos[spec.RepoName()]
+	if spec.RepoName() == "" {
+		switch len(repos) {
 		case 0:
-			return nil, ErrRemoteNotFound
+			return nil, ErrRepoNotFound
 		case 1:
-			for n, v := range remotes {
+			for n, v := range repos {
 				rc = v
-				spec = model.NewRemoteSpec(n)
+				spec = model.NewRepoSpec(n)
 			}
 		default:
 			return nil, ErrAmbiguous
 		}
 	} else {
 		if !ok {
-			return nil, ErrRemoteNotFound
+			return nil, ErrRepoNotFound
 		}
 	}
-	return createRemote(rc, spec)
+	return createRepo(rc, spec)
 }
 
-func filterEnabled(remotes Config) Config {
+func filterEnabled(repos Config) Config {
 	res := make(Config)
-	for n, rc := range remotes {
-		enabled := utils.JsGetBool(rc, KeyRemoteEnabled)
+	for n, rc := range repos {
+		enabled := utils.JsGetBool(rc, KeyRepoEnabled)
 		if enabled != nil && !*enabled {
 			continue
 		}
@@ -106,32 +106,32 @@ func filterEnabled(remotes Config) Config {
 	return res
 }
 
-func createRemote(rc map[string]any, spec model.RepoSpec) (Remote, error) {
-	switch t := rc[KeyRemoteType]; t {
-	case RemoteTypeFile:
-		return NewFileRemote(rc, spec)
-	case RemoteTypeHttp:
-		return NewHttpRemote(rc, spec)
-	case RemoteTypeTmc:
-		return NewTmcRemote(rc, spec)
+func createRepo(rc map[string]any, spec model.RepoSpec) (Repo, error) {
+	switch t := rc[KeyRepoType]; t {
+	case RepoTypeFile:
+		return NewFileRepo(rc, spec)
+	case RepoTypeHttp:
+		return NewHttpRepo(rc, spec)
+	case RepoTypeTmc:
+		return NewTmcRepo(rc, spec)
 	default:
-		return nil, fmt.Errorf("unsupported remote type: %v. Supported types are %v", t, SupportedTypes)
+		return nil, fmt.Errorf("unsupported repo type: %v. Supported types are %v", t, SupportedTypes)
 	}
 }
 
-var All = func() ([]Remote, error) {
+var All = func() ([]Repo, error) {
 	conf, err := ReadConfig()
 	if err != nil {
 		return nil, err
 	}
-	var rs []Remote
+	var rs []Repo
 
 	for n, rc := range conf {
-		en := utils.JsGetBool(rc, KeyRemoteEnabled)
+		en := utils.JsGetBool(rc, KeyRepoEnabled)
 		if en != nil && !*en {
 			continue
 		}
-		r, err := createRemote(rc, model.NewRemoteSpec(n))
+		r, err := createRepo(rc, model.NewRepoSpec(n))
 		if err != nil {
 			return rs, err
 		}
@@ -141,17 +141,17 @@ var All = func() ([]Remote, error) {
 }
 
 func ReadConfig() (Config, error) {
-	remotesConfig := viper.Get(KeyRemotes)
-	remotes, ok := remotesConfig.(map[string]any)
+	reposConfig := viper.Get(KeyRepos)
+	repos, ok := reposConfig.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid remotes contig")
+		return nil, fmt.Errorf("invalid repo config")
 	}
 	cp := map[string]map[string]any{}
-	for k, v := range remotes {
+	for k, v := range repos {
 		if cfg, ok := v.(map[string]any); ok {
 			cp[k] = cfg
 		} else {
-			return nil, fmt.Errorf("invalid remote config: %s", k)
+			return nil, fmt.Errorf("invalid repo config: %s", k)
 		}
 	}
 	return cp, nil
@@ -164,16 +164,16 @@ func ToggleEnabled(name string) error {
 	}
 	c, ok := conf[name]
 	if !ok {
-		return ErrRemoteNotFound
+		return ErrRepoNotFound
 	}
-	if enabled, ok := c[KeyRemoteEnabled]; ok {
+	if enabled, ok := c[KeyRepoEnabled]; ok {
 		if eb, ok := enabled.(bool); ok && !eb {
-			delete(c, KeyRemoteEnabled)
+			delete(c, KeyRepoEnabled)
 		} else {
-			c[KeyRemoteEnabled] = false
+			c[KeyRepoEnabled] = false
 		}
 	} else {
-		c[KeyRemoteEnabled] = false
+		c[KeyRepoEnabled] = false
 	}
 	conf[name] = c
 	return saveConfig(conf)
@@ -185,50 +185,50 @@ func Remove(name string) error {
 		return err
 	}
 	if _, ok := conf[name]; !ok {
-		return ErrRemoteNotFound
+		return ErrRepoNotFound
 	}
 	delete(conf, name)
 	return saveConfig(conf)
 }
 
 func Add(name, typ, confStr string, confFile []byte) error {
-	_, err := Get(model.NewRemoteSpec(name))
-	if err == nil || !errors.Is(err, ErrRemoteNotFound) {
-		return ErrRemoteExists
+	_, err := Get(model.NewRepoSpec(name))
+	if err == nil || !errors.Is(err, ErrRepoNotFound) {
+		return ErrRepoExists
 	}
 
-	return setRemoteConfig(name, typ, confStr, confFile, err)
+	return setRepoConfig(name, typ, confStr, confFile, err)
 }
 
 func SetConfig(name, typ, confStr string, confFile []byte) error {
-	_, err := Get(model.NewRemoteSpec(name))
-	if err != nil && errors.Is(err, ErrRemoteNotFound) {
-		return ErrRemoteNotFound
+	_, err := Get(model.NewRepoSpec(name))
+	if err != nil && errors.Is(err, ErrRepoNotFound) {
+		return ErrRepoNotFound
 	}
 
-	return setRemoteConfig(name, typ, confStr, confFile, err)
+	return setRepoConfig(name, typ, confStr, confFile, err)
 }
 
-func setRemoteConfig(name string, typ string, confStr string, confFile []byte, err error) error {
+func setRepoConfig(name string, typ string, confStr string, confFile []byte, err error) error {
 	var rc map[string]any
 	switch typ {
-	case RemoteTypeFile:
-		rc, err = createFileRemoteConfig(confStr, confFile)
+	case RepoTypeFile:
+		rc, err = createFileRepoConfig(confStr, confFile)
 		if err != nil {
 			return err
 		}
-	case RemoteTypeHttp:
-		rc, err = createHttpRemoteConfig(confStr, confFile)
+	case RepoTypeHttp:
+		rc, err = createHttpRepoConfig(confStr, confFile)
 		if err != nil {
 			return err
 		}
-	case RemoteTypeTmc:
-		rc, err = createTmcRemoteConfig(confStr, confFile)
+	case RepoTypeTmc:
+		rc, err = createTmcRepoConfig(confStr, confFile)
 		if err != nil {
 			return err
 		}
 	default:
-		return fmt.Errorf("unsupported remote type: %v. Supported types are %v", typ, SupportedTypes)
+		return fmt.Errorf("unsupported repo type: %v. Supported types are %v", typ, SupportedTypes)
 	}
 
 	conf, err := ReadConfig()
@@ -242,8 +242,8 @@ func setRemoteConfig(name string, typ string, confStr string, confFile []byte, e
 }
 
 func Rename(oldName, newName string) error {
-	if !ValidRemoteNameRegex.MatchString(newName) {
-		return ErrInvalidRemoteName
+	if !ValidRepoNameRegex.MatchString(newName) {
+		return ErrInvalidRepoName
 	}
 	conf, err := ReadConfig()
 	if err != nil {
@@ -254,11 +254,11 @@ func Rename(oldName, newName string) error {
 		delete(conf, oldName)
 		return saveConfig(conf)
 	} else {
-		return ErrRemoteNotFound
+		return ErrRepoNotFound
 	}
 }
 func saveConfig(conf Config) error {
-	viper.Set(KeyRemotes, conf)
+	viper.Set(KeyRepos, conf)
 	configFile := viper.ConfigFileUsed()
 	if configFile == "" {
 		configFile = filepath.Join(config.DefaultConfigDir, "config.json")
@@ -280,7 +280,7 @@ func saveConfig(conf Config) error {
 	if err != nil {
 		return err
 	}
-	j[KeyRemotes] = conf
+	j[KeyRepos] = conf
 
 	w, err := json.MarshalIndent(j, "", "  ")
 	if err != nil {
@@ -289,7 +289,7 @@ func saveConfig(conf Config) error {
 	return utils.AtomicWriteFile(configFile, w, 0660)
 }
 
-func AsRemoteConfig(bytes []byte) (map[string]any, error) {
+func AsRepoConfig(bytes []byte) (map[string]any, error) {
 	var js any
 	err := json.Unmarshal(bytes, &js)
 	if err != nil {
@@ -302,14 +302,14 @@ func AsRemoteConfig(bytes []byte) (map[string]any, error) {
 	return rc, nil
 }
 
-// GetSpecdOrAll returns the remote specified by spec in a slice, or all remotes, if the spec is empty
+// GetSpecdOrAll returns a union containing the repo specified by spec, or union of all repo, if the spec is empty
 func GetSpecdOrAll(spec model.RepoSpec) (*Union, error) {
-	if spec.RemoteName() != "" || spec.Dir() != "" {
-		remote, err := Get(spec)
+	if spec.RepoName() != "" || spec.Dir() != "" {
+		repo, err := Get(spec)
 		if err != nil {
 			return nil, err
 		}
-		return NewUnion(remote), nil
+		return NewUnion(repo), nil
 	}
 	all, err := All()
 	if err != nil {

@@ -7,25 +7,25 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
 var ErrInvalidArgs = errors.New("invalid arguments")
 
-func RemoteList() error {
+func RepoList() error {
 	colWidth := columnWidth()
-	config, err := remotes.ReadConfig()
+	config, err := repos.ReadConfig()
 	if err != nil {
-		Stderrf("Cannot read remotes config: %v", err)
+		Stderrf("Cannot read repo config: %v", err)
 		return err
 	}
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tENBL\tLOCATION\n")
 	for name, value := range config {
-		typ := fmt.Sprintf("%v", value[remotes.KeyRemoteType])
-		e := utils.JsGetBool(value, remotes.KeyRemoteEnabled)
+		typ := fmt.Sprintf("%v", value[repos.KeyRepoType])
+		e := utils.JsGetBool(value, repos.KeyRepoEnabled)
 		enbl := e == nil || *e
 		var enblS string
 		if enbl {
@@ -33,22 +33,22 @@ func RemoteList() error {
 		} else {
 			enblS = "N"
 		}
-		u := fmt.Sprintf("%v", value[remotes.KeyRemoteLoc])
+		u := fmt.Sprintf("%v", value[repos.KeyRepoLoc])
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n", elideString(name, colWidth), typ, enblS, u)
 	}
 	_ = table.Flush()
 	return nil
 }
 
-func RemoteAdd(name, typ, confStr, confFile string) error {
-	return remoteSaveConfig(name, typ, confStr, confFile, remotes.Add)
+func RepoAdd(name, typ, confStr, confFile string) error {
+	return repoSaveConfig(name, typ, confStr, confFile, repos.Add)
 }
-func RemoteSetConfig(name, typ, confStr, confFile string) error {
-	return remoteSaveConfig(name, typ, confStr, confFile, remotes.SetConfig)
+func RepoSetConfig(name, typ, confStr, confFile string) error {
+	return repoSaveConfig(name, typ, confStr, confFile, repos.SetConfig)
 }
 
-func remoteSaveConfig(name, typ, confStr, confFile string, saver func(name, typ, confStr string, confFile []byte) error) error {
-	if !remotes.ValidRemoteNameRegex.MatchString(name) {
+func repoSaveConfig(name, typ, confStr, confFile string, saver func(name, typ, confStr string, confFile []byte) error) error {
+	if !repos.ValidRepoNameRegex.MatchString(name) {
 		Stderrf("invalid name: %v", name)
 		return ErrInvalidArgs
 	}
@@ -65,7 +65,7 @@ func remoteSaveConfig(name, typ, confStr, confFile string, saver func(name, typ,
 	typ = inferType(typ, bytes)
 
 	if !isValidType(typ) {
-		Stderrf("invalid type: %v. Valid types are: %v", typ, remotes.SupportedTypes)
+		Stderrf("invalid type: %v. Valid types are: %v", typ, repos.SupportedTypes)
 		return ErrInvalidArgs
 	}
 
@@ -79,7 +79,7 @@ func remoteSaveConfig(name, typ, confStr, confFile string, saver func(name, typ,
 	}
 	err := saver(name, typ, confStr, bytes)
 	if err != nil {
-		Stderrf("error saving remote config: %v", err)
+		Stderrf("error saving repo config: %v", err)
 	}
 	return err
 }
@@ -88,9 +88,9 @@ func inferType(typ string, bytes []byte) string {
 		return typ
 	}
 	if len(bytes) > 0 {
-		config, err := remotes.AsRemoteConfig(bytes)
+		config, err := repos.AsRepoConfig(bytes)
 		if err == nil {
-			t := config[remotes.KeyRemoteType]
+			t := config[repos.KeyRepoType]
 			if t != nil {
 				if ts, ok := t.(string); ok {
 					return ts
@@ -101,26 +101,26 @@ func inferType(typ string, bytes []byte) string {
 	return ""
 }
 
-func RemoteToggleEnabled(name string) error {
-	err := remotes.ToggleEnabled(name)
+func RepoToggleEnabled(name string) error {
+	err := repos.ToggleEnabled(name)
 	if err != nil {
 		Stderrf("%v", err)
 	}
 	return err
 }
 
-func RemoteRemove(name string) error {
-	err := remotes.Remove(name)
+func RepoRemove(name string) error {
+	err := repos.Remove(name)
 	if err != nil {
 		Stderrf("%v", err)
 	}
 	return err
 }
 
-func RemoteShow(name string) error {
-	config, err := remotes.ReadConfig()
+func RepoShow(name string) error {
+	config, err := repos.ReadConfig()
 	if err != nil {
-		Stderrf("Cannot read remotes config: %v", err)
+		Stderrf("Cannot read repo config: %v", err)
 		return err
 	}
 	if rc, ok := config[name]; ok {
@@ -131,30 +131,30 @@ func RemoteShow(name string) error {
 		}
 		fmt.Println(string(bytes))
 	} else {
-		fmt.Printf("no remote named %s\n", name)
-		return remotes.ErrRemoteNotFound
+		fmt.Printf("no repo named %s\n", name)
+		return repos.ErrRepoNotFound
 	}
 	return nil
 }
 
-func RemoteRename(oldName, newName string) (err error) {
-	err = remotes.Rename(oldName, newName)
+func RepoRename(oldName, newName string) (err error) {
+	err = repos.Rename(oldName, newName)
 	if err != nil {
-		if errors.Is(err, remotes.ErrRemoteNotFound) {
-			Stderrf("remote %s not found", oldName)
+		if errors.Is(err, repos.ErrRepoNotFound) {
+			Stderrf("repo %s not found", oldName)
 			return
 		}
-		if errors.Is(err, remotes.ErrInvalidRemoteName) {
-			Stderrf("invalid remote name: %s", newName)
+		if errors.Is(err, repos.ErrInvalidRepoName) {
+			Stderrf("invalid repo name: %s", newName)
 			return
 		}
-		Stderrf("error renaming a remote: %v", err)
+		Stderrf("error renaming a repo: %v", err)
 	}
 	return
 }
 
-func RemoteSetAuth(name, kind, data string) error {
-	conf, err := remotes.ReadConfig()
+func RepoSetAuth(name, kind, data string) error {
+	conf, err := repos.ReadConfig()
 	if err != nil {
 		Stderrf("error setting auth: %v", err)
 		return err
@@ -162,13 +162,13 @@ func RemoteSetAuth(name, kind, data string) error {
 
 	rc, ok := conf[name]
 	if !ok {
-		Stderrf("remote %s not found", name)
-		return remotes.ErrRemoteNotFound
+		Stderrf("repo %s not found", name)
+		return repos.ErrRepoNotFound
 	}
 	switch kind {
 	case "bearer":
-		delete(rc, remotes.KeyRemoteAuth)
-		rc[remotes.KeyRemoteAuth] = map[string]any{
+		delete(rc, repos.KeyRepoAuth)
+		rc[repos.KeyRepoAuth] = map[string]any{
 			"bearer": data,
 		}
 	default:
@@ -177,16 +177,16 @@ func RemoteSetAuth(name, kind, data string) error {
 	}
 	rb, _ := json.Marshal(rc)
 
-	err = remotes.SetConfig(name, fmt.Sprint(rc[remotes.KeyRemoteType]), "", rb)
+	err = repos.SetConfig(name, fmt.Sprint(rc[repos.KeyRepoType]), "", rb)
 	if err != nil {
-		Stderrf("error saving remote config: %v", err)
+		Stderrf("error saving repo config: %v", err)
 		return err
 	}
 	return nil
 }
 
 func isValidType(typ string) bool {
-	for _, t := range remotes.SupportedTypes {
+	for _, t := range repos.SupportedTypes {
 		if typ == t {
 			return true
 		}

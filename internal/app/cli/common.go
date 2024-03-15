@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
 )
 
 const DefaultListSeparator = ","
@@ -57,7 +57,7 @@ func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchPara
 	return search
 }
 
-func printErrs(hdr string, errs []*remotes.RepoAccessError) {
+func printErrs(hdr string, errs []*repos.RepoAccessError) {
 	if len(errs) == 0 {
 		return
 	}

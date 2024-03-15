@@ -48,7 +48,7 @@ tm-catalog-cli completion <shell> -h
 
 1. Configure the canonical repository
 ```bash
-tm-catalog-cli remote add --type http thingmodels 'https://raw.githubusercontent.com/wot-oss/thingmodels'
+tm-catalog-cli repo add --type http thingmodels 'https://raw.githubusercontent.com/wot-oss/thingmodels'
 ```
 2. List the contents of the canonical catalog
 ```bash

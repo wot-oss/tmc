@@ -21,18 +21,18 @@ var versionsCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(versionsCmd)
-	versionsCmd.Flags().StringP("remote", "r", "", "name of the remote to search for versions")
-	_ = versionsCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
-	versionsCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	versionsCmd.Flags().StringP("repo", "r", "", "Name of the repository to search for versions. Searches all if omitted")
+	_ = versionsCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	versionsCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = versionsCmd.MarkFlagDirname("directory")
 }
 
 func listVersions(cmd *cobra.Command, args []string) {
-	remoteName := cmd.Flag("remote").Value.String()
+	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
-	spec, err := model.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(repoName, dirName)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 

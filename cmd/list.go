@@ -27,9 +27,9 @@ Name pattern, filters and search can be combined to narrow down the result.`,
 
 func init() {
 	RootCmd.AddCommand(listCmd)
-	listCmd.Flags().StringP("remote", "r", "", "name of the remote to list")
-	_ = listCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
-	listCmd.Flags().StringP("directory", "d", "", "TM repository directory to list")
+	listCmd.Flags().StringP("repo", "r", "", "Name of the repository to list. Lists all if omitted")
+	_ = listCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	listCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = listCmd.MarkFlagDirname("directory")
 	listCmd.Flags().StringVar(&filterFlags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	listCmd.Flags().StringVar(&filterFlags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
@@ -38,16 +38,16 @@ func init() {
 }
 
 func executeList(cmd *cobra.Command, args []string) {
-	remoteName := cmd.Flag("remote").Value.String()
+	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 
 	name := ""
 	if len(args) > 0 {
 		name = args[0]
 	}
-	spec, err := model.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(repoName, dirName)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 

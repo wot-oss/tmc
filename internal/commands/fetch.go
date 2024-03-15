@@ -12,7 +12,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 	"github.com/buger/jsonparser"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
@@ -72,7 +72,7 @@ func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
 	return nil, nil, err
 }
 
-func (c *FetchCommand) FetchByTMIDOrName(spec model.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
+func (c *FetchCommand) FetchByTMIDOrName(spec model.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
 	tmid, fn, err := ParseAsTMIDOrFetchName(idOrName)
 	if err != nil {
 		return "", nil, err, nil
@@ -83,8 +83,8 @@ func (c *FetchCommand) FetchByTMIDOrName(spec model.RepoSpec, idOrName string, r
 	return c.FetchByName(spec, *fn, restoreId)
 }
 
-func (c *FetchCommand) FetchByTMID(spec model.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
-	rs, err := remotes.GetSpecdOrAll(spec)
+func (c *FetchCommand) FetchByTMID(spec model.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
+	rs, err := repos.GetSpecdOrAll(spec)
 	if err != nil {
 		return "", nil, err, nil
 	}
@@ -154,14 +154,14 @@ func restoreExternalId(raw []byte) []byte {
 
 }
 
-func (c *FetchCommand) FetchByName(spec model.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
+func (c *FetchCommand) FetchByName(spec model.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
 	log := slog.Default()
-	tocVersions, err, errs := NewVersionsCommand().ListVersions(spec, fn.Name)
+	res, err, errs := NewVersionsCommand().ListVersions(spec, fn.Name)
 	if err != nil {
 		return "", nil, err, errs
 	}
-	versions := make([]model.FoundVersion, len(tocVersions))
-	copy(versions, tocVersions)
+	versions := make([]model.FoundVersion, len(res))
+	copy(versions, res)
 
 	var id string
 	var foundIn model.RepoSpec
@@ -190,7 +190,7 @@ func (c *FetchCommand) FetchByName(spec model.RepoSpec, fn FetchName, restoreId 
 func findMostRecentVersion(versions []model.FoundVersion) (string, model.RepoSpec, error) {
 	log := slog.Default()
 	if len(versions) == 0 {
-		err := fmt.Errorf("%w: no versions found", remotes.ErrTmNotFound)
+		err := fmt.Errorf("%w: no versions found", repos.ErrTmNotFound)
 		log.Error(err.Error())
 		return "", model.EmptySpec, err
 	}
@@ -233,7 +233,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 
 	// see if anything remained
 	if len(versions) == 0 {
-		err := fmt.Errorf("%w: no version %s found", remotes.ErrTmNotFound, ver)
+		err := fmt.Errorf("%w: no version %s found", repos.ErrTmNotFound, ver)
 		log.Error(err.Error())
 		return "", model.EmptySpec, err
 	}

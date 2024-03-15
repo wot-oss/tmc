@@ -13,7 +13,7 @@ import (
 	"github.com/kennygrant/sanitize"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands/validate"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
 )
 
 const maxPushRetries = 3
@@ -29,10 +29,10 @@ func NewPushCommand(now Now) *PushCommand {
 	}
 }
 
-// PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to remote.
+// PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to repo.
 // Returns the ID that the TM has been stored under, and error.
-// If the remote already contains the same TM, returns the id of the existing TM and an instance of remotes.ErrTMIDConflict
-func (c *PushCommand) PushFile(raw []byte, remote remotes.Remote, optPath string) (string, error) {
+// If the repo already contains the same TM, returns the id of the existing TM and an instance of repos.ErrTMIDConflict
+func (c *PushCommand) PushFile(raw []byte, repo repos.Repo, optPath string) (string, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
@@ -47,11 +47,11 @@ RETRY:
 		return "", err
 	}
 
-	err = remote.Push(id, versioned)
+	err = repo.Push(id, versioned)
 	if err != nil {
-		var errConflict *remotes.ErrTMIDConflict
+		var errConflict *repos.ErrTMIDConflict
 		if errors.As(err, &errConflict) {
-			if errConflict.Type == remotes.IdConflictSameTimestamp {
+			if errConflict.Type == repos.IdConflictSameTimestamp {
 				if retriesLeft >= 0 {
 					time.Sleep(1 * time.Second) // sleep 1 sec to get a different timestamp in id
 					goto RETRY
@@ -61,7 +61,7 @@ RETRY:
 			log.Info("Thing Model conflicts with existing", "id", id, "existing-id", errConflict.ExistingId, "conflictType", errConflict.Type)
 			return errConflict.ExistingId, err
 		}
-		log.Error("error pushing to remote", "error", err)
+		log.Error("error pushing to repo", "error", err)
 		return id.String(), err
 	}
 	log.Info("pushed successfully")

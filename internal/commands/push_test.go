@@ -13,7 +13,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
@@ -175,13 +175,13 @@ func TestPrepareToImport(t *testing.T) {
 
 }
 
-func TestPushToRemoteUnversioned(t *testing.T) {
+func TestPushToRepoUnversioned(t *testing.T) {
 	root, err := os.MkdirTemp(os.TempDir(), "tm-catalog")
 	assert.NoError(t, err)
 	t.Logf("test root: %s", root)
 	defer func() { _ = os.RemoveAll(root) }()
 
-	remote, err := remotes.NewFileRemote(map[string]any{
+	repo, err := repos.NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
@@ -195,7 +195,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	t.Run("write first TM", func(t *testing.T) {
 
 		assert.NoError(t, err)
-		id, err := c.PushFile(raw, remote, "")
+		id, err := c.PushFile(raw, repo, "")
 		assert.NoError(t, err)
 		testTMDir := filepath.Join(root, filepath.Dir(id))
 		t.Logf("test TM dir: %s", testTMDir)
@@ -208,8 +208,8 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 
 	t.Run("attempt overwriting with the same content", func(t *testing.T) {
 		// attempt overwriting with the same content - no change
-		id, err := c.PushFile(raw, remote, "")
-		var errExists *remotes.ErrTMIDConflict
+		id, err := c.PushFile(raw, repo, "")
+		var errExists *repos.ErrTMIDConflict
 		assert.ErrorAs(t, err, &errExists)
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 		assert.Len(t, entries, 1)
@@ -219,7 +219,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 	t.Run("write a changed file", func(t *testing.T) {
 		// write a changed file - saves new version
 		raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
-		id, err := c.PushFile(raw, remote, "")
+		id, err := c.PushFile(raw, repo, "")
 		assert.NoError(t, err)
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 		assert.Len(t, entries, 2)
@@ -230,7 +230,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 
 		// change the file back and write - saves new version
 		raw = bytes.Replace(raw, []byte("Lamp Thing"), []byte("Lamp Thing Model"), 1)
-		id, err := c.PushFile(raw, remote, "")
+		id, err := c.PushFile(raw, repo, "")
 		assert.NoError(t, err)
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 		assert.Len(t, entries, 3)
@@ -244,7 +244,7 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 		for i := 0; i < 5; i++ {
 			content := bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing Model"+strconv.Itoa(i)), 1)
 			var err error
-			id, err = c.PushFile(content, remote, "")
+			id, err = c.PushFile(content, repo, "")
 			assert.NoError(t, err)
 		}
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
@@ -262,12 +262,12 @@ func TestPushToRemoteUnversioned(t *testing.T) {
 
 	})
 }
-func TestPushToRemoteVersioned(t *testing.T) {
+func TestPushToRepoVersioned(t *testing.T) {
 	root, err := os.MkdirTemp(os.TempDir(), "tm-catalog")
 	assert.NoError(t, err)
 	defer func() { _ = os.RemoveAll(root) }()
 
-	remote, err := remotes.NewFileRemote(map[string]any{
+	repo, err := repos.NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
@@ -279,7 +279,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	_, raw, err := utils.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
 	assert.NoError(t, err)
 
-	id, err := c.PushFile(raw, remote, "")
+	id, err := c.PushFile(raw, repo, "")
 	assert.NoError(t, err)
 	entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 1)
@@ -288,7 +288,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	// write a new version of ThingModel - saves new version
 	time.Sleep(1050 * time.Millisecond)
 	raw = bytes.Replace(raw, []byte("\"v3.2.1\""), []byte("\"v4.0.0\""), 1)
-	id, err = c.PushFile(raw, remote, "")
+	id, err = c.PushFile(raw, repo, "")
 	assert.NoError(t, err)
 	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 2)
@@ -298,7 +298,7 @@ func TestPushToRemoteVersioned(t *testing.T) {
 	_, raw, err = utils.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
 	time.Sleep(1050 * time.Millisecond)
 	raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
-	id, err = c.PushFile(raw, remote, "")
+	id, err = c.PushFile(raw, repo, "")
 	assert.NoError(t, err)
 	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 3)

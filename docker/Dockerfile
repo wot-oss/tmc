@@ -26,7 +26,7 @@ WORKDIR $WORKDIR
 COPY ./docker/download-cli.sh .
 RUN ./download-cli.sh; rm ./download-cli.sh
 RUN chmod 755 ./tm-catalog-cli; mv ./tm-catalog-cli /usr/bin; 
-RUN tm-catalog-cli remote add --type file catalog $WORKDIR
+RUN tm-catalog-cli repo add --type file catalog $WORKDIR
 
 # always run the tm-catalog-cli for this docker
 CMD ["serve", "--host", "0.0.0.0" ,"--port",  "8080", "-d", "."]

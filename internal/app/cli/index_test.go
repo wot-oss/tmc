@@ -1,0 +1,45 @@
+package cli
+
+import (
+	"errors"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/reposmocks"
+)
+
+func TestIndex(t *testing.T) {
+	r := mocks.NewRepo(t)
+
+	t.Run("no repo", func(t *testing.T) {
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("repoName"), nil, repos.ErrRepoNotFound))
+
+		err := Index(model.NewRepoSpec("repoName"), nil)
+		assert.Error(t, err)
+	})
+
+	t.Run("error building index", func(t *testing.T) {
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
+
+		r.On("Index").Return(errors.New("something failed")).Once()
+		err := Index(model.NewDirSpec("somewhere"), nil)
+		assert.ErrorContains(t, err, "something failed")
+	})
+
+	t.Run("ok", func(t *testing.T) {
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
+		r.On("Index").Return(nil).Once()
+		err := Index(model.NewDirSpec("somewhere"), nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("ok with ids", func(t *testing.T) {
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
+		r.On("Index", "id1", "id2").Return(nil).Once()
+		err := Index(model.NewDirSpec("somewhere"), []string{"id1", "id2"})
+		assert.NoError(t, err)
+	})
+}

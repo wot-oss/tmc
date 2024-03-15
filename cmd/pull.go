@@ -14,7 +14,7 @@ var pFilterFlags = cli.FilterFlags{}
 
 var pullCmd = &cobra.Command{
 	Use:   "pull <NAME PATTERN>",
-	Short: "Pull TMs from a catalog.",
+	Short: "Pull multiple TMs from a catalog.",
 	Long: `Pulls one or more TMs from a catalog by name pattern, filters or search. 
 The name can be a full name or a prefix consisting of complete path parts. 
 E.g. 'MyCompany/BarTech' will not match 'MyCompany/BarTechCorp', but will match 'MyCompany/BarTech/BazLamp'.
@@ -27,11 +27,11 @@ Name pattern, filters and search can be combined to narrow down the result.`,
 
 func init() {
 	RootCmd.AddCommand(pullCmd)
-	pullCmd.Flags().StringP("remote", "r", "", "name of the remote to pull from")
-	_ = pullCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
-	pullCmd.Flags().StringP("directory", "d", "", "TM repository directory to pull from")
+	pullCmd.Flags().StringP("repo", "r", "", "Name of the repository to pull from. Pulls from all if omitted")
+	_ = pullCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	pullCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = pullCmd.MarkFlagDirname("directory")
-	pullCmd.Flags().StringP("output", "o", "", "output directory where to save the pulled TMs")
+	pullCmd.Flags().StringP("output", "o", "", "output directory for saving pulled TMs")
 	_ = pullCmd.MarkFlagDirname("output")
 	_ = pullCmd.MarkFlagRequired("output")
 	pullCmd.Flags().StringVar(&pFilterFlags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
@@ -43,14 +43,14 @@ func init() {
 }
 
 func executePull(cmd *cobra.Command, args []string) {
-	remoteName := cmd.Flag("remote").Value.String()
+	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 	outputPath := cmd.Flag("output").Value.String()
 	restoreId, _ := cmd.Flags().GetBool("restore-id")
 
-	spec, err := model.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(repoName, dirName)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 

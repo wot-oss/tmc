@@ -22,24 +22,24 @@ The semantic version can be full or partial, e.g. v1.2.3, v1.2, v1. The 'v' at t
 
 func init() {
 	RootCmd.AddCommand(fetchCmd)
-	fetchCmd.Flags().StringP("remote", "r", "", "name of the remote to fetch from")
-	_ = fetchCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
-	fetchCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	fetchCmd.Flags().StringP("repo", "r", "", "Name of the repository to fetch from. Looks in all repositories if omitted")
+	_ = fetchCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	fetchCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = fetchCmd.MarkFlagDirname("directory")
-	fetchCmd.Flags().StringP("output", "o", "", "write the fetched TM to output folder instead of stdout")
+	fetchCmd.Flags().StringP("output", "o", "", "Write the fetched TM to output folder instead of stdout")
 	_ = fetchCmd.MarkFlagDirname("output")
-	fetchCmd.Flags().BoolP("restore-id", "R", false, "restore the TM's original external id, if it had one")
+	fetchCmd.Flags().BoolP("restore-id", "R", false, "Restore the TM's original external id, if it had one")
 }
 
 func executeFetch(cmd *cobra.Command, args []string) {
-	remoteName := cmd.Flag("remote").Value.String()
+	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 	outputPath := cmd.Flag("output").Value.String()
 	restoreId, _ := cmd.Flags().GetBool("restore-id")
 
-	spec, err := model.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(repoName, dirName)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 

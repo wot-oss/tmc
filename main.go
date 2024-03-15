@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
-	_ "github.com/web-of-things-open-source/tm-catalog-cli/cmd/remote"
+	_ "github.com/web-of-things-open-source/tm-catalog-cli/cmd/repo"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
 )

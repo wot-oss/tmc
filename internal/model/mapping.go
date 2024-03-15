@@ -2,25 +2,25 @@ package model
 
 import "github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 
-type TOCToSearchResultMapper struct {
+type IndexToSearchResultMapper struct {
 	foundIn FoundSource
 }
 
-func NewTOCToFoundMapper(s FoundSource) *TOCToSearchResultMapper {
-	return &TOCToSearchResultMapper{foundIn: s}
+func NewIndexToFoundMapper(s FoundSource) *IndexToSearchResultMapper {
+	return &IndexToSearchResultMapper{foundIn: s}
 }
 
-func (m *TOCToSearchResultMapper) ToSearchResult(toc TOC) SearchResult {
+func (m *IndexToSearchResultMapper) ToSearchResult(idx Index) SearchResult {
 	r := SearchResult{}
 	var es []FoundEntry
-	for _, e := range toc.Data {
+	for _, e := range idx.Data {
 		es = append(es, m.ToFoundEntry(e))
 	}
 	r.Entries = es
 	return r
 }
 
-func (m *TOCToSearchResultMapper) ToFoundEntry(e *TOCEntry) FoundEntry {
+func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 	return FoundEntry{
 		Name:         e.Name,
 		Manufacturer: e.Manufacturer,
@@ -30,12 +30,12 @@ func (m *TOCToSearchResultMapper) ToFoundEntry(e *TOCEntry) FoundEntry {
 	}
 }
 
-func (m *TOCToSearchResultMapper) ToFoundVersions(versions []TOCVersion) []FoundVersion {
+func (m *IndexToSearchResultMapper) ToFoundVersions(versions []IndexVersion) []FoundVersion {
 	var r []FoundVersion
 	for _, v := range versions {
 		r = append(r, FoundVersion{
-			TOCVersion: v,
-			FoundIn:    m.foundIn,
+			IndexVersion: v,
+			FoundIn:      m.foundIn,
 		})
 	}
 	return r
@@ -74,7 +74,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersions(versions []serve
 	var r []FoundVersion
 	for _, v := range versions {
 		r = append(r, FoundVersion{
-			TOCVersion: TOCVersion{
+			IndexVersion: IndexVersion{
 				Description: v.Description,
 				Version:     Version{Model: v.Version.Model},
 				Links:       m.ToFoundVersionLinks(v),

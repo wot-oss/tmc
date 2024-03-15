@@ -1,4 +1,4 @@
-package remote
+package repo
 
 import (
 	"os"
@@ -8,11 +8,11 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
-// remoteSetConfigCmd represents the 'remote set-config' command
-var remoteSetConfigCmd = &cobra.Command{
+// repoSetConfigCmd represents the 'repo set-config' command
+var repoSetConfigCmd = &cobra.Command{
 	Use:   "set-config [--type <type>] <name> (<config> | --file <configFileName>)",
-	Short: "Set config for a remote repository",
-	Long: `Overwrite config of a remote repository. Depending on the remote type,
+	Short: "Set config for a repository",
+	Long: `Overwrite config of a repository. Depending on the repository type,
 the config may be a simple string, like a URL, or a json file.
 --type is optional only if --file is used and the type is specified there.`,
 	Args: cobra.RangeArgs(1, 2),
@@ -34,7 +34,7 @@ the config may be a simple string, like a URL, or a json file.
 			os.Exit(1)
 		}
 
-		err = cli.RemoteSetConfig(name, typ, confStr, confFile)
+		err = cli.RepoSetConfig(name, typ, confStr, confFile)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -42,15 +42,15 @@ the config may be a simple string, like a URL, or a json file.
 	},
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 0 {
-			return completion.CompleteRemoteNames(cmd, args, toComplete)
+			return completion.CompleteRepoNames(cmd, args, toComplete)
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	},
 }
 
 func init() {
-	remoteCmd.AddCommand(remoteSetConfigCmd)
-	remoteSetConfigCmd.Flags().StringP("type", "t", "", "type of remote to add")
-	_ = remoteSetConfigCmd.RegisterFlagCompletionFunc("type", completion.CompleteRemoteTypes)
-	remoteSetConfigCmd.Flags().StringP("file", "f", "", "name of the file to read remote config from")
+	repoCmd.AddCommand(repoSetConfigCmd)
+	repoSetConfigCmd.Flags().StringP("type", "t", "", "type of repo to add")
+	_ = repoSetConfigCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
+	repoSetConfigCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
 }

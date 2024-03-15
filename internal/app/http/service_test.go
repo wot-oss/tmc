@@ -8,20 +8,20 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
-	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/reposmocks"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
 )
 
-var remote = model.NewRemoteSpec("someRemote")
+var repo = model.NewRepoSpec("someRepo")
 
 func Test_CheckHealthLive(t *testing.T) {
 	// given: a service under test
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 	// when: check health live
 	err := underTest.CheckHealthLive(nil)
 	// then: there is no error
@@ -30,12 +30,12 @@ func Test_CheckHealthLive(t *testing.T) {
 
 func Test_CheckHealthReady(t *testing.T) {
 
-	r := mocks.NewRemote(t)
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	r := mocks.NewRepo(t)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
-	t.Run("with valid remote", func(t *testing.T) {
-		// given: a remote
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
+	t.Run("with valid repo", func(t *testing.T) {
+		// given: a repo
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 
 		// when check health ready
 		err := underTest.CheckHealthReady(nil)
@@ -43,9 +43,9 @@ func Test_CheckHealthReady(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("with invalid remote", func(t *testing.T) {
-		// given: the remote cannot be found
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, nil, errors.New("invalid remote name")))
+	t.Run("with invalid repo", func(t *testing.T) {
+		// given: the repo cannot be found
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, errors.New("invalid repo name")))
 		// when check health ready
 		err := underTest.CheckHealthReady(nil)
 		// then: an error is thrown
@@ -55,21 +55,21 @@ func Test_CheckHealthReady(t *testing.T) {
 
 func Test_CheckHealthStartup(t *testing.T) {
 
-	r := mocks.NewRemote(t)
-	underTest, _ := NewDefaultHandlerService(remote, remote)
+	r := mocks.NewRepo(t)
+	underTest, _ := NewDefaultHandlerService(repo, repo)
 
-	t.Run("with valid remote", func(t *testing.T) {
-		// given: the remote can be found
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
+	t.Run("with valid repo", func(t *testing.T) {
+		// given: the repo can be found
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 		// when check health startup
 		err := underTest.CheckHealthStartup(nil)
 		// then: no error is thrown
 		assert.NoError(t, err)
 	})
 
-	t.Run("with invalid remote", func(t *testing.T) {
-		// given: the remote cannot be found
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, nil, errors.New("invalid remote name")))
+	t.Run("with invalid repo", func(t *testing.T) {
+		// given: the repo cannot be found
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, errors.New("invalid repo name")))
 		// when check health startup
 		err := underTest.CheckHealthStartup(nil)
 		// then: an error is thrown
@@ -79,12 +79,12 @@ func Test_CheckHealthStartup(t *testing.T) {
 
 func Test_CheckHealth(t *testing.T) {
 
-	r := mocks.NewRemote(t)
-	underTest, _ := NewDefaultHandlerService(remote, remote)
+	r := mocks.NewRepo(t)
+	underTest, _ := NewDefaultHandlerService(repo, repo)
 
-	t.Run("with valid remote", func(t *testing.T) {
-		// given: the remote can be found
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
+	t.Run("with valid repo", func(t *testing.T) {
+		// given: the repo can be found
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 
 		// when check health
 		err := underTest.CheckHealth(nil)
@@ -92,9 +92,9 @@ func Test_CheckHealth(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("with invalid remote", func(t *testing.T) {
-		// given: the remote cannot be found
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, nil, errors.New("invalid remote name")))
+	t.Run("with invalid repo", func(t *testing.T) {
+		// given: the repo cannot be found
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, errors.New("invalid repo name")))
 		// when check health
 		err := underTest.CheckHealth(nil)
 		// then: an error is thrown
@@ -104,7 +104,7 @@ func Test_CheckHealth(t *testing.T) {
 
 func Test_ListInventory(t *testing.T) {
 
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
 	listResult := model.SearchResult{
 		Entries: []model.FoundEntry{
@@ -115,7 +115,7 @@ func Test_ListInventory(t *testing.T) {
 				Mpn:          "BT2000",
 				Versions: []model.FoundVersion{
 					{
-						TOCVersion: model.TOCVersion{
+						IndexVersion: model.IndexVersion{
 							TMID:        "a-corp/eagle/BT2000/v1.0.0-20240108140117-243d1b462ccc.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -123,10 +123,10 @@ func Test_ListInventory(t *testing.T) {
 							TimeStamp:   "20240108140117",
 							ExternalID:  "ext-2",
 						},
-						FoundIn: model.FoundSource{RemoteName: "r1"},
+						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 					{
-						TOCVersion: model.TOCVersion{
+						IndexVersion: model.IndexVersion{
 							TMID:        "a-corp/eagle/BT2000/v1.0.0-20231231153548-243d1b462ddd.tm.json",
 							Description: "desc version v0.0.0",
 							Version:     model.Version{Model: "0.0.0"},
@@ -134,7 +134,7 @@ func Test_ListInventory(t *testing.T) {
 							TimeStamp:   "20231231153548",
 							ExternalID:  "ext-1",
 						},
-						FoundIn: model.FoundSource{RemoteName: "r1"},
+						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 				},
 			},
@@ -145,7 +145,7 @@ func Test_ListInventory(t *testing.T) {
 				Mpn:          "BT3000",
 				Versions: []model.FoundVersion{
 					{
-						TOCVersion: model.TOCVersion{
+						IndexVersion: model.IndexVersion{
 							TMID:        "b-corp/frog/BT3000/v1.0.0-20240108140117-743d1b462uuu.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -153,7 +153,7 @@ func Test_ListInventory(t *testing.T) {
 							TimeStamp:   "20240108140117",
 							ExternalID:  "ext-3",
 						},
-						FoundIn: model.FoundSource{RemoteName: "r1"},
+						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 				},
 			},
@@ -161,10 +161,10 @@ func Test_ListInventory(t *testing.T) {
 	}
 
 	t.Run("list all", func(t *testing.T) {
-		// given: remote having some inventory entries
-		r := mocks.NewRemote(t)
+		// given: repo having some inventory entries
+		r := mocks.NewRepo(t)
 		r.On("List", &model.SearchParams{Author: []string{"a-corp", "b-corp"}}).Return(listResult, nil).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
 		res, err := underTest.ListInventory(nil, &model.SearchParams{Author: []string{"a-corp", "b-corp"}})
 		// then: there is no error
@@ -173,17 +173,17 @@ func Test_ListInventory(t *testing.T) {
 		assert.Equal(t, &listResult, res)
 	})
 	t.Run("list with one upstream error", func(t *testing.T) {
-		// given: remote having some inventory entries
-		r := mocks.NewRemote(t)
-		r2 := mocks.NewRemote(t)
+		// given: repo having some inventory entries
+		r := mocks.NewRepo(t)
+		r2 := mocks.NewRepo(t)
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
 		r2.On("List", &model.SearchParams{}).Return(model.SearchResult{}, errors.New("unexpected")).Once()
-		r2.On("Spec").Return(model.NewRemoteSpec("r2")).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r, r2))
+		r2.On("Spec").Return(model.NewRepoSpec("r2")).Once()
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r, r2))
 		// when: list all
 		res, err := underTest.ListInventory(nil, &model.SearchParams{})
-		// then: there is an error of type remotes.RepoAccessError
-		var aErr *remotes.RepoAccessError
+		// then: there is an error of type repos.RepoAccessError
+		var aErr *repos.RepoAccessError
 		assert.ErrorAs(t, err, &aErr)
 		// and then: the search result is returned
 		assert.Nil(t, res)
@@ -191,14 +191,14 @@ func Test_ListInventory(t *testing.T) {
 }
 
 func Test_GetCompletions(t *testing.T) {
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
 	t.Run("list names", func(t *testing.T) {
-		// given: remote having some inventory entries
-		r := mocks.NewRemote(t)
+		// given: repo having some inventory entries
+		r := mocks.NewRepo(t)
 		names := []string{"a/b/c", "d/e/f"}
 		r.On("ListCompletions", "names", "toComplete").Return(names, nil)
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
 		res, err := underTest.GetCompletions(nil, "names", "toComplete")
 		// then: there is no error
@@ -211,12 +211,12 @@ func Test_GetCompletions(t *testing.T) {
 func Test_FindInventoryEntry(t *testing.T) {
 
 	t.Run("inventory entry cannot be found", func(t *testing.T) {
-		underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+		underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 		inventoryName := "a/b/c"
-		// given: remote returns empty search result
-		r := mocks.NewRemote(t)
+		// given: repo returns empty search result
+		r := mocks.NewRepo(t)
 		r.On("List", &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{}, nil).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: finding entry
 		res, err := underTest.FindInventoryEntry(nil, inventoryName)
 		// then: it returns nil result
@@ -230,7 +230,7 @@ func Test_FindInventoryEntry(t *testing.T) {
 
 func Test_ListAuthors(t *testing.T) {
 
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
 	// given: some inventory entries with unordered and duplicated authors
 	listResult := model.SearchResult{
@@ -251,10 +251,10 @@ func Test_ListAuthors(t *testing.T) {
 	}
 
 	t.Run("list all", func(t *testing.T) {
-		// given: remote returning the inventory entries
-		r := mocks.NewRemote(t)
+		// given: repo returning the inventory entries
+		r := mocks.NewRepo(t)
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all authors
 		res, err := underTest.ListAuthors(nil, &model.SearchParams{})
@@ -272,7 +272,7 @@ func Test_ListAuthors(t *testing.T) {
 
 func Test_ListManufacturers(t *testing.T) {
 
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
 	// given: some inventory entries with unordered and duplicated manufacturers
 	listResult := model.SearchResult{
@@ -293,10 +293,10 @@ func Test_ListManufacturers(t *testing.T) {
 	}
 
 	t.Run("list all", func(t *testing.T) {
-		// given: remote returning the inventory entries
-		r := mocks.NewRemote(t)
+		// given: repo returning the inventory entries
+		r := mocks.NewRepo(t)
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all manufacturers
 		res, err := underTest.ListManufacturers(nil, &model.SearchParams{})
@@ -314,7 +314,7 @@ func Test_ListManufacturers(t *testing.T) {
 
 func Test_ListMpns(t *testing.T) {
 
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
 	// given: some inventory entries with unordered and duplicated mpns
 	listResult := model.SearchResult{
@@ -335,10 +335,10 @@ func Test_ListMpns(t *testing.T) {
 	}
 
 	t.Run("list all", func(t *testing.T) {
-		// given: remote returning the inventory entries
-		r := mocks.NewRemote(t)
+		// given: repo returning the inventory entries
+		r := mocks.NewRepo(t)
 		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all
 		res, err := underTest.ListMpns(nil, &model.SearchParams{})
@@ -356,8 +356,8 @@ func Test_ListMpns(t *testing.T) {
 
 func Test_FetchingThingModel(t *testing.T) {
 
-	r := mocks.NewRemote(t)
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	r := mocks.NewRepo(t)
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
 	t.Run("with invalid tmID", func(t *testing.T) {
 		invalidTmID := ""
@@ -389,33 +389,33 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", tmID).Return(tmID, nil, remotes.ErrTmNotFound).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		r.On("Fetch", tmID).Return(tmID, nil, repos.ErrTmNotFound).Once()
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
-		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+		assert.ErrorIs(t, err, repos.ErrTmNotFound)
 	})
 
 	t.Run("with fetch name not found", func(t *testing.T) {
 		fn := "b-corp/eagle/PM20"
 		r.On("Versions", fn).Return(nil, nil).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(nil, fn, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
-		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+		assert.ErrorIs(t, err, repos.ErrTmNotFound)
 	})
 
 	t.Run("with tmID found", func(t *testing.T) {
 		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", tmID).Return(tmID, raw, nil).Once()
-		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(nil, tmID, false)
 		// then: it returns the unchanged ThingModel content
@@ -427,14 +427,14 @@ func Test_FetchingThingModel(t *testing.T) {
 }
 func Test_DeleteThingModel(t *testing.T) {
 
-	r := mocks.NewRemote(t)
-	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, remote, r, nil))
-	underTest, _ := NewDefaultHandlerService(model.EmptySpec, remote)
+	r := mocks.NewRepo(t)
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
 
 	t.Run("without errors", func(t *testing.T) {
 		tmid := "some-id"
 		r.On("Delete", tmid).Return(nil).Once()
-		r.On("UpdateToc", tmid).Return(nil).Once()
+		r.On("Index", tmid).Return(nil).Once()
 		// when: deleting ThingModel
 		err := underTest.DeleteThingModel(nil, tmid)
 		// then: it returns nil result
@@ -443,33 +443,33 @@ func Test_DeleteThingModel(t *testing.T) {
 
 	t.Run("with error when deleting", func(t *testing.T) {
 		tmid := "some-id2"
-		r.On("Delete", tmid).Return(remotes.ErrTmNotFound).Once()
+		r.On("Delete", tmid).Return(repos.ErrTmNotFound).Once()
 		// when: deleting ThingModel
 		err := underTest.DeleteThingModel(nil, tmid)
 		// then: it returns error result
-		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
+		assert.ErrorIs(t, err, repos.ErrTmNotFound)
 	})
 
-	t.Run("with error when updating toc", func(t *testing.T) {
+	t.Run("with error when indexing", func(t *testing.T) {
 		tmid := "some-id3"
 		r.On("Delete", tmid).Return(nil).Once()
-		r.On("UpdateToc", tmid).Return(errors.New("could not update toc")).Once()
+		r.On("Index", tmid).Return(errors.New("could not update index")).Once()
 		// when: deleting ThingModel
 		err := underTest.DeleteThingModel(nil, tmid)
 		// then: it returns error result
-		assert.ErrorContains(t, err, "could not update toc")
+		assert.ErrorContains(t, err, "could not update index")
 	})
 }
 
 func Test_PushingThingModel(t *testing.T) {
-	r := mocks.NewRemote(t)
-	pushTarget := model.NewRemoteSpec("pushRemote")
-	underTest, _ := NewDefaultHandlerService(remote, pushTarget)
+	r := mocks.NewRepo(t)
+	pushTarget := model.NewRepoSpec("pushRepo")
+	underTest, _ := NewDefaultHandlerService(repo, pushTarget)
 
 	t.Run("with validation error", func(t *testing.T) {
 		// given: some invalid content for a ThingModel
 		invalidContent := []byte("invalid content")
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, invalidContent)
 		// then: it returns empty tmID
@@ -478,24 +478,24 @@ func Test_PushingThingModel(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("with push remote name that cannot be found", func(t *testing.T) {
+	t.Run("with push repo name that cannot be found", func(t *testing.T) {
 		// given: invalid pushTarget
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, nil, remotes.ErrRemoteNotFound))
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, nil, repos.ErrRepoNotFound))
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, []byte("some TM content"))
 		// then: it returns empty tmID
 		assert.Equal(t, "", res)
 		// and then: there is an error
 		assert.Error(t, err)
-		// and then: the error says that the remote cannot be found
-		assert.Equal(t, remotes.ErrRemoteNotFound, err)
+		// and then: the error says that the repo cannot be found
+		assert.Equal(t, repos.ErrRepoNotFound, err)
 	})
 	t.Run("with content conflict", func(t *testing.T) {
 		// given: some valid content for a ThingModel
 		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
-		cErr := &remotes.ErrTMIDConflict{
-			Type:       remotes.IdConflictSameContent,
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
+		cErr := &repos.ErrTMIDConflict{
+			Type:       repos.IdConflictSameContent,
 			ExistingId: "existing-id",
 		}
 		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
@@ -509,14 +509,14 @@ func Test_PushingThingModel(t *testing.T) {
 	t.Run("with timestamp conflict", func(t *testing.T) {
 		// given: some valid content for a ThingModel
 		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
-		rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
-		cErr := &remotes.ErrTMIDConflict{
-			Type:       remotes.IdConflictSameTimestamp,
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
+		cErr := &repos.ErrTMIDConflict{
+			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
 		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
 		r.On("Push", mock.Anything, mock.Anything).Return(nil).Once() // expect a second push attempt
-		r.On("UpdateToc", mock.Anything).Return(nil)
+		r.On("Index", mock.Anything).Return(nil)
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, tmContent)
 		// then: it returns non-empty tmID

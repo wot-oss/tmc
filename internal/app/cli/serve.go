@@ -15,7 +15,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
 )
 
 //go:embed banner.txt
@@ -40,11 +40,11 @@ func Serve(host, port string, opts ServeOptions, repo, pushTarget model.RepoSpec
 		Stderrf(err.Error())
 		return err
 	}
-	_, err = remotes.Get(pushTarget)
+	_, err = repos.Get(pushTarget)
 	if err != nil {
-		if errors.Is(err, remotes.ErrAmbiguous) {
-			Stderrf("must specify target for push with --pushTarget when there are multiple remotes configured")
-		} else if errors.Is(err, remotes.ErrRemoteNotFound) {
+		if errors.Is(err, repos.ErrAmbiguous) {
+			Stderrf("must specify target for push with --pushTarget when there are multiple repos configured")
+		} else if errors.Is(err, repos.ErrRepoNotFound) {
 			Stderrf("invalid --pushTarget: %v", err)
 		} else {
 			Stderrf(err.Error())

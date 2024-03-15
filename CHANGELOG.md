@@ -19,6 +19,8 @@
 ### Changed
 
 - Request results from multiple remotes concurrently instead of sequentially
+- Renamed command `remote` to `repo`
+- Renamed command `update-toc` to `index`
 
 ### Fixed
 

@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"fmt"
@@ -12,19 +12,19 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-func TestNewHttpRemote(t *testing.T) {
+func TestNewHttpRepo(t *testing.T) {
 	root := "http://localhost:8000/"
-	remote, err := NewHttpRemote(
+	repo, err := NewHttpRepo(
 		map[string]any{
 			"type": "http",
 			"loc":  root,
-		}, model.NewRemoteSpec("remoteName"))
+		}, model.NewRepoSpec("repoName"))
 	assert.NoError(t, err)
-	assert.Equal(t, root, remote.root)
-	assert.Equal(t, model.NewRemoteSpec("remoteName"), remote.Spec())
+	assert.Equal(t, root, repo.root)
+	assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
 }
 
-func TestCreateHttpRemoteConfig(t *testing.T) {
+func TestCreateHttpRepoConfig(t *testing.T) {
 	tests := []struct {
 		strConf  string
 		fileConf string
@@ -42,20 +42,20 @@ func TestCreateHttpRemoteConfig(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		cf, err := createHttpRemoteConfig(test.strConf, []byte(test.fileConf))
+		cf, err := createHttpRepoConfig(test.strConf, []byte(test.fileConf))
 		if test.expErr {
 			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 			continue
 		} else {
 			assert.NoError(t, err, "no error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 		}
-		assert.Equalf(t, "http", cf[KeyRemoteType], "in test %d for %s %s", i, test.strConf, test.fileConf)
-		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRemoteLoc]), "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, "http", cf[KeyRepoType], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRepoLoc]), "in test %d for %s %s", i, test.strConf, test.fileConf)
 
 	}
 }
 
-func TestHttpRemote_Fetch(t *testing.T) {
+func TestHttpRepo_Fetch(t *testing.T) {
 	const tmid = "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json"
 	const aid = "manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json"
 	const tm = "{\"id\":\"manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json\"}"
@@ -66,9 +66,9 @@ func TestHttpRemote_Fetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createHttpRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
-	r, err := NewHttpRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 	actId, b, err := r.Fetch(tmid)
 	assert.NoError(t, err)
@@ -76,18 +76,18 @@ func TestHttpRemote_Fetch(t *testing.T) {
 	assert.Equal(t, []byte(tm), b)
 }
 
-func TestHttpRemote_ListCompletions(t *testing.T) {
-	_, toc, err := utils.ReadRequiredFile("../../test/data/list/tm-catalog.toc.json")
+func TestHttpRepo_ListCompletions(t *testing.T) {
+	_, idx, err := utils.ReadRequiredFile("../../test/data/list/tm-catalog.toc.json")
 	assert.NoError(t, err)
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/.tmc/"+TOCFilename, r.URL.Path)
-		_, _ = w.Write(toc)
+		assert.Equal(t, "/.tmc/"+IndexFilename, r.URL.Path)
+		_, _ = w.Write(idx)
 	}))
 	defer srv.Close()
-	config, err := createHttpRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
-	r, err := NewHttpRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
 	t.Run("names", func(t *testing.T) {

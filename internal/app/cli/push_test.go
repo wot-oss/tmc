@@ -8,15 +8,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos/mocks"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
-	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/reposmocks"
 )
 
 func TestPushExecutor_Push(t *testing.T) {
-	r := mocks.NewRemote(t)
-	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
+	r := mocks.NewRepo(t)
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("repo"), r, nil))
 
 	t.Run("push when none exists", func(t *testing.T) {
 
@@ -25,9 +25,9 @@ func TestPushExecutor_Push(t *testing.T) {
 		id := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("UpdateToc", id).Return(nil)
+		r.On("Index", id).Return(nil)
 
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRemoteSpec("remote"), "", false)
+		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, PushOK, res[0].typ)
@@ -37,11 +37,11 @@ func TestPushExecutor_Push(t *testing.T) {
 
 		now := func() time.Time { return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC) }
 		e := NewPushExecutor(now)
-		_, err := e.Push("does-not-exist.json", model.NewRemoteSpec("remote"), "", false)
+		_, err := e.Push("does-not-exist.json", model.NewRepoSpec("repo"), "", false)
 		assert.Error(t, err)
 	})
 
-	t.Run("push when remote has the same TM", func(t *testing.T) {
+	t.Run("push when repo has the same TM", func(t *testing.T) {
 
 		tmid2 := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231111123243-98b3fbd291f4.tm.json", false)
 
@@ -49,9 +49,9 @@ func TestPushExecutor_Push(t *testing.T) {
 			return time.Date(2023, time.November, 11, 12, 32, 43, 0, time.UTC)
 		}
 		e := NewPushExecutor(now)
-		r.On("Push", tmid2, mock.Anything).Return(&remotes.ErrTMIDConflict{Type: remotes.IdConflictSameContent,
+		r.On("Push", tmid2, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
 			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRemoteSpec("remote"), "", false)
+		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, TMExists, res[0].typ)
@@ -65,7 +65,7 @@ func TestPushExecutor_Push(t *testing.T) {
 		}
 		e := NewPushExecutor(now)
 		r.On("Push", tmid3, mock.Anything).Return(errors.New("unexpected"))
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRemoteSpec("remote"), "", false)
+		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
 		assert.Error(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, PushErr, res[0].typ)
@@ -77,9 +77,9 @@ func TestPushExecutor_Push(t *testing.T) {
 		id := "omnicorp-TM-department/omnicorp/omnilamp/a/b/c/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("UpdateToc", id).Return(nil)
+		r.On("Index", id).Return(nil)
 
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRemoteSpec("remote"), "a/b/c", false)
+		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "a/b/c", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, PushOK, res[0].typ)
@@ -87,8 +87,8 @@ func TestPushExecutor_Push(t *testing.T) {
 }
 
 func TestPushExecutor_Push_Directory(t *testing.T) {
-	r := mocks.NewRemote(t)
-	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
+	r := mocks.NewRepo(t)
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("repo"), r, nil))
 
 	t.Run("push directory", func(t *testing.T) {
 		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)
@@ -98,16 +98,16 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json", false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123245-98b3fbd291f4.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMIDConflict{Type: remotes.IdConflictSameContent,
+		r.On("Push", tmid, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
 			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123246-575dfac219e2.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&remotes.ErrTMIDConflict{Type: remotes.IdConflictSameContent,
+		r.On("Push", tmid, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
 			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"})
-		r.On("UpdateToc",
+		r.On("Index",
 			"omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
 			"omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
 
-		res, err := e.Push("../../../test/data/push", model.NewRemoteSpec("remote"), "", false)
+		res, err := e.Push("../../../test/data/push", model.NewRepoSpec("repo"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 4)
 		assert.Equalf(t, PushOK, res[0].typ, "res[0]: want PushOK, got %v", res[0].typ)
@@ -132,9 +132,9 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		id4 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("UpdateToc", id1, id2, id3, id4).Return(nil)
+		r.On("Index", id1, id2, id3, id4).Return(nil)
 
-		res, err := e.Push("../../../test/data/push", model.NewRemoteSpec("remote"), "opt", false)
+		res, err := e.Push("../../../test/data/push", model.NewRepoSpec("repo"), "opt", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 4)
 		for i, r := range res {
@@ -158,9 +158,9 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		id4 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4, false)
 		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("UpdateToc", id1, id2, id3, id4).Return(nil)
+		r.On("Index", id1, id2, id3, id4).Return(nil)
 
-		res, err := e.Push("../../../test/data/push", model.NewRemoteSpec("remote"), "", true)
+		res, err := e.Push("../../../test/data/push", model.NewRepoSpec("repo"), "", true)
 		assert.NoError(t, err)
 		assert.Len(t, res, 4)
 		for i, r := range res {

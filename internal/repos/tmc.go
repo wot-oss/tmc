@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"bufio"
@@ -22,21 +22,21 @@ const (
 	mimeJSON          = "application/json"
 )
 
-// TmcRemote implements a Remote TM repository backed by an instance of TM catalog REST API server
-type TmcRemote struct {
-	baseHttpRemote
+// TmcRepo implements a Repo TM repository backed by an instance of TM catalog REST API server
+type TmcRepo struct {
+	baseHttpRepo
 }
 
-func NewTmcRemote(config map[string]any, spec model.RepoSpec) (*TmcRemote, error) {
-	base, err := newBaseHttpRemote(config, spec)
+func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
+	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {
 		return nil, err
 	}
-	r := &TmcRemote{baseHttpRemote: base}
+	r := &TmcRepo{baseHttpRepo: base}
 	return r, nil
 }
 
-func (t TmcRemote) Push(id model.TMID, raw []byte) error {
+func (t TmcRepo) Push(id model.TMID, raw []byte) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models")
 	req, err := http.NewRequest(http.MethodPost, reqUrl.String(), bytes.NewBuffer(raw))
 	if err != nil {
@@ -85,7 +85,7 @@ func (t TmcRemote) Push(id model.TMID, raw []byte) error {
 		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
 }
-func (t TmcRemote) Delete(id string) error {
+func (t TmcRepo) Delete(id string) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", id)
 	vals := url.Values{
 		"force": []string{"true"},
@@ -130,19 +130,19 @@ func (t TmcRemote) Delete(id string) error {
 	}
 }
 
-func (t TmcRemote) Spec() model.RepoSpec {
+func (t TmcRepo) Spec() model.RepoSpec {
 	return t.spec
 }
-func (t TmcRemote) Fetch(id string) (string, []byte, error) {
+func (t TmcRepo) Fetch(id string) (string, []byte, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", id)
 	return fetchTM(reqUrl.String(), t.auth)
 }
 
-func (t TmcRemote) UpdateToc(...string) error {
-	return nil // ignore request to update toc as toc updates are presumed to be handled by the underlying remote
+func (t TmcRepo) Index(...string) error {
+	return nil // ignore request to update index as index updates are presumed to be handled by the underlying repo
 }
 
-func (t TmcRemote) List(search *model.SearchParams) (model.SearchResult, error) {
+func (t TmcRepo) List(search *model.SearchParams) (model.SearchResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory")
 
 	single := false
@@ -236,12 +236,12 @@ func appendQueryArray(u *url.URL, key string, values []string) {
 	}
 }
 
-func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {
+func (t TmcRepo) Versions(name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
-		log.Error("Please specify a remoteName to show the TM.")
-		return nil, errors.New("please specify a remoteName to show the TM")
+		log.Error("Please specify a repoName to show the TM.")
+		return nil, errors.New("please specify a repoName to show the TM")
 	}
 	reqUrl := t.parsedRoot.JoinPath("inventory", url.PathEscape(name), ".versions")
 	resp, err := doGet(reqUrl.String(), t.auth)
@@ -261,7 +261,7 @@ func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {
 			return nil, err
 		}
 		if len(vResp.Data) != 1 {
-			log.Error(fmt.Sprintf("No thing model found for remoteName: %s", name))
+			log.Error(fmt.Sprintf("No thing model found for repoName: %s", name))
 			return nil, ErrTmNotFound
 		}
 
@@ -277,7 +277,7 @@ func (t TmcRemote) Versions(name string) ([]model.FoundVersion, error) {
 
 }
 
-func (t TmcRemote) ListCompletions(kind, toComplete string) ([]string, error) {
+func (t TmcRepo) ListCompletions(kind, toComplete string) ([]string, error) {
 	u := t.parsedRoot.JoinPath(".completions")
 	vals := u.Query()
 	vals.Set("kind", kind)
@@ -310,28 +310,28 @@ func (t TmcRemote) ListCompletions(kind, toComplete string) ([]string, error) {
 	}
 }
 
-func createTmcRemoteConfig(loc string, bytes []byte) (map[string]any, error) {
+func createTmcRepoConfig(loc string, bytes []byte) (map[string]any, error) {
 	if loc != "" {
 		return map[string]any{
-			KeyRemoteType: RemoteTypeTmc,
-			KeyRemoteLoc:  loc,
+			KeyRepoType: RepoTypeTmc,
+			KeyRepoLoc:  loc,
 		}, nil
 	} else {
-		rc, err := AsRemoteConfig(bytes)
+		rc, err := AsRepoConfig(bytes)
 		if err != nil {
 			return nil, err
 		}
-		if rType := utils.JsGetString(rc, KeyRemoteType); rType != nil {
-			if *rType != RemoteTypeTmc {
+		if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
+			if *rType != RepoTypeTmc {
 				return nil, fmt.Errorf("invalid json config. type must be \"tmc\" or absent")
 			}
 		}
-		rc[KeyRemoteType] = RemoteTypeTmc
-		l := utils.JsGetString(rc, KeyRemoteLoc)
+		rc[KeyRepoType] = RepoTypeTmc
+		l := utils.JsGetString(rc, KeyRepoLoc)
 		if l == nil {
 			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
 		}
-		rc[KeyRemoteLoc] = *l
+		rc[KeyRepoLoc] = *l
 		return rc, nil
 	}
 }

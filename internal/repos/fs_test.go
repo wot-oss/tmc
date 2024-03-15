@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"bytes"
@@ -18,67 +18,67 @@ import (
 	"golang.org/x/exp/rand"
 )
 
-func TestNewFileRemote(t *testing.T) {
+func TestNewFileRepo(t *testing.T) {
 	root := "/tmp/tm-catalog1157316148"
-	remote, err := NewFileRemote(map[string]any{
+	repo, err := NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, root, remote.root)
+	assert.Equal(t, root, repo.root)
 
 	root = "/tmp/tm-catalog1157316148"
-	remote, err = NewFileRemote(map[string]any{
+	repo, err = NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, root, remote.root)
+	assert.Equal(t, root, repo.root)
 
 	root = "~/tm-catalog"
-	remote, err = NewFileRemote(map[string]any{
+	repo, err = NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
 	assert.NoError(t, err)
 	home, _ := os.UserHomeDir()
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
+	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
 
 	root = "~/tm-catalog"
-	remote, err = NewFileRemote(map[string]any{
+	repo, err = NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
+	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
 
 	root = "~/tm-catalog"
-	remote, err = NewFileRemote(map[string]any{
+	repo, err = NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), remote.root)
+	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
 
 	root = "c:\\Users\\user\\Desktop\\tm-catalog"
-	remote, err = NewFileRemote(map[string]any{
+	repo, err = NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, filepath.ToSlash("c:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(remote.root))
+	assert.Equal(t, filepath.ToSlash("c:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
 
 	root = "C:\\Users\\user\\Desktop\\tm-catalog"
-	remote, err = NewFileRemote(map[string]any{
+	repo, err = NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  root,
 	}, model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(remote.root))
+	assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
 
 }
 
-func TestCreateFileRemoteConfig(t *testing.T) {
+func TestCreateFileRepoConfig(t *testing.T) {
 	wd, _ := os.Getwd()
 
 	tests := []struct {
@@ -87,57 +87,57 @@ func TestCreateFileRemoteConfig(t *testing.T) {
 		expRoot  string
 		expErr   bool
 	}{
-		{"../dir/remoteName", "", filepath.Join(filepath.Dir(wd), "/dir/remoteName"), false},
-		{"./dir/remoteName", "", filepath.Join(wd, "dir/remoteName"), false},
-		{"dir/remoteName", "", filepath.Join(wd, "dir/remoteName"), false},
-		{"/dir/remoteName", "", filepath.Join(filepath.VolumeName(wd), "/dir/remoteName"), false},
+		{"../dir/repoName", "", filepath.Join(filepath.Dir(wd), "/dir/repoName"), false},
+		{"./dir/repoName", "", filepath.Join(wd, "dir/repoName"), false},
+		{"dir/repoName", "", filepath.Join(wd, "dir/repoName"), false},
+		{"/dir/repoName", "", filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false},
 		{".", "", filepath.Join(wd), false},
-		{filepath.Join(wd, "dir/remoteName"), "", filepath.Join(wd, "dir/remoteName"), false},
-		{"~/dir/remoteName", "", "~/dir/remoteName", false},
+		{filepath.Join(wd, "dir/repoName"), "", filepath.Join(wd, "dir/repoName"), false},
+		{"~/dir/repoName", "", "~/dir/repoName", false},
 		{"", ``, "", true},
 		{"", `[]`, "", true},
 		{"", `{}`, "", true},
 		{"", `{"loc":{}}`, "", true},
-		{"", `{"loc":"dir/remoteName"}`, filepath.Join(wd, "dir/remoteName"), false},
-		{"", `{"loc":"/dir/remoteName"}`, filepath.Join(filepath.VolumeName(wd), "/dir/remoteName"), false},
-		{"", `{"loc":"dir/remoteName", "type":"http"}`, "", true},
+		{"", `{"loc":"dir/repoName"}`, filepath.Join(wd, "dir/repoName"), false},
+		{"", `{"loc":"/dir/repoName"}`, filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false},
+		{"", `{"loc":"dir/repoName", "type":"http"}`, "", true},
 	}
 
 	for i, test := range tests {
-		cf, err := createFileRemoteConfig(test.strConf, []byte(test.fileConf))
+		cf, err := createFileRepoConfig(test.strConf, []byte(test.fileConf))
 		if test.expErr {
 			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 			continue
 		} else {
 			assert.NoError(t, err, "no error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 		}
-		assert.Equalf(t, "file", cf[KeyRemoteType], "in test %d for %s %s", i, test.strConf, test.fileConf)
-		assert.Equalf(t, test.expRoot, cf[KeyRemoteLoc], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, "file", cf[KeyRepoType], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, test.expRoot, cf[KeyRepoLoc], "in test %d for %s %s", i, test.strConf, test.fileConf)
 
 	}
 }
 
 func TestValidatesRoot(t *testing.T) {
-	remote, _ := NewFileRemote(map[string]any{
+	repo, _ := NewFileRepo(map[string]any{
 		"type": "file",
 		"loc":  "/temp/surely-does-not-exist-5245874598745",
 	}, model.EmptySpec)
 
-	_, err := remote.List(&model.SearchParams{Query: ""})
+	_, err := repo.List(&model.SearchParams{Query: ""})
 	assert.ErrorIs(t, err, ErrRootInvalid)
-	_, err = remote.Versions("manufacturer/mpn")
+	_, err = repo.Versions("manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
-	_, _, err = remote.Fetch("manufacturer/mpn")
+	_, _, err = repo.Fetch("manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
 
 }
 
-func TestFileRemote_Fetch(t *testing.T) {
+func TestFileRepo_Fetch(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	r := &FileRemote{
+	r := &FileRepo{
 		root: temp,
-		spec: model.NewRemoteSpec("fr"),
+		spec: model.NewRepoSpec("fr"),
 	}
 	tmName := "omnicorp-TM-department/omnicorp/omnilamp"
 	fileA := []byte("{\"ver\":\"a\"}")
@@ -179,12 +179,12 @@ func TestFileRemote_Fetch(t *testing.T) {
 
 }
 
-func TestFileRemote_Push(t *testing.T) {
+func TestFileRepo_Push(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	r := &FileRemote{
+	r := &FileRepo{
 		root: temp,
-		spec: model.NewRemoteSpec("fr"),
+		spec: model.NewRepoSpec("fr"),
 	}
 	tmName := "omnicorp-TM-department/omnicorp/omnilamp"
 	id := tmName + "/v0.0.0-20231208142856-c49617d2e4fc.tm.json"
@@ -214,27 +214,27 @@ func TestFileRemote_Push(t *testing.T) {
 
 }
 
-func TestFileRemote_List(t *testing.T) {
+func TestFileRepo_List(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	r := &FileRemote{
+	r := &FileRepo{
 		root: temp,
-		spec: model.NewRemoteSpec("fr"),
+		spec: model.NewRepoSpec("fr"),
 	}
-	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.indexFilename())
 	list, err := r.List(&model.SearchParams{})
 	assert.NoError(t, err)
 	assert.Len(t, list.Entries, 3)
 }
 
-func TestFileRemote_Versions(t *testing.T) {
+func TestFileRepo_Versions(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	r := &FileRemote{
+	r := &FileRepo{
 		root: temp,
-		spec: model.NewRemoteSpec("fr"),
+		spec: model.NewRepoSpec("fr"),
 	}
-	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.tocFilename())
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.indexFilename())
 	vers, err := r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
 	assert.NoError(t, err)
 	assert.Len(t, vers, 1)
@@ -254,7 +254,7 @@ func TestFileRemote_Versions(t *testing.T) {
 	assert.ErrorIs(t, err, ErrTmNotFound)
 }
 
-func TestFileRemote_Delete(t *testing.T) {
+func TestFileRepo_Delete(t *testing.T) {
 	tests := []struct {
 		name  string
 		root  string
@@ -284,12 +284,12 @@ func TestFileRemote_Delete(t *testing.T) {
 
 			wd, _ := os.Getwd()
 			catalog, newWd := test.setup(temp)
-			assert.NoError(t, testutils.CopyDir("../../test/data/toc", catalog))
+			assert.NoError(t, testutils.CopyDir("../../test/data/index", catalog))
 			_ = os.Chdir(newWd)
 			defer os.Chdir(wd)
 
 			spec := model.NewDirSpec(test.root)
-			r := &FileRemote{
+			r := &FileRepo{
 				root: test.root,
 				spec: spec,
 			}
@@ -333,54 +333,54 @@ func TestFileRemote_Delete(t *testing.T) {
 	}
 }
 
-func TestFileRemote_UpdateToc(t *testing.T) {
+func TestFileRepo_Index(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	assert.NoError(t, testutils.CopyDir("../../test/data/toc", temp))
+	assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
 	wd, _ := os.Getwd()
 	defer os.Chdir(wd)
 	_ = os.Chdir(temp)
 	spec := model.NewDirSpec(temp)
-	r := &FileRemote{
+	r := &FileRepo{
 		root: temp,
 		spec: spec,
 	}
 
-	t.Run("single id/no toc file", func(t *testing.T) {
-		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+	t.Run("single id/no index file", func(t *testing.T) {
+		err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 		assert.NoError(t, err)
 
-		toc, err := r.readTOC()
+		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(toc.Data))
-		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", toc.Data[0].Name)
-		assert.Equal(t, 1, len(toc.Data[0].Versions))
-		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json", toc.Data[0].Versions[0].TMID)
+		assert.Equal(t, 1, len(idx.Data))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
+		assert.Equal(t, 1, len(idx.Data[0].Versions))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json", idx.Data[0].Versions[0].TMID)
 
 		names := r.readNamesFile()
 		assert.Equal(t, []string{"omnicorp-TM-department/omnicorp/omnilamp/subfolder"}, names)
 
 	})
-	t.Run("single id/existing toc file", func(t *testing.T) {
-		err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
+	t.Run("single id/existing index file", func(t *testing.T) {
+		err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
 		assert.NoError(t, err)
 
-		toc, err := r.readTOC()
+		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(toc.Data))
-		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", toc.Data[0].Name)
-		assert.Equal(t, 2, len(toc.Data[0].Versions))
+		assert.Equal(t, 1, len(idx.Data))
+		assert.Equal(t, "omnicorp-TM-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
+		assert.Equal(t, 2, len(idx.Data[0].Versions))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{"omnicorp-TM-department/omnicorp/omnilamp/subfolder"}, names)
 	})
 
-	t.Run("full update/existing toc file", func(t *testing.T) {
-		err := r.UpdateToc()
+	t.Run("full update/existing index file", func(t *testing.T) {
+		err := r.Index()
 		assert.NoError(t, err)
 
-		toc, err := r.readTOC()
+		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(toc.Data))
+		assert.Equal(t, 2, len(idx.Data))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{
 			"omnicorp-TM-department/omnicorp/omnilamp",
@@ -388,17 +388,17 @@ func TestFileRemote_UpdateToc(t *testing.T) {
 		}, names)
 	})
 
-	t.Run("full update/no toc file", func(t *testing.T) {
-		err := os.Remove(r.tocFilename())
+	t.Run("full update/no index file", func(t *testing.T) {
+		err := os.Remove(r.indexFilename())
 		assert.NoError(t, err)
 		assert.NoError(t, r.writeNamesFile(nil))
 
-		err = r.UpdateToc()
+		err = r.Index()
 		assert.NoError(t, err)
 
-		toc, err := r.readTOC()
+		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(toc.Data))
+		assert.Equal(t, 2, len(idx.Data))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{
 			"omnicorp-TM-department/omnicorp/omnilamp",
@@ -407,7 +407,7 @@ func TestFileRemote_UpdateToc(t *testing.T) {
 	})
 }
 
-func TestFileRemote_UpdateToc_RemoveId(t *testing.T) {
+func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 	tests := []struct {
 		name  string
 		root  string
@@ -438,28 +438,28 @@ func TestFileRemote_UpdateToc_RemoveId(t *testing.T) {
 
 			wd, _ := os.Getwd()
 			catalogDir, newWd := test.setup(temp)
-			assert.NoError(t, testutils.CopyDir("../../test/data/toc", catalogDir))
+			assert.NoError(t, testutils.CopyDir("../../test/data/index", catalogDir))
 			_ = os.Chdir(newWd)
 			defer os.Chdir(wd)
 			assert.NoError(t, os.Remove(filepath.Join(catalogDir, "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")))
 
 			spec := model.NewDirSpec(test.root)
-			r := &FileRemote{
+			r := &FileRepo{
 				root: test.root,
 				spec: spec,
 			}
-			err := r.UpdateToc()
+			err := r.Index()
 			assert.NoError(t, err)
 
 			t.Run("non-existing id", func(t *testing.T) {
-				// when: deleting a non-existing id from toc
-				err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v9.9.9-20240109125023-be839ce9daf1.tm.json")
-				toc, err := r.readTOC()
+				// when: deleting a non-existing id from index
+				err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/v9.9.9-20240109125023-be839ce9daf1.tm.json")
+				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
-				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
-				if assert.Equal(t, 1, len(toc.Data)) {
-					assert.Equal(t, 2, len(toc.Data[0].Versions))
+				index.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
+				if assert.Equal(t, 1, len(index.Data)) {
+					assert.Equal(t, 2, len(index.Data[0].Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -468,15 +468,15 @@ func TestFileRemote_UpdateToc_RemoveId(t *testing.T) {
 				}, names)
 			})
 			t.Run("existing id and file", func(t *testing.T) {
-				// when: updating toc for TM that has not been removed from disk
-				err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+				// when: updating index for TM that has not been removed from disk
+				err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 				assert.NoError(t, err)
-				toc, err := r.readTOC()
+				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
-				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
-				if assert.Equal(t, 1, len(toc.Data)) {
-					assert.Equal(t, 2, len(toc.Data[0].Versions))
+				index.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
+				if assert.Equal(t, 1, len(index.Data)) {
+					assert.Equal(t, 2, len(index.Data[0].Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -487,15 +487,15 @@ func TestFileRemote_UpdateToc_RemoveId(t *testing.T) {
 			t.Run("existing id of deleted file", func(t *testing.T) {
 				// given: a deleted TM file
 				_ = os.Remove(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json"))
-				// when: updating toc for the TM
-				err := r.UpdateToc("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+				// when: updating index for the TM
+				err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 				assert.NoError(t, err)
-				toc, err := r.readTOC()
+				index, err := r.readIndex()
 				assert.NoError(t, err)
-				// then: version is removed from toc
-				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
-				if assert.Equal(t, 1, len(toc.Data)) {
-					assert.Equal(t, 1, len(toc.Data[0].Versions))
+				// then: version is removed from index
+				index.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp"})
+				if assert.Equal(t, 1, len(index.Data)) {
+					assert.Equal(t, 1, len(index.Data[0].Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -507,14 +507,14 @@ func TestFileRemote_UpdateToc_RemoveId(t *testing.T) {
 				// given: last version of a TM is removed
 				id := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json"
 				assert.NoError(t, os.Remove(filepath.Join(r.root, id)))
-				// when: updating toc for the id
-				err = r.UpdateToc(id)
+				// when: updating index for the id
+				err = r.Index(id)
 				assert.NoError(t, err)
-				toc, err := r.readTOC()
+				index, err := r.readIndex()
 				assert.NoError(t, err)
-				// then: name is removed from toc
-				toc.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp/subfolder"})
-				assert.Equal(t, 0, len(toc.Data))
+				// then: name is removed from index
+				index.Filter(&model.SearchParams{Name: "omnicorp-TM-department/omnicorp/omnilamp/subfolder"})
+				assert.Equal(t, 0, len(index.Data))
 				names := r.readNamesFile()
 				// then: name is removed from names file
 				assert.Equal(t, []string{
@@ -526,7 +526,7 @@ func TestFileRemote_UpdateToc_RemoveId(t *testing.T) {
 
 }
 
-func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
+func TestFileRepo_Index_Parallel(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
 	templ := template.Must(template.New("tm").Parse(pTempl))
@@ -553,8 +553,8 @@ func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
 		return fakeFileInfo{name: name}, nil
 	}
 	defer func() { osStat = os.Stat }()
-	spec := model.NewRemoteSpec("fr")
-	r := &FileRemote{
+	spec := model.NewRepoSpec("fr")
+	r := &FileRepo{
 		root: temp,
 		spec: spec,
 	}
@@ -569,27 +569,27 @@ func TestFileRemote_UpdateTOC_Parallel(t *testing.T) {
 			date := firstDate.Add(time.Duration(v) * 1 * time.Second).Format(model.PseudoVersionTimestampFormat)
 			b := make([]byte, 6)
 			_, _ = rand.Read(b)
-			err := r.UpdateToc(fmt.Sprintf("author/manuf/mpn/v1.0.%d-%s-%x.tm.json", v, date, b))
+			err := r.Index(fmt.Sprintf("author/manuf/mpn/v1.0.%d-%s-%x.tm.json", v, date, b))
 			assert.NoError(t, err)
 			wg.Done()
 		}(i)
 	}
 	wg.Wait()
-	toc, err := r.readTOC()
+	idx, err := r.readIndex()
 	assert.NoError(t, err)
 
-	assert.Equal(t, 1, len(toc.Data))
-	assert.Equal(t, N, len(toc.Data[0].Versions))
+	assert.Equal(t, 1, len(idx.Data))
+	assert.Equal(t, N, len(idx.Data[0].Versions))
 	names := r.readNamesFile()
 	assert.Equal(t, 1, len(names))
 }
 
-func TestFileRemote_ListCompletions(t *testing.T) {
+func TestFileRepo_ListCompletions(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
-	r := &FileRemote{
+	r := &FileRepo{
 		root: temp,
-		spec: model.NewRemoteSpec("fr"),
+		spec: model.NewRepoSpec("fr"),
 	}
 	_ = os.MkdirAll(filepath.Join(temp, ".tmc"), defaultDirPermissions)
 

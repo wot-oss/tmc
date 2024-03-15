@@ -1,4 +1,4 @@
-package remote
+package repo
 
 import (
 	"os"
@@ -8,26 +8,26 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
 )
 
-// remoteRenameCmd represents the 'remote show' command
-var remoteRenameCmd = &cobra.Command{
+// repoRenameCmd represents the 'repo show' command
+var repoRenameCmd = &cobra.Command{
 	Use:   "rename <old-name> <new-name>",
-	Short: "Renames remote <old-name> to <new-name>",
-	Long:  `Renames remote <old-name> to <new-name>`,
+	Short: "Renames repository <old-name> to <new-name>",
+	Long:  `Renames repository <old-name> to <new-name>`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cli.RemoteRename(args[0], args[1])
+		err := cli.RepoRename(args[0], args[1])
 		if err != nil {
 			os.Exit(1)
 		}
 	},
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		if len(args) == 0 {
-			return completion.CompleteRemoteNames(cmd, args, toComplete)
+			return completion.CompleteRepoNames(cmd, args, toComplete)
 		}
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	},
 }
 
 func init() {
-	remoteCmd.AddCommand(remoteRenameCmd)
+	repoCmd.AddCommand(repoRenameCmd)
 }
