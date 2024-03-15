@@ -82,40 +82,50 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	var eErr *remotes.ErrTMIDConflict
 	var aErr *remotes.RepoAccessError
 	var bErr *BaseHttpError
-	if errors.Is(err, remotes.ErrTmNotFound) {
+
+	switch true {
+	// handle sentinel errors with errors.Is()
+	case errors.Is(err, remotes.ErrTmNotFound):
 		errTitle = Error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
-	} else if errors.Is(err, model.ErrInvalidId) || errors.Is(err, commands.ErrInvalidFetchName) || errors.Is(err, remotes.ErrInvalidCompletionParams) {
+	case errors.Is(err, model.ErrInvalidId),
+		errors.Is(err, commands.ErrInvalidFetchName),
+		errors.Is(err, remotes.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
-	} else if errors.As(err, &bErr) {
+	// handle error values we want to access with errors.As()
+	case errors.As(err, &bErr):
 		errTitle = bErr.Title
 		errDetail = bErr.Detail
 		errStatus = bErr.Status
-	} else if errors.As(err, &aErr) {
+	case errors.As(err, &aErr):
 		errTitle = Error502Title
 		errDetail = Error502Detail
 		errStatus = http.StatusBadGateway
-	} else if errors.As(err, &eErr) {
+	case errors.As(err, &eErr):
 		errTitle = Error409Title
 		errDetail = eErr.Error()
 		errCode = eErr.Code()
 		errStatus = http.StatusConflict
-	} else {
-		switch err.(type) {
-		case *jsonschema.ValidationError, *json.SyntaxError:
-			errTitle = Error400Title
-			errDetail = err.Error()
-			errStatus = http.StatusBadRequest
-		case *server.InvalidParamFormatError, *server.RequiredParamError, *server.RequiredHeaderError,
-			*server.UnmarshalingParamError, *server.TooManyValuesForParamError, *server.UnescapedCookieParamError:
-			errTitle = Error400Title
-			errDetail = err.Error()
-			errStatus = http.StatusBadRequest
-		default:
-		}
+	// handle error values we don't need to access with errors.As,
+	// but don't create a separate var above
+	case errors.As(err, new(*jsonschema.ValidationError)),
+		errors.As(err, new(*json.SyntaxError)):
+		errTitle = Error400Title
+		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
+	case errors.As(err, new(*server.InvalidParamFormatError)),
+		errors.As(err, new(*server.RequiredParamError)),
+		errors.As(err, new(*server.RequiredHeaderError)),
+		errors.As(err, new(*server.UnmarshalingParamError)),
+		errors.As(err, new(*server.TooManyValuesForParamError)),
+		errors.As(err, new(*server.UnescapedCookieParamError)):
+		errTitle = Error400Title
+		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
+	default:
 	}
 
 	problem := server.ErrorResponse{
@@ -131,6 +141,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set(HeaderXContentTypeOptions, NoSniff)
 	w.WriteHeader(errStatus)
 	_, _ = w.Write(respBody)
+
 }
 
 type BaseHttpError struct {

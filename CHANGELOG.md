@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+
+## [v0.0.0-alpha.5]
+
 ### Added
 
 - Implemented REST API authentication with JWT tokens and JWKS validation
