@@ -50,13 +50,10 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 }
 
 type FetchCommand struct {
-	remoteMgr remotes.RemoteManager
 }
 
-func NewFetchCommand(manager remotes.RemoteManager) *FetchCommand {
-	return &FetchCommand{
-		remoteMgr: manager,
-	}
+func NewFetchCommand() *FetchCommand {
+	return &FetchCommand{}
 }
 
 // ParseAsTMIDOrFetchName parses idOrName as model.TMID. If that fails, parses it as FetchName.
@@ -75,7 +72,7 @@ func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
 	return nil, nil, err
 }
 
-func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
+func (c *FetchCommand) FetchByTMIDOrName(spec model.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
 	tmid, fn, err := ParseAsTMIDOrFetchName(idOrName)
 	if err != nil {
 		return "", nil, err, nil
@@ -86,8 +83,8 @@ func (c *FetchCommand) FetchByTMIDOrName(spec remotes.RepoSpec, idOrName string,
 	return c.FetchByName(spec, *fn, restoreId)
 }
 
-func (c *FetchCommand) FetchByTMID(spec remotes.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
-	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, spec)
+func (c *FetchCommand) FetchByTMID(spec model.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
+	rs, err := remotes.GetSpecdOrAll(spec)
 	if err != nil {
 		return "", nil, err, nil
 	}
@@ -157,9 +154,9 @@ func restoreExternalId(raw []byte) []byte {
 
 }
 
-func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
+func (c *FetchCommand) FetchByName(spec model.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*remotes.RepoAccessError) {
 	log := slog.Default()
-	tocVersions, err, errs := NewVersionsCommand(c.remoteMgr).ListVersions(spec, fn.Name)
+	tocVersions, err, errs := NewVersionsCommand().ListVersions(spec, fn.Name)
 	if err != nil {
 		return "", nil, err, errs
 	}
@@ -167,7 +164,7 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName, restoreI
 	copy(versions, tocVersions)
 
 	var id string
-	var foundIn remotes.RepoSpec
+	var foundIn model.RepoSpec
 	// Just the name specified: fetch most recent
 	if len(fn.Semver) == 0 {
 		id, foundIn, err = findMostRecentVersion(versions)
@@ -190,21 +187,21 @@ func (c *FetchCommand) FetchByName(spec remotes.RepoSpec, fn FetchName, restoreI
 	return tmid, bytes, err, errs
 }
 
-func findMostRecentVersion(versions []model.FoundVersion) (string, remotes.RepoSpec, error) {
+func findMostRecentVersion(versions []model.FoundVersion) (string, model.RepoSpec, error) {
 	log := slog.Default()
 	if len(versions) == 0 {
 		err := fmt.Errorf("%w: no versions found", remotes.ErrTmNotFound)
 		log.Error(err.Error())
-		return "", remotes.EmptySpec, err
+		return "", model.EmptySpec, err
 	}
 
 	sortFoundVersionsDesc(versions)
 
 	v := versions[0]
-	return v.TMID, remotes.NewSpecFromFoundSource(v.FoundIn), nil
+	return v.TMID, model.NewSpecFromFoundSource(v.FoundIn), nil
 }
 
-func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (id string, source remotes.RepoSpec, err error) {
+func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (id string, source model.RepoSpec, err error) {
 	log := slog.Default()
 	ver, _ = strings.CutPrefix(ver, "v")
 
@@ -218,7 +215,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 		c, err := semver.NewConstraint(fmt.Sprintf("~%s", ver))
 		if err != nil {
 			log.Error("couldn't parse semver constraint", "error", err)
-			return "", remotes.EmptySpec, err
+			return "", model.EmptySpec, err
 		}
 		matcher = c.Check
 	}
@@ -238,7 +235,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 	if len(versions) == 0 {
 		err := fmt.Errorf("%w: no version %s found", remotes.ErrTmNotFound, ver)
 		log.Error(err.Error())
-		return "", remotes.EmptySpec, err
+		return "", model.EmptySpec, err
 	}
 
 	// sort the remaining by semver then timestamp in descending order
@@ -246,7 +243,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 
 	// and here's our winner
 	v := versions[0]
-	return v.TMID, remotes.NewSpecFromFoundSource(v.FoundIn), nil
+	return v.TMID, model.NewSpecFromFoundSource(v.FoundIn), nil
 }
 
 // sortFoundVersionsDesc sorts by semver then timestamp in descending order, ie. from newest to oldest

@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 func TestSaveConfigOverwritesOnlyRemotes(t *testing.T) {
@@ -40,7 +41,7 @@ func TestSaveConfigOverwritesOnlyRemotes(t *testing.T) {
 	defer viper.Reset()
 
 	viper.Set(config.KeyLogLevel, "")
-	err = defaultManager.saveConfig(Config{
+	err = saveConfig(Config{
 		"remote": map[string]any{
 			"type": "http",
 			"loc":  "http://example.com/",
@@ -64,7 +65,6 @@ func TestSaveConfigOverwritesOnlyRemotes(t *testing.T) {
 }
 
 func TestRemoteManager_All_And_Get(t *testing.T) {
-	rm := remoteManager{}
 	t.Run("invalid remotes config", func(t *testing.T) {
 
 		viper.Set(KeyRemotes, map[string]any{
@@ -74,7 +74,7 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 			},
 		})
 
-		_, err := rm.All()
+		_, err := All()
 		assert.Error(t, err)
 		assert.ErrorContains(t, err, "invalid remote config")
 
@@ -95,23 +95,23 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 		})
 
 		t.Run("all", func(t *testing.T) {
-			all, err := rm.All()
+			all, err := All()
 			assert.NoError(t, err)
 			assert.Len(t, all, 2)
 			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
 			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&HttpRemote{}) }))
 		})
 		t.Run("file remote", func(t *testing.T) {
-			fr, err := rm.Get(NewRemoteSpec("r1"))
+			fr, err := Get(model.NewRemoteSpec("r1"))
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRemote{
 				root: "somewhere",
-				spec: NewRemoteSpec("r1"),
+				spec: model.NewRemoteSpec("r1"),
 			}, fr)
 
 		})
 		t.Run("http remote", func(t *testing.T) {
-			hr, err := rm.Get(NewRemoteSpec("r2"))
+			hr, err := Get(model.NewRemoteSpec("r2"))
 			assert.NoError(t, err)
 			u, _ := url.Parse(ur)
 			assert.Equal(t, &HttpRemote{
@@ -120,21 +120,21 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 				baseHttpRemote: baseHttpRemote{
 					root:       ur,
 					parsedRoot: u,
-					spec:       NewRemoteSpec("r2"),
+					spec:       model.NewRemoteSpec("r2"),
 				},
 			}, hr)
 		})
 		t.Run("ad-hoc remote", func(t *testing.T) {
-			ar, err := rm.Get(NewDirSpec("directory"))
+			ar, err := Get(model.NewDirSpec("directory"))
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRemote{
 				root: "directory",
-				spec: RepoSpec{"", "directory"},
+				spec: model.NewDirSpec("directory"),
 			}, ar)
 		})
 
 		t.Run("invalid spec", func(t *testing.T) {
-			_, err := rm.Get(RepoSpec{"name", "dir"})
+			_, err := model.NewSpec("name", "dir")
 			assert.Error(t, err)
 		})
 
@@ -153,31 +153,31 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 			},
 		})
 		t.Run("all", func(t *testing.T) {
-			all, err := rm.All()
+			all, err := All()
 			assert.NoError(t, err)
 			assert.Len(t, all, 1)
 			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
 		})
 		t.Run("named file remote", func(t *testing.T) {
-			fr, err := rm.Get(NewRemoteSpec("r1"))
+			fr, err := Get(model.NewRemoteSpec("r1"))
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRemote{
 				root: "somewhere",
-				spec: NewRemoteSpec("r1"),
+				spec: model.NewRemoteSpec("r1"),
 			}, fr)
 
 		})
 		t.Run("empty spec", func(t *testing.T) {
-			fr, err := rm.Get(EmptySpec)
+			fr, err := Get(model.EmptySpec)
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRemote{
 				root: "somewhere",
-				spec: NewRemoteSpec("r1"),
+				spec: model.NewRemoteSpec("r1"),
 			}, fr)
 
 		})
 		t.Run("http remote", func(t *testing.T) {
-			_, err := rm.Get(NewRemoteSpec("r2"))
+			_, err := Get(model.NewRemoteSpec("r2"))
 			assert.ErrorIs(t, err, ErrRemoteNotFound)
 		})
 
@@ -199,26 +199,26 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 			},
 		})
 		t.Run("all", func(t *testing.T) {
-			all, err := rm.All()
+			all, err := All()
 			assert.NoError(t, err)
 			assert.Len(t, all, 2)
 			assert.NotEqual(t, -1, slices.IndexFunc(all, func(remote Remote) bool { return reflect.TypeOf(remote) == reflect.TypeOf(&FileRemote{}) }))
 		})
 		t.Run("named file remote", func(t *testing.T) {
-			fr, err := rm.Get(NewRemoteSpec("r3"))
+			fr, err := Get(model.NewRemoteSpec("r3"))
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRemote{
 				root: "somewhere/else",
-				spec: NewRemoteSpec("r3"),
+				spec: model.NewRemoteSpec("r3"),
 			}, fr)
 
 		})
 		t.Run("empty spec", func(t *testing.T) {
-			_, err := rm.Get(EmptySpec)
+			_, err := Get(model.EmptySpec)
 			assert.ErrorIs(t, err, ErrAmbiguous)
 		})
 		t.Run("http remote", func(t *testing.T) {
-			_, err := rm.Get(NewRemoteSpec("r2"))
+			_, err := Get(model.NewRemoteSpec("r2"))
 			assert.ErrorIs(t, err, ErrRemoteNotFound)
 		})
 
@@ -237,48 +237,78 @@ func TestRemoteManager_All_And_Get(t *testing.T) {
 			},
 		})
 		t.Run("all", func(t *testing.T) {
-			all, err := rm.All()
+			all, err := All()
 			assert.NoError(t, err)
 			assert.Len(t, all, 0)
 		})
 		t.Run("named file remote", func(t *testing.T) {
-			_, err := rm.Get(NewRemoteSpec("r1"))
+			_, err := Get(model.NewRemoteSpec("r1"))
 			assert.ErrorIs(t, err, ErrRemoteNotFound)
 		})
 		t.Run("ad-hoc remote", func(t *testing.T) {
-			ar, err := rm.Get(NewDirSpec("directory"))
+			ar, err := Get(model.NewDirSpec("directory"))
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRemote{
 				root: "directory",
-				spec: RepoSpec{"", "directory"},
+				spec: model.NewDirSpec("directory"),
 			}, ar)
 		})
 		t.Run("empty spec", func(t *testing.T) {
-			_, err := rm.Get(EmptySpec)
+			_, err := Get(model.EmptySpec)
 			assert.ErrorIs(t, err, ErrRemoteNotFound)
 		})
 	})
 }
 
 func TestGetSpecdOrAll(t *testing.T) {
-	rm := NewMockRemoteManager(t)
-	r1 := NewMockRemote(t)
-	r2 := NewMockRemote(t)
-	r3 := NewMockRemote(t)
+	viper.Set(KeyRemotes, map[string]any{
+		"r1": map[string]any{
+			"type": "file",
+			"loc":  "somewhere",
+		},
+		"r2": map[string]any{
+			"type": "file",
+			"loc":  "somewhere-else",
+		},
+	})
 
-	rm.On("All").Return([]Remote{r1, r2}, nil)
-	all, err := GetSpecdOrAll(rm, EmptySpec)
+	// check if all remotes are returned, when passing EmptySpec
+	all, err := GetSpecdOrAll(model.EmptySpec)
 	assert.NoError(t, err)
-	assert.Equal(t, &Union{rs: []Remote{r1, r2}}, all)
+	if assert.Len(t, all.rs, 2) {
+		var fileRemote *FileRemote
+		var ok bool
+		for _, remote := range all.rs {
+			if fileRemote, ok = remote.(*FileRemote); !ok {
+				t.Fatalf("expected file remote, got %T", remote)
+			}
+			switch fileRemote.Spec().RemoteName() {
+			case "r1":
+				assert.Equal(t, "somewhere", fileRemote.root)
+			case "r2":
+				assert.Equal(t, "somewhere-else", fileRemote.root)
+			default:
+				t.Fatalf("unexpected remote found: %v", *fileRemote)
+			}
+		}
+	}
 
-	rm.On("Get", NewRemoteSpec("r1")).Return(r1, nil)
-	all, err = GetSpecdOrAll(rm, NewRemoteSpec("r1"))
+	// get r1 remote
+	all, err = GetSpecdOrAll(model.NewRemoteSpec("r1"))
 	assert.NoError(t, err)
-	assert.Equal(t, &Union{rs: []Remote{r1}}, all)
+	if assert.Len(t, all.rs, 1) {
+		if r1, ok := all.rs[0].(*FileRemote); assert.True(t, ok) {
+			assert.Equal(t, "somewhere", r1.root)
+		}
+	}
 
-	rm.On("Get", NewDirSpec("dir1")).Return(r3, nil)
-	all, err = GetSpecdOrAll(rm, NewDirSpec("dir1"))
+	// get local repo
+	all, err = GetSpecdOrAll(model.NewDirSpec("dir1"))
 	assert.NoError(t, err)
-	assert.Equal(t, &Union{rs: []Remote{r3}}, all)
+	if assert.Len(t, all.rs, 1) {
+		if r1, ok := all.rs[0].(*FileRemote); assert.True(t, ok) {
+			assert.Equal(t, "dir1", r1.root)
+		}
+	}
 
 }

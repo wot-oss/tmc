@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
@@ -17,10 +18,10 @@ func TestNewHttpRemote(t *testing.T) {
 		map[string]any{
 			"type": "http",
 			"loc":  root,
-		}, NewRemoteSpec("remoteName"))
+		}, model.NewRemoteSpec("remoteName"))
 	assert.NoError(t, err)
 	assert.Equal(t, root, remote.root)
-	assert.Equal(t, NewRemoteSpec("remoteName"), remote.Spec())
+	assert.Equal(t, model.NewRemoteSpec("remoteName"), remote.Spec())
 }
 
 func TestCreateHttpRemoteConfig(t *testing.T) {
@@ -67,7 +68,7 @@ func TestHttpRemote_Fetch(t *testing.T) {
 
 	config, err := createHttpRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
-	r, err := NewHttpRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewHttpRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 	actId, b, err := r.Fetch(tmid)
 	assert.NoError(t, err)
@@ -86,7 +87,7 @@ func TestHttpRemote_ListCompletions(t *testing.T) {
 	defer srv.Close()
 	config, err := createHttpRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
-	r, err := NewHttpRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewHttpRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 
 	t.Run("names", func(t *testing.T) {

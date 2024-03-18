@@ -37,7 +37,7 @@ type Config map[string]map[string]any
 
 var SupportedTypes = []string{RemoteTypeFile, RemoteTypeHttp, RemoteTypeTmc}
 
-//go:generate mockery --name Remote --inpackage
+//go:generate mockery --name Remote --outpkg mocks --output mocks
 type Remote interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
@@ -54,109 +54,34 @@ type Remote interface {
 	// Versions lists versions of a TM with given name
 	Versions(name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Remote has been created from
-	Spec() RepoSpec
+	Spec() model.RepoSpec
 	// Delete deletes the TM with given id from remote. Returns ErrTmNotFound if TM does not exist
 	Delete(id string) error
 
 	ListCompletions(kind string, toComplete string) ([]string, error)
 }
 
-//go:generate mockery --name RemoteManager --inpackage
-type RemoteManager interface {
-	// Get returns the Remote built from config with the given remoteName
-	// Empty remoteName returns the sole remote, if there's only one. Otherwise, an error
-	Get(spec RepoSpec) (Remote, error)
-	All() ([]Remote, error)
-	ReadConfig() (Config, error)
-	ToggleEnabled(name string) error
-	Remove(name string) error
-	Rename(oldName, newName string) error
-	Add(name, typ, confStr string, confFile []byte) error
-	SetConfig(name, typ, confStr string, confFile []byte) error
-}
-
-type RepoSpec struct {
-	remoteName string
-	dir        string
-}
-
-func NewSpec(remoteName, dir string) (RepoSpec, error) {
-	if remoteName != "" && dir != "" {
-		return RepoSpec{}, ErrInvalidSpec
-	}
-	return RepoSpec{
-		remoteName: remoteName,
-		dir:        dir,
-	}, nil
-}
-
-func NewRemoteSpec(remoteName string) RepoSpec {
-	return RepoSpec{
-		remoteName: remoteName,
-	}
-}
-
-func NewDirSpec(dir string) RepoSpec {
-	return RepoSpec{
-		dir: dir,
-	}
-}
-
-func NewSpecFromFoundSource(s model.FoundSource) RepoSpec {
-	return RepoSpec{
-		remoteName: s.RemoteName,
-		dir:        s.Directory,
-	}
-}
-
-func (r RepoSpec) ToFoundSource() model.FoundSource {
-	return model.FoundSource{
-		Directory:  r.dir,
-		RemoteName: r.remoteName,
-	}
-}
-
-func (r RepoSpec) String() string {
-	if r.dir == "" {
-		if r.remoteName == "" {
-			return fmt.Sprintf("undefined repository")
+var Get = func(spec model.RepoSpec) (Remote, error) {
+	if spec.Dir() != "" {
+		if spec.RemoteName() != "" {
+			return nil, model.ErrInvalidSpec
 		}
-		return fmt.Sprintf("remote <%s>", r.remoteName)
+		return NewFileRemote(map[string]any{KeyRemoteType: "file", KeyRemoteLoc: spec.Dir()}, spec)
 	}
-	return fmt.Sprintf("directory %s", r.dir)
-}
-
-var EmptySpec, _ = NewSpec("", "")
-
-type remoteManager struct {
-}
-
-var defaultManager = &remoteManager{}
-
-func DefaultManager() RemoteManager {
-	return defaultManager
-}
-func (r *remoteManager) Get(spec RepoSpec) (Remote, error) {
-	if spec.dir != "" {
-		if spec.remoteName != "" {
-			return nil, ErrInvalidSpec
-		}
-		return NewFileRemote(map[string]any{KeyRemoteType: "file", KeyRemoteLoc: spec.dir}, spec)
-	}
-	remotes, err := r.ReadConfig()
+	remotes, err := ReadConfig()
 	if err != nil {
 		return nil, err
 	}
 	remotes = filterEnabled(remotes)
-	rc, ok := remotes[spec.remoteName]
-	if spec.remoteName == "" {
+	rc, ok := remotes[spec.RemoteName()]
+	if spec.RemoteName() == "" {
 		switch len(remotes) {
 		case 0:
 			return nil, ErrRemoteNotFound
 		case 1:
 			for n, v := range remotes {
 				rc = v
-				spec.remoteName = n
+				spec = model.NewRemoteSpec(n)
 			}
 		default:
 			return nil, ErrAmbiguous
@@ -181,7 +106,7 @@ func filterEnabled(remotes Config) Config {
 	return res
 }
 
-func createRemote(rc map[string]any, spec RepoSpec) (Remote, error) {
+func createRemote(rc map[string]any, spec model.RepoSpec) (Remote, error) {
 	switch t := rc[KeyRemoteType]; t {
 	case RemoteTypeFile:
 		return NewFileRemote(rc, spec)
@@ -194,8 +119,8 @@ func createRemote(rc map[string]any, spec RepoSpec) (Remote, error) {
 	}
 }
 
-func (r *remoteManager) All() ([]Remote, error) {
-	conf, err := r.ReadConfig()
+var All = func() ([]Remote, error) {
+	conf, err := ReadConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +131,7 @@ func (r *remoteManager) All() ([]Remote, error) {
 		if en != nil && !*en {
 			continue
 		}
-		r, err := createRemote(rc, NewRemoteSpec(n))
+		r, err := createRemote(rc, model.NewRemoteSpec(n))
 		if err != nil {
 			return rs, err
 		}
@@ -215,7 +140,7 @@ func (r *remoteManager) All() ([]Remote, error) {
 	return rs, err
 }
 
-func (r *remoteManager) ReadConfig() (Config, error) {
+func ReadConfig() (Config, error) {
 	remotesConfig := viper.Get(KeyRemotes)
 	remotes, ok := remotesConfig.(map[string]any)
 	if !ok {
@@ -232,8 +157,8 @@ func (r *remoteManager) ReadConfig() (Config, error) {
 	return cp, nil
 }
 
-func (r *remoteManager) ToggleEnabled(name string) error {
-	conf, err := r.ReadConfig()
+func ToggleEnabled(name string) error {
+	conf, err := ReadConfig()
 	if err != nil {
 		return err
 	}
@@ -251,11 +176,11 @@ func (r *remoteManager) ToggleEnabled(name string) error {
 		c[KeyRemoteEnabled] = false
 	}
 	conf[name] = c
-	return r.saveConfig(conf)
+	return saveConfig(conf)
 }
 
-func (r *remoteManager) Remove(name string) error {
-	conf, err := r.ReadConfig()
+func Remove(name string) error {
+	conf, err := ReadConfig()
 	if err != nil {
 		return err
 	}
@@ -263,28 +188,28 @@ func (r *remoteManager) Remove(name string) error {
 		return ErrRemoteNotFound
 	}
 	delete(conf, name)
-	return r.saveConfig(conf)
+	return saveConfig(conf)
 }
 
-func (r *remoteManager) Add(name, typ, confStr string, confFile []byte) error {
-	_, err := r.Get(NewRemoteSpec(name))
+func Add(name, typ, confStr string, confFile []byte) error {
+	_, err := Get(model.NewRemoteSpec(name))
 	if err == nil || !errors.Is(err, ErrRemoteNotFound) {
 		return ErrRemoteExists
 	}
 
-	return r.setRemoteConfig(name, typ, confStr, confFile, err)
+	return setRemoteConfig(name, typ, confStr, confFile, err)
 }
 
-func (r *remoteManager) SetConfig(name, typ, confStr string, confFile []byte) error {
-	_, err := r.Get(NewRemoteSpec(name))
+func SetConfig(name, typ, confStr string, confFile []byte) error {
+	_, err := Get(model.NewRemoteSpec(name))
 	if err != nil && errors.Is(err, ErrRemoteNotFound) {
 		return ErrRemoteNotFound
 	}
 
-	return r.setRemoteConfig(name, typ, confStr, confFile, err)
+	return setRemoteConfig(name, typ, confStr, confFile, err)
 }
 
-func (r *remoteManager) setRemoteConfig(name string, typ string, confStr string, confFile []byte, err error) error {
+func setRemoteConfig(name string, typ string, confStr string, confFile []byte, err error) error {
 	var rc map[string]any
 	switch typ {
 	case RemoteTypeFile:
@@ -306,33 +231,33 @@ func (r *remoteManager) setRemoteConfig(name string, typ string, confStr string,
 		return fmt.Errorf("unsupported remote type: %v. Supported types are %v", typ, SupportedTypes)
 	}
 
-	conf, err := r.ReadConfig()
+	conf, err := ReadConfig()
 	if err != nil {
 		return err
 	}
 
 	conf[name] = rc
 
-	return r.saveConfig(conf)
+	return saveConfig(conf)
 }
 
-func (r *remoteManager) Rename(oldName, newName string) error {
+func Rename(oldName, newName string) error {
 	if !ValidRemoteNameRegex.MatchString(newName) {
 		return ErrInvalidRemoteName
 	}
-	conf, err := r.ReadConfig()
+	conf, err := ReadConfig()
 	if err != nil {
 		return err
 	}
 	if rc, ok := conf[oldName]; ok {
 		conf[newName] = rc
 		delete(conf, oldName)
-		return r.saveConfig(conf)
+		return saveConfig(conf)
 	} else {
 		return ErrRemoteNotFound
 	}
 }
-func (r *remoteManager) saveConfig(conf Config) error {
+func saveConfig(conf Config) error {
 	viper.Set(KeyRemotes, conf)
 	configFile := viper.ConfigFileUsed()
 	if configFile == "" {
@@ -378,15 +303,15 @@ func AsRemoteConfig(bytes []byte) (map[string]any, error) {
 }
 
 // GetSpecdOrAll returns the remote specified by spec in a slice, or all remotes, if the spec is empty
-func GetSpecdOrAll(manager RemoteManager, spec RepoSpec) (*Union, error) {
-	if spec.remoteName != "" || spec.dir != "" {
-		remote, err := manager.Get(spec)
+func GetSpecdOrAll(spec model.RepoSpec) (*Union, error) {
+	if spec.RemoteName() != "" || spec.Dir() != "" {
+		remote, err := Get(spec)
 		if err != nil {
 			return nil, err
 		}
 		return NewUnion(remote), nil
 	}
-	all, err := manager.All()
+	all, err := All()
 	if err != nil {
 		return nil, err
 	}

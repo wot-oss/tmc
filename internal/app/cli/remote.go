@@ -15,7 +15,7 @@ var ErrInvalidArgs = errors.New("invalid arguments")
 
 func RemoteList() error {
 	colWidth := columnWidth()
-	config, err := remotes.DefaultManager().ReadConfig()
+	config, err := remotes.ReadConfig()
 	if err != nil {
 		Stderrf("Cannot read remotes config: %v", err)
 		return err
@@ -41,10 +41,10 @@ func RemoteList() error {
 }
 
 func RemoteAdd(name, typ, confStr, confFile string) error {
-	return remoteSaveConfig(name, typ, confStr, confFile, remotes.DefaultManager().Add)
+	return remoteSaveConfig(name, typ, confStr, confFile, remotes.Add)
 }
 func RemoteSetConfig(name, typ, confStr, confFile string) error {
-	return remoteSaveConfig(name, typ, confStr, confFile, remotes.DefaultManager().SetConfig)
+	return remoteSaveConfig(name, typ, confStr, confFile, remotes.SetConfig)
 }
 
 func remoteSaveConfig(name, typ, confStr, confFile string, saver func(name, typ, confStr string, confFile []byte) error) error {
@@ -102,7 +102,7 @@ func inferType(typ string, bytes []byte) string {
 }
 
 func RemoteToggleEnabled(name string) error {
-	err := remotes.DefaultManager().ToggleEnabled(name)
+	err := remotes.ToggleEnabled(name)
 	if err != nil {
 		Stderrf("%v", err)
 	}
@@ -110,7 +110,7 @@ func RemoteToggleEnabled(name string) error {
 }
 
 func RemoteRemove(name string) error {
-	err := remotes.DefaultManager().Remove(name)
+	err := remotes.Remove(name)
 	if err != nil {
 		Stderrf("%v", err)
 	}
@@ -118,7 +118,7 @@ func RemoteRemove(name string) error {
 }
 
 func RemoteShow(name string) error {
-	config, err := remotes.DefaultManager().ReadConfig()
+	config, err := remotes.ReadConfig()
 	if err != nil {
 		Stderrf("Cannot read remotes config: %v", err)
 		return err
@@ -138,7 +138,7 @@ func RemoteShow(name string) error {
 }
 
 func RemoteRename(oldName, newName string) (err error) {
-	err = remotes.DefaultManager().Rename(oldName, newName)
+	err = remotes.Rename(oldName, newName)
 	if err != nil {
 		if errors.Is(err, remotes.ErrRemoteNotFound) {
 			Stderrf("remote %s not found", oldName)
@@ -154,7 +154,7 @@ func RemoteRename(oldName, newName string) (err error) {
 }
 
 func RemoteSetAuth(name, kind, data string) error {
-	conf, err := remotes.DefaultManager().ReadConfig()
+	conf, err := remotes.ReadConfig()
 	if err != nil {
 		Stderrf("error setting auth: %v", err)
 		return err
@@ -177,7 +177,7 @@ func RemoteSetAuth(name, kind, data string) error {
 	}
 	rb, _ := json.Marshal(rc)
 
-	err = remotes.DefaultManager().SetConfig(name, fmt.Sprint(rc[remotes.KeyRemoteType]), "", rb)
+	err = remotes.SetConfig(name, fmt.Sprint(rc[remotes.KeyRemoteType]), "", rb)
 	if err != nil {
 		Stderrf("error saving remote config: %v", err)
 		return err

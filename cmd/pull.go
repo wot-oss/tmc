@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 )
 
 var pFilterFlags = cli.FilterFlags{}
@@ -48,8 +48,8 @@ func executePull(cmd *cobra.Command, args []string) {
 	outputPath := cmd.Flag("output").Value.String()
 	restoreId, _ := cmd.Flags().GetBool("restore-id")
 
-	spec, err := remotes.NewSpec(remoteName, dirName)
-	if errors.Is(err, remotes.ErrInvalidSpec) {
+	spec, err := model.NewSpec(remoteName, dirName)
+	if errors.Is(err, model.ErrInvalidSpec) {
 		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
@@ -59,7 +59,7 @@ func executePull(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	search := cli.CreateSearchParamsFromCLI(pFilterFlags, name)
-	err = cli.NewPullExecutor(remotes.DefaultManager()).Pull(spec, search, outputPath, restoreId)
+	err = cli.Pull(spec, search, outputPath, restoreId)
 
 	if err != nil {
 		cli.Stderrf("pull failed")

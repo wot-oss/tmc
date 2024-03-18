@@ -6,16 +6,13 @@ import (
 )
 
 type VersionsCommand struct {
-	remoteMgr remotes.RemoteManager
 }
 
-func NewVersionsCommand(manager remotes.RemoteManager) *VersionsCommand {
-	return &VersionsCommand{
-		remoteMgr: manager,
-	}
+func NewVersionsCommand() *VersionsCommand {
+	return &VersionsCommand{}
 }
-func (c *VersionsCommand) ListVersions(spec remotes.RepoSpec, name string) ([]model.FoundVersion, error, []*remotes.RepoAccessError) {
-	rs, err := remotes.GetSpecdOrAll(c.remoteMgr, spec)
+func (c *VersionsCommand) ListVersions(spec model.RepoSpec, name string) ([]model.FoundVersion, error, []*remotes.RepoAccessError) {
+	rs, err := remotes.GetSpecdOrAll(spec)
 	if err != nil {
 		return nil, err, nil
 	}

@@ -20,18 +20,18 @@ type mapResult[T any] struct {
 }
 
 type RepoAccessError struct {
-	spec RepoSpec
+	spec model.RepoSpec
 	err  error
 }
 
-func NewRepoAccessError(spec RepoSpec, err error) *RepoAccessError {
+func NewRepoAccessError(spec model.RepoSpec, err error) *RepoAccessError {
 	if err == nil {
 		return nil
 	}
 	return &RepoAccessError{spec: spec, err: err}
 }
 func newRepoAccessError(remote Remote, err error) *RepoAccessError {
-	// the only reason for this check (and the whole function) is to spare setting up all the mocks throughout tests with .On("Spec",...)
+	// the only reason for this check (and the whole function) is to spare setting up all the remotesmocks throughout tests with .On("Spec",...)
 	if err == nil {
 		return nil
 	}

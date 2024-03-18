@@ -23,7 +23,7 @@ const RelFileUriPlaceholder = "{{ID}}"
 type baseHttpRemote struct {
 	root       string
 	parsedRoot *url.URL
-	spec       RepoSpec
+	spec       model.RepoSpec
 	auth       map[string]any
 }
 
@@ -35,7 +35,7 @@ type HttpRemote struct {
 	templatedQuery bool
 }
 
-func NewHttpRemote(config map[string]any, spec RepoSpec) (*HttpRemote, error) {
+func NewHttpRemote(config map[string]any, spec model.RepoSpec) (*HttpRemote, error) {
 	base, err := newBaseHttpRemote(config, spec)
 	if err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func NewHttpRemote(config map[string]any, spec RepoSpec) (*HttpRemote, error) {
 	return h, nil
 }
 
-func newBaseHttpRemote(config map[string]any, spec RepoSpec) (baseHttpRemote, error) {
+func newBaseHttpRemote(config map[string]any, spec model.RepoSpec) (baseHttpRemote, error) {
 	loc := utils.JsGetString(config, KeyRemoteLoc)
 	if loc == nil {
 		return baseHttpRemote{}, fmt.Errorf("invalid http remote config. loc is either not found or not a string")
@@ -134,7 +134,7 @@ func (h *HttpRemote) buildUrl(fileId string) string {
 func (h *HttpRemote) UpdateToc(...string) error {
 	return ErrNotSupported
 }
-func (h *HttpRemote) Spec() RepoSpec {
+func (h *HttpRemote) Spec() model.RepoSpec {
 	return h.spec
 }
 
