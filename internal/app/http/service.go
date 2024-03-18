@@ -11,7 +11,7 @@ import (
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
-//go:generate mockery --name HandlerService --inpackage
+//go:generate mockery --name HandlerService --outpkg mocks --output mocks
 type HandlerService interface {
 	ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error)
 	ListAuthors(ctx context.Context, search *model.SearchParams) ([]string, error)
@@ -29,26 +29,20 @@ type HandlerService interface {
 }
 
 type defaultHandlerService struct {
-	remoteManager remotes.RemoteManager
-	serveRemote   remotes.RepoSpec
-	pushRemote    remotes.RepoSpec
+	serveRemote model.RepoSpec
+	pushRemote  model.RepoSpec
 }
 
-func NewDefaultHandlerService(rm remotes.RemoteManager, servedRepo remotes.RepoSpec, pushRemote remotes.RepoSpec) (*defaultHandlerService, error) {
-	if rm == nil {
-		return nil, errors.New("remote manager is unset")
-	}
+func NewDefaultHandlerService(servedRepo model.RepoSpec, pushRemote model.RepoSpec) (*defaultHandlerService, error) {
 	dhs := &defaultHandlerService{
-		remoteManager: rm,
-		serveRemote:   servedRepo,
-		pushRemote:    pushRemote,
+		serveRemote: servedRepo,
+		pushRemote:  pushRemote,
 	}
 	return dhs, nil
 }
 
 func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
-	c := commands.NewListCommand(dhs.remoteManager)
-	toc, err, errs := c.List(dhs.serveRemote, search)
+	toc, err, errs := commands.List(dhs.serveRemote, search)
 	if err != nil {
 		return nil, err
 	}
@@ -135,8 +129,7 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 		return nil, err
 	}
 
-	rm := dhs.remoteManager
-	_, data, err, _ := commands.NewFetchCommand(rm).FetchByTMIDOrName(dhs.serveRemote, tmID, restoreId)
+	_, data, err, _ := commands.NewFetchCommand().FetchByTMIDOrName(dhs.serveRemote, tmID, restoreId)
 	if err != nil {
 		return nil, err
 	}
@@ -144,10 +137,9 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 }
 
 func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byte) (string, error) {
-	rm := dhs.remoteManager
 	pushRemote := dhs.pushRemote
 
-	remote, err := rm.Get(pushRemote)
+	remote, err := remotes.Get(pushRemote)
 	if err != nil {
 		return "", err
 	}
@@ -164,15 +156,14 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 }
 
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
-	rm := dhs.remoteManager
 	pushRemote := dhs.pushRemote
 
-	err := commands.NewDeleteCommand(rm).Delete(pushRemote, tmID)
+	err := commands.NewDeleteCommand().Delete(pushRemote, tmID)
 	return err
 }
 
 func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error) {
-	rs, err := remotes.GetSpecdOrAll(dhs.remoteManager, dhs.serveRemote)
+	rs, err := remotes.GetSpecdOrAll(dhs.serveRemote)
 	if err != nil {
 		return nil, err
 	}
@@ -195,10 +186,9 @@ func (dhs *defaultHandlerService) CheckHealthLive(ctx context.Context) error {
 
 func (dhs *defaultHandlerService) CheckHealthReady(ctx context.Context) error {
 
-	rm := dhs.remoteManager
 	pushRemote := dhs.pushRemote
 
-	_, err := rm.Get(pushRemote)
+	_, err := remotes.Get(pushRemote)
 	if err != nil {
 		return errors.New("invalid remotes configuration or push remote found")
 	}

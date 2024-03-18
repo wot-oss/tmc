@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -11,6 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
@@ -50,10 +54,9 @@ func TestParseFetchName(t *testing.T) {
 }
 
 func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
-	rm := remotes.NewMockRemoteManager(t)
-	r := remotes.NewMockRemote(t)
-	rm.On("All").Return([]remotes.Remote{r}, nil)
-	rm.On("Get", remotes.NewRemoteSpec("r1")).Return(r, nil)
+	r := mocks.NewRemote(t)
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r))
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("r1"), r, nil))
 	setUpVersionsForFetchByTMIDOrName(r)
 
 	r.On("Fetch", "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
@@ -64,7 +67,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	r.On("Fetch", "author/manufacturer/mpn/v2.0.0-20231208123243-f49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v2.0.0-20231208123243-f49617d2e4fc.tm.json", []byte("{\"ver\":\"v2.0.0\"}"), nil)
 	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
 
-	f := NewFetchCommand(rm)
+	f := NewFetchCommand()
 
 	tests := []struct {
 		in         string
@@ -95,7 +98,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, b, err, _ := f.FetchByTMIDOrName(remotes.EmptySpec, test.in, false)
+		_, b, err, _ := f.FetchByTMIDOrName(model.EmptySpec, test.in, false)
 		if test.expErr != nil {
 			assert.ErrorIs(t, err, test.expErr, "Expected error in FetchByTMIDOrName(%s)", test.in)
 			assert.ErrorContains(t, err, test.expErrText, "Unexpected error in FetchByTMIDOrName(%s)", test.in)
@@ -106,7 +109,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	}
 }
 
-func setUpVersionsForFetchByTMIDOrName(r *remotes.MockRemote) {
+func setUpVersionsForFetchByTMIDOrName(r *mocks.Remote) {
 	r.On("Versions", "manufacturer/mpn").Return([]model.FoundVersion{
 		{
 			TOCVersion: model.TOCVersion{
@@ -197,12 +200,21 @@ func setUpVersionsForFetchByTMIDOrName(r *remotes.MockRemote) {
 }
 
 func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
-	rm := remotes.NewMockRemoteManager(t)
-	r1 := remotes.NewMockRemote(t)
-	r2 := remotes.NewMockRemote(t)
-	rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
-	rm.On("Get", remotes.NewRemoteSpec("r1")).Return(r1, nil)
-	rm.On("Get", remotes.NewRemoteSpec("r2")).Return(r2, nil)
+	r1 := mocks.NewRemote(t)
+	r2 := mocks.NewRemote(t)
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
+	rMocks.MockRemotesGet(t, func(s model.RepoSpec) (remotes.Remote, error) {
+		if reflect.DeepEqual(model.NewRemoteSpec("r1"), s) {
+			return r1, nil
+		}
+		if reflect.DeepEqual(model.NewRemoteSpec("r2"), s) {
+			return r2, nil
+		}
+		err := fmt.Errorf("unexpected spec in mock: %v", s)
+		rMocks.FailTest(t, err)
+		return nil, err
+	})
+
 	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
 	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, remotes.ErrTmNotFound)
 	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, remotes.ErrTmNotFound)
@@ -230,52 +242,52 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
 		},
 	}, nil)
 
-	f := NewFetchCommand(rm)
+	f := NewFetchCommand()
 	var id string
 	var b []byte
 	var err error
 	t.Run("fetch from unspecified by id", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r1")))
 
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
 	})
 	t.Run("fetch from named by id", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.NewRemoteSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r1")))
 
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.NewRemoteSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
 		assert.Error(t, err)
 
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.NewRemoteSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.Error(t, err)
 
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.NewRemoteSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
 	})
 	t.Run("fetch from unspecified by name", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.EmptySpec, "author/manufacturer/mpn", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
 
 	})
 	t.Run("fetch from named by name", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r1"), "author/manufacturer/mpn", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.NewRemoteSpec("r1"), "author/manufacturer/mpn", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r1")))
 
-		id, b, err, _ = f.FetchByTMIDOrName(remotes.NewRemoteSpec("r2"), "author/manufacturer/mpn", false)
+		id, b, err, _ = f.FetchByTMIDOrName(model.NewRemoteSpec("r2"), "author/manufacturer/mpn", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
@@ -284,17 +296,16 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRemotes(t *testing.T) {
 }
 
 func TestFetchCommand_FetchByTMID(t *testing.T) {
-	rm := remotes.NewMockRemoteManager(t)
-	r1 := remotes.NewMockRemote(t)
-	r2 := remotes.NewMockRemote(t)
-	r1.On("Spec").Return(remotes.NewRemoteSpec("r1"))
-	rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
+	r1 := mocks.NewRemote(t)
+	r2 := mocks.NewRemote(t)
+	r1.On("Spec").Return(model.NewRemoteSpec("r1"))
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 
 	t.Run("success with unexpected error", func(t *testing.T) {
 		r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
 		r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil).Once()
-		f := NewFetchCommand(rm)
-		id, b, err, errs := f.FetchByTMID(remotes.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		f := NewFetchCommand()
+		id, b, err, errs := f.FetchByTMID(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Len(t, errs, 0)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
@@ -305,8 +316,8 @@ func TestFetchCommand_FetchByTMID(t *testing.T) {
 	t.Run("not found with unexpected error", func(t *testing.T) {
 		r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
 		r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, remotes.ErrTmNotFound).Once()
-		f := NewFetchCommand(rm)
-		_, _, err, errs := f.FetchByTMID(remotes.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		f := NewFetchCommand()
+		_, _, err, errs := f.FetchByTMID(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.ErrorIs(t, err, remotes.ErrTmNotFound)
 		if assert.Len(t, errs, 1) {
 			assert.ErrorContains(t, errs[0], "unexpected")
@@ -316,14 +327,13 @@ func TestFetchCommand_FetchByTMID(t *testing.T) {
 }
 
 func TestFetchCommand_FetchByName(t *testing.T) {
-	rm := remotes.NewMockRemoteManager(t)
-	r1 := remotes.NewMockRemote(t)
-	r2 := remotes.NewMockRemote(t)
-	rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
-	r1Spec := remotes.NewRemoteSpec("r1")
-	rm.On("Get", r1Spec).Return(r1, nil)
+	r1 := mocks.NewRemote(t)
+	r2 := mocks.NewRemote(t)
+	r1Spec := model.NewRemoteSpec("r1")
+	rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
+	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, r1Spec, r1, nil))
 	r1.On("Spec").Return(r1Spec)
-	r2Spec := remotes.NewRemoteSpec("r2")
+	r2Spec := model.NewRemoteSpec("r2")
 	//rm.On("Get", r2Spec).Return(r2, nil)
 	r2.On("Spec").Return(r2Spec)
 
@@ -343,9 +353,9 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 		}, nil)
 		r2.On("Versions", "author/manufacturer/mpn").Return(nil, errors.New("unexpected"))
 
-		f := NewFetchCommand(rm)
+		f := NewFetchCommand()
 		t.Run("fetch from unspecified by name", func(t *testing.T) {
-			id, b, err, errs := f.FetchByName(remotes.EmptySpec, FetchName{Name: "author/manufacturer/mpn"}, false)
+			id, b, err, errs := f.FetchByName(model.EmptySpec, FetchName{Name: "author/manufacturer/mpn"}, false)
 			assert.NoError(t, err)
 			if assert.Len(t, errs, 1) {
 				assert.ErrorContains(t, errs[0], "unexpected")
@@ -361,9 +371,9 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 		r1.On("Versions", "author/manufacturer/mpn2").Return(nil, errors.New("unexpected1"))
 		r2.On("Versions", "author/manufacturer/mpn2").Return(nil, errors.New("unexpected2"))
 
-		f := NewFetchCommand(rm)
+		f := NewFetchCommand()
 		t.Run("fetch from unspecified by name", func(t *testing.T) {
-			_, _, err, errs := f.FetchByName(remotes.EmptySpec, FetchName{Name: "author/manufacturer/mpn2"}, false)
+			_, _, err, errs := f.FetchByName(model.EmptySpec, FetchName{Name: "author/manufacturer/mpn2"}, false)
 			assert.ErrorIs(t, err, remotes.ErrTmNotFound)
 			if assert.Len(t, errs, 2) {
 				slices.SortStableFunc(errs, func(a, b *remotes.RepoAccessError) int { return strings.Compare(a.Error(), b.Error()) })
@@ -434,8 +444,7 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			rm := remotes.NewMockRemoteManager(t)
-			r1 := remotes.NewMockRemote(t)
+			r1 := mocks.NewRemote(t)
 			r1.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
 				{
 					TOCVersion: model.TOCVersion{
@@ -447,18 +456,18 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 					FoundIn: model.FoundSource{RemoteName: "r1"},
 				},
 			}, nil)
-			r2 := remotes.NewMockRemote(t)
+			r2 := mocks.NewRemote(t)
 			r2.On("Versions", "author/manufacturer/mpn").Return(nil, nil)
-			rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
-			spec := remotes.NewRemoteSpec("r1")
-			rm.On("Get", spec).Return(r1, nil)
-			f := NewFetchCommand(rm)
+			rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
+			spec := model.NewRemoteSpec("r1")
+			rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, spec, r1, nil))
+			f := NewFetchCommand()
 
 			t.Run("with multiple remotes", func(t *testing.T) {
 				r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").
 					Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte(test.json), nil).Once()
 
-				id, b, _, _ := f.FetchByTMIDOrName(remotes.EmptySpec, "author/manufacturer/mpn", true)
+				id, b, _, _ := f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn", true)
 				assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 				var js map[string]any
 				err := json.Unmarshal(b, &js)

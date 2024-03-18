@@ -13,7 +13,6 @@ var (
 	ErrInvalidRemoteName       = errors.New("invalid remote remoteName")
 	ErrRemoteExists            = errors.New("named remote already exists")
 	ErrTmNotFound              = errors.New("TM not found")
-	ErrInvalidSpec             = errors.New("illegal remote spec: both dir and remoteName given")
 	ErrInvalidErrorCode        = errors.New("invalid error code")
 	ErrInvalidCompletionParams = errors.New("invalid completion parameters")
 )

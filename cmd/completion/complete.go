@@ -4,11 +4,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
 )
 
 func CompleteRemoteNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	config, err := remotes.DefaultManager().ReadConfig()
+	config, err := remotes.ReadConfig()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
@@ -52,12 +53,12 @@ func getRemote(cmd *cobra.Command) (*remotes.Union, error) {
 	remoteName := cmd.Flag("remote").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 
-	spec, err := remotes.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(remoteName, dirName)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := remotes.GetSpecdOrAll(remotes.DefaultManager(), spec)
+	u, err := remotes.GetSpecdOrAll(spec)
 	if err != nil {
 		return nil, err
 	}

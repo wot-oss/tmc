@@ -6,15 +6,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
+	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
 )
 
 func TestListCommand_List(t *testing.T) {
 	t.Run("merged", func(t *testing.T) {
-		rm := remotes.NewMockRemoteManager(t)
-		r1 := remotes.NewMockRemote(t)
-		r2 := remotes.NewMockRemote(t)
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
+		r1 := mocks.NewRemote(t)
+		r2 := mocks.NewRemote(t)
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 		r1.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
@@ -48,8 +48,7 @@ func TestListCommand_List(t *testing.T) {
 			},
 		}, nil)
 
-		c := NewListCommand(rm)
-		res, err, _ := c.List(remotes.EmptySpec, &model.SearchParams{Query: "omnicorp"})
+		res, err, _ := List(model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
 
 		assert.NoError(t, err)
 		assert.Len(t, res.Entries, 3)
@@ -58,11 +57,10 @@ func TestListCommand_List(t *testing.T) {
 		assert.Equal(t, "omnicorp/senseall", res.Entries[2].Name)
 	})
 	t.Run("one error", func(t *testing.T) {
-		rm := remotes.NewMockRemoteManager(t)
-		r1 := remotes.NewMockRemote(t)
-		r2 := remotes.NewMockRemote(t)
-		r2.On("Spec").Return(remotes.NewRemoteSpec("r2"))
-		rm.On("All").Return([]remotes.Remote{r1, r2}, nil)
+		r1 := mocks.NewRemote(t)
+		r2 := mocks.NewRemote(t)
+		r2.On("Spec").Return(model.NewRemoteSpec("r2"))
+		rMocks.MockRemotesAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 		r1.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
@@ -81,8 +79,7 @@ func TestListCommand_List(t *testing.T) {
 		}, nil)
 		r2.On("List", &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{}, errors.New("unexpected error"))
 
-		c := NewListCommand(rm)
-		res, err, errs := c.List(remotes.EmptySpec, &model.SearchParams{Query: "omnicorp"})
+		res, err, errs := List(model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
 
 		assert.NoError(t, err)
 		if assert.Len(t, errs, 1) {

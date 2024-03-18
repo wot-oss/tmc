@@ -20,10 +20,10 @@ func TestNewTmcRemote(t *testing.T) {
 		map[string]any{
 			"type": "tmc",
 			"loc":  root,
-		}, NewRemoteSpec("remoteName"))
+		}, model.NewRemoteSpec("remoteName"))
 	assert.NoError(t, err)
 	assert.Equal(t, root, remote.root)
-	assert.Equal(t, NewRemoteSpec("remoteName"), remote.Spec())
+	assert.Equal(t, model.NewRemoteSpec("remoteName"), remote.Spec())
 }
 
 func TestCreateTmcRemoteConfig(t *testing.T) {
@@ -70,7 +70,7 @@ func TestTmcRemote_Fetch(t *testing.T) {
 
 	config, err := createTmcRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"tmc", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 	actId, b, err := r.Fetch(tmid)
 	assert.NoError(t, err)
@@ -80,7 +80,7 @@ func TestTmcRemote_Fetch(t *testing.T) {
 
 func TestTmcRemote_UpdateToc(t *testing.T) {
 	config, _ := createTmcRemoteConfig("http://example.com", nil)
-	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 	err = r.UpdateToc()
 	assert.NoError(t, err)
@@ -114,7 +114,7 @@ func TestTmcRemote_List(t *testing.T) {
 
 	config, err := createTmcRemoteConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{
@@ -242,7 +242,7 @@ func TestTmcRemote_Versions(t *testing.T) {
 
 	config, err := createTmcRemoteConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{
@@ -322,7 +322,7 @@ func TestTmcRemote_Push(t *testing.T) {
 
 	config, err := createTmcRemoteConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 	tmErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json"}
 
@@ -403,7 +403,7 @@ func TestTmcRemote_ListCompletions(t *testing.T) {
 
 	config, err := createTmcRemoteConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{
@@ -486,7 +486,7 @@ func TestTmcRemote_Delete(t *testing.T) {
 
 	config, err := createTmcRemoteConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, NewRemoteSpec("nameless"))
+	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{

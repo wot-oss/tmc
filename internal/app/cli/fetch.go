@@ -7,23 +7,13 @@ import (
 	"path/filepath"
 
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
 	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
 )
 
-type FetchExecutor struct {
-	rm remotes.RemoteManager
-}
+func Fetch(remote model.RepoSpec, idOrName, outputPath string, restoreId bool) error {
 
-func NewFetchExecutor(rm remotes.RemoteManager) *FetchExecutor {
-	return &FetchExecutor{
-		rm: rm,
-	}
-}
-
-func (e *FetchExecutor) Fetch(remote remotes.RepoSpec, idOrName, outputPath string, restoreId bool) error {
-
-	id, thing, err, errs := commands.NewFetchCommand(e.rm).FetchByTMIDOrName(remote, idOrName, restoreId)
+	id, thing, err, errs := commands.NewFetchCommand().FetchByTMIDOrName(remote, idOrName, restoreId)
 	if err != nil {
 		Stderrf("Could not fetch from remote: %v", err)
 		return err
