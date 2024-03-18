@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/buger/jsonparser"
@@ -204,7 +205,8 @@ func (h *HttpRemote) Versions(name string) ([]model.FoundVersion, error) {
 func (h *HttpRemote) ListCompletions(kind, toComplete string) ([]string, error) {
 	switch kind {
 	case CompletionKindNames:
-		sr, err := h.List(nil)
+		namePrefix, seg := longestPath(toComplete)
+		sr, err := h.List(&model.SearchParams{Name: namePrefix, Options: model.SearchOptions{NameFilterType: model.PrefixMatch}}) // fixme: search for name = toComplete(less the part after last /)
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +214,8 @@ func (h *HttpRemote) ListCompletions(kind, toComplete string) ([]string, error) 
 		for _, e := range sr.Entries {
 			ns = append(ns, e.Name)
 		}
-		return ns, nil
+		names := namesToCompletions(ns, toComplete, seg+1)
+		return names, nil
 	case CompletionKindFetchNames:
 		if strings.Contains(toComplete, "..") {
 			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
@@ -231,6 +234,35 @@ func (h *HttpRemote) ListCompletions(kind, toComplete string) ([]string, error) 
 	default:
 		return nil, ErrInvalidCompletionParams
 	}
+}
+
+func namesToCompletions(names []string, toComplete string, segments int) []string {
+	var res []string
+	for _, n := range names {
+		if strings.HasPrefix(n, toComplete) {
+			res = append(res, cutToNSegments(n, segments))
+		}
+	}
+	slices.Sort(res)
+	res = slices.Compact(res)
+	return res
+}
+
+// longestPath returns the longest substring of s consisting of full path segments and the number of path segments
+func longestPath(s string) (string, int) {
+	lastSlash := strings.LastIndex(s, "/")
+	if lastSlash == -1 {
+		return "", 0
+	}
+	return s[0:lastSlash], strings.Count(s, "/")
+}
+
+func cutToNSegments(s string, n int) string {
+	segments := strings.FieldsFunc(s, func(r rune) bool { return r == '/' })
+	if len(segments) > n {
+		return strings.Join(segments[0:n], "/") + "/"
+	}
+	return strings.Join(segments[0:n], "/")
 }
 
 func createHttpRemoteConfig(loc string, bytes []byte) (map[string]any, error) {
