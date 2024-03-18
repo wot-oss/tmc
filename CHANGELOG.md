@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Tab-completions now only complete a path segment instead of the full name to resemble shell completion in a file system
+- Removed mockery dependency from final binary
 
 ## [v0.0.0-alpha.5]
 
