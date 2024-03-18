@@ -272,17 +272,28 @@ func TestGetSpecdOrAll(t *testing.T) {
 		},
 	})
 
+	// check if all remotes are returned, when passing EmptySpec
 	all, err := GetSpecdOrAll(model.EmptySpec)
 	assert.NoError(t, err)
 	if assert.Len(t, all.rs, 2) {
-		if r1, ok := all.rs[0].(*FileRemote); assert.True(t, ok) {
-			assert.Equal(t, "somewhere", r1.root)
-		}
-		if r2, ok := all.rs[1].(*FileRemote); assert.True(t, ok) {
-			assert.Equal(t, "somewhere-else", r2.root)
+		var fileRemote *FileRemote
+		var ok bool
+		for _, remote := range all.rs {
+			if fileRemote, ok = remote.(*FileRemote); !ok {
+				t.Fatalf("expected file remote, got %T", remote)
+			}
+			switch fileRemote.Spec().RemoteName() {
+			case "r1":
+				assert.Equal(t, "somewhere", fileRemote.root)
+			case "r2":
+				assert.Equal(t, "somewhere-else", fileRemote.root)
+			default:
+				t.Fatalf("unexpected remote found: %v", *fileRemote)
+			}
 		}
 	}
 
+	// get r1 remote
 	all, err = GetSpecdOrAll(model.NewRemoteSpec("r1"))
 	assert.NoError(t, err)
 	if assert.Len(t, all.rs, 1) {
@@ -291,6 +302,7 @@ func TestGetSpecdOrAll(t *testing.T) {
 		}
 	}
 
+	// get local repo
 	all, err = GetSpecdOrAll(model.NewDirSpec("dir1"))
 	assert.NoError(t, err)
 	if assert.Len(t, all.rs, 1) {
