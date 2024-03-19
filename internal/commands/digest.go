@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/buger/jsonparser"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 // CalculateFileDigest calculates the hash string for TM version. Returns the 12-char hash string, the file contents

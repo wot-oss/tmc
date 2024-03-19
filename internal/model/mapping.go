@@ -1,6 +1,6 @@
 package model
 
-import "github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
+import "github.com/wot-oss/tmc/internal/app/http/server"
 
 type IndexToSearchResultMapper struct {
 	foundIn FoundSource

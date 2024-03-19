@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/app/http/server"
 )
 
 type TmcHandler struct {

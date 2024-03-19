@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/wot-oss/tmc/cmd"
+	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
 // repoCmd represents the repo command

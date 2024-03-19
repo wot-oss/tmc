@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 type Mapper struct {

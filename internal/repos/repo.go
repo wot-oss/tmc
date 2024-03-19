@@ -9,9 +9,9 @@ import (
 	"regexp"
 
 	"github.com/spf13/viper"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/config"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const (

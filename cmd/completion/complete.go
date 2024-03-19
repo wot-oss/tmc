@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 func CompleteRepoNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

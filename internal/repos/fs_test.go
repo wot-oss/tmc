@@ -11,10 +11,10 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
+	"github.com/wot-oss/tmc/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/model"
 	"golang.org/x/exp/rand"
 )
 

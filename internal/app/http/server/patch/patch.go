@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 // PUT PATH VARIABLES TO BE REPLACED HERE !!!

@@ -4,15 +4,15 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/wot-oss/tmc/cmd/completion"
+	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
 // repoAddCmd represents the 'repo add' command
 var repoAddCmd = &cobra.Command{
 	Use:   "add [--type <type>] <name> (<config> | --file <configFileName>)",
 	Short: "Add a named repository",
-	Long: `Add a named repository to the tm-catalog-cli configuration file. Depending on the repository type,
+	Long: `Add a named repository to the tmc configuration file. Depending on the repository type,
 the config may be a simple string, like a URL, or a json file.
 --type is optional only if --file is used and the type is specified there.
 `,

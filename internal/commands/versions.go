@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 type VersionsCommand struct {

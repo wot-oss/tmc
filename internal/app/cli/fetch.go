@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func Fetch(repo model.RepoSpec, idOrName, outputPath string, restoreId bool) error {

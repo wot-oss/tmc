@@ -6,7 +6,7 @@
 *.dylib
 
 # Binary 
-tm-catalog-cli
+tmc
 
 # Test binary, built with `go test -c`
 *.test
@@ -31,5 +31,5 @@ go.work
 *~
 *.swp
 
-# tm-catalog-cli configuration
+# tmc configuration
 config.json

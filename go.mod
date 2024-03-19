@@ -1,4 +1,4 @@
-module github.com/web-of-things-open-source/tm-catalog-cli
+module github.com/wot-oss/tmc
 
 go 1.21
 

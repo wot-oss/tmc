@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func parseJsonFile(name string) ([]byte, any, error) {

@@ -4,8 +4,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/wot-oss/tmc/cmd/completion"
+	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
 // repoSetAuthCmd represents the 'repo add' command

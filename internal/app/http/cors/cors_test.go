@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
+	"github.com/wot-oss/tmc/internal/testutils"
 
 	"github.com/stretchr/testify/assert"
 )

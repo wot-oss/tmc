@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands/validate"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/commands/validate"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func ValidateFile(filename string) error {

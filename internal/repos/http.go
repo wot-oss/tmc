@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/buger/jsonparser"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 var ErrNotSupported = errors.New("method not supported")

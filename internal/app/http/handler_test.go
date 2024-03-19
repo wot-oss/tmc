@@ -10,16 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/mocks"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
+	"github.com/wot-oss/tmc/internal/app/http/mocks"
+	"github.com/wot-oss/tmc/internal/testutils"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func Test_getRelativeDepth(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
-	httptmc "github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
+	httptmc "github.com/wot-oss/tmc/internal/app/http"
+	"github.com/wot-oss/tmc/internal/app/http/server"
 )
 
 var jwksKeyFunc jwt.Keyfunc

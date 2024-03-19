@@ -8,11 +8,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos/mocks"
-	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/reposmocks"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/repos/mocks"
+	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
 var listResult = model.SearchResult{

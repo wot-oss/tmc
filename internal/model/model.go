@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 // ThingModel is a model for unmarshalling a Thing Model to be

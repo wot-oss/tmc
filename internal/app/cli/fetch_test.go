@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos/mocks"
-	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/reposmocks"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos/mocks"
+	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
 func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {

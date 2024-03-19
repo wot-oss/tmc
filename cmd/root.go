@@ -6,18 +6,17 @@ import (
 	"os"
 	"slices"
 
-	"github.com/spf13/viper"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"github.com/wot-oss/tmc/internal"
+	"github.com/wot-oss/tmc/internal/config"
 )
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-	Use:   "tm-catalog-cli",
+	Use:   "tmc",
 	Short: "A CLI client for TM catalogs",
-	Long: `tm-catalog-cli is a CLI client for contributing to and searching
+	Long: `tmc is a CLI client for contributing to and searching
 ThingModel catalogs.`,
 }
 
@@ -43,7 +42,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tm-catalog-cli.yaml)")
+	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.tmc.yaml)")
 	RootCmd.PersistentFlags().StringVarP(&loglevel, "loglevel", "l", "", "enable logging by setting a log level, one of [error, warn, info, debug, off]")
 	RootCmd.PersistentPreRun = preRunAll
 	config.InitViper()

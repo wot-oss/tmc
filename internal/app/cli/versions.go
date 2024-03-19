@@ -5,8 +5,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 func ListVersions(spec model.RepoSpec, name string) error {

@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos/mocks"
-	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/reposmocks"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/repos/mocks"
+	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
 func TestIndex(t *testing.T) {

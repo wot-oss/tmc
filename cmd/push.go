@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/cmd/completion"
+	"github.com/wot-oss/tmc/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 // pushCmd represents the push command

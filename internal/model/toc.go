@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 type Index struct {

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
+	"github.com/wot-oss/tmc/internal/config"
 )
 
 var envVarLogLevel = strings.ToUpper(config.EnvPrefix + "_" + config.KeyLogLevel) // TMC_LOG

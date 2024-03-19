@@ -11,8 +11,8 @@ import (
 	"github.com/kinbiko/jsonassert"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/config"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 func TestSaveConfigOverwritesOnlyRepos(t *testing.T) {

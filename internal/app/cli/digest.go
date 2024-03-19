@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func CalcFileDigest(filename string) error {

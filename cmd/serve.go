@@ -4,18 +4,18 @@ import (
 	"errors"
 	"os"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/app/http/cors"
+	"github.com/wot-oss/tmc/internal/model"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
+	"github.com/wot-oss/tmc/internal/app/http/jwt"
 
 	"github.com/spf13/viper"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/cmd/completion"
+	"github.com/wot-oss/tmc/internal/config"
+	"github.com/wot-oss/tmc/internal/utils"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
 var serveCmd = &cobra.Command{

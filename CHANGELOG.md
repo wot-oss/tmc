@@ -4,6 +4,9 @@
 
 ### Changed
 
+- Renamed the go module to "github.com/wot-oss/tmc"
+- Renamed command `remote` to `repo`
+- Renamed command `update-toc` to `index`
 - Tab-completions now only complete a path segment instead of the full name to resemble shell completion in a file system
 - Removed mockery dependency from final binary
 
@@ -19,8 +22,6 @@
 ### Changed
 
 - Request results from multiple remotes concurrently instead of sequentially
-- Renamed command `remote` to `repo`
-- Renamed command `update-toc` to `index`
 
 ### Fixed
 

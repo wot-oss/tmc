@@ -7,11 +7,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos/mocks"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
-	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/reposmocks"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/repos/mocks"
+	"github.com/wot-oss/tmc/internal/testutils"
+	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
 func TestPushExecutor_Push(t *testing.T) {

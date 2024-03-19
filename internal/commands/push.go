@@ -11,9 +11,9 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/kennygrant/sanitize"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands/validate"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/repos"
+	"github.com/wot-oss/tmc/internal/commands/validate"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 const maxPushRetries = 3
