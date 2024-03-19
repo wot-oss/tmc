@@ -2,7 +2,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/wot-oss/tmc)](https://goreportcard.com/report/github.com/wot-oss/tmc) [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/wot-oss/tmc)](https://github.com/wot-oss/tmc/releases) [![PkgGoDev](https://img.shields.io/badge/go.dev-docs-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/wot-oss/tmc)
 
-![Thing Model Catalog Logo](https://github.com/wot-oss/tmc/raw/main/docs/media/tm-catalog-logo.svg)
+![Thing Model Catalog Logo](https://raw.githubusercontent.com/wot-oss/tmc/main/docs/media/tm-catalog-logo.svg)
 ---
 Find, use and contribute device descriptions for industrial IoT devices!
 
