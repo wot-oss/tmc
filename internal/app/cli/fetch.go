@@ -6,16 +6,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func Fetch(remote model.RepoSpec, idOrName, outputPath string, restoreId bool) error {
+func Fetch(repo model.RepoSpec, idOrName, outputPath string, restoreId bool) error {
 
-	id, thing, err, errs := commands.NewFetchCommand().FetchByTMIDOrName(remote, idOrName, restoreId)
+	id, thing, err, errs := commands.NewFetchCommand().FetchByTMIDOrName(repo, idOrName, restoreId)
 	if err != nil {
-		Stderrf("Could not fetch from remote: %v", err)
+		Stderrf("Could not fetch from repo: %v", err)
 		return err
 	}
 	defer printErrs("Errors occurred while fetching:", errs)

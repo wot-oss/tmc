@@ -5,22 +5,22 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 func ListVersions(spec model.RepoSpec, name string) error {
-	tocVersions, err, errs := commands.NewVersionsCommand().ListVersions(spec, name)
+	indexVersions, err, errs := commands.NewVersionsCommand().ListVersions(spec, name)
 	if err != nil {
 		Stderrf("Could not list versions of %s: %v", name, err)
 		return err
 	}
-	printToCThing(name, tocVersions)
+	printIndexThing(name, indexVersions)
 	printErrs("Errors occurred while listing versions:", errs)
 	return nil
 }
 
-func printToCThing(name string, versions []model.FoundVersion) {
+func printIndexThing(name string, versions []model.FoundVersion) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/kennygrant/sanitize"
 	"github.com/santhosh-tekuri/jsonschema/v5"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 //go:embed tm-json-schema-validation.json

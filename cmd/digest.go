@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
 // digestCmd is only intended for testing and is therefore commented out.

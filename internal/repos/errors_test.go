@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"testing"

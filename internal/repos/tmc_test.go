@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"errors"
@@ -10,23 +10,23 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func TestNewTmcRemote(t *testing.T) {
+func TestNewTmcRepo(t *testing.T) {
 	root := "http://localhost:8000/"
-	remote, err := NewTmcRemote(
+	repo, err := NewTmcRepo(
 		map[string]any{
 			"type": "tmc",
 			"loc":  root,
-		}, model.NewRemoteSpec("remoteName"))
+		}, model.NewRepoSpec("repoName"))
 	assert.NoError(t, err)
-	assert.Equal(t, root, remote.root)
-	assert.Equal(t, model.NewRemoteSpec("remoteName"), remote.Spec())
+	assert.Equal(t, root, repo.root)
+	assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
 }
 
-func TestCreateTmcRemoteConfig(t *testing.T) {
+func TestCreateTmcRepoConfig(t *testing.T) {
 	tests := []struct {
 		strConf  string
 		fileConf string
@@ -44,20 +44,20 @@ func TestCreateTmcRemoteConfig(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		cf, err := createTmcRemoteConfig(test.strConf, []byte(test.fileConf))
+		cf, err := createTmcRepoConfig(test.strConf, []byte(test.fileConf))
 		if test.expErr {
 			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 			continue
 		} else {
 			assert.NoError(t, err, "no error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 		}
-		assert.Equalf(t, "tmc", cf[KeyRemoteType], "in test %d for %s %s", i, test.strConf, test.fileConf)
-		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRemoteLoc]), "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, "tmc", cf[KeyRepoType], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRepoLoc]), "in test %d for %s %s", i, test.strConf, test.fileConf)
 
 	}
 }
 
-func TestTmcRemote_Fetch(t *testing.T) {
+func TestTmcRepo_Fetch(t *testing.T) {
 	const tmid = "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json"
 	const aid = "manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json"
 	const tm = "{\"id\":\"manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json\"}"
@@ -68,9 +68,9 @@ func TestTmcRemote_Fetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRemoteConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"tmc", "auth":{"bearer":"token123"}}`))
+	config, err := createTmcRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"tmc", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 	actId, b, err := r.Fetch(tmid)
 	assert.NoError(t, err)
@@ -78,17 +78,17 @@ func TestTmcRemote_Fetch(t *testing.T) {
 	assert.Equal(t, []byte(tm), b)
 }
 
-func TestTmcRemote_UpdateToc(t *testing.T) {
-	config, _ := createTmcRemoteConfig("http://example.com", nil)
-	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
+func TestTmcRepo_UpdateIndex(t *testing.T) {
+	config, _ := createTmcRepoConfig("http://example.com", nil)
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
-	err = r.UpdateToc()
+	err = r.Index()
 	assert.NoError(t, err)
 }
 
-func TestTmcRemote_List(t *testing.T) {
-	_, inventory, _ := utils.ReadRequiredFile("../../test/data/remotes/inventory_response.json")
-	_, inventorySingle, _ := utils.ReadRequiredFile("../../test/data/remotes/inventory_entry_response.json")
+func TestTmcRepo_List(t *testing.T) {
+	_, inventory, _ := utils.ReadRequiredFile("../../test/data/repos/inventory_response.json")
+	_, inventorySingle, _ := utils.ReadRequiredFile("../../test/data/repos/inventory_entry_response.json")
 
 	type ht struct {
 		name   string
@@ -112,9 +112,9 @@ func TestTmcRemote_List(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRemoteConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{
@@ -217,8 +217,8 @@ func TestTmcRemote_List(t *testing.T) {
 		})
 	}
 }
-func TestTmcRemote_Versions(t *testing.T) {
-	_, versionsResp, _ := utils.ReadRequiredFile("../../test/data/remotes/inventory_entry_versions_response.json")
+func TestTmcRepo_Versions(t *testing.T) {
+	_, versionsResp, _ := utils.ReadRequiredFile("../../test/data/repos/inventory_entry_versions_response.json")
 
 	type ht struct {
 		name    string
@@ -240,9 +240,9 @@ func TestTmcRemote_Versions(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRemoteConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{
@@ -298,7 +298,7 @@ func TestTmcRemote_Versions(t *testing.T) {
 		})
 	}
 }
-func TestTmcRemote_Push(t *testing.T) {
+func TestTmcRepo_Push(t *testing.T) {
 	_, pushBody, _ := utils.ReadRequiredFile("../../test/data/push/omnilamp.json")
 
 	type ht struct {
@@ -320,9 +320,9 @@ func TestTmcRemote_Push(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRemoteConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 	tmErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json"}
 
@@ -367,7 +367,7 @@ func TestTmcRemote_Push(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
-			err := r.Push(model.TMID{Name: "ignored in tmc remote"}, pushBody)
+			err := r.Push(model.TMID{Name: "ignored in tmc repo"}, pushBody)
 			if test.expErr == nil {
 				assert.NoError(t, err)
 			} else {
@@ -377,7 +377,7 @@ func TestTmcRemote_Push(t *testing.T) {
 	}
 }
 
-func TestTmcRemote_ListCompletions(t *testing.T) {
+func TestTmcRepo_ListCompletions(t *testing.T) {
 
 	type ht struct {
 		name       string
@@ -401,9 +401,9 @@ func TestTmcRemote_ListCompletions(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRemoteConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{
@@ -464,7 +464,7 @@ func TestTmcRemote_ListCompletions(t *testing.T) {
 	}
 }
 
-func TestTmcRemote_Delete(t *testing.T) {
+func TestTmcRepo_Delete(t *testing.T) {
 	type ht struct {
 		name     string
 		id       string
@@ -484,9 +484,9 @@ func TestTmcRemote_Delete(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRemoteConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil)
 	assert.NoError(t, err)
-	r, err := NewTmcRemote(config, model.NewRemoteSpec("nameless"))
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
 	tests := []ht{

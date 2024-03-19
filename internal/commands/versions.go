@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 type VersionsCommand struct {
@@ -11,8 +11,8 @@ type VersionsCommand struct {
 func NewVersionsCommand() *VersionsCommand {
 	return &VersionsCommand{}
 }
-func (c *VersionsCommand) ListVersions(spec model.RepoSpec, name string) ([]model.FoundVersion, error, []*remotes.RepoAccessError) {
-	rs, err := remotes.GetSpecdOrAll(spec)
+func (c *VersionsCommand) ListVersions(spec model.RepoSpec, name string) ([]model.FoundVersion, error, []*repos.RepoAccessError) {
+	rs, err := repos.GetSpecdOrAll(spec)
 	if err != nil {
 		return nil, err, nil
 	}

@@ -7,29 +7,21 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/cmd/completion"
+	"github.com/wot-oss/tmc/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
-	Use:   "push <file-or-dirname> [--remote=<remote-name>] [--opt-path=<optional/path>] [--opt-tree]",
-	Short: "Push a TM or directory with TMs to remote",
-	Long: `Push a single ThingModel or an directory with ThingModels to remote catalog.
+	Use:   "push <file-or-dirname>",
+	Short: "Push a TM or a directory with TMs to catalog",
+	Long: `Push a single Thing Model or a directory with Thing Models to a catalog.
 file-or-dirname
 	The name of the file or directory to push. Pushing a directory will walk the directory tree recursively and 
-	import all found ThingModels.
+	push all found ThingModels.
 
-Specifying the repository with --directory or --remote is optional if there's exactly one remote configured
-
---opt-path, -p
-	Appends optional path parts to the target path (and id) of imported files, after the mandatory path structure.
-
---opt-tree, -t
-	Use original directory tree structure below file-or-dirname as --opt-path for each found ThingModel file.
-	Has no effect when file-or-dirname points to a file.
-	Overrides --opt-path.
+Specifying the target repository with --directory or --repo is optional if there's exactly one enabled named catalog in the config
 `,
 	Args: cobra.ExactArgs(1),
 	Run:  executePush,
@@ -37,23 +29,25 @@ Specifying the repository with --directory or --remote is optional if there's ex
 
 func init() {
 	RootCmd.AddCommand(pushCmd)
-	pushCmd.Flags().StringP("remote", "r", "", "the target remote. can be omitted if there's only one")
-	_ = pushCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
-	pushCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	pushCmd.Flags().StringP("repo", "r", "", "Name of the target repository. Can be omitted if there's only one")
+	_ = pushCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	pushCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = pushCmd.MarkFlagDirname("directory")
-	pushCmd.Flags().StringP("opt-path", "p", "", "append optional path to mandatory target directory structure")
-	_ = pushCmd.RegisterFlagCompletionFunc("remote", completion.NoCompletionNoFile)
-	pushCmd.Flags().BoolP("opt-tree", "t", false, "use original directory tree as optional path for each file. Has no effect with a single file. Overrides -p")
+	pushCmd.Flags().StringP("opt-path", "p", "", "Appends optional path parts to the target path (and id) of imported files, after the mandatory path structure")
+	_ = pushCmd.RegisterFlagCompletionFunc("repo", completion.NoCompletionNoFile)
+	pushCmd.Flags().BoolP("opt-tree", "t", false, `Use original directory tree structure below file-or-dirname as --opt-path for each found ThingModel file.
+	Has no effect when file-or-dirname points to a file.
+	Overrides --opt-path`)
 }
 
 func executePush(cmd *cobra.Command, args []string) {
-	remoteName := cmd.Flag("remote").Value.String()
+	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 	optPath := cmd.Flag("opt-path").Value.String()
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
-	spec, err := model.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(repoName, dirName)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 

@@ -6,33 +6,33 @@ import (
 	"strconv"
 	"text/tabwriter"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 // TODO: figure out how to use viper
 const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
-func List(remote model.RepoSpec, search *model.SearchParams) error {
-	toc, err, errs := commands.List(remote, search)
+func List(repo model.RepoSpec, search *model.SearchParams) error {
+	index, err, errs := commands.List(repo, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
 	}
 
-	printToC(toc)
+	printIndex(index)
 	printErrs("Errors occurred while listing:", errs)
 	return nil
 }
 
 // TODO: use better table writer with eliding etc.
-func printToC(toc model.SearchResult) {
+func printIndex(res model.SearchResult) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	_, _ = fmt.Fprintf(table, "NAME\tAUTHOR\tMANUFACTURER\tMPN\n")
-	for _, value := range toc.Entries {
+	for _, value := range res.Entries {
 		name := value.Name
 		man := elideString(value.Manufacturer.Name, colWidth)
 		mpn := elideString(value.Mpn, colWidth)

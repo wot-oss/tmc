@@ -8,14 +8,14 @@ import (
 	nethttp "net/http"
 	"net/url"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/cors"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/app/http/cors"
+	"github.com/wot-oss/tmc/internal/model"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/jwt"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/app/http/jwt"
+	"github.com/wot-oss/tmc/internal/app/http/server"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/wot-oss/tmc/internal/app/http"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 //go:embed banner.txt
@@ -40,11 +40,11 @@ func Serve(host, port string, opts ServeOptions, repo, pushTarget model.RepoSpec
 		Stderrf(err.Error())
 		return err
 	}
-	_, err = remotes.Get(pushTarget)
+	_, err = repos.Get(pushTarget)
 	if err != nil {
-		if errors.Is(err, remotes.ErrAmbiguous) {
-			Stderrf("must specify target for push with --pushTarget when there are multiple remotes configured")
-		} else if errors.Is(err, remotes.ErrRemoteNotFound) {
+		if errors.Is(err, repos.ErrAmbiguous) {
+			Stderrf("must specify target for push with --pushTarget when there are multiple repos configured")
+		} else if errors.Is(err, repos.ErrRepoNotFound) {
 			Stderrf("invalid --pushTarget: %v", err)
 		} else {
 			Stderrf(err.Error())
@@ -79,7 +79,7 @@ func Serve(host, port string, opts ServeOptions, repo, pushTarget model.RepoSpec
 
 	// valid configuration, we can print the banner and start the server
 	fmt.Println(banner)
-	fmt.Printf("Version of tm-catalog-cli: %s\n", TmcVersion)
+	fmt.Printf("Version of tmc: %s\n", TmcVersion)
 	fmt.Printf("Starting tm-catalog server on %s:%s\n", host, port)
 
 	// start server

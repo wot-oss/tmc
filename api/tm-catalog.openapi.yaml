@@ -6,7 +6,7 @@ info:
   contact: {}  
 externalDocs:
   description: Find out more about Thing Model Catalog
-  url: https://github.com/web-of-things-open-source/tm-catalog-cli
+  url: https://github.com/wot-oss/tmc
 servers:
   - url: ''
 security:

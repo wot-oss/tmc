@@ -4,12 +4,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
-func CompleteRemoteNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	config, err := remotes.ReadConfig()
+func CompleteRepoNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	config, err := repos.ReadConfig()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
@@ -22,8 +22,8 @@ func CompleteRemoteNames(cmd *cobra.Command, args []string, toComplete string) (
 	return rNames, cobra.ShellCompDirectiveNoFileComp
 }
 
-func CompleteRemoteTypes(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	return remotes.SupportedTypes, cobra.ShellCompDirectiveNoFileComp
+func CompleteRepoTypes(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return repos.SupportedTypes, cobra.ShellCompDirectiveNoFileComp
 }
 
 func NoCompletionNoFile(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
@@ -39,37 +39,37 @@ func CompleteFetchNames(cmd *cobra.Command, args []string, toComplete string) ([
 		return names, dir
 	}
 
-	rs, err := getRemote(cmd)
+	rs, err := getRepo(cmd)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	fns := rs.ListCompletions(remotes.CompletionKindFetchNames, toComplete)
+	fns := rs.ListCompletions(repos.CompletionKindFetchNames, toComplete)
 	return fns, cobra.ShellCompDirectiveNoFileComp
 
 }
 
-func getRemote(cmd *cobra.Command) (*remotes.Union, error) {
-	remoteName := cmd.Flag("remote").Value.String()
+func getRepo(cmd *cobra.Command) (*repos.Union, error) {
+	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 
-	spec, err := model.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(repoName, dirName)
 	if err != nil {
 		return nil, err
 	}
 
-	u, err := remotes.GetSpecdOrAll(spec)
+	u, err := repos.GetSpecdOrAll(spec)
 	if err != nil {
 		return nil, err
 	}
 	return u, nil
 }
 func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	rs, err := getRemote(cmd)
+	rs, err := getRepo(cmd)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	cs := rs.ListCompletions(remotes.CompletionKindNames, toComplete)
+	cs := rs.ListCompletions(repos.CompletionKindNames, toComplete)
 	return cs, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }

@@ -1,18 +1,18 @@
-package remote
+package repo
 
 import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
+	"github.com/wot-oss/tmc/cmd/completion"
+	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
-// remoteAddCmd represents the 'remote add' command
-var remoteAddCmd = &cobra.Command{
+// repoAddCmd represents the 'repo add' command
+var repoAddCmd = &cobra.Command{
 	Use:   "add [--type <type>] <name> (<config> | --file <configFileName>)",
-	Short: "Add a remote repository",
-	Long: `Add a remote repository to the tm-catalog-cli configuration file. Depending on the remote type,
+	Short: "Add a named repository",
+	Long: `Add a named repository to the tmc configuration file. Depending on the repository type,
 the config may be a simple string, like a URL, or a json file.
 --type is optional only if --file is used and the type is specified there.
 `,
@@ -35,7 +35,7 @@ the config may be a simple string, like a URL, or a json file.
 			os.Exit(1)
 		}
 
-		err = cli.RemoteAdd(name, typ, confStr, confFile)
+		err = cli.RepoAdd(name, typ, confStr, confFile)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -44,8 +44,8 @@ the config may be a simple string, like a URL, or a json file.
 }
 
 func init() {
-	remoteCmd.AddCommand(remoteAddCmd)
-	remoteAddCmd.Flags().StringP("type", "t", "", "type of remote to add")
-	_ = remoteAddCmd.RegisterFlagCompletionFunc("type", completion.CompleteRemoteTypes)
-	remoteAddCmd.Flags().StringP("file", "f", "", "name of the file to read remote config from")
+	repoCmd.AddCommand(repoAddCmd)
+	repoAddCmd.Flags().StringP("type", "t", "", "type of repo to add")
+	_ = repoAddCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
+	repoAddCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
 }

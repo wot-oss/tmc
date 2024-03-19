@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd"
-	_ "github.com/web-of-things-open-source/tm-catalog-cli/cmd/remote"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
+	"github.com/wot-oss/tmc/cmd"
+	_ "github.com/wot-oss/tmc/cmd/repo"
+	"github.com/wot-oss/tmc/internal"
+	"github.com/wot-oss/tmc/internal/config"
 )
 
 func init() {

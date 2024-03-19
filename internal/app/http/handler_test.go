@@ -10,16 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/mocks"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils"
+	"github.com/wot-oss/tmc/internal/app/http/mocks"
+	"github.com/wot-oss/tmc/internal/testutils"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func Test_getRelativeDepth(t *testing.T) {
@@ -220,7 +220,7 @@ func Test_Inventory(t *testing.T) {
 	})
 
 	t.Run("with repository access error", func(t *testing.T) {
-		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, remotes.NewRepoAccessError(model.NewRemoteSpec("rem"), errors.New("unexpected"))).Once()
+		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 502 and json error as body
@@ -485,7 +485,7 @@ func Test_FetchThingModel(t *testing.T) {
 	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
-	t.Run("with valid remotes", func(t *testing.T) {
+	t.Run("with valid repo", func(t *testing.T) {
 		hs.On("FetchThingModel", nil, tmID, false).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -528,7 +528,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID, false).Return(nil, remotes.ErrTmNotFound).Once()
+		hs.On("FetchThingModel", nil, tmID, false).Return(nil, repos.ErrTmNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -599,8 +599,8 @@ func Test_PushThingModel(t *testing.T) {
 
 	t.Run("with conflicting id", func(t *testing.T) {
 		// given: a thing model file that conflicts with existing id
-		cErr := &remotes.ErrTMIDConflict{
-			Type:       remotes.IdConflictSameTimestamp,
+		cErr := &repos.ErrTMIDConflict{
+			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
 		hs.On("PushThingModel", nil, tmContent).Return("", cErr).Once()
@@ -674,7 +674,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, tmID).Return(remotes.ErrTmNotFound).Once()
+		hs.On("DeleteThingModel", mock.Anything, tmID).Return(repos.ErrTmNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -691,7 +691,7 @@ func Test_Completions(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("no parameters", func(t *testing.T) {
-		hs.On("GetCompletions", mock.Anything, "", "").Return(nil, remotes.ErrInvalidCompletionParams).Once()
+		hs.On("GetCompletions", mock.Anything, "", "").Return(nil, repos.ErrInvalidCompletionParams).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -703,7 +703,7 @@ func Test_Completions(t *testing.T) {
 	})
 
 	t.Run("unknown completion kind", func(t *testing.T) {
-		hs.On("GetCompletions", mock.Anything, "something", "").Return(nil, remotes.ErrInvalidCompletionParams).Once()
+		hs.On("GetCompletions", mock.Anything, "something", "").Return(nil, repos.ErrInvalidCompletionParams).Once()
 
 		// when: calling the route
 		rr := fmt.Sprintf("%s?kind=something", route)
@@ -766,7 +766,7 @@ func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
-func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *remotes.ErrTMIDConflict) {
+func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *repos.ErrTMIDConflict) {
 	assert.Equal(t, http.StatusConflict, rec.Code)
 	var errResponse server.ErrorResponse
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
@@ -774,7 +774,7 @@ func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assert.Equal(t, route, *errResponse.Instance)
 	assert.Equal(t, Error409Title, errResponse.Title)
 	if assert.NotNil(t, errResponse.Code) {
-		cErr, err := remotes.ParseErrTMIDConflict(*errResponse.Code)
+		cErr, err := repos.ParseErrTMIDConflict(*errResponse.Code)
 		assert.NoError(t, err)
 		assert.Equal(t, idErr, cErr)
 	}
@@ -873,7 +873,7 @@ var (
 				Mpn:          "BT2000",
 				Versions: []model.FoundVersion{
 					{
-						TOCVersion: model.TOCVersion{
+						IndexVersion: model.IndexVersion{
 							TMID:        "a-corp/eagle/BT2000/v1.0.0-20240108140117-243d1b462ccc.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -881,10 +881,10 @@ var (
 							TimeStamp:   "20240108140117",
 							ExternalID:  "ext-2",
 						},
-						FoundIn: model.FoundSource{RemoteName: "r1"},
+						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 					{
-						TOCVersion: model.TOCVersion{
+						IndexVersion: model.IndexVersion{
 							TMID:        "a-corp/eagle/BT2000/v1.0.0-20231231153548-243d1b462ddd.tm.json",
 							Description: "desc version v0.0.0",
 							Version:     model.Version{Model: "0.0.0"},
@@ -892,7 +892,7 @@ var (
 							TimeStamp:   "20231231153548",
 							ExternalID:  "ext-1",
 						},
-						FoundIn: model.FoundSource{RemoteName: "r1"},
+						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 				},
 			},
@@ -903,7 +903,7 @@ var (
 				Mpn:          "BT3000",
 				Versions: []model.FoundVersion{
 					{
-						TOCVersion: model.TOCVersion{
+						IndexVersion: model.IndexVersion{
 							TMID:        "b-corp/frog/BT3000/v1.0.0-20240108140117-743d1b462uuu.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -911,7 +911,7 @@ var (
 							TimeStamp:   "20240108140117",
 							ExternalID:  "ext-3",
 						},
-						FoundIn: model.FoundSource{RemoteName: "r1"},
+						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 				},
 			},
@@ -927,7 +927,7 @@ var (
 				Mpn:          "PM20",
 				Versions: []model.FoundVersion{
 					{
-						TOCVersion: model.TOCVersion{
+						IndexVersion: model.IndexVersion{
 							TMID:        "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -935,7 +935,7 @@ var (
 							TimeStamp:   "20240107123001",
 							ExternalID:  "ext-4",
 						},
-						FoundIn: model.FoundSource{RemoteName: "r2"},
+						FoundIn: model.FoundSource{RepoName: "r2"},
 					},
 				},
 			},

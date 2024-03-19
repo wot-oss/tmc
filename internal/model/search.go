@@ -21,20 +21,20 @@ type FoundEntry struct {
 	Versions     []FoundVersion
 }
 type FoundVersion struct {
-	TOCVersion
+	IndexVersion
 	FoundIn FoundSource
 }
 
 type FoundSource struct {
-	Directory  string
-	RemoteName string
+	Directory string
+	RepoName  string
 }
 
 func (s FoundSource) String() string {
 	if s.Directory != "" {
 		return s.Directory
 	}
-	return "<" + s.RemoteName + ">"
+	return "<" + s.RepoName + ">"
 }
 
 func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {

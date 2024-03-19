@@ -9,17 +9,17 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes/mocks"
-	rMocks "github.com/web-of-things-open-source/tm-catalog-cli/internal/testutils/remotesmocks"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos/mocks"
+	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
 func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 	old := os.Stdout
 
-	r := mocks.NewRemote(t)
+	r := mocks.NewRepo(t)
 
-	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("repo"), r, nil))
 	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").
 		Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
 
@@ -31,7 +31,7 @@ func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 		io.Copy(&buf, rr)
 		outC <- buf.String()
 	}()
-	err := Fetch(model.NewRemoteSpec("remote"), "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", "", false)
+	err := Fetch(model.NewRepoSpec("repo"), "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", "", false)
 	assert.NoError(t, err)
 	os.Stdout = old
 	_ = w.Close()
@@ -48,12 +48,12 @@ func TestFetchExecutor_Fetch_To_OutputFolder(t *testing.T) {
 	const aid = "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json"
 	var tm = []byte("{}")
 
-	r := mocks.NewRemote(t)
-	rMocks.MockRemotesGet(t, rMocks.CreateMockGetFunction(t, model.NewRemoteSpec("remote"), r, nil))
+	r := mocks.NewRepo(t)
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("repo"), r, nil))
 	r.On("Fetch", tmid).Return(aid, tm, nil)
 
 	// when: fetching to output folder
-	err = Fetch(model.NewRemoteSpec("remote"), tmid, temp, false)
+	err = Fetch(model.NewRepoSpec("repo"), tmid, temp, false)
 	// then: the file exists below the output folder with tree structure given by the ID
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, aid))
@@ -62,7 +62,7 @@ func TestFetchExecutor_Fetch_To_OutputFolder(t *testing.T) {
 
 	// when: fetching again the ID to same output folder
 	time.Sleep(time.Millisecond * 200)
-	err = Fetch(model.NewRemoteSpec("remote"), tmid, temp, false)
+	err = Fetch(model.NewRepoSpec("repo"), tmid, temp, false)
 	// then: the file has been overwritten and has a newer mod time
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, aid))
@@ -74,7 +74,7 @@ func TestFetchExecutor_Fetch_To_OutputFolder(t *testing.T) {
 	fileNoDir := filepath.Join(temp, "file.txt")
 	_ = os.WriteFile(fileNoDir, []byte("text"), 0660)
 	// when: fetching to output folder
-	err = Fetch(model.NewRemoteSpec("remote"), tmid, fileNoDir, false)
+	err = Fetch(model.NewRepoSpec("repo"), tmid, fileNoDir, false)
 	// then: an error is returned
 	assert.Error(t, err)
 }

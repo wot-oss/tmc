@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/web-of-things-open-source/tm-catalog-cli/cmd/completion"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/cli"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/cmd/completion"
+	"github.com/wot-oss/tmc/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 var deleteCmd = &cobra.Command{
@@ -23,21 +23,21 @@ or by mistake. Therefore, it is mandatory to provide the flag --force=true to de
 
 func init() {
 	RootCmd.AddCommand(deleteCmd)
-	deleteCmd.Flags().StringP("remote", "r", "", "name of the remote to delete from")
-	_ = deleteCmd.RegisterFlagCompletionFunc("remote", completion.CompleteRemoteNames)
-	deleteCmd.Flags().StringP("directory", "d", "", "TM repository directory")
+	deleteCmd.Flags().StringP("repo", "r", "", "name of the repository to delete from")
+	_ = deleteCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	deleteCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = deleteCmd.MarkFlagDirname("directory")
 	deleteCmd.Flags().String("force", "", "force the deletion") // intentionally a string flag, not boolean, so that the user has to make that much extra effort to type
 }
 
 func executeDelete(cmd *cobra.Command, args []string) {
-	remoteName := cmd.Flag("remote").Value.String()
+	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
 	force := cmd.Flag("force").Value.String()
 
-	spec, err := model.NewSpec(remoteName, dirName)
+	spec, err := model.NewSpec(repoName, dirName)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --remote and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 

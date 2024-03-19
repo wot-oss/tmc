@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"context"
@@ -14,47 +14,47 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const (
 	defaultDirPermissions  = 0775
 	defaultFilePermissions = 0664
-	tocLockTimeout         = 5 * time.Second
-	tocLocRetryDelay       = 13 * time.Millisecond
+	indexLockTimeout       = 5 * time.Second
+	indexLocRetryDelay     = 13 * time.Millisecond
 	errTmExistsPrefix      = "Thing Model already exists under id: "
 
 	TMExt = ".tm.json"
 )
 
 var ErrRootInvalid = errors.New("root is not a directory")
-var ErrTocLocked = errors.New("could not acquire lock on TOC file")
+var ErrIndexLocked = errors.New("could not acquire lock on index file")
 var osStat = os.Stat         // mockable for testing
 var osReadFile = os.ReadFile // mockable for testing
 
-// FileRemote implements a Remote TM repository backed by a file system
-type FileRemote struct {
+// FileRepo implements a Repo TM repository backed by a file system
+type FileRepo struct {
 	root string
 	spec model.RepoSpec
 }
 
-func NewFileRemote(config map[string]any, spec model.RepoSpec) (*FileRemote, error) {
-	loc := utils.JsGetString(config, KeyRemoteLoc)
+func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) {
+	loc := utils.JsGetString(config, KeyRepoLoc)
 	if loc == nil {
-		return nil, fmt.Errorf("invalid file remote config. loc is either not found or not a string")
+		return nil, fmt.Errorf("invalid file repo config. loc is either not found or not a string")
 	}
 	rootPath, err := utils.ExpandHome(*loc)
 	if err != nil {
 		return nil, err
 	}
-	return &FileRemote{
+	return &FileRepo{
 		root: rootPath,
 		spec: spec,
 	}, nil
 }
 
-func (f *FileRemote) Push(id model.TMID, raw []byte) error {
+func (f *FileRepo) Push(id model.TMID, raw []byte) error {
 	if len(raw) == 0 {
 		return errors.New("nothing to write")
 	}
@@ -84,7 +84,7 @@ func (f *FileRemote) Push(id model.TMID, raw []byte) error {
 	return nil
 }
 
-func (f *FileRemote) Delete(id string) error {
+func (f *FileRepo) Delete(id string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func rmEmptyDirs(from string, upTo string) error {
 	return nil
 }
 
-func (f *FileRemote) filenames(id string) (string, string, string) {
+func (f *FileRepo) filenames(id string) (string, string, string) {
 	fullPath := filepath.Join(f.root, id)
 	dir := filepath.Dir(fullPath)
 	base := filepath.Base(fullPath)
@@ -153,9 +153,9 @@ const (
 	idMatchTimestamp // semver and timestamp match
 )
 
-func (f *FileRemote) getExistingID(ids string) (idMatch, string) {
+func (f *FileRepo) getExistingID(ids string) (idMatch, string) {
 	fullName, dir, base := f.filenames(ids)
-	// try full remoteName as given
+	// try full repoName as given
 	if _, err := os.Stat(fullName); err == nil {
 		return idMatchFull, ids
 	}
@@ -212,7 +212,7 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 	return res
 }
 
-func (f *FileRemote) Fetch(id string) (string, []byte, error) {
+func (f *FileRepo) Fetch(id string) (string, []byte, error) {
 	err := f.checkRootValid()
 	if err != nil {
 		return "", nil, err
@@ -235,19 +235,19 @@ func checkIdValid(id string) error {
 	return err
 }
 
-func (f *FileRemote) UpdateToc(ids ...string) error {
+func (f *FileRepo) Index(ids ...string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err
 	}
-	return f.updateToc(ids)
+	return f.updateIndex(ids)
 }
 
-func (f *FileRemote) Spec() model.RepoSpec {
+func (f *FileRepo) Spec() model.RepoSpec {
 	return f.spec
 }
 
-func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error) {
+func (f *FileRepo) List(search *model.SearchParams) (model.SearchResult, error) {
 	log := slog.Default()
 	log.Debug(fmt.Sprintf("Creating list with filter '%v'", search))
 
@@ -256,54 +256,54 @@ func (f *FileRemote) List(search *model.SearchParams) (model.SearchResult, error
 		return model.SearchResult{}, err
 	}
 
-	unlock, err := f.lockTOC()
+	unlock, err := f.lockIndex()
 	defer unlock()
 	if err != nil {
 		return model.SearchResult{}, err
 	}
 
-	toc, err := f.readTOC()
+	idx, err := f.readIndex()
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	toc.Filter(search)
-	return model.NewTOCToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(toc), nil
+	idx.Filter(search)
+	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(idx), nil
 }
 
-// readToc reads the contents of the TOC file. Must be called after the lock is acquired with lockToc()
-func (f *FileRemote) readTOC() (model.TOC, error) {
-	data, err := os.ReadFile(f.tocFilename())
+// readIndex reads the contents of the index file. Must be called after the lock is acquired with lockIndex()
+func (f *FileRepo) readIndex() (model.Index, error) {
+	data, err := os.ReadFile(f.indexFilename())
 	if err != nil {
-		return model.TOC{}, errors.New("no table of contents found. Run `update-toc` for this remote")
+		return model.Index{}, errors.New("no table of contents found. Run `index` for this repo")
 	}
 
-	var toc model.TOC
-	err = json.Unmarshal(data, &toc)
-	return toc, err
+	var index model.Index
+	err = json.Unmarshal(data, &index)
+	return index, err
 }
 
-func (f *FileRemote) tocFilename() string {
-	return filepath.Join(f.root, RepoConfDir, TOCFilename)
+func (f *FileRepo) indexFilename() string {
+	return filepath.Join(f.root, RepoConfDir, IndexFilename)
 }
 
-func (f *FileRemote) Versions(name string) ([]model.FoundVersion, error) {
+func (f *FileRepo) Versions(name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	name = strings.TrimSpace(name)
-	toc, err := f.List(&model.SearchParams{Name: name})
+	res, err := f.List(&model.SearchParams{Name: name})
 	if err != nil {
 		return nil, err
 	}
 
-	if len(toc.Entries) != 1 {
+	if len(res.Entries) != 1 {
 		err := fmt.Errorf("%w: %s", ErrTmNotFound, name)
 		log.Error(err.Error())
 		return nil, err
 	}
 
-	return toc.Entries[0].Versions, nil
+	return res.Entries[0].Versions, nil
 }
 
-func (f *FileRemote) checkRootValid() error {
+func (f *FileRepo) checkRootValid() error {
 	stat, err := os.Stat(f.root)
 	if err != nil || !stat.IsDir() {
 		return fmt.Errorf("%s: %w", f.Spec(), ErrRootInvalid)
@@ -311,28 +311,28 @@ func (f *FileRemote) checkRootValid() error {
 	return nil
 }
 
-func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error) {
+func createFileRepoConfig(dirName string, bytes []byte) (map[string]any, error) {
 	if dirName != "" {
 		absDir, err := makeAbs(dirName)
 		if err != nil {
 			return nil, err
 		}
 		return map[string]any{
-			KeyRemoteType: RemoteTypeFile,
-			KeyRemoteLoc:  absDir,
+			KeyRepoType: RepoTypeFile,
+			KeyRepoLoc:  absDir,
 		}, nil
 	} else {
-		rc, err := AsRemoteConfig(bytes)
+		rc, err := AsRepoConfig(bytes)
 		if err != nil {
 			return nil, err
 		}
-		if rType := utils.JsGetString(rc, KeyRemoteType); rType != nil {
-			if *rType != RemoteTypeFile {
+		if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
+			if *rType != RepoTypeFile {
 				return nil, fmt.Errorf("invalid json config. type must be \"file\" or absent")
 			}
 		}
-		rc[KeyRemoteType] = RemoteTypeFile
-		l := utils.JsGetString(rc, KeyRemoteLoc)
+		rc[KeyRepoType] = RepoTypeFile
+		l := utils.JsGetString(rc, KeyRepoLoc)
 		if l == nil {
 			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
 		}
@@ -340,7 +340,7 @@ func createFileRemoteConfig(dirName string, bytes []byte) (map[string]any, error
 		if err != nil {
 			return nil, err
 		}
-		rc[KeyRemoteLoc] = la
+		rc[KeyRepoLoc] = la
 		return rc, nil
 	}
 }
@@ -360,29 +360,29 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRemote) updateToc(ids []string) error {
+func (f *FileRepo) updateIndex(ids []string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
 
-	cancel, err := f.lockTOC()
+	cancel, err := f.lockIndex()
 	defer cancel()
 	if err != nil {
 		return err
 	}
 
-	var newTOC *model.TOC
+	var newIndex *model.Index
 	names := f.readNamesFile()
 
 	if len(ids) == 0 { // full rebuild
-		newTOC = &model.TOC{
-			Meta: model.TOCMeta{Created: time.Now()},
-			Data: []*model.TOCEntry{},
+		newIndex = &model.Index{
+			Meta: model.IndexMeta{Created: time.Now()},
+			Data: []*model.IndexEntry{},
 		}
 		names = nil
 		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
-			upd, name, _, err := f.updateTocWithFile(newTOC, path, info, log, err)
+			upd, name, _, err := f.updateIndexWithFile(newIndex, path, info, log, err)
 			if err != nil {
 				return err
 			}
@@ -397,19 +397,19 @@ func (f *FileRemote) updateToc(ids []string) error {
 		}
 
 	} else { // partial update
-		toc, err := f.readTOC()
+		index, err := f.readIndex()
 		if err != nil {
-			newTOC = &model.TOC{
-				Meta: model.TOCMeta{Created: time.Now()},
-				Data: []*model.TOCEntry{},
+			newIndex = &model.Index{
+				Meta: model.IndexMeta{Created: time.Now()},
+				Data: []*model.IndexEntry{},
 			}
 		} else {
-			newTOC = &toc
+			newIndex = &index
 		}
 		for _, id := range ids {
 			path := filepath.Join(f.root, id)
 			info, statErr := osStat(path)
-			upd, name, nameDeleted, err := f.updateTocWithFile(newTOC, path, info, log, statErr)
+			upd, name, nameDeleted, err := f.updateIndexWithFile(newIndex, path, info, log, statErr)
 			if err != nil {
 				return err
 			}
@@ -428,8 +428,8 @@ func (f *FileRemote) updateToc(ids []string) error {
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
-	newTOCJson, _ := json.MarshalIndent(newTOC, "", "  ")
-	err = utils.AtomicWriteFile(f.tocFilename(), newTOCJson, defaultFilePermissions)
+	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
+	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
 	if err != nil {
 		return err
 	}
@@ -437,17 +437,17 @@ func (f *FileRemote) updateToc(ids []string) error {
 	if err != nil {
 		return err
 	}
-	msg := "Updated table of content with %d entries in %s "
+	msg := "Updated index with %d entries in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
 	return nil
 }
 
-func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
+func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
 	if os.IsNotExist(err) {
 		id, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
 		id, _ = strings.CutPrefix(id, "/")
-		upd, name, err := newTOC.Delete(id)
+		upd, name, err := idx.Delete(id)
 		if err != nil {
 			return false, "", "", err
 		}
@@ -468,11 +468,11 @@ func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.F
 		log.Error("The file will be excluded from the table of contents.")
 		return false, "", "", nil
 	}
-	tmid, err := newTOC.Insert(&thingMeta)
+	tmid, err := idx.Insert(&thingMeta)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to insert %s into toc:", path))
+		log.Error(fmt.Sprintf("Failed to insert %s into index:", path))
 		log.Error(err.Error())
-		log.Error("The file will be excluded from the table of contents.")
+		log.Error("The file will be excluded from index")
 		return false, "", "", nil
 	}
 	return true, tmid.Name, "", nil
@@ -480,7 +480,7 @@ func (f *FileRemote) updateTocWithFile(newTOC *model.TOC, path string, info os.F
 
 type unlockFunc func()
 
-func (f *FileRemote) lockTOC() (unlockFunc, error) {
+func (f *FileRepo) lockIndex() (unlockFunc, error) {
 	rd := filepath.Join(f.root, RepoConfDir)
 	stat, err := os.Stat(rd)
 	if err != nil || !stat.IsDir() {
@@ -489,44 +489,44 @@ func (f *FileRemote) lockTOC() (unlockFunc, error) {
 			return func() {}, err
 		}
 	}
-	tocFile := f.tocFilename()
+	idxFile := f.indexFilename()
 
-	fl := flock.New(tocFile + ".lock")
-	ctx, cancel := context.WithTimeout(context.Background(), tocLockTimeout)
+	fl := flock.New(idxFile + ".lock")
+	ctx, cancel := context.WithTimeout(context.Background(), indexLockTimeout)
 	unlock := func() {
 		cancel()
 		_ = fl.Unlock()
 	}
-	locked, err := fl.TryLockContext(ctx, tocLocRetryDelay)
+	locked, err := fl.TryLockContext(ctx, indexLocRetryDelay)
 	if err != nil {
 		return unlock, err
 	}
 	if !locked {
-		return unlock, ErrTocLocked
+		return unlock, ErrIndexLocked
 	}
 
-	f.moveOldToc(tocFile)
+	f.moveOldIndex(idxFile)
 
 	return unlock, nil
 }
 
-// moveOldToc attempts to move the TOC file at root to .tmc folder and remove old lock file
+// moveOldIndex attempts to move the index file at root to .tmc folder and remove old lock file
 // ignores all errors
-func (f *FileRemote) moveOldToc(tocFile string) {
-	oldToc := filepath.Join(f.root, TOCFilename)
-	_, errOld := os.Stat(oldToc)
-	_, errNew := os.Stat(tocFile)
+func (f *FileRepo) moveOldIndex(idxFile string) {
+	oldIdx := filepath.Join(f.root, IndexFilename)
+	_, errOld := os.Stat(oldIdx)
+	_, errNew := os.Stat(idxFile)
 	if errOld == nil && errNew != nil {
-		_ = os.Rename(oldToc, tocFile)
+		_ = os.Rename(oldIdx, idxFile)
 	}
-	_ = os.Remove(oldToc + ".lock")
+	_ = os.Remove(oldIdx + ".lock")
 }
 
-func (f *FileRemote) readNamesFile() []string {
+func (f *FileRepo) readNamesFile() []string {
 	lines, _ := utils.ReadFileLines(filepath.Join(f.root, RepoConfDir, TmNamesFile))
 	return lines
 }
-func (f *FileRemote) writeNamesFile(names []string) error {
+func (f *FileRepo) writeNamesFile(names []string) error {
 	slices.Sort(names)
 	names = slices.Compact(names)
 	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, TmNamesFile), defaultFilePermissions)
@@ -547,10 +547,10 @@ func getThingMetadata(path string) (model.ThingModel, error) {
 	return ctm, nil
 }
 
-func (f *FileRemote) ListCompletions(kind string, toComplete string) ([]string, error) {
+func (f *FileRepo) ListCompletions(kind string, toComplete string) ([]string, error) {
 	switch kind {
 	case CompletionKindNames:
-		unlock, err := f.lockTOC()
+		unlock, err := f.lockIndex()
 		defer unlock()
 		if err != nil {
 			return nil, err

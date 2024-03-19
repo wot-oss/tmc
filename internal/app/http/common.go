@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 const (
@@ -79,19 +79,19 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errStatus := http.StatusInternalServerError
 	errCode := ""
 
-	var eErr *remotes.ErrTMIDConflict
-	var aErr *remotes.RepoAccessError
+	var eErr *repos.ErrTMIDConflict
+	var aErr *repos.RepoAccessError
 	var bErr *BaseHttpError
 
 	switch true {
 	// handle sentinel errors with errors.Is()
-	case errors.Is(err, remotes.ErrTmNotFound):
+	case errors.Is(err, repos.ErrTmNotFound):
 		errTitle = Error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidId),
 		errors.Is(err, commands.ErrInvalidFetchName),
-		errors.Is(err, remotes.ErrInvalidCompletionParams):
+		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
@@ -246,11 +246,11 @@ func convertParams(params any) *model.SearchParams {
 	return &searchParams
 }
 
-func toInventoryResponse(ctx context.Context, toc model.SearchResult) server.InventoryResponse {
+func toInventoryResponse(ctx context.Context, res model.SearchResult) server.InventoryResponse {
 	mapper := NewMapper(ctx)
 
-	meta := mapper.GetInventoryMeta(toc)
-	inv := mapper.GetInventoryData(toc.Entries)
+	meta := mapper.GetInventoryMeta(res)
+	inv := mapper.GetInventoryData(res.Entries)
 	resp := server.InventoryResponse{
 		Meta: &meta,
 		Data: inv,
@@ -258,20 +258,20 @@ func toInventoryResponse(ctx context.Context, toc model.SearchResult) server.Inv
 	return resp
 }
 
-func toInventoryEntryResponse(ctx context.Context, tocEntry model.FoundEntry) server.InventoryEntryResponse {
+func toInventoryEntryResponse(ctx context.Context, e model.FoundEntry) server.InventoryEntryResponse {
 	mapper := NewMapper(ctx)
 
-	invEntry := mapper.GetInventoryEntry(tocEntry)
+	invEntry := mapper.GetInventoryEntry(e)
 	resp := server.InventoryEntryResponse{
 		Data: invEntry,
 	}
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(ctx context.Context, tocVersions []model.FoundVersion) server.InventoryEntryVersionsResponse {
+func toInventoryEntryVersionsResponse(ctx context.Context, versions []model.FoundVersion) server.InventoryEntryVersionsResponse {
 	mapper := NewMapper(ctx)
 
-	invEntryVersions := mapper.GetInventoryEntryVersions(tocVersions)
+	invEntryVersions := mapper.GetInventoryEntryVersions(versions)
 	resp := server.InventoryEntryVersionsResponse{
 		Data: invEntryVersions,
 	}

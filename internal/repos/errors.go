@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"errors"
@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	ErrAmbiguous               = errors.New("multiple remotes configured, but remote target not specified")
-	ErrRemoteNotFound          = errors.New("remote not found")
-	ErrInvalidRemoteName       = errors.New("invalid remote remoteName")
-	ErrRemoteExists            = errors.New("named remote already exists")
+	ErrAmbiguous               = errors.New("multiple repos configured, but target repo not specified")
+	ErrRepoNotFound            = errors.New("repo not found")
+	ErrInvalidRepoName         = errors.New("invalid repo name")
+	ErrRepoExists              = errors.New("named repo already exists")
 	ErrTmNotFound              = errors.New("TM not found")
 	ErrInvalidErrorCode        = errors.New("invalid error code")
 	ErrInvalidCompletionParams = errors.New("invalid completion parameters")

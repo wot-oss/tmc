@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/config"
+	"github.com/wot-oss/tmc/internal/config"
 )
 
 type DefaultLogHandler struct {

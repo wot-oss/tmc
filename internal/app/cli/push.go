@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 type PushResultType int
@@ -55,12 +55,12 @@ func NewPushExecutor(now commands.Now) *PushExecutor {
 	}
 }
 
-// Push pushes file or directory to remote repository
+// Push pushes file or directory to the specified repository
 // Returns the list of push results up to the first encountered error, and the error
 func (p *PushExecutor) Push(filename string, spec model.RepoSpec, optPath string, optTree bool) ([]PushResult, error) {
-	remote, err := remotes.Get(spec)
+	repo, err := repos.Get(spec)
 	if err != nil {
-		Stderrf("Could not ìnitialize a remote instance for %s: %v\ncheck config", spec, err)
+		Stderrf("Could not ìnitialize a repo instance for %s: %v\ncheck config", spec, err)
 		return nil, err
 	}
 
@@ -78,19 +78,19 @@ func (p *PushExecutor) Push(filename string, spec model.RepoSpec, optPath string
 
 	var res []PushResult
 	if stat.IsDir() {
-		res, err = p.pushDirectory(abs, remote, optPath, optTree)
+		res, err = p.pushDirectory(abs, repo, optPath, optTree)
 	} else {
-		singleRes, pushErr := p.pushFile(filename, remote, optPath)
+		singleRes, pushErr := p.pushFile(filename, repo, optPath)
 		res = []PushResult{singleRes}
 		err = pushErr
 	}
 
 	okIds := getOkIds(res)
 	if len(okIds) > 0 {
-		tocErr := remote.UpdateToc(okIds...)
-		if tocErr != nil {
-			Stderrf("Cannot create TOC: %v", tocErr)
-			return res, tocErr
+		indexErr := repo.Index(okIds...)
+		if indexErr != nil {
+			Stderrf("Cannot create index: %v", indexErr)
+			return res, indexErr
 		}
 	}
 	return res, err
@@ -106,7 +106,7 @@ func getOkIds(res []PushResult) []string {
 	return r
 }
 
-func (p *PushExecutor) pushDirectory(absDirname string, remote remotes.Remote, optPath string, optTree bool) ([]PushResult, error) {
+func (p *PushExecutor) pushDirectory(absDirname string, repo repos.Repo, optPath string, optTree bool) ([]PushResult, error) {
 	var results []PushResult
 	err := filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
@@ -120,7 +120,7 @@ func (p *PushExecutor) pushDirectory(absDirname string, remote remotes.Remote, o
 			optPath = filepath.Dir(strings.TrimPrefix(path, absDirname))
 		}
 
-		res, err := p.pushFile(path, remote, optPath)
+		res, err := p.pushFile(path, repo, optPath)
 		results = append(results, res)
 		return err
 	})
@@ -129,15 +129,15 @@ func (p *PushExecutor) pushDirectory(absDirname string, remote remotes.Remote, o
 
 }
 
-func (p *PushExecutor) pushFile(filename string, remote remotes.Remote, optPath string) (PushResult, error) {
+func (p *PushExecutor) pushFile(filename string, repo repos.Repo, optPath string) (PushResult, error) {
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 		return PushResult{PushErr, fmt.Sprintf("error pushing file %s: %s", filename, err.Error()), ""}, err
 	}
-	id, err := commands.NewPushCommand(p.now).PushFile(raw, remote, optPath)
+	id, err := commands.NewPushCommand(p.now).PushFile(raw, repo, optPath)
 	if err != nil {
-		var errExists *remotes.ErrTMIDConflict
+		var errExists *repos.ErrTMIDConflict
 		if errors.As(err, &errExists) {
 			return PushResult{TMExists, fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId), errExists.ExistingId}, nil
 		}

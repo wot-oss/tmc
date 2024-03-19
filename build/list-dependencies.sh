@@ -2,10 +2,10 @@
 
 # Parameters for this script, which are usually explicitly set in the pipeline:
 #
-# FILENAME_PREFIX: "tm-catalog-cli" per default and normally set to the repo name in a pipeline
+# FILENAME_PREFIX: "tmc" per default and normally set to the repo name in a pipeline
 
 
-filename_prefix=${FILENAME_PREFIX:-"tm-catalog-cli"}
+filename_prefix=${FILENAME_PREFIX:-"tmc"}
 files=`find ./  -maxdepth 1 -name "${filename_prefix}*"`
 
 echo -e "Used dependencies of compiled binaries\n${files}"

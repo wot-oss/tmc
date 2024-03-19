@@ -1,8 +1,8 @@
 package commands
 
 import (
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/remotes"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 type DeleteCommand struct {
@@ -12,7 +12,7 @@ func NewDeleteCommand() *DeleteCommand {
 	return &DeleteCommand{}
 }
 func (c *DeleteCommand) Delete(rSpec model.RepoSpec, id string) error {
-	r, err := remotes.Get(rSpec)
+	r, err := repos.Get(rSpec)
 	if err != nil {
 		return err
 	}
@@ -20,6 +20,6 @@ func (c *DeleteCommand) Delete(rSpec model.RepoSpec, id string) error {
 	if err != nil {
 		return err
 	}
-	err = r.UpdateToc(id)
+	err = r.Index(id)
 	return err
 }

@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/commands"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/utils"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const (
@@ -39,7 +39,7 @@ func (r PullResult) String() string {
 	return fmt.Sprintf("%v\t %s %s", r.typ, r.tmid, r.text)
 }
 
-func Pull(remote model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
+func Pull(repo model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
 	if len(outputPath) == 0 {
 		Stderrf("requires output target folder --output")
 		return errors.New("--output not provided")
@@ -51,7 +51,7 @@ func Pull(remote model.RepoSpec, search *model.SearchParams, outputPath string, 
 		return errors.New("output target folder --output is not a folder")
 	}
 
-	searchResult, err, errs := commands.List(remote, search)
+	searchResult, err, errs := commands.List(repo, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
@@ -92,7 +92,7 @@ func pullThingModel(fc *commands.FetchCommand, outputPath string, version model.
 	}
 	if err != nil {
 		Stderrf("Error fetch %s: %v", version.TMID, err)
-		return PullResult{PullErr, version.TMID, fmt.Sprintf("(cannot fetch from remote %s)", version.FoundIn)}, err
+		return PullResult{PullErr, version.TMID, fmt.Sprintf("(cannot fetch from repo %s)", version.FoundIn)}, err
 	}
 	thing = utils.ConvertToNativeLineEndings(thing)
 

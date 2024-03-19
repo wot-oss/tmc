@@ -1,4 +1,4 @@
-package remotes
+package repos
 
 import (
 	"context"
@@ -7,11 +7,11 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/model"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 type Union struct {
-	rs []Remote
+	rs []Repo
 }
 
 type mapResult[T any] struct {
@@ -30,12 +30,12 @@ func NewRepoAccessError(spec model.RepoSpec, err error) *RepoAccessError {
 	}
 	return &RepoAccessError{spec: spec, err: err}
 }
-func newRepoAccessError(remote Remote, err error) *RepoAccessError {
-	// the only reason for this check (and the whole function) is to spare setting up all the remotesmocks throughout tests with .On("Spec",...)
+func newRepoAccessError(repo Repo, err error) *RepoAccessError {
+	// the only reason for this check (and the whole function) is to spare setting up all the reposmocks throughout tests with .On("Spec",...)
 	if err == nil {
 		return nil
 	}
-	return NewRepoAccessError(remote.Spec(), err)
+	return NewRepoAccessError(repo.Spec(), err)
 }
 
 func (e *RepoAccessError) Error() string {
@@ -46,7 +46,7 @@ func (e *RepoAccessError) Unwrap() error {
 	return e.err
 }
 
-func NewUnion(rs ...Remote) *Union {
+func NewUnion(rs ...Repo) *Union {
 	return &Union{
 		rs: rs,
 	}
@@ -59,7 +59,7 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 		err error
 	}
 
-	mapper := func(r Remote) mapResult[fetchRes] {
+	mapper := func(r Repo) mapResult[fetchRes] {
 		fid, thing, err := r.Fetch(id)
 		res := fetchRes{id: fid, b: thing, err: err}
 		if errors.Is(err, ErrTmNotFound) {
@@ -90,9 +90,9 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 }
 
 func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
-	mapper := func(r Remote) mapResult[*model.SearchResult] {
-		toc, err := r.List(search)
-		return mapResult[*model.SearchResult]{res: &toc, err: newRepoAccessError(r, err)}
+	mapper := func(r Repo) mapResult[*model.SearchResult] {
+		idx, err := r.List(search)
+		return mapResult[*model.SearchResult]{res: &idx, err: newRepoAccessError(r, err)}
 	}
 
 	reducer := func(t1, t2 *model.SearchResult) *model.SearchResult {
@@ -118,22 +118,22 @@ func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T)
 	return accumulator, errs
 }
 
-// mapConcurrent concurrently maps all remotes with the mapper to a mapResult.
+// mapConcurrent concurrently maps all repo with the mapper to a mapResult.
 // Returns channel with results
-func mapConcurrent[T any](ctx context.Context, remotes []Remote, mapper func(r Remote) mapResult[T]) (results <-chan mapResult[T]) {
+func mapConcurrent[T any](ctx context.Context, repos []Repo, mapper func(r Repo) mapResult[T]) (results <-chan mapResult[T]) {
 	res := make(chan mapResult[T])
 	wg := sync.WaitGroup{}
-	wg.Add(len(remotes))
+	wg.Add(len(repos))
 
 	// start goroutines with cancellable mapping functions
-	for _, remote := range remotes {
-		go func(r Remote) {
+	for _, repo := range repos {
+		go func(r Repo) {
 			defer wg.Done()
 			select {
 			case <-ctx.Done():
 			case res <- mapper(r):
 			}
-		}(remote)
+		}(repo)
 	}
 
 	// close results channel when all mapping goroutines have finished
@@ -146,7 +146,7 @@ func mapConcurrent[T any](ctx context.Context, remotes []Remote, mapper func(r R
 }
 
 func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError) {
-	mapper := func(r Remote) mapResult[[]model.FoundVersion] {
+	mapper := func(r Repo) mapResult[[]model.FoundVersion] {
 		vers, err := r.Versions(name)
 		if errors.Is(err, ErrTmNotFound) {
 			return mapResult[[]model.FoundVersion]{res: vers, err: nil}
@@ -160,7 +160,7 @@ func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError)
 }
 
 func (u *Union) ListCompletions(kind string, toComplete string) []string {
-	mapper := func(r Remote) mapResult[[]string] {
+	mapper := func(r Repo) mapResult[[]string] {
 		rcs, err := r.ListCompletions(kind, toComplete)
 		if err != nil {
 			rcs = nil

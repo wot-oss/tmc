@@ -5,7 +5,7 @@ import (
 	"slices"
 
 	"github.com/gorilla/handlers"
-	httptmc "github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http"
+	httptmc "github.com/wot-oss/tmc/internal/app/http"
 )
 
 type CORSOptions struct {

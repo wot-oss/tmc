@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/web-of-things-open-source/tm-catalog-cli/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/app/http/server"
 )
 
 // READ ME !!!
