@@ -28,7 +28,7 @@ func TestSaveConfigOverwritesOnlyRepos(t *testing.T) {
 	configFile := filepath.Join(config.DefaultConfigDir, "config.json")
 	err = os.WriteFile(configFile, []byte(`{
   "log": true,
-  "remotes": {
+  "repos": {
     "local": {
       "type": "file",
       "loc": "/tmp/tmc"
@@ -38,11 +38,12 @@ func TestSaveConfigOverwritesOnlyRepos(t *testing.T) {
 	assert.NoError(t, err)
 
 	viper.SetConfigFile(configFile)
+	assert.NoError(t, viper.ReadInConfig())
 	defer viper.Reset()
 
 	viper.Set(config.KeyLogLevel, "")
 	err = saveConfig(Config{
-		"remote": map[string]any{
+		"httprepo": map[string]any{
 			"type": "http",
 			"loc":  "http://example.com/",
 		},
@@ -54,10 +55,55 @@ func TestSaveConfigOverwritesOnlyRepos(t *testing.T) {
 	jsa := jsonassert.New(t)
 	jsa.Assertf(string(file), `{
   "log": true,
-  "remotes": {
-    "remote": {
+  "repos": {
+    "httprepo": {
       "type": "http",
       "loc": "http://example.com/"
+    }
+  }
+}`)
+
+}
+func TestReadConfigOverwritesRemotesWithRepos(t *testing.T) {
+	temp, err := os.MkdirTemp("", "config")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(temp)
+	orgDir := config.DefaultConfigDir
+	config.DefaultConfigDir = temp
+	defer func() { config.DefaultConfigDir = orgDir }()
+
+	configFile := filepath.Join(config.DefaultConfigDir, "config.json")
+	err = os.WriteFile(configFile, []byte(`{
+  "log": true,
+  "remotes": {
+    "local": {
+      "type": "file",
+      "loc": "/tmp/tmc"
+    }
+  }
+}`), 0660)
+	assert.NoError(t, err)
+
+	viper.SetConfigFile(configFile)
+	assert.NoError(t, viper.ReadInConfig())
+	defer viper.Reset()
+
+	conf, err := ReadConfig()
+	assert.NoError(t, err)
+	assert.Contains(t, conf, "local")
+
+	file, err := os.ReadFile(configFile)
+	assert.NoError(t, err)
+
+	jsa := jsonassert.New(t)
+	jsa.Assertf(string(file), `{
+  "log": true,
+  "repos": {
+    "local": {
+      "type": "file",
+      "loc": "/tmp/tmc"
     }
   }
 }`)

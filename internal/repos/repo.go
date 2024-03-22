@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	KeyRepos       = "remotes"
+	KeyRepos       = "repos"
+	keyRemotes     = "remotes" // left for compatibility
 	KeyRepoType    = "type"
 	KeyRepoLoc     = "loc"
 	KeyRepoAuth    = "auth"
@@ -142,10 +143,28 @@ var All = func() ([]Repo, error) {
 
 func ReadConfig() (Config, error) {
 	reposConfig := viper.Get(KeyRepos)
+	if reposConfig == nil {
+		remotesConfig := viper.Get(keyRemotes) // attempt to find obsolete key and convert config to new key
+		if remotes, ok := remotesConfig.(map[string]any); ok {
+			conf, err := mapToConfig(remotes)
+			if err != nil {
+				return nil, err
+			}
+			err = saveConfig(conf)
+			if err != nil {
+				return nil, err
+			}
+			reposConfig = remotesConfig
+		}
+	}
 	repos, ok := reposConfig.(map[string]any)
 	if !ok {
 		return nil, fmt.Errorf("invalid repo config")
 	}
+	return mapToConfig(repos)
+}
+
+func mapToConfig(repos map[string]any) (Config, error) {
 	cp := map[string]map[string]any{}
 	for k, v := range repos {
 		if cfg, ok := v.(map[string]any); ok {
@@ -281,6 +300,7 @@ func saveConfig(conf Config) error {
 		return err
 	}
 	j[KeyRepos] = conf
+	delete(j, keyRemotes)
 
 	w, err := json.MarshalIndent(j, "", "  ")
 	if err != nil {
