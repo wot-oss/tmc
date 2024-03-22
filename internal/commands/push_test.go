@@ -128,6 +128,15 @@ func TestPrepareToImport(t *testing.T) {
 		assert.False(t, bytes.Contains(b, []byte{'\r'})) // make sure line endings were normalized
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
 	})
+	t.Run("too long name", func(t *testing.T) {
+		_, _, err := prepareToImport(now, &model.ThingModel{
+			Manufacturer: model.SchemaManufacturer{Name: "omnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorp"},
+			Mpn:          "senseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseall",
+			Author:       model.SchemaAuthor{Name: "authorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthor"},
+			Version:      model.Version{Model: "v3.2.1"},
+		}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir")
+		assert.ErrorContains(t, err, "TM name too long")
+	})
 	t.Run("foreign string id in original", func(t *testing.T) {
 		b, _, err := prepareToImport(now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},

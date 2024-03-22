@@ -1,5 +1,11 @@
 # Change Log
 
+## [Unreleased]
+
+### Added
+
+- Put a limit on importable TM name length at 255 characters
+
 ## [v0.0.0-alpha.6]
 
 ### Changed
