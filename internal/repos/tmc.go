@@ -3,6 +3,7 @@ package repos
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,9 +37,9 @@ func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
 	return r, nil
 }
 
-func (t TmcRepo) Push(id model.TMID, raw []byte) error {
+func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models")
-	req, err := http.NewRequest(http.MethodPost, reqUrl.String(), bytes.NewBuffer(raw))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl.String(), bytes.NewBuffer(raw))
 	if err != nil {
 		return err
 	}
@@ -85,14 +86,14 @@ func (t TmcRepo) Push(id model.TMID, raw []byte) error {
 		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
 }
-func (t TmcRepo) Delete(id string) error {
+func (t TmcRepo) Delete(ctx context.Context, id string) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", id)
 	vals := url.Values{
 		"force": []string{"true"},
 	}
 	reqUrl.RawQuery = vals.Encode()
 
-	req, err := http.NewRequest(http.MethodDelete, reqUrl.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqUrl.String(), nil)
 	if err != nil {
 		return err
 	}
@@ -133,16 +134,16 @@ func (t TmcRepo) Delete(id string) error {
 func (t TmcRepo) Spec() model.RepoSpec {
 	return t.spec
 }
-func (t TmcRepo) Fetch(id string) (string, []byte, error) {
+func (t TmcRepo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", id)
-	return fetchTM(reqUrl.String(), t.auth)
+	return fetchTM(ctx, reqUrl.String(), t.auth)
 }
 
-func (t TmcRepo) Index(...string) error {
+func (t TmcRepo) Index(context.Context, ...string) error {
 	return nil // ignore request to update index as index updates are presumed to be handled by the underlying repo
 }
 
-func (t TmcRepo) List(search *model.SearchParams) (model.SearchResult, error) {
+func (t TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory")
 
 	single := false
@@ -153,7 +154,7 @@ func (t TmcRepo) List(search *model.SearchParams) (model.SearchResult, error) {
 		addSearchParams(reqUrl, search)
 	}
 
-	resp, err := doGet(reqUrl.String(), t.auth)
+	resp, err := doGet(ctx, reqUrl.String(), t.auth)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
@@ -236,7 +237,7 @@ func appendQueryArray(u *url.URL, key string, values []string) {
 	}
 }
 
-func (t TmcRepo) Versions(name string) ([]model.FoundVersion, error) {
+func (t TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
@@ -244,7 +245,7 @@ func (t TmcRepo) Versions(name string) ([]model.FoundVersion, error) {
 		return nil, errors.New("please specify a repoName to show the TM")
 	}
 	reqUrl := t.parsedRoot.JoinPath("inventory", url.PathEscape(name), ".versions")
-	resp, err := doGet(reqUrl.String(), t.auth)
+	resp, err := doGet(ctx, reqUrl.String(), t.auth)
 	if err != nil {
 		return nil, err
 	}
@@ -277,14 +278,14 @@ func (t TmcRepo) Versions(name string) ([]model.FoundVersion, error) {
 
 }
 
-func (t TmcRepo) ListCompletions(kind, toComplete string) ([]string, error) {
+func (t TmcRepo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
 	u := t.parsedRoot.JoinPath(".completions")
 	vals := u.Query()
 	vals.Set("kind", kind)
 	vals.Set("toComplete", toComplete)
 	u.RawQuery = vals.Encode()
 
-	resp, err := doGet(u.String(), t.auth)
+	resp, err := doGet(ctx, u.String(), t.auth)
 	if err != nil {
 		return nil, err
 	}

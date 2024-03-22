@@ -52,7 +52,7 @@ func NewUnion(rs ...Repo) *Union {
 	}
 }
 
-func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
+func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []*RepoAccessError) {
 	type fetchRes struct {
 		id  string
 		b   []byte
@@ -60,7 +60,7 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 	}
 
 	mapper := func(r Repo) mapResult[fetchRes] {
-		fid, thing, err := r.Fetch(id)
+		fid, thing, err := r.Fetch(ctx, id)
 		res := fetchRes{id: fid, b: thing, err: err}
 		if errors.Is(err, ErrTmNotFound) {
 			return mapResult[fetchRes]{res: res, err: nil}
@@ -68,7 +68,7 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 		return mapResult[fetchRes]{res: res, err: newRepoAccessError(r, err)}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	results := mapConcurrent(ctx, u.rs, mapper)
 	res := fetchRes{err: ErrTmNotFound}
@@ -89,9 +89,9 @@ func (u *Union) Fetch(id string) (string, []byte, error, []*RepoAccessError) {
 	return res.id, res.b, nil, nil
 }
 
-func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
+func (u *Union) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
 	mapper := func(r Repo) mapResult[*model.SearchResult] {
-		idx, err := r.List(search)
+		idx, err := r.List(ctx, search)
 		return mapResult[*model.SearchResult]{res: &idx, err: newRepoAccessError(r, err)}
 	}
 
@@ -100,7 +100,7 @@ func (u *Union) List(search *model.SearchParams) (model.SearchResult, []*RepoAcc
 		return t1
 	}
 
-	results := mapConcurrent(context.Background(), u.rs, mapper)
+	results := mapConcurrent(ctx, u.rs, mapper)
 	r, errs := reduce(results, &model.SearchResult{}, reducer)
 	return *r, errs
 }
@@ -145,23 +145,23 @@ func mapConcurrent[T any](ctx context.Context, repos []Repo, mapper func(r Repo)
 	return res
 }
 
-func (u *Union) Versions(name string) ([]model.FoundVersion, []*RepoAccessError) {
+func (u *Union) Versions(ctx context.Context, name string) ([]model.FoundVersion, []*RepoAccessError) {
 	mapper := func(r Repo) mapResult[[]model.FoundVersion] {
-		vers, err := r.Versions(name)
+		vers, err := r.Versions(ctx, name)
 		if errors.Is(err, ErrTmNotFound) {
 			return mapResult[[]model.FoundVersion]{res: vers, err: nil}
 		}
 		return mapResult[[]model.FoundVersion]{res: vers, err: newRepoAccessError(r, err)}
 	}
 	var ident []model.FoundVersion
-	results := mapConcurrent(context.Background(), u.rs, mapper)
+	results := mapConcurrent(ctx, u.rs, mapper)
 	res, errs := reduce(results, ident, model.MergeFoundVersions)
 	return res, errs
 }
 
-func (u *Union) ListCompletions(kind string, toComplete string) []string {
+func (u *Union) ListCompletions(ctx context.Context, kind string, toComplete string) []string {
 	mapper := func(r Repo) mapResult[[]string] {
-		rcs, err := r.ListCompletions(kind, toComplete)
+		rcs, err := r.ListCompletions(ctx, kind, toComplete)
 		if err != nil {
 			rcs = nil
 		}
@@ -169,7 +169,7 @@ func (u *Union) ListCompletions(kind string, toComplete string) []string {
 	}
 	reducer := func(r1, r2 []string) []string { return append(r1, r2...) }
 	var cs []string
-	results := mapConcurrent(context.Background(), u.rs, mapper)
+	results := mapConcurrent(ctx, u.rs, mapper)
 	res, _ := reduce(results, cs, reducer)
 	slices.Sort(res)
 	return slices.Compact(res)

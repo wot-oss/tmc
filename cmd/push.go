@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -51,7 +52,7 @@ func executePush(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	results, err := cli.NewPushExecutor(time.Now).Push(args[0], spec, optPath, optTree)
+	results, err := cli.NewPushExecutor(time.Now).Push(context.Background(), args[0], spec, optPath, optTree)
 	for _, res := range results {
 		fmt.Println(res)
 	}

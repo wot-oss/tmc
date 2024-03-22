@@ -1,6 +1,7 @@
 package completion
 
 import (
+	"context"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -44,7 +45,7 @@ func CompleteFetchNames(cmd *cobra.Command, args []string, toComplete string) ([
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	fns := rs.ListCompletions(repos.CompletionKindFetchNames, toComplete)
+	fns := rs.ListCompletions(context.Background(), repos.CompletionKindFetchNames, toComplete)
 	return fns, cobra.ShellCompDirectiveNoFileComp
 
 }
@@ -70,6 +71,6 @@ func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]st
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	cs := rs.ListCompletions(repos.CompletionKindNames, toComplete)
+	cs := rs.ListCompletions(context.Background(), repos.CompletionKindNames, toComplete)
 	return cs, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }

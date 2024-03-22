@@ -42,7 +42,7 @@ func NewDefaultHandlerService(servedRepo model.RepoSpec, pushRepo model.RepoSpec
 }
 
 func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
-	res, err, errs := commands.List(dhs.serveRepo, search)
+	res, err, errs := commands.List(ctx, dhs.serveRepo, search)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 		return nil, err
 	}
 
-	_, data, err, _ := commands.NewFetchCommand().FetchByTMIDOrName(dhs.serveRepo, tmID, restoreId)
+	_, data, err, _ := commands.FetchByTMIDOrName(ctx, dhs.serveRepo, tmID, restoreId)
 	if err != nil {
 		return nil, err
 	}
@@ -143,11 +143,11 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 	if err != nil {
 		return "", err
 	}
-	tmID, err := commands.NewPushCommand(time.Now).PushFile(file, repo, "")
+	tmID, err := commands.NewPushCommand(time.Now).PushFile(ctx, file, repo, "")
 	if err != nil {
 		return "", err
 	}
-	err = repo.Index(tmID)
+	err = repo.Index(ctx, tmID)
 	if err != nil {
 		return "", err
 	}
@@ -158,7 +158,7 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
 	pushRepo := dhs.pushRepo
 
-	err := commands.NewDeleteCommand().Delete(pushRepo, tmID)
+	err := commands.NewDeleteCommand().Delete(ctx, pushRepo, tmID)
 	return err
 }
 
@@ -167,7 +167,7 @@ func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toCo
 	if err != nil {
 		return nil, err
 	}
-	return rs.ListCompletions(kind, toComplete), nil
+	return rs.ListCompletions(ctx, kind, toComplete), nil
 }
 
 func (dhs *defaultHandlerService) CheckHealth(ctx context.Context) error {

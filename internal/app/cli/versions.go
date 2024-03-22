@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -9,8 +10,8 @@ import (
 	"github.com/wot-oss/tmc/internal/model"
 )
 
-func ListVersions(spec model.RepoSpec, name string) error {
-	indexVersions, err, errs := commands.NewVersionsCommand().ListVersions(spec, name)
+func ListVersions(ctx context.Context, spec model.RepoSpec, name string) error {
+	indexVersions, err, errs := commands.NewVersionsCommand().ListVersions(ctx, spec, name)
 	if err != nil {
 		Stderrf("Could not list versions of %s: %v", name, err)
 		return err

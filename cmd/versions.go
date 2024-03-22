@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"os"
 
@@ -37,7 +38,7 @@ func listVersions(cmd *cobra.Command, args []string) {
 	}
 
 	name := args[0]
-	err = cli.ListVersions(spec, name)
+	err = cli.ListVersions(context.Background(), spec, name)
 	if err != nil {
 		os.Exit(1)
 	}

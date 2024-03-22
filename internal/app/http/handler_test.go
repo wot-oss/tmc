@@ -68,7 +68,7 @@ func Test_healthLive(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("CheckHealthLive", nil).Return(nil).Once()
+		hs.On("CheckHealthLive", mock.Anything).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 204 status and empty body
@@ -76,7 +76,7 @@ func Test_healthLive(t *testing.T) {
 	})
 
 	t.Run("with error", func(t *testing.T) {
-		hs.On("CheckHealthLive", nil).Return(unknownErr).Once()
+		hs.On("CheckHealthLive", mock.Anything).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 503 status and json error as body
@@ -92,7 +92,7 @@ func Test_healthReady(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("CheckHealthReady", nil).Return(nil).Once()
+		hs.On("CheckHealthReady", mock.Anything).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 204 status and empty body
@@ -100,7 +100,7 @@ func Test_healthReady(t *testing.T) {
 	})
 
 	t.Run("with error", func(t *testing.T) {
-		hs.On("CheckHealthReady", nil).Return(unknownErr).Once()
+		hs.On("CheckHealthReady", mock.Anything).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 503 status and json error as body
@@ -116,7 +116,7 @@ func Test_healthStartup(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("CheckHealthStartup", nil).Return(nil).Once()
+		hs.On("CheckHealthStartup", mock.Anything).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 204 status and empty body
@@ -124,7 +124,7 @@ func Test_healthStartup(t *testing.T) {
 	})
 
 	t.Run("with error", func(t *testing.T) {
-		hs.On("CheckHealthStartup", nil).Return(unknownErr).Once()
+		hs.On("CheckHealthStartup", mock.Anything).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 503 status and json error as body
@@ -140,7 +140,7 @@ func Test_health(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("CheckHealth", nil).Return(nil).Once()
+		hs.On("CheckHealth", mock.Anything).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 204 status and empty body
@@ -148,7 +148,7 @@ func Test_health(t *testing.T) {
 	})
 
 	t.Run("with error", func(t *testing.T) {
-		hs.On("CheckHealth", nil).Return(unknownErr).Once()
+		hs.On("CheckHealth", mock.Anything).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns 503 status and json error as body
@@ -165,7 +165,7 @@ func Test_Inventory(t *testing.T) {
 
 	t.Run("list all", func(t *testing.T) {
 
-		hs.On("ListInventory", nil, &model.SearchParams{}).Return(&listResult1, nil).Once()
+		hs.On("ListInventory", mock.Anything, &model.SearchParams{}).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -203,7 +203,7 @@ func Test_Inventory(t *testing.T) {
 			Query:        search,
 		}
 
-		hs.On("ListInventory", nil, expectedSearchParams).Return(&listResult1, nil).Once()
+		hs.On("ListInventory", mock.Anything, expectedSearchParams).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -212,7 +212,7 @@ func Test_Inventory(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
+		hs.On("ListInventory", mock.Anything, &model.SearchParams{}).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -220,7 +220,7 @@ func Test_Inventory(t *testing.T) {
 	})
 
 	t.Run("with repository access error", func(t *testing.T) {
-		hs.On("ListInventory", nil, &model.SearchParams{}).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
+		hs.On("ListInventory", mock.Anything, &model.SearchParams{}).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 502 and json error as body
@@ -240,7 +240,7 @@ func Test_InventoryByName(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("FindInventoryEntry", nil, inventoryName).Return(&mockInventoryEntry, nil).Once()
+		hs.On("FindInventoryEntry", mock.Anything, inventoryName).Return(&mockInventoryEntry, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -253,7 +253,7 @@ func Test_InventoryByName(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("FindInventoryEntry", nil, inventoryName).Return(nil, unknownErr).Once()
+		hs.On("FindInventoryEntry", mock.Anything, inventoryName).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -273,7 +273,7 @@ func Test_InventoryEntryVersionsByName(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("FindInventoryEntry", nil, inventoryName).Return(&mockInventoryEntry, nil).Once()
+		hs.On("FindInventoryEntry", mock.Anything, inventoryName).Return(&mockInventoryEntry, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -287,7 +287,7 @@ func Test_InventoryEntryVersionsByName(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("FindInventoryEntry", nil, inventoryName).Return(nil, unknownErr).Once()
+		hs.On("FindInventoryEntry", mock.Anything, inventoryName).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -305,7 +305,7 @@ func Test_Authors(t *testing.T) {
 	authors := []string{"author1", "author2", "author3"}
 
 	t.Run("list all", func(t *testing.T) {
-		hs.On("ListAuthors", nil, &model.SearchParams{}).Return(authors, nil).Once()
+		hs.On("ListAuthors", mock.Anything, &model.SearchParams{}).Return(authors, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -338,7 +338,7 @@ func Test_Authors(t *testing.T) {
 			Query:        search,
 		}
 
-		hs.On("ListAuthors", nil, expectedSearchParams).Return(authors, nil).Once()
+		hs.On("ListAuthors", mock.Anything, expectedSearchParams).Return(authors, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -347,7 +347,7 @@ func Test_Authors(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("ListAuthors", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
+		hs.On("ListAuthors", mock.Anything, &model.SearchParams{}).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -365,7 +365,7 @@ func Test_Manufacturers(t *testing.T) {
 	manufacturers := []string{"man1", "man2", "man3"}
 
 	t.Run("list all", func(t *testing.T) {
-		hs.On("ListManufacturers", nil, &model.SearchParams{}).Return(manufacturers, nil).Once()
+		hs.On("ListManufacturers", mock.Anything, &model.SearchParams{}).Return(manufacturers, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -398,7 +398,7 @@ func Test_Manufacturers(t *testing.T) {
 			Query:  search,
 		}
 
-		hs.On("ListManufacturers", nil, expectedSearchParams).Return(manufacturers, nil).Once()
+		hs.On("ListManufacturers", mock.Anything, expectedSearchParams).Return(manufacturers, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -407,7 +407,7 @@ func Test_Manufacturers(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("ListManufacturers", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
+		hs.On("ListManufacturers", mock.Anything, &model.SearchParams{}).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -424,7 +424,7 @@ func Test_Mpns(t *testing.T) {
 	mpns := []string{"mpn1", "mpn2", "mpn3"}
 
 	t.Run("list all", func(t *testing.T) {
-		hs.On("ListMpns", nil, &model.SearchParams{}).Return(mpns, nil).Once()
+		hs.On("ListMpns", mock.Anything, &model.SearchParams{}).Return(mpns, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -459,7 +459,7 @@ func Test_Mpns(t *testing.T) {
 			Query:        search,
 		}
 
-		hs.On("ListMpns", nil, expectedSearchParams).Return(mpns, nil).Once()
+		hs.On("ListMpns", mock.Anything, expectedSearchParams).Return(mpns, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -468,7 +468,7 @@ func Test_Mpns(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("ListMpns", nil, &model.SearchParams{}).Return(nil, unknownErr).Once()
+		hs.On("ListMpns", mock.Anything, &model.SearchParams{}).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -486,7 +486,7 @@ func Test_FetchThingModel(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with valid repo", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID, false).Return(tmContent, nil).Once()
+		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -495,7 +495,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with false restoreId", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID, false).Return(tmContent, nil).Once()
+		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=false").RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -503,7 +503,7 @@ func Test_FetchThingModel(t *testing.T) {
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 	t.Run("with true restoreId", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID, true).Return(tmContent, nil).Once()
+		hs.On("FetchThingModel", mock.Anything, tmID, true).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=true").RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -520,7 +520,7 @@ func Test_FetchThingModel(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		invalidRoute := "/thing-models/some-invalid-tm-id"
-		hs.On("FetchThingModel", nil, "some-invalid-tm-id", false).Return(nil, model.ErrInvalidId).Once()
+		hs.On("FetchThingModel", mock.Anything, "some-invalid-tm-id", false).Return(nil, model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, invalidRoute).RunOnHandler(httpHandler)
 		// then: it returns status 400 and json error as body
@@ -528,7 +528,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", nil, tmID, false).Return(nil, repos.ErrTmNotFound).Once()
+		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(nil, repos.ErrTmNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -548,7 +548,7 @@ func Test_PushThingModel(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("PushThingModel", nil, tmContent).Return(tmID, nil).Once()
+		hs.On("PushThingModel", mock.Anything, tmContent).Return(tmID, nil).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -585,7 +585,7 @@ func Test_PushThingModel(t *testing.T) {
 	t.Run("with validation error", func(t *testing.T) {
 		// given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
-		hs.On("PushThingModel", nil, invalidContent).Return("", &jsonschema.ValidationError{}).Once()
+		hs.On("PushThingModel", mock.Anything, invalidContent).Return("", &jsonschema.ValidationError{}).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -603,7 +603,7 @@ func Test_PushThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
-		hs.On("PushThingModel", nil, tmContent).Return("", cErr).Once()
+		hs.On("PushThingModel", mock.Anything, tmContent).Return("", cErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
@@ -617,7 +617,7 @@ func Test_PushThingModel(t *testing.T) {
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
-		hs.On("PushThingModel", nil, invalidContent).Return("", unknownErr).Once()
+		hs.On("PushThingModel", mock.Anything, invalidContent).Return("", unknownErr).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).

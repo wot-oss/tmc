@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"os"
 
@@ -43,7 +44,7 @@ func executeFetch(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	err = cli.Fetch(spec, args[0], outputPath, restoreId)
+	err = cli.Fetch(context.Background(), spec, args[0], outputPath, restoreId)
 	if err != nil {
 		cli.Stderrf("fetch failed")
 		os.Exit(1)

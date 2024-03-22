@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/repos/mocks"
@@ -59,15 +61,13 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
 	setUpVersionsForFetchByTMIDOrName(r)
 
-	r.On("Fetch", "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
-	r.On("Fetch", "manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
-	r.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
-	r.On("Fetch", "author/manufacturer/mpn/v1.0.4-20231206123243-d49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.4-20231206123243-d49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.4\"}"), nil)
-	r.On("Fetch", "author/manufacturer/mpn/v1.2.3-20231207153243-e49617d2e4ff.tm.json").Return("author/manufacturer/mpn/v1.2.3-20231207153243-e49617d2e4ff.tm.json", []byte("{\"ver\":\"v1.2.3\"}"), nil)
-	r.On("Fetch", "author/manufacturer/mpn/v2.0.0-20231208123243-f49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v2.0.0-20231208123243-f49617d2e4fc.tm.json", []byte("{\"ver\":\"v2.0.0\"}"), nil)
-	r.On("Fetch", "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
-
-	f := NewFetchCommand()
+	r.On("Fetch", mock.Anything, "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
+	r.On("Fetch", mock.Anything, "manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
+	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
+	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.4-20231206123243-d49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.4-20231206123243-d49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.4\"}"), nil)
+	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.2.3-20231207153243-e49617d2e4ff.tm.json").Return("author/manufacturer/mpn/v1.2.3-20231207153243-e49617d2e4ff.tm.json", []byte("{\"ver\":\"v1.2.3\"}"), nil)
+	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/v2.0.0-20231208123243-f49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v2.0.0-20231208123243-f49617d2e4fc.tm.json", []byte("{\"ver\":\"v2.0.0\"}"), nil)
+	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
 
 	tests := []struct {
 		in         string
@@ -98,7 +98,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		_, b, err, _ := f.FetchByTMIDOrName(model.EmptySpec, test.in, false)
+		_, b, err, _ := FetchByTMIDOrName(context.Background(), model.EmptySpec, test.in, false)
 		if test.expErr != nil {
 			assert.ErrorIs(t, err, test.expErr, "Expected error in FetchByTMIDOrName(%s)", test.in)
 			assert.ErrorContains(t, err, test.expErrText, "Unexpected error in FetchByTMIDOrName(%s)", test.in)
@@ -110,7 +110,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 }
 
 func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
-	r.On("Versions", "manufacturer/mpn").Return([]model.FoundVersion{
+	r.On("Versions", mock.Anything, "manufacturer/mpn").Return([]model.FoundVersion{
 		{
 			IndexVersion: model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
@@ -121,7 +121,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 	}, nil)
-	r.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+	r.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{
 			IndexVersion: model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
@@ -186,7 +186,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 	}, nil)
-	r.On("Versions", "author/manufacturer/mpn/folder/sub").Return([]model.FoundVersion{
+	r.On("Versions", mock.Anything, "author/manufacturer/mpn/folder/sub").Return([]model.FoundVersion{
 		{
 			IndexVersion: model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
@@ -215,11 +215,11 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRepos(t *testing.T) {
 		return nil, err
 	})
 
-	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
-	r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, repos.ErrTmNotFound)
-	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, repos.ErrTmNotFound)
-	r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil)
-	r1.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+	r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
+	r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, repos.ErrTmNotFound)
+	r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, repos.ErrTmNotFound)
+	r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil)
+	r1.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{
 			IndexVersion: model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
@@ -230,7 +230,7 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRepos(t *testing.T) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 	}, nil)
-	r2.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+	r2.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{
 			IndexVersion: model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
@@ -242,52 +242,51 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRepos(t *testing.T) {
 		},
 	}, nil)
 
-	f := NewFetchCommand()
 	var id string
 	var b []byte
 	var err error
 	t.Run("fetch from unspecified by id", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r1")))
 
-		id, b, err, _ = f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
 	})
 	t.Run("fetch from named by id", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(model.NewRepoSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.NewRepoSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r1")))
 
-		id, b, err, _ = f.FetchByTMIDOrName(model.NewRepoSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.NewRepoSpec("r1"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
 		assert.Error(t, err)
 
-		id, b, err, _ = f.FetchByTMIDOrName(model.NewRepoSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.NewRepoSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.Error(t, err)
 
-		id, b, err, _ = f.FetchByTMIDOrName(model.NewRepoSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.NewRepoSpec("r2"), "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
 	})
 	t.Run("fetch from unspecified by name", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.EmptySpec, "author/manufacturer/mpn", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
 
 	})
 	t.Run("fetch from named by name", func(t *testing.T) {
-		id, b, err, _ = f.FetchByTMIDOrName(model.NewRepoSpec("r1"), "author/manufacturer/mpn", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.NewRepoSpec("r1"), "author/manufacturer/mpn", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r1")))
 
-		id, b, err, _ = f.FetchByTMIDOrName(model.NewRepoSpec("r2"), "author/manufacturer/mpn", false)
+		id, b, err, _ = FetchByTMIDOrName(context.Background(), model.NewRepoSpec("r2"), "author/manufacturer/mpn", false)
 		assert.NoError(t, err)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", id)
 		assert.True(t, bytes.Contains(b, []byte("r2")))
@@ -302,10 +301,9 @@ func TestFetchCommand_FetchByTMID(t *testing.T) {
 	rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 
 	t.Run("success with unexpected error", func(t *testing.T) {
-		r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
-		r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil).Once()
-		f := NewFetchCommand()
-		id, b, err, errs := f.FetchByTMID(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
+		r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil).Once()
+		id, b, err, errs := FetchByTMID(context.Background(), model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.NoError(t, err)
 		assert.Len(t, errs, 0)
 		assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
@@ -314,10 +312,9 @@ func TestFetchCommand_FetchByTMID(t *testing.T) {
 	})
 
 	t.Run("not found with unexpected error", func(t *testing.T) {
-		r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
-		r2.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, repos.ErrTmNotFound).Once()
-		f := NewFetchCommand()
-		_, _, err, errs := f.FetchByTMID(model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
+		r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
+		r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, repos.ErrTmNotFound).Once()
+		_, _, err, errs := FetchByTMID(context.Background(), model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
 		assert.ErrorIs(t, err, repos.ErrTmNotFound)
 		if assert.Len(t, errs, 1) {
 			assert.ErrorContains(t, errs[0], "unexpected")
@@ -334,13 +331,12 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, r1Spec, r1, nil))
 	r1.On("Spec").Return(r1Spec)
 	r2Spec := model.NewRepoSpec("r2")
-	//rm.On("Get", r2Spec).Return(r2, nil)
 	r2.On("Spec").Return(r2Spec)
 
 	t.Run("name found", func(t *testing.T) {
 
-		r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
-		r1.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+		r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
+		r1.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 			{
 				IndexVersion: model.IndexVersion{
 					Version:   model.Version{Model: "v1.0.0"},
@@ -351,11 +347,10 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 				FoundIn: model.FoundSource{RepoName: "r1"},
 			},
 		}, nil)
-		r2.On("Versions", "author/manufacturer/mpn").Return(nil, errors.New("unexpected"))
+		r2.On("Versions", mock.Anything, "author/manufacturer/mpn").Return(nil, errors.New("unexpected"))
 
-		f := NewFetchCommand()
 		t.Run("fetch from unspecified by name", func(t *testing.T) {
-			id, b, err, errs := f.FetchByName(model.EmptySpec, FetchName{Name: "author/manufacturer/mpn"}, false)
+			id, b, err, errs := FetchByName(context.Background(), model.EmptySpec, FetchName{Name: "author/manufacturer/mpn"}, false)
 			assert.NoError(t, err)
 			if assert.Len(t, errs, 1) {
 				assert.ErrorContains(t, errs[0], "unexpected")
@@ -367,13 +362,11 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 	})
 	t.Run("name not found", func(t *testing.T) {
 
-		//r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
-		r1.On("Versions", "author/manufacturer/mpn2").Return(nil, errors.New("unexpected1"))
-		r2.On("Versions", "author/manufacturer/mpn2").Return(nil, errors.New("unexpected2"))
+		r1.On("Versions", mock.Anything, "author/manufacturer/mpn2").Return(nil, errors.New("unexpected1"))
+		r2.On("Versions", mock.Anything, "author/manufacturer/mpn2").Return(nil, errors.New("unexpected2"))
 
-		f := NewFetchCommand()
 		t.Run("fetch from unspecified by name", func(t *testing.T) {
-			_, _, err, errs := f.FetchByName(model.EmptySpec, FetchName{Name: "author/manufacturer/mpn2"}, false)
+			_, _, err, errs := FetchByName(context.Background(), model.EmptySpec, FetchName{Name: "author/manufacturer/mpn2"}, false)
 			assert.ErrorIs(t, err, repos.ErrTmNotFound)
 			if assert.Len(t, errs, 2) {
 				slices.SortStableFunc(errs, func(a, b *repos.RepoAccessError) int { return strings.Compare(a.Error(), b.Error()) })
@@ -445,7 +438,7 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			r1 := mocks.NewRepo(t)
-			r1.On("Versions", "author/manufacturer/mpn").Return([]model.FoundVersion{
+			r1.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 				{
 					IndexVersion: model.IndexVersion{
 						Version:   model.Version{Model: "v1.0.0"},
@@ -457,17 +450,16 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 				},
 			}, nil)
 			r2 := mocks.NewRepo(t)
-			r2.On("Versions", "author/manufacturer/mpn").Return(nil, nil)
+			r2.On("Versions", mock.Anything, "author/manufacturer/mpn").Return(nil, nil)
 			rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 			spec := model.NewRepoSpec("r1")
 			rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, spec, r1, nil))
-			f := NewFetchCommand()
 
 			t.Run("with multiple repos", func(t *testing.T) {
-				r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").
+				r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").
 					Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte(test.json), nil).Once()
 
-				id, b, _, _ := f.FetchByTMIDOrName(model.EmptySpec, "author/manufacturer/mpn", true)
+				id, b, _, _ := FetchByTMIDOrName(context.Background(), model.EmptySpec, "author/manufacturer/mpn", true)
 				assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 				var js map[string]any
 				err := json.Unmarshal(b, &js)
@@ -479,10 +471,10 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 				assert.Len(t, utils.JsGetArray(js, "links"), test.expLinksLen)
 			})
 			t.Run("with single repo", func(t *testing.T) {
-				r1.On("Fetch", "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").
+				r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").
 					Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte(test.json), nil).Once()
 
-				id, b, _, _ := f.FetchByTMIDOrName(spec, "author/manufacturer/mpn", true)
+				id, b, _, _ := FetchByTMIDOrName(context.Background(), spec, "author/manufacturer/mpn", true)
 				assert.Equal(t, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", id)
 				var js map[string]any
 				err := json.Unmarshal(b, &js)

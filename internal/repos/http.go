@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -79,20 +80,20 @@ func newBaseHttpRepo(config map[string]any, spec model.RepoSpec) (baseHttpRepo, 
 	return base, nil
 }
 
-func (h *HttpRepo) Push(_ model.TMID, _ []byte) error {
+func (h *HttpRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 	return ErrNotSupported
 }
-func (h *HttpRepo) Delete(id string) error {
+func (h *HttpRepo) Delete(ctx context.Context, id string) error {
 	return ErrNotSupported
 }
 
-func (h *HttpRepo) Fetch(id string) (string, []byte, error) {
+func (h *HttpRepo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	reqUrl := h.buildUrl(id)
-	return fetchTM(reqUrl, h.auth)
+	return fetchTM(ctx, reqUrl, h.auth)
 }
 
-func fetchTM(tmUrl string, auth map[string]any) (string, []byte, error) {
-	resp, err := doGet(tmUrl, auth)
+func fetchTM(ctx context.Context, tmUrl string, auth map[string]any) (string, []byte, error) {
+	resp, err := doGet(ctx, tmUrl, auth)
 	if err != nil {
 		return "", nil, err
 	}
@@ -131,16 +132,16 @@ func (h *HttpRepo) buildUrl(fileId string) string {
 	return h.parsedRoot.JoinPath(fileId).String()
 }
 
-func (h *HttpRepo) Index(...string) error {
+func (h *HttpRepo) Index(context.Context, ...string) error {
 	return ErrNotSupported
 }
 func (h *HttpRepo) Spec() model.RepoSpec {
 	return h.spec
 }
 
-func (h *HttpRepo) List(search *model.SearchParams) (model.SearchResult, error) {
+func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
 	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", RepoConfDir, IndexFilename))
-	resp, err := doGet(reqUrl, h.auth)
+	resp, err := doGet(ctx, reqUrl, h.auth)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
@@ -163,8 +164,8 @@ func (h *HttpRepo) List(search *model.SearchParams) (model.SearchResult, error) 
 	}
 }
 
-func doGet(reqUrl string, auth map[string]any) (*http.Response, error) {
-	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
+func doGet(ctx context.Context, reqUrl string, auth map[string]any) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -182,14 +183,14 @@ func doHttp(req *http.Request, auth map[string]any) (*http.Response, error) {
 	return resp, err
 }
 
-func (h *HttpRepo) Versions(name string) ([]model.FoundVersion, error) {
+func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	if len(name) == 0 {
 		log.Error("Please specify a repoName to show the TM.")
 		return nil, errors.New("please specify a repoName to show the TM")
 	}
 	name = strings.TrimSpace(name)
-	idx, err := h.List(&model.SearchParams{Name: name})
+	idx, err := h.List(ctx, &model.SearchParams{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -202,11 +203,11 @@ func (h *HttpRepo) Versions(name string) ([]model.FoundVersion, error) {
 	return idx.Entries[0].Versions, nil
 }
 
-func (h *HttpRepo) ListCompletions(kind, toComplete string) ([]string, error) {
+func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
 	switch kind {
 	case CompletionKindNames:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(&model.SearchParams{Name: namePrefix, Options: model.SearchOptions{NameFilterType: model.PrefixMatch}}) // fixme: search for name = toComplete(less the part after last /)
+		sr, err := h.List(ctx, &model.SearchParams{Name: namePrefix, Options: model.SearchOptions{NameFilterType: model.PrefixMatch}}) // fixme: search for name = toComplete(less the part after last /)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +223,7 @@ func (h *HttpRepo) ListCompletions(kind, toComplete string) ([]string, error) {
 		}
 
 		name, _, _ := strings.Cut(toComplete, ":")
-		versions, err := h.Versions(name)
+		versions, err := h.Versions(ctx, name)
 		if err != nil {
 			return nil, err
 		}

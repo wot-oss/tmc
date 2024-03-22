@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -72,7 +73,7 @@ func TestTmcRepo_Fetch(t *testing.T) {
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
-	actId, b, err := r.Fetch(tmid)
+	actId, b, err := r.Fetch(context.Background(), tmid)
 	assert.NoError(t, err)
 	assert.Equal(t, aid, actId)
 	assert.Equal(t, []byte(tm), b)
@@ -82,7 +83,7 @@ func TestTmcRepo_UpdateIndex(t *testing.T) {
 	config, _ := createTmcRepoConfig("http://example.com", nil)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
-	err = r.Index()
+	err = r.Index(context.Background())
 	assert.NoError(t, err)
 }
 
@@ -201,7 +202,7 @@ func TestTmcRepo_List(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
-			sr, err := r.List(test.search)
+			sr, err := r.List(context.Background(), test.search)
 			if test.expErr == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expRes, len(sr.Entries))
@@ -287,7 +288,7 @@ func TestTmcRepo_Versions(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
-			vs, err := r.Versions(test.reqName)
+			vs, err := r.Versions(context.Background(), test.reqName)
 			if test.expErr == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expRes, len(vs))
@@ -367,7 +368,7 @@ func TestTmcRepo_Push(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
-			err := r.Push(model.TMID{Name: "ignored in tmc repo"}, pushBody)
+			err := r.Push(context.Background(), model.TMID{Name: "ignored in tmc repo"}, pushBody)
 			if test.expErr == nil {
 				assert.NoError(t, err)
 			} else {
@@ -453,7 +454,7 @@ func TestTmcRepo_ListCompletions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
 
-			cs, err := r.ListCompletions(test.kind, test.toComplete)
+			cs, err := r.ListCompletions(context.Background(), test.kind, test.toComplete)
 			if test.expErr == nil {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expComps, cs)
@@ -531,7 +532,7 @@ func TestTmcRepo_Delete(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
 
-			err := r.Delete(test.id)
+			err := r.Delete(context.Background(), test.id)
 			if test.expErr == nil {
 				assert.NoError(t, err)
 			} else {
