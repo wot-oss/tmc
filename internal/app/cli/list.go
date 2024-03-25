@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -14,8 +15,8 @@ import (
 const columnWidthName = "TMC_COLUMNWIDTH"
 const columnWidthDefault = 40
 
-func List(repo model.RepoSpec, search *model.SearchParams) error {
-	index, err, errs := commands.List(repo, search)
+func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams) error {
+	index, err, errs := commands.List(ctx, repo, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err

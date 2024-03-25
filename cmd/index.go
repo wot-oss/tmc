@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -39,7 +40,7 @@ func executeCreateIndex(cmd *cobra.Command, args []string) {
 	}
 	log.Debug(fmt.Sprintf("creating table of contents for repository %s", spec))
 
-	err = cli.Index(spec, args)
+	err = cli.Index(context.Background(), spec, args)
 	if err != nil {
 		os.Exit(1)
 	}

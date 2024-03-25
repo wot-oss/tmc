@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
@@ -24,10 +25,10 @@ func TestPushExecutor_Push(t *testing.T) {
 		e := NewPushExecutor(now)
 		id := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("Index", id).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
+		r.On("Index", mock.Anything, id).Return(nil)
 
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
+		res, err := e.Push(context.Background(), "../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, PushOK, res[0].typ)
@@ -37,7 +38,7 @@ func TestPushExecutor_Push(t *testing.T) {
 
 		now := func() time.Time { return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC) }
 		e := NewPushExecutor(now)
-		_, err := e.Push("does-not-exist.json", model.NewRepoSpec("repo"), "", false)
+		_, err := e.Push(context.Background(), "does-not-exist.json", model.NewRepoSpec("repo"), "", false)
 		assert.Error(t, err)
 	})
 
@@ -49,9 +50,9 @@ func TestPushExecutor_Push(t *testing.T) {
 			return time.Date(2023, time.November, 11, 12, 32, 43, 0, time.UTC)
 		}
 		e := NewPushExecutor(now)
-		r.On("Push", tmid2, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
+		r.On("Push", mock.Anything, tmid2, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
 			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
+		res, err := e.Push(context.Background(), "../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, TMExists, res[0].typ)
@@ -64,8 +65,8 @@ func TestPushExecutor_Push(t *testing.T) {
 			return time.Date(2023, time.August, 11, 12, 32, 43, 0, time.UTC)
 		}
 		e := NewPushExecutor(now)
-		r.On("Push", tmid3, mock.Anything).Return(errors.New("unexpected"))
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
+		r.On("Push", mock.Anything, tmid3, mock.Anything).Return(errors.New("unexpected"))
+		res, err := e.Push(context.Background(), "../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "", false)
 		assert.Error(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, PushErr, res[0].typ)
@@ -76,10 +77,10 @@ func TestPushExecutor_Push(t *testing.T) {
 		e := NewPushExecutor(now)
 		id := "omnicorp-TM-department/omnicorp/omnilamp/a/b/c/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("Index", id).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
+		r.On("Index", mock.Anything, id).Return(nil)
 
-		res, err := e.Push("../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "a/b/c", false)
+		res, err := e.Push(context.Background(), "../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), "a/b/c", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, PushOK, res[0].typ)
@@ -94,20 +95,20 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)
 		e := NewPushExecutor(clk.Now)
 		tmid := model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123245-98b3fbd291f4.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
 			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"})
 		tmid = model.MustParseTMID("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123246-575dfac219e2.tm.json", false)
-		r.On("Push", tmid, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
 			ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"})
-		r.On("Index",
+		r.On("Index", mock.Anything,
 			"omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
 			"omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
 
-		res, err := e.Push("../../../test/data/push", model.NewRepoSpec("repo"), "", false)
+		res, err := e.Push(context.Background(), "../../../test/data/push", model.NewRepoSpec("repo"), "", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 4)
 		assert.Equalf(t, PushOK, res[0].typ, "res[0]: want PushOK, got %v", res[0].typ)
@@ -122,19 +123,19 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		e := NewPushExecutor(clk.Now)
 		id1 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id1, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		id2 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123244-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id2, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		id3 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v3.2.1-20231110123245-98b3fbd291f4.tm.json"
 		tmid = model.MustParseTMID(id3, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		id4 := "omnicorp-TM-department/omnicorp/omnilamp/opt/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("Index", id1, id2, id3, id4).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
+		r.On("Index", mock.Anything, id1, id2, id3, id4).Return(nil)
 
-		res, err := e.Push("../../../test/data/push", model.NewRepoSpec("repo"), "opt", false)
+		res, err := e.Push(context.Background(), "../../../test/data/push", model.NewRepoSpec("repo"), "opt", false)
 		assert.NoError(t, err)
 		assert.Len(t, res, 4)
 		for i, r := range res {
@@ -148,19 +149,19 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 		e := NewPushExecutor(clk.Now)
 		id1 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id1, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		id2 := "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id2, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		id3 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20231110123245-98b3fbd291f4.tm.json"
 		tmid = model.MustParseTMID(id3, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
 		id4 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4, false)
-		r.On("Push", tmid, mock.Anything).Return(nil)
-		r.On("Index", id1, id2, id3, id4).Return(nil)
+		r.On("Push", mock.Anything, tmid, mock.Anything).Return(nil)
+		r.On("Index", mock.Anything, id1, id2, id3, id4).Return(nil)
 
-		res, err := e.Push("../../../test/data/push", model.NewRepoSpec("repo"), "", true)
+		res, err := e.Push(context.Background(), "../../../test/data/push", model.NewRepoSpec("repo"), "", true)
 		assert.NoError(t, err)
 		assert.Len(t, res, 4)
 		for i, r := range res {

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -39,7 +40,7 @@ func (r PullResult) String() string {
 	return fmt.Sprintf("%v\t %s %s", r.typ, r.tmid, r.text)
 }
 
-func Pull(repo model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
+func Pull(ctx context.Context, repo model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool) error {
 	if len(outputPath) == 0 {
 		Stderrf("requires output target folder --output")
 		return errors.New("--output not provided")
@@ -51,7 +52,7 @@ func Pull(repo model.RepoSpec, search *model.SearchParams, outputPath string, re
 		return errors.New("output target folder --output is not a folder")
 	}
 
-	searchResult, err, errs := commands.List(repo, search)
+	searchResult, err, errs := commands.List(ctx, repo, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
@@ -64,11 +65,16 @@ func Pull(repo model.RepoSpec, search *model.SearchParams, outputPath string, re
 
 	fmt.Printf("Pulling %d ThingModels with %d versions...\n", len(searchResult.Entries), vc)
 
-	fc := commands.NewFetchCommand()
 	var totalRes []PullResult
 	for _, entry := range searchResult.Entries {
 		for _, version := range entry.Versions {
-			res, pErr := pullThingModel(fc, outputPath, version, restoreId)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
+
+			res, pErr := pullThingModel(ctx, outputPath, version, restoreId)
 			totalRes = append(totalRes, res)
 			if pErr != nil {
 				err = pErr
@@ -84,9 +90,9 @@ func Pull(repo model.RepoSpec, search *model.SearchParams, outputPath string, re
 	return err
 }
 
-func pullThingModel(fc *commands.FetchCommand, outputPath string, version model.FoundVersion, restoreId bool) (PullResult, error) {
+func pullThingModel(ctx context.Context, outputPath string, version model.FoundVersion, restoreId bool) (PullResult, error) {
 	spec := model.NewSpecFromFoundSource(version.FoundIn)
-	id, thing, err, errs := fc.FetchByTMID(spec, version.TMID, restoreId)
+	id, thing, err, errs := commands.FetchByTMID(ctx, spec, version.TMID, restoreId)
 	if err == nil && len(errs) > 0 { // spec cannot be empty, therefore, there can be at most one RepoAccessError
 		err = errs[0]
 	}

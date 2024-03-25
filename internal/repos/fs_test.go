@@ -2,6 +2,7 @@ package repos
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -123,11 +124,11 @@ func TestValidatesRoot(t *testing.T) {
 		"loc":  "/temp/surely-does-not-exist-5245874598745",
 	}, model.EmptySpec)
 
-	_, err := repo.List(&model.SearchParams{Query: ""})
+	_, err := repo.List(context.Background(), &model.SearchParams{Query: ""})
 	assert.ErrorIs(t, err, ErrRootInvalid)
-	_, err = repo.Versions("manufacturer/mpn")
+	_, err = repo.Versions(context.Background(), "manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
-	_, _, err = repo.Fetch("manufacturer/mpn")
+	_, _, err = repo.Fetch(context.Background(), "manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
 
 }
@@ -158,22 +159,22 @@ func TestFileRepo_Fetch(t *testing.T) {
 	_ = os.WriteFile(fNameC, fileC, defaultFilePermissions)
 	_ = os.WriteFile(fNameD, fileD, defaultFilePermissions)
 
-	actId, content, err := r.Fetch(idA)
+	actId, content, err := r.Fetch(context.Background(), idA)
 	assert.NoError(t, err)
 	assert.Equal(t, idA, actId)
 	assert.Equal(t, fileA, content)
 
-	actId, content, err = r.Fetch(idB)
+	actId, content, err = r.Fetch(context.Background(), idB)
 	assert.NoError(t, err)
 	assert.Equal(t, idB, actId)
 	assert.Equal(t, fileB, content)
 
-	actId, content, err = r.Fetch(tmName + "/v1.0.0-20231212142856-a49617d2e4fc.tm.json")
+	actId, content, err = r.Fetch(context.Background(), tmName+"/v1.0.0-20231212142856-a49617d2e4fc.tm.json")
 	assert.NoError(t, err)
 	assert.Equal(t, idA, actId)
 	assert.Equal(t, fileA, content)
 
-	actId, content, err = r.Fetch(tmName + "/v1.0.0-20231212142856-e49617d2e4fc.tm.json")
+	actId, content, err = r.Fetch(context.Background(), tmName+"/v1.0.0-20231212142856-e49617d2e4fc.tm.json")
 	assert.ErrorIs(t, err, ErrTmNotFound)
 	assert.Equal(t, "", actId)
 
@@ -188,9 +189,9 @@ func TestFileRepo_Push(t *testing.T) {
 	}
 	tmName := "omnicorp-TM-department/omnicorp/omnilamp"
 	id := tmName + "/v0.0.0-20231208142856-c49617d2e4fc.tm.json"
-	err := r.Push(model.MustParseTMID(id, false), []byte{})
+	err := r.Push(context.Background(), model.MustParseTMID(id, false), []byte{})
 	assert.Error(t, err)
-	err = r.Push(model.MustParseTMID(id, false), []byte("{}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id, false), []byte("{}"))
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id))
 
@@ -200,16 +201,16 @@ func TestFileRepo_Push(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 
 	id2 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-a49617d2e4fc.tm.json"
-	err = r.Push(model.MustParseTMID(id2, false), []byte("{}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id2, false), []byte("{}"))
 	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}, err)
 
 	id3 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-f49617d2e4fc.tm.json"
-	err = r.Push(model.MustParseTMID(id3, false), []byte("{}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id3, false), []byte("{}"))
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id3))
 
 	id4 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-b49617d2e4fc.tm.json"
-	err = r.Push(model.MustParseTMID(id4, false), []byte("{\"val\":1}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id4, false), []byte("{\"val\":1}"))
 	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}, err)
 
 }
@@ -222,7 +223,7 @@ func TestFileRepo_List(t *testing.T) {
 		spec: model.NewRepoSpec("fr"),
 	}
 	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.indexFilename())
-	list, err := r.List(&model.SearchParams{})
+	list, err := r.List(context.Background(), &model.SearchParams{})
 	assert.NoError(t, err)
 	assert.Len(t, list.Entries, 3)
 }
@@ -235,22 +236,22 @@ func TestFileRepo_Versions(t *testing.T) {
 		spec: model.NewRepoSpec("fr"),
 	}
 	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.indexFilename())
-	vers, err := r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
+	vers, err := r.Versions(context.Background(), "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b")
 	assert.NoError(t, err)
 	assert.Len(t, vers, 1)
 
-	vers, err = r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath")
+	vers, err = r.Versions(context.Background(), "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath")
 	assert.NoError(t, err)
 	assert.Len(t, vers, 1)
 
-	vers, err = r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall")
+	vers, err = r.Versions(context.Background(), "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall")
 	assert.NoError(t, err)
 	assert.Len(t, vers, 1)
 
-	vers, err = r.Versions("omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/nothing-here")
+	vers, err = r.Versions(context.Background(), "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/nothing-here")
 	assert.ErrorIs(t, err, ErrTmNotFound)
 
-	vers, err = r.Versions("")
+	vers, err = r.Versions(context.Background(), "")
 	assert.ErrorIs(t, err, ErrTmNotFound)
 }
 
@@ -294,20 +295,20 @@ func TestFileRepo_Delete(t *testing.T) {
 				spec: spec,
 			}
 			t.Run("invalid id", func(t *testing.T) {
-				err := r.Delete("invalid-id")
+				err := r.Delete(context.Background(), "invalid-id")
 				assert.ErrorIs(t, err, model.ErrInvalidId)
 			})
 			t.Run("non-existent id", func(t *testing.T) {
-				err := r.Delete("man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
+				err := r.Delete(context.Background(), "man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
 				assert.ErrorIs(t, err, ErrTmNotFound)
 			})
 			t.Run("hash matching id", func(t *testing.T) {
-				err := r.Delete("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20230101125023-be839ce9daf1.tm.json")
+				err := r.Delete(context.Background(), "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20230101125023-be839ce9daf1.tm.json")
 				assert.ErrorIs(t, err, ErrTmNotFound)
 			})
 			t.Run("existing id", func(t *testing.T) {
 				id := "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json"
-				err := r.Delete(id)
+				err := r.Delete(context.Background(), id)
 				assert.NoError(t, err)
 				_, err = os.Stat(filepath.Join(r.root, id))
 				assert.True(t, os.IsNotExist(err))
@@ -316,13 +317,13 @@ func TestFileRepo_Delete(t *testing.T) {
 				id1 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json"
 				id2 := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json"
 				id3 := "omnicorp-TM-department/omnicorp/omnilamp/v3.2.1-20240109125023-1e788769a659.tm.json"
-				assert.NoError(t, r.Delete(id1))
-				assert.NoError(t, r.Delete(id2))
+				assert.NoError(t, r.Delete(context.Background(), id1))
+				assert.NoError(t, r.Delete(context.Background(), id2))
 				_, err := os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/subfolder"))
 				assert.True(t, os.IsNotExist(err))
 				_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp"))
 				assert.NoError(t, err)
-				assert.NoError(t, r.Delete(id3))
+				assert.NoError(t, r.Delete(context.Background(), id3))
 				_, err = os.Stat(filepath.Join(r.root, "omnicorp-TM-department"))
 				assert.True(t, os.IsNotExist(err))
 				_, err = os.Stat(r.root)
@@ -347,7 +348,7 @@ func TestFileRepo_Index(t *testing.T) {
 	}
 
 	t.Run("single id/no index file", func(t *testing.T) {
-		err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+		err := r.Index(context.Background(), "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
@@ -362,7 +363,7 @@ func TestFileRepo_Index(t *testing.T) {
 
 	})
 	t.Run("single id/existing index file", func(t *testing.T) {
-		err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
+		err := r.Index(context.Background(), "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json")
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
@@ -375,7 +376,7 @@ func TestFileRepo_Index(t *testing.T) {
 	})
 
 	t.Run("full update/existing index file", func(t *testing.T) {
-		err := r.Index()
+		err := r.Index(context.Background())
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
@@ -393,7 +394,7 @@ func TestFileRepo_Index(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NoError(t, r.writeNamesFile(nil))
 
-		err = r.Index()
+		err = r.Index(context.Background())
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
@@ -448,12 +449,12 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				root: test.root,
 				spec: spec,
 			}
-			err := r.Index()
+			err := r.Index(context.Background())
 			assert.NoError(t, err)
 
 			t.Run("non-existing id", func(t *testing.T) {
 				// when: deleting a non-existing id from index
-				err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/v9.9.9-20240109125023-be839ce9daf1.tm.json")
+				err := r.Index(context.Background(), "omnicorp-TM-department/omnicorp/omnilamp/v9.9.9-20240109125023-be839ce9daf1.tm.json")
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
@@ -469,7 +470,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 			})
 			t.Run("existing id and file", func(t *testing.T) {
 				// when: updating index for TM that has not been removed from disk
-				err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+				err := r.Index(context.Background(), "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -488,7 +489,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				// given: a deleted TM file
 				_ = os.Remove(filepath.Join(r.root, "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json"))
 				// when: updating index for the TM
-				err := r.Index("omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
+				err := r.Index(context.Background(), "omnicorp-TM-department/omnicorp/omnilamp/v0.0.0-20240109125023-be839ce9daf1.tm.json")
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -508,7 +509,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				id := "omnicorp-TM-department/omnicorp/omnilamp/subfolder/v3.2.1-20240109125023-1e788769a659.tm.json"
 				assert.NoError(t, os.Remove(filepath.Join(r.root, id)))
 				// when: updating index for the id
-				err = r.Index(id)
+				err = r.Index(context.Background(), id)
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -569,7 +570,7 @@ func TestFileRepo_Index_Parallel(t *testing.T) {
 			date := firstDate.Add(time.Duration(v) * 1 * time.Second).Format(model.PseudoVersionTimestampFormat)
 			b := make([]byte, 6)
 			_, _ = rand.Read(b)
-			err := r.Index(fmt.Sprintf("author/manuf/mpn/v1.0.%d-%s-%x.tm.json", v, date, b))
+			err := r.Index(context.Background(), fmt.Sprintf("author/manuf/mpn/v1.0.%d-%s-%x.tm.json", v, date, b))
 			assert.NoError(t, err)
 			wg.Done()
 		}(i)
@@ -594,12 +595,12 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(temp, ".tmc"), defaultDirPermissions)
 
 	t.Run("invalid", func(t *testing.T) {
-		_, err := r.ListCompletions("invalid", "")
+		_, err := r.ListCompletions(context.Background(), "invalid", "")
 		assert.ErrorIs(t, err, ErrInvalidCompletionParams)
 	})
 
 	t.Run("no names file", func(t *testing.T) {
-		names, err := r.ListCompletions(CompletionKindNames, "")
+		names, err := r.ListCompletions(context.Background(), CompletionKindNames, "")
 		assert.NoError(t, err)
 		var exp []string
 		assert.Equal(t, exp, names)
@@ -610,48 +611,48 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 			"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b\n"+
 			"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath\n"), defaultFilePermissions)
 		t.Run("empty", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/"}, completions)
 		})
 		t.Run("some letters", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "om")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "om")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/"}, completions)
 		})
 		t.Run("some letters non existing", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "aaa")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "aaa")
 			assert.NoError(t, err)
 			var expRes []string
 			assert.Equal(t, expRes, completions)
 		})
 		t.Run("full first name part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/"}, completions)
 		})
 		t.Run("some letters second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/"}, completions)
 		})
 		t.Run("full second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall", "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/"}, completions)
 		})
 		t.Run("full third part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/", "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath"}, completions)
 		})
 		t.Run("full fourth part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b"}, completions)
 		})
 		t.Run("full name", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath"}, completions)
 		})
@@ -664,7 +665,7 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.0.0-20231207142856-b49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.2.1-20231209142856-c49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
-		fNames, err := r.ListCompletions(CompletionKindFetchNames, tmName)
+		fNames, err := r.ListCompletions(context.Background(), CompletionKindFetchNames, tmName)
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"omnicorp-TM-department/omnicorp/omnilamp:v0.0.1", "omnicorp-TM-department/omnicorp/omnilamp:v1.0.0", "omnicorp-TM-department/omnicorp/omnilamp:v1.2.1"}, fNames)
 	})

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"os"
 
@@ -52,7 +53,7 @@ func executeList(cmd *cobra.Command, args []string) {
 	}
 
 	search := cli.CreateSearchParamsFromCLI(filterFlags, name)
-	err = cli.List(spec, search)
+	err = cli.List(context.Background(), spec, search)
 	if err != nil {
 		os.Exit(1)
 	}
