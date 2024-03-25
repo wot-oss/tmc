@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -204,7 +205,7 @@ func TestPushToRepoUnversioned(t *testing.T) {
 	t.Run("write first TM", func(t *testing.T) {
 
 		assert.NoError(t, err)
-		id, err := c.PushFile(raw, repo, "")
+		id, err := c.PushFile(context.Background(), raw, repo, "")
 		assert.NoError(t, err)
 		testTMDir := filepath.Join(root, filepath.Dir(id))
 		t.Logf("test TM dir: %s", testTMDir)
@@ -217,7 +218,7 @@ func TestPushToRepoUnversioned(t *testing.T) {
 
 	t.Run("attempt overwriting with the same content", func(t *testing.T) {
 		// attempt overwriting with the same content - no change
-		id, err := c.PushFile(raw, repo, "")
+		id, err := c.PushFile(context.Background(), raw, repo, "")
 		var errExists *repos.ErrTMIDConflict
 		assert.ErrorAs(t, err, &errExists)
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
@@ -228,7 +229,7 @@ func TestPushToRepoUnversioned(t *testing.T) {
 	t.Run("write a changed file", func(t *testing.T) {
 		// write a changed file - saves new version
 		raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
-		id, err := c.PushFile(raw, repo, "")
+		id, err := c.PushFile(context.Background(), raw, repo, "")
 		assert.NoError(t, err)
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 		assert.Len(t, entries, 2)
@@ -239,7 +240,7 @@ func TestPushToRepoUnversioned(t *testing.T) {
 
 		// change the file back and write - saves new version
 		raw = bytes.Replace(raw, []byte("Lamp Thing"), []byte("Lamp Thing Model"), 1)
-		id, err := c.PushFile(raw, repo, "")
+		id, err := c.PushFile(context.Background(), raw, repo, "")
 		assert.NoError(t, err)
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 		assert.Len(t, entries, 3)
@@ -253,7 +254,7 @@ func TestPushToRepoUnversioned(t *testing.T) {
 		for i := 0; i < 5; i++ {
 			content := bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing Model"+strconv.Itoa(i)), 1)
 			var err error
-			id, err = c.PushFile(content, repo, "")
+			id, err = c.PushFile(context.Background(), content, repo, "")
 			assert.NoError(t, err)
 		}
 		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
@@ -288,7 +289,7 @@ func TestPushToRepoVersioned(t *testing.T) {
 	_, raw, err := utils.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
 	assert.NoError(t, err)
 
-	id, err := c.PushFile(raw, repo, "")
+	id, err := c.PushFile(context.Background(), raw, repo, "")
 	assert.NoError(t, err)
 	entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 1)
@@ -297,7 +298,7 @@ func TestPushToRepoVersioned(t *testing.T) {
 	// write a new version of ThingModel - saves new version
 	time.Sleep(1050 * time.Millisecond)
 	raw = bytes.Replace(raw, []byte("\"v3.2.1\""), []byte("\"v4.0.0\""), 1)
-	id, err = c.PushFile(raw, repo, "")
+	id, err = c.PushFile(context.Background(), raw, repo, "")
 	assert.NoError(t, err)
 	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 2)
@@ -307,7 +308,7 @@ func TestPushToRepoVersioned(t *testing.T) {
 	_, raw, err = utils.ReadRequiredFile("../../test/data/push/omnilamp-versioned.json")
 	time.Sleep(1050 * time.Millisecond)
 	raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
-	id, err = c.PushFile(raw, repo, "")
+	id, err = c.PushFile(context.Background(), raw, repo, "")
 	assert.NoError(t, err)
 	entries, _ = os.ReadDir(filepath.Join(root, filepath.Dir(id)))
 	assert.Len(t, entries, 3)

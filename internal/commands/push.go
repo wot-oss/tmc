@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -35,7 +36,7 @@ func NewPushCommand(now Now) *PushCommand {
 // PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to repo.
 // Returns the ID that the TM has been stored under, and error.
 // If the repo already contains the same TM, returns the id of the existing TM and an instance of repos.ErrTMIDConflict
-func (c *PushCommand) PushFile(raw []byte, repo repos.Repo, optPath string) (string, error) {
+func (c *PushCommand) PushFile(ctx context.Context, raw []byte, repo repos.Repo, optPath string) (string, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
@@ -50,7 +51,7 @@ RETRY:
 		return "", err
 	}
 
-	err = repo.Push(id, versioned)
+	err = repo.Push(ctx, id, versioned)
 	if err != nil {
 		var errConflict *repos.ErrTMIDConflict
 		if errors.As(err, &errConflict) {

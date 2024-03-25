@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,23 +43,23 @@ type Repo interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
 	// there is a file with the same semantic version and timestamp but different content
-	Push(id model.TMID, raw []byte) error
+	Push(ctx context.Context, id model.TMID, raw []byte) error
 	// Fetch retrieves the Thing Model file from repo
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
-	Fetch(id string) (string, []byte, error)
+	Fetch(ctx context.Context, id string) (string, []byte, error)
 	// Index updates repository's index file with data from given TM files. For ids that refer to non-existing files,
 	// removes those from index. Performs a full update if no updatedIds given
-	Index(updatedIds ...string) error
+	Index(ctx context.Context, updatedIds ...string) error
 	// List searches the catalog for TMs matching search parameters
-	List(search *model.SearchParams) (model.SearchResult, error)
+	List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error)
 	// Versions lists versions of a TM with given name
-	Versions(name string) ([]model.FoundVersion, error)
+	Versions(ctx context.Context, name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Repo has been created from
 	Spec() model.RepoSpec
 	// Delete deletes the TM with given id from repo. Returns ErrTmNotFound if TM does not exist
-	Delete(id string) error
+	Delete(ctx context.Context, id string) error
 
-	ListCompletions(kind string, toComplete string) ([]string, error)
+	ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error)
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {

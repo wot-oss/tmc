@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +71,7 @@ func TestHttpRepo_Fetch(t *testing.T) {
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
-	actId, b, err := r.Fetch(tmid)
+	actId, b, err := r.Fetch(context.Background(), tmid)
 	assert.NoError(t, err)
 	assert.Equal(t, aid, actId)
 	assert.Equal(t, []byte(tm), b)
@@ -92,60 +93,60 @@ func TestHttpRepo_ListCompletions(t *testing.T) {
 
 	t.Run("names", func(t *testing.T) {
 		t.Run("empty", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/"}, completions)
 		})
 		t.Run("some letters", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "om")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "om")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/"}, completions)
 		})
 		t.Run("some letters non existing", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "aaa")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "aaa")
 			assert.NoError(t, err)
 			var expRes []string
 			assert.Equal(t, expRes, completions)
 		})
 		t.Run("full first name part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/"}, completions)
 		})
 		t.Run("some letters second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/"}, completions)
 		})
 		t.Run("full second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall", "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/"}, completions)
 		})
 		t.Run("full third part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/", "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath"}, completions)
 		})
 		t.Run("full fourth part", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b"}, completions)
 		})
 		t.Run("full name", func(t *testing.T) {
-			completions, err := r.ListCompletions(CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath"}, completions)
 		})
 	})
 	t.Run("fetch names", func(t *testing.T) {
-		completions, err := r.ListCompletions(CompletionKindFetchNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:")
+		completions, err := r.ListCompletions(context.Background(), CompletionKindFetchNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:")
 		assert.NoError(t, err)
 
 		slices.Sort(completions)
 		assert.Equal(t, []string{"omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:1.0.1"}, completions)
 
-		completions, err = r.ListCompletions(CompletionKindFetchNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:v1")
+		completions, err = r.ListCompletions(context.Background(), CompletionKindFetchNames, "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall:v1")
 		assert.NoError(t, err)
 
 		slices.Sort(completions)

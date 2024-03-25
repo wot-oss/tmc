@@ -31,7 +31,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 
 	searchParams := convertParams(params)
 
-	inv, err := h.Service.ListInventory(nil, searchParams)
+	inv, err := h.Service.ListInventory(r.Context(), searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -47,7 +47,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 // (GET /inventory/{name})
 func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, name string) {
 
-	entry, err := h.Service.FindInventoryEntry(nil, name)
+	entry, err := h.Service.FindInventoryEntry(r.Context(), name)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -63,7 +63,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 // (GET /inventory/{inventoryId}/.versions)
 func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
 
-	entry, err := h.Service.FindInventoryEntry(nil, name)
+	entry, err := h.Service.FindInventoryEntry(r.Context(), name)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -83,7 +83,7 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, t
 		restoreId = *params.RestoreId
 	}
 
-	data, err := h.Service.FetchThingModel(nil, tmIDOrName, restoreId)
+	data, err := h.Service.FetchThingModel(r.Context(), tmIDOrName, restoreId)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -100,7 +100,7 @@ func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err := h.Service.DeleteThingModel(context.TODO(), tmIDOrName)
+	err := h.Service.DeleteThingModel(r.Context(), tmIDOrName)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -127,7 +127,7 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmID, err := h.Service.PushThingModel(nil, b)
+	tmID, err := h.Service.PushThingModel(r.Context(), b)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -142,7 +142,7 @@ func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params s
 
 	searchParams := convertParams(params)
 
-	authors, err := h.Service.ListAuthors(nil, searchParams)
+	authors, err := h.Service.ListAuthors(r.Context(), searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -157,7 +157,7 @@ func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, pa
 
 	searchParams := convertParams(params)
 
-	mans, err := h.Service.ListManufacturers(nil, searchParams)
+	mans, err := h.Service.ListManufacturers(r.Context(), searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -172,7 +172,7 @@ func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params serv
 
 	searchParams := convertParams(params)
 
-	mpns, err := h.Service.ListMpns(nil, searchParams)
+	mpns, err := h.Service.ListMpns(r.Context(), searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -187,7 +187,7 @@ func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params serv
 // (GET /healthz)
 func (h *TmcHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 
-	err := h.Service.CheckHealth(nil)
+	err := h.Service.CheckHealth(r.Context())
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return
@@ -199,7 +199,7 @@ func (h *TmcHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
 // (GET /healthz/live)
 func (h *TmcHandler) GetHealthLive(w http.ResponseWriter, r *http.Request) {
 
-	err := h.Service.CheckHealthLive(nil)
+	err := h.Service.CheckHealthLive(r.Context())
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return
@@ -211,7 +211,7 @@ func (h *TmcHandler) GetHealthLive(w http.ResponseWriter, r *http.Request) {
 // (GET /healthz/ready)
 func (h *TmcHandler) GetHealthReady(w http.ResponseWriter, r *http.Request) {
 
-	err := h.Service.CheckHealthReady(nil)
+	err := h.Service.CheckHealthReady(r.Context())
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return
@@ -223,7 +223,7 @@ func (h *TmcHandler) GetHealthReady(w http.ResponseWriter, r *http.Request) {
 // (GET /healthz/startup)
 func (h *TmcHandler) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
 
-	err := h.Service.CheckHealthStartup(nil)
+	err := h.Service.CheckHealthStartup(r.Context())
 	if err != nil {
 		HandleErrorResponse(w, r, NewServiceUnavailableError(err, err.Error()))
 		return
@@ -240,7 +240,7 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 	if params.ToComplete != nil {
 		toComplete = *params.ToComplete
 	}
-	vals, err := h.Service.GetCompletions(context.TODO(), kind, toComplete)
+	vals, err := h.Service.GetCompletions(r.Context(), kind, toComplete)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return

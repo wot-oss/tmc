@@ -1,15 +1,17 @@
 package commands
 
 import (
+	"context"
+
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-func List(rSpec model.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []*repos.RepoAccessError) {
+func List(ctx context.Context, rSpec model.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []*repos.RepoAccessError) {
 	rs, err := repos.GetSpecdOrAll(rSpec)
 	if err != nil {
 		return model.SearchResult{}, err, nil
 	}
-	sr, errs := rs.List(search)
+	sr, errs := rs.List(ctx, search)
 	return sr, nil, errs
 }
