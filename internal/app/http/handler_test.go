@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/wot-oss/tmc/internal/app/http/mocks"
+	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/testutils"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -591,6 +592,20 @@ func Test_PushThingModel(t *testing.T) {
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
 			WithBody(invalidContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with too long name", func(t *testing.T) {
+		// given: a thing model with too long name
+		hs.On("PushThingModel", mock.Anything, tmContent).Return("", fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long")).Once()
+		// when: calling the route
+
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody(tmContent).
 			RunOnHandler(httpHandler)
 
 		// then: it returns status 400

@@ -17,7 +17,12 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-const maxPushRetries = 3
+const (
+	maxPushRetries = 3
+	maxNameLength  = 255
+)
+
+var ErrTMNameTooLong = fmt.Errorf("TM name too long (max %d allowed)", maxNameLength)
 
 type Now func() time.Time
 type PushCommand struct {
@@ -101,6 +106,9 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 	// overwrite the id from file with the newly generated if idFromFile is invalid for given content
 	if !generatedId.Equals(idFromFile) {
 		finalId = generatedId
+	}
+	if len(finalId.Name) > maxNameLength {
+		return nil, model.TMID{}, fmt.Errorf("%w: %s", ErrTMNameTooLong, finalId.Name)
 	}
 	idString, _ := json.Marshal(finalId.String())
 	final, err := jsonparser.Set(normalized, idString, "id")
