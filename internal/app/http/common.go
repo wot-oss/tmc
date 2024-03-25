@@ -91,6 +91,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errStatus = http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidId),
 		errors.Is(err, commands.ErrInvalidFetchName),
+		errors.Is(err, commands.ErrTMNameTooLong),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()

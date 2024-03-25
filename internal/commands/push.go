@@ -22,6 +22,8 @@ const (
 	maxNameLength  = 255
 )
 
+var ErrTMNameTooLong = fmt.Errorf("TM name too long (max %d allowed)", maxNameLength)
+
 type Now func() time.Time
 type PushCommand struct {
 	now Now
@@ -106,7 +108,7 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 		finalId = generatedId
 	}
 	if len(finalId.Name) > maxNameLength {
-		return nil, model.TMID{}, fmt.Errorf("TM name too long (max %d allowed): %s", maxNameLength, finalId.Name)
+		return nil, model.TMID{}, fmt.Errorf("%w: %s", ErrTMNameTooLong, finalId.Name)
 	}
 	idString, _ := json.Marshal(finalId.String())
 	final, err := jsonparser.Set(normalized, idString, "id")

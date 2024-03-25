@@ -136,7 +136,7 @@ func TestPrepareToImport(t *testing.T) {
 			Author:       model.SchemaAuthor{Name: "authorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthor"},
 			Version:      model.Version{Model: "v3.2.1"},
 		}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir")
-		assert.ErrorContains(t, err, "TM name too long")
+		assert.ErrorIs(t, err, ErrTMNameTooLong)
 	})
 	t.Run("foreign string id in original", func(t *testing.T) {
 		b, _, err := prepareToImport(now, &model.ThingModel{
