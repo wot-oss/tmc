@@ -131,12 +131,12 @@ func TestPrepareToImport(t *testing.T) {
 	})
 	t.Run("too long name", func(t *testing.T) {
 		_, _, err := prepareToImport(now, &model.ThingModel{
-			Manufacturer: model.SchemaManufacturer{Name: "omnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorpomnicorp"},
-			Mpn:          "senseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseallsenseall",
-			Author:       model.SchemaAuthor{Name: "authorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthorauthor"},
+			Manufacturer: model.SchemaManufacturer{Name: strings.Repeat("omnicorpus", 10)}, // 100 chars
+			Mpn:          strings.Repeat("senseall", 10),                                   // 80 chars
+			Author:       model.SchemaAuthor{Name: strings.Repeat("author", 10)},           // 60 chars
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n}"), "opt/dir")
-		assert.ErrorIs(t, err, ErrTMNameTooLong)
+		}, []byte("{\r\n\"title\":\"test\"\r\n}"), "optional/fldr") // 13 chars
+		assert.ErrorIs(t, err, ErrTMNameTooLong) // 100 + 80 + 60 + 13 + 3 slashes in between = 256 chars
 	})
 	t.Run("foreign string id in original", func(t *testing.T) {
 		b, _, err := prepareToImport(now, &model.ThingModel{
