@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -49,13 +50,6 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 	return fn, nil
 }
 
-type FetchCommand struct {
-}
-
-func NewFetchCommand() *FetchCommand {
-	return &FetchCommand{}
-}
-
 // ParseAsTMIDOrFetchName parses idOrName as model.TMID. If that fails, parses it as FetchName.
 // Returns error is idOrName is not valid as either. Only one of returned pointers may be not nil
 func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
@@ -72,24 +66,24 @@ func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
 	return nil, nil, err
 }
 
-func (c *FetchCommand) FetchByTMIDOrName(spec model.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
+func FetchByTMIDOrName(ctx context.Context, spec model.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
 	tmid, fn, err := ParseAsTMIDOrFetchName(idOrName)
 	if err != nil {
 		return "", nil, err, nil
 	}
 	if tmid != nil {
-		return c.FetchByTMID(spec, idOrName, restoreId)
+		return FetchByTMID(ctx, spec, idOrName, restoreId)
 	}
-	return c.FetchByName(spec, *fn, restoreId)
+	return FetchByName(ctx, spec, *fn, restoreId)
 }
 
-func (c *FetchCommand) FetchByTMID(spec model.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
+func FetchByTMID(ctx context.Context, spec model.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
 	rs, err := repos.GetSpecdOrAll(spec)
 	if err != nil {
 		return "", nil, err, nil
 	}
 
-	fetch, bytes, err, accessErrors := rs.Fetch(tmid)
+	fetch, bytes, err, accessErrors := rs.Fetch(ctx, tmid)
 	if err == nil && restoreId {
 		bytes = restoreExternalId(bytes)
 	}
@@ -154,9 +148,9 @@ func restoreExternalId(raw []byte) []byte {
 
 }
 
-func (c *FetchCommand) FetchByName(spec model.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
+func FetchByName(ctx context.Context, spec model.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
 	log := slog.Default()
-	res, err, errs := NewVersionsCommand().ListVersions(spec, fn.Name)
+	res, err, errs := NewVersionsCommand().ListVersions(ctx, spec, fn.Name)
 	if err != nil {
 		return "", nil, err, errs
 	}
@@ -183,7 +177,7 @@ func (c *FetchCommand) FetchByName(spec model.RepoSpec, fn FetchName, restoreId 
 	}
 
 	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
-	tmid, bytes, err, _ := c.FetchByTMID(foundIn, id, restoreId)
+	tmid, bytes, err, _ := FetchByTMID(ctx, foundIn, id, restoreId)
 	return tmid, bytes, err, errs
 }
 

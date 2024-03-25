@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"os"
 
@@ -46,7 +47,7 @@ func executeDelete(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	err = cli.Delete(spec, args[0])
+	err = cli.Delete(context.Background(), spec, args[0])
 	if err != nil {
 		cli.Stderrf("delete failed")
 		os.Exit(1)

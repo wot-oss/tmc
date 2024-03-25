@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"sort"
@@ -163,10 +164,10 @@ func Test_ListInventory(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", &model.SearchParams{Author: []string{"a-corp", "b-corp"}}).Return(listResult, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{Author: []string{"a-corp", "b-corp"}}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
-		res, err := underTest.ListInventory(nil, &model.SearchParams{Author: []string{"a-corp", "b-corp"}})
+		res, err := underTest.ListInventory(context.Background(), &model.SearchParams{Author: []string{"a-corp", "b-corp"}})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned
@@ -176,12 +177,12 @@ func Test_ListInventory(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
 		r2 := mocks.NewRepo(t)
-		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
-		r2.On("List", &model.SearchParams{}).Return(model.SearchResult{}, errors.New("unexpected")).Once()
+		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
+		r2.On("List", mock.Anything, &model.SearchParams{}).Return(model.SearchResult{}, errors.New("unexpected")).Once()
 		r2.On("Spec").Return(model.NewRepoSpec("r2")).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r, r2))
 		// when: list all
-		res, err := underTest.ListInventory(nil, &model.SearchParams{})
+		res, err := underTest.ListInventory(context.Background(), &model.SearchParams{})
 		// then: there is an error of type repos.RepoAccessError
 		var aErr *repos.RepoAccessError
 		assert.ErrorAs(t, err, &aErr)
@@ -197,10 +198,10 @@ func Test_GetCompletions(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
 		names := []string{"a/b/c", "d/e/f"}
-		r.On("ListCompletions", "names", "toComplete").Return(names, nil)
+		r.On("ListCompletions", mock.Anything, "names", "toComplete").Return(names, nil)
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
-		res, err := underTest.GetCompletions(nil, "names", "toComplete")
+		res, err := underTest.GetCompletions(context.Background(), "names", "toComplete")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned
@@ -215,10 +216,10 @@ func Test_FindInventoryEntry(t *testing.T) {
 		inventoryName := "a/b/c"
 		// given: repo returns empty search result
 		r := mocks.NewRepo(t)
-		r.On("List", &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{}, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{}, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: finding entry
-		res, err := underTest.FindInventoryEntry(nil, inventoryName)
+		res, err := underTest.FindInventoryEntry(context.Background(), inventoryName)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is status code 404
@@ -253,11 +254,11 @@ func Test_ListAuthors(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo returning the inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all authors
-		res, err := underTest.ListAuthors(nil, &model.SearchParams{})
+		res, err := underTest.ListAuthors(context.Background(), &model.SearchParams{})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is sorted asc by name
@@ -295,11 +296,11 @@ func Test_ListManufacturers(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo returning the inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all manufacturers
-		res, err := underTest.ListManufacturers(nil, &model.SearchParams{})
+		res, err := underTest.ListManufacturers(context.Background(), &model.SearchParams{})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is sorted asc by name
@@ -337,11 +338,11 @@ func Test_ListMpns(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo returning the inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", &model.SearchParams{}).Return(listResult, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when: list all
-		res, err := underTest.ListMpns(nil, &model.SearchParams{})
+		res, err := underTest.ListMpns(context.Background(), &model.SearchParams{})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is sorted asc by name
@@ -389,10 +390,10 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", tmID).Return(tmID, nil, repos.ErrTmNotFound).Once()
+		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, repos.ErrTmNotFound).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID, false)
+		res, err := underTest.FetchThingModel(context.Background(), tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
@@ -401,10 +402,10 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with fetch name not found", func(t *testing.T) {
 		fn := "b-corp/eagle/PM20"
-		r.On("Versions", fn).Return(nil, nil).Once()
+		r.On("Versions", mock.Anything, fn).Return(nil, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, fn, false)
+		res, err := underTest.FetchThingModel(context.Background(), fn, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTmNotFound
@@ -414,10 +415,10 @@ func Test_FetchingThingModel(t *testing.T) {
 	t.Run("with tmID found", func(t *testing.T) {
 		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
 		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", tmID).Return(tmID, raw, nil).Once()
+		r.On("Fetch", mock.Anything, tmID).Return(tmID, raw, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
-		res, err := underTest.FetchThingModel(nil, tmID, false)
+		res, err := underTest.FetchThingModel(context.Background(), tmID, false)
 		// then: it returns the unchanged ThingModel content
 		assert.NotNil(t, res)
 		assert.Equal(t, raw, res)
@@ -433,29 +434,29 @@ func Test_DeleteThingModel(t *testing.T) {
 
 	t.Run("without errors", func(t *testing.T) {
 		tmid := "some-id"
-		r.On("Delete", tmid).Return(nil).Once()
-		r.On("Index", tmid).Return(nil).Once()
+		r.On("Delete", mock.Anything, tmid).Return(nil).Once()
+		r.On("Index", mock.Anything, tmid).Return(nil).Once()
 		// when: deleting ThingModel
-		err := underTest.DeleteThingModel(nil, tmid)
+		err := underTest.DeleteThingModel(context.Background(), tmid)
 		// then: it returns nil result
 		assert.NoError(t, err)
 	})
 
 	t.Run("with error when deleting", func(t *testing.T) {
 		tmid := "some-id2"
-		r.On("Delete", tmid).Return(repos.ErrTmNotFound).Once()
+		r.On("Delete", mock.Anything, tmid).Return(repos.ErrTmNotFound).Once()
 		// when: deleting ThingModel
-		err := underTest.DeleteThingModel(nil, tmid)
+		err := underTest.DeleteThingModel(context.Background(), tmid)
 		// then: it returns error result
 		assert.ErrorIs(t, err, repos.ErrTmNotFound)
 	})
 
 	t.Run("with error when indexing", func(t *testing.T) {
 		tmid := "some-id3"
-		r.On("Delete", tmid).Return(nil).Once()
-		r.On("Index", tmid).Return(errors.New("could not update index")).Once()
+		r.On("Delete", mock.Anything, tmid).Return(nil).Once()
+		r.On("Index", mock.Anything, tmid).Return(errors.New("could not update index")).Once()
 		// when: deleting ThingModel
-		err := underTest.DeleteThingModel(nil, tmid)
+		err := underTest.DeleteThingModel(context.Background(), tmid)
 		// then: it returns error result
 		assert.ErrorContains(t, err, "could not update index")
 	})
@@ -498,7 +499,7 @@ func Test_PushingThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameContent,
 			ExistingId: "existing-id",
 		}
-		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
+		r.On("Push", mock.Anything, mock.Anything, mock.Anything).Return(cErr).Once()
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, tmContent)
 		// then: it returns empty tmID
@@ -514,9 +515,9 @@ func Test_PushingThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
-		r.On("Push", mock.Anything, mock.Anything).Return(cErr).Once()
-		r.On("Push", mock.Anything, mock.Anything).Return(nil).Once() // expect a second push attempt
-		r.On("Index", mock.Anything).Return(nil)
+		r.On("Push", mock.Anything, mock.Anything, mock.Anything).Return(cErr).Once()
+		r.On("Push", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once() // expect a second push attempt
+		r.On("Index", mock.Anything, mock.Anything).Return(nil)
 		// when: pushing ThingModel
 		res, err := underTest.PushThingModel(nil, tmContent)
 		// then: it returns non-empty tmID

@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -11,9 +12,9 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func Fetch(repo model.RepoSpec, idOrName, outputPath string, restoreId bool) error {
+func Fetch(ctx context.Context, repo model.RepoSpec, idOrName, outputPath string, restoreId bool) error {
 
-	id, thing, err, errs := commands.NewFetchCommand().FetchByTMIDOrName(repo, idOrName, restoreId)
+	id, thing, err, errs := commands.FetchByTMIDOrName(ctx, repo, idOrName, restoreId)
 	if err != nil {
 		Stderrf("Could not fetch from repo: %v", err)
 		return err

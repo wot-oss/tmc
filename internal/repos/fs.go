@@ -54,7 +54,7 @@ func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) 
 	}, nil
 }
 
-func (f *FileRepo) Push(id model.TMID, raw []byte) error {
+func (f *FileRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 	if len(raw) == 0 {
 		return errors.New("nothing to write")
 	}
@@ -84,7 +84,7 @@ func (f *FileRepo) Push(id model.TMID, raw []byte) error {
 	return nil
 }
 
-func (f *FileRepo) Delete(id string) error {
+func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err
@@ -212,7 +212,7 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 	return res
 }
 
-func (f *FileRepo) Fetch(id string) (string, []byte, error) {
+func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	err := f.checkRootValid()
 	if err != nil {
 		return "", nil, err
@@ -235,19 +235,19 @@ func checkIdValid(id string) error {
 	return err
 }
 
-func (f *FileRepo) Index(ids ...string) error {
+func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err
 	}
-	return f.updateIndex(ids)
+	return f.updateIndex(ctx, ids)
 }
 
 func (f *FileRepo) Spec() model.RepoSpec {
 	return f.spec
 }
 
-func (f *FileRepo) List(search *model.SearchParams) (model.SearchResult, error) {
+func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
 	log := slog.Default()
 	log.Debug(fmt.Sprintf("Creating list with filter '%v'", search))
 
@@ -256,7 +256,7 @@ func (f *FileRepo) List(search *model.SearchParams) (model.SearchResult, error) 
 		return model.SearchResult{}, err
 	}
 
-	unlock, err := f.lockIndex()
+	unlock, err := f.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
 		return model.SearchResult{}, err
@@ -286,10 +286,10 @@ func (f *FileRepo) indexFilename() string {
 	return filepath.Join(f.root, RepoConfDir, IndexFilename)
 }
 
-func (f *FileRepo) Versions(name string) ([]model.FoundVersion, error) {
+func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	name = strings.TrimSpace(name)
-	res, err := f.List(&model.SearchParams{Name: name})
+	res, err := f.List(ctx, &model.SearchParams{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -360,13 +360,13 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRepo) updateIndex(ids []string) error {
+func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
 	start := time.Now()
 
-	cancel, err := f.lockIndex()
+	cancel, err := f.lockIndex(ctx)
 	defer cancel()
 	if err != nil {
 		return err
@@ -382,6 +382,11 @@ func (f *FileRepo) updateIndex(ids []string) error {
 		}
 		names = nil
 		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
 			upd, name, _, err := f.updateIndexWithFile(newIndex, path, info, log, err)
 			if err != nil {
 				return err
@@ -407,6 +412,11 @@ func (f *FileRepo) updateIndex(ids []string) error {
 			newIndex = &index
 		}
 		for _, id := range ids {
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			default:
+			}
 			path := filepath.Join(f.root, id)
 			info, statErr := osStat(path)
 			upd, name, nameDeleted, err := f.updateIndexWithFile(newIndex, path, info, log, statErr)
@@ -480,7 +490,7 @@ func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.Fi
 
 type unlockFunc func()
 
-func (f *FileRepo) lockIndex() (unlockFunc, error) {
+func (f *FileRepo) lockIndex(ctx context.Context) (unlockFunc, error) {
 	rd := filepath.Join(f.root, RepoConfDir)
 	stat, err := os.Stat(rd)
 	if err != nil || !stat.IsDir() {
@@ -492,7 +502,7 @@ func (f *FileRepo) lockIndex() (unlockFunc, error) {
 	idxFile := f.indexFilename()
 
 	fl := flock.New(idxFile + ".lock")
-	ctx, cancel := context.WithTimeout(context.Background(), indexLockTimeout)
+	ctx, cancel := context.WithTimeout(ctx, indexLockTimeout)
 	unlock := func() {
 		cancel()
 		_ = fl.Unlock()
@@ -547,10 +557,10 @@ func getThingMetadata(path string) (model.ThingModel, error) {
 	return ctm, nil
 }
 
-func (f *FileRepo) ListCompletions(kind string, toComplete string) ([]string, error) {
+func (f *FileRepo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
 	switch kind {
 	case CompletionKindNames:
-		unlock, err := f.lockIndex()
+		unlock, err := f.lockIndex(ctx)
 		defer unlock()
 		if err != nil {
 			return nil, err
