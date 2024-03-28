@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 
 	"github.com/spf13/viper"
@@ -146,17 +144,15 @@ func ReadConfig() (Config, error) {
 	reposConfig := viper.Get(KeyRepos)
 	if reposConfig == nil {
 		remotesConfig := viper.Get(keyRemotes) // attempt to find obsolete key and convert config to new key
-		if remotes, ok := remotesConfig.(map[string]any); ok {
-			conf, err := mapToConfig(remotes)
-			if err != nil {
-				return nil, err
-			}
-			err = saveConfig(conf)
-			if err != nil {
-				return nil, err
-			}
-			reposConfig = remotesConfig
+		err := config.SaveConfig(KeyRepos, remotesConfig)
+		if err != nil {
+			return nil, err
 		}
+		err = config.DeleteConfig(keyRemotes)
+		if err != nil {
+			return nil, err
+		}
+		reposConfig = remotesConfig
 	}
 	repos, ok := reposConfig.(map[string]any)
 	if !ok {
@@ -277,37 +273,9 @@ func Rename(oldName, newName string) error {
 		return ErrRepoNotFound
 	}
 }
+
 func saveConfig(conf Config) error {
-	viper.Set(KeyRepos, conf)
-	configFile := viper.ConfigFileUsed()
-	if configFile == "" {
-		configFile = filepath.Join(config.DefaultConfigDir, "config.json")
-	}
-	err := os.MkdirAll(config.DefaultConfigDir, 0770)
-	if err != nil {
-		return err
-	}
-
-	b, err := os.ReadFile(configFile)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	if len(b) == 0 {
-		b = []byte("{}")
-	}
-	var j map[string]any
-	err = json.Unmarshal(b, &j)
-	if err != nil {
-		return err
-	}
-	j[KeyRepos] = conf
-	delete(j, keyRemotes)
-
-	w, err := json.MarshalIndent(j, "", "  ")
-	if err != nil {
-		return err
-	}
-	return utils.AtomicWriteFile(configFile, w, 0660)
+	return config.SaveConfig(KeyRepos, conf)
 }
 
 func AsRepoConfig(bytes []byte) (map[string]any, error) {
