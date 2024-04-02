@@ -40,8 +40,6 @@ func InitConfig() {
 }
 
 func InitViper() {
-	viper.SetDefault("remotes", map[string]any{})
-	//viper.SetDefault("repos", map[string]any{})
 	viper.SetDefault(KeyLogLevel, LogLevelOff)
 	viper.SetDefault(KeyJWTValidation, false)
 
@@ -72,12 +70,12 @@ func InitViper() {
 	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
 }
 
-func SaveConfig(key string, data any) error {
+func Save(key string, data any) error {
 	viper.Set(key, data)
 	return updateConfigFile(modSet, key, data)
 }
 
-func DeleteConfig(key string) error {
+func Delete(key string) error {
 	return updateConfigFile(modDel, key, nil)
 }
 

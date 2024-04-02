@@ -144,11 +144,11 @@ func ReadConfig() (Config, error) {
 	reposConfig := viper.Get(KeyRepos)
 	if reposConfig == nil {
 		remotesConfig := viper.Get(keyRemotes) // attempt to find obsolete key and convert config to new key
-		err := config.SaveConfig(KeyRepos, remotesConfig)
+		err := config.Save(KeyRepos, remotesConfig)
 		if err != nil {
 			return nil, err
 		}
-		err = config.DeleteConfig(keyRemotes)
+		err = config.Delete(keyRemotes)
 		if err != nil {
 			return nil, err
 		}
@@ -156,7 +156,7 @@ func ReadConfig() (Config, error) {
 	}
 	repos, ok := reposConfig.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid repo config")
+		repos = map[string]any{}
 	}
 	return mapToConfig(repos)
 }
@@ -275,7 +275,7 @@ func Rename(oldName, newName string) error {
 }
 
 func saveConfig(conf Config) error {
-	return config.SaveConfig(KeyRepos, conf)
+	return config.Save(KeyRepos, conf)
 }
 
 func AsRepoConfig(bytes []byte) (map[string]any, error) {

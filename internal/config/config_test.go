@@ -57,7 +57,7 @@ func TestSaveConfigOverwritesOnlyKeyValue(t *testing.T) {
 	viper.Set("someKey", "someValue")
 
 	// when: saving the key-value pair in the config file
-	err = SaveConfig(key, val)
+	err = Save(key, val)
 
 	// then: only the intended key-value pair is overwritten,
 	//       everything else has not been changed or added
@@ -107,7 +107,7 @@ func TestDeleteConfigRemovesOnlyKeyValue(t *testing.T) {
 	viper.Set("someKey", "someValue")
 
 	// when: deleting the key-value pair in the config file
-	err = DeleteConfig(key)
+	err = Delete(key)
 
 	// then: only the intended key-value pair is deleted,
 	//       everything else has not been changed or added
