@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"regexp"
 
 	"github.com/spf13/viper"
@@ -16,7 +14,8 @@ import (
 )
 
 const (
-	KeyRepos       = "remotes"
+	KeyRepos       = "repos"
+	keyRemotes     = "remotes" // left for compatibility
 	KeyRepoType    = "type"
 	KeyRepoLoc     = "loc"
 	KeyRepoAuth    = "auth"
@@ -143,10 +142,28 @@ var All = func() ([]Repo, error) {
 
 func ReadConfig() (Config, error) {
 	reposConfig := viper.Get(KeyRepos)
+	if reposConfig == nil {
+		remotesConfig := viper.Get(keyRemotes) // attempt to find obsolete key and convert config to new key
+		if remotesConfig != nil {
+			err := config.Save(KeyRepos, remotesConfig)
+			if err != nil {
+				return nil, err
+			}
+		}
+		err := config.Delete(keyRemotes)
+		if err != nil {
+			return nil, err
+		}
+		reposConfig = remotesConfig
+	}
 	repos, ok := reposConfig.(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("invalid repo config")
+		repos = map[string]any{}
 	}
+	return mapToConfig(repos)
+}
+
+func mapToConfig(repos map[string]any) (Config, error) {
 	cp := map[string]map[string]any{}
 	for k, v := range repos {
 		if cfg, ok := v.(map[string]any); ok {
@@ -258,36 +275,9 @@ func Rename(oldName, newName string) error {
 		return ErrRepoNotFound
 	}
 }
+
 func saveConfig(conf Config) error {
-	viper.Set(KeyRepos, conf)
-	configFile := viper.ConfigFileUsed()
-	if configFile == "" {
-		configFile = filepath.Join(config.DefaultConfigDir, "config.json")
-	}
-	err := os.MkdirAll(config.DefaultConfigDir, 0770)
-	if err != nil {
-		return err
-	}
-
-	b, err := os.ReadFile(configFile)
-	if err != nil && !os.IsNotExist(err) {
-		return err
-	}
-	if len(b) == 0 {
-		b = []byte("{}")
-	}
-	var j map[string]any
-	err = json.Unmarshal(b, &j)
-	if err != nil {
-		return err
-	}
-	j[KeyRepos] = conf
-
-	w, err := json.MarshalIndent(j, "", "  ")
-	if err != nil {
-		return err
-	}
-	return utils.AtomicWriteFile(configFile, w, 0660)
+	return config.Save(KeyRepos, conf)
 }
 
 func AsRepoConfig(bytes []byte) (map[string]any, error) {
