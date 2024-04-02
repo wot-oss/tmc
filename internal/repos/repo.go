@@ -144,11 +144,13 @@ func ReadConfig() (Config, error) {
 	reposConfig := viper.Get(KeyRepos)
 	if reposConfig == nil {
 		remotesConfig := viper.Get(keyRemotes) // attempt to find obsolete key and convert config to new key
-		err := config.Save(KeyRepos, remotesConfig)
-		if err != nil {
-			return nil, err
+		if remotesConfig != nil {
+			err := config.Save(KeyRepos, remotesConfig)
+			if err != nil {
+				return nil, err
+			}
 		}
-		err = config.Delete(keyRemotes)
+		err := config.Delete(keyRemotes)
 		if err != nil {
 			return nil, err
 		}
