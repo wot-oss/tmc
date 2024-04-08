@@ -258,7 +258,7 @@ func TestIndex_Insert(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-	assert.Equal(t, MustParseTMID("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json", false), id)
+	assert.Equal(t, MustParseTMID("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"), id)
 	assert.Equal(t, 1, len(idx.Data))
 	assert.Equal(t, "aut/man/mpn", idx.Data[0].Name)
 	assert.Equal(t, 1, len(idx.Data[0].Versions))

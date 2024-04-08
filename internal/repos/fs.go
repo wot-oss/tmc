@@ -231,7 +231,7 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 }
 
 func checkIdValid(id string) error {
-	_, err := model.ParseTMID(id, true) // official does not matter here. only interested in valid id format
+	_, err := model.ParseTMID(id)
 	return err
 }
 

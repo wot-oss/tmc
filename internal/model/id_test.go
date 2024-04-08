@@ -9,7 +9,7 @@ import (
 
 func TestParseId(t *testing.T) {
 	i1 := "author/manufacturer/mpn/v1.2.3-pre1-20231109150513-e86784632bf6.tm.json"
-	id, err := ParseTMID(i1, false)
+	id, err := ParseTMID(i1)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "author", id.Author)
@@ -19,7 +19,7 @@ func TestParseId(t *testing.T) {
 	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
 
 	i2 := "author/manufacturer/mpn/byfirmware/v1/v1.2.3-pre1-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i2, false)
+	id, err = ParseTMID(i2)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "author", id.Author)
@@ -28,39 +28,14 @@ func TestParseId(t *testing.T) {
 	assert.Equal(t, "byfirmware/v1", id.OptionalPath)
 	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
 
-	i3 := "manufacturer/mpn/byfirmware/v1/v1.2.3-pre1-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i3, true)
-
-	assert.NoError(t, err)
-	assert.Equal(t, "manufacturer", id.Author)
-	assert.Equal(t, "manufacturer", id.Manufacturer)
-	assert.Equal(t, "mpn", id.Mpn)
-	assert.Equal(t, "byfirmware/v1", id.OptionalPath)
-	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
-
-	i4 := "manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i4, true)
-
-	assert.NoError(t, err)
-	assert.Equal(t, "manufacturer", id.Author)
-	assert.Equal(t, "manufacturer", id.Manufacturer)
-	assert.Equal(t, "mpn", id.Mpn)
-	assert.Equal(t, "", id.OptionalPath)
-	assert.Equal(t, "v1.2.3", id.Version.Base.Original())
-
 	ids := []string{
 		"author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.js",
 		"author/manufacturer/mpn/v1.2.3.tm.json",
-		"manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
 	}
 	for i, v := range ids {
-		id, err = ParseTMID(v, false)
+		id, err = ParseTMID(v)
 		assert.ErrorIs(t, err, ErrInvalidId, "incorrect error at %d", i)
 	}
-
-	i5 := "author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
-	id, err = ParseTMID(i5, false)
-
 }
 
 func TestTMID_AssertValidFor(t *testing.T) {
@@ -76,14 +51,14 @@ func TestTMID_AssertValidFor(t *testing.T) {
 		"author/manufacturer/mpn2/v1.2.3-20231109150513-e86784632bf6.tm.json",
 	}
 	for i, v := range ids {
-		id, err := ParseTMID(v, false)
+		id, err := ParseTMID(v)
 		assert.NoError(t, err)
 		err = id.AssertValidFor(tm)
 		assert.ErrorIs(t, err, ErrInvalidId, "incorrect error at %d", i)
 	}
 
 	i1 := "author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
-	id, err := ParseTMID(i1, false)
+	id, err := ParseTMID(i1)
 	assert.NoError(t, err)
 	tm.Version.Model = "v1.3"
 	err = id.AssertValidFor(tm)
@@ -161,5 +136,5 @@ func TestTMID_String(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, "manufacturer/mpn/byfirmware/v1/v1.2.3-20241243052343-ab1234567890.tm.json", id2.String())
+	assert.Equal(t, "manufacturer/manufacturer/mpn/byfirmware/v1/v1.2.3-20241243052343-ab1234567890.tm.json", id2.String())
 }
