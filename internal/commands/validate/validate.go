@@ -7,9 +7,9 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/kennygrant/sanitize"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 //go:embed tm-json-schema-validation.json
@@ -75,9 +75,9 @@ func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) 
 	if err != nil {
 		return nil, err
 	}
-	tm.Author.Name = sanitize.BaseName(tm.Author.Name)
-	tm.Manufacturer.Name = sanitize.BaseName(tm.Manufacturer.Name)
-	tm.Mpn = sanitize.BaseName(tm.Mpn)
+	tm.Author.Name = utils.SanitizeName(tm.Author.Name)
+	tm.Manufacturer.Name = utils.SanitizeName(tm.Manufacturer.Name)
+	tm.Mpn = utils.SanitizeName(tm.Mpn)
 	return tm, nil
 }
 

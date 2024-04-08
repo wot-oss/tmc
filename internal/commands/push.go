@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/kennygrant/sanitize"
 	"github.com/wot-oss/tmc/internal/commands/validate"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const (
@@ -182,7 +182,7 @@ func sanitizePathForID(p string) string {
 
 	parts := strings.Split(p, "/")
 	for i, part := range parts {
-		parts[i] = sanitize.BaseName(part)
+		parts[i] = utils.SanitizeName(part)
 	}
 	p = strings.Join(parts, "/")
 	return p

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -180,4 +181,110 @@ func WriteFileLines(lines []string, path string, mode os.FileMode) error {
 		}
 	}
 	return AtomicWriteFile(path, buf.Bytes(), mode)
+}
+
+var (
+	removableChars   = regexp.MustCompile(`[^\[a-zA-Z0-9-]`)
+	replaceableChars = regexp.MustCompile(`[ &_=+:/]`)
+	dashes           = regexp.MustCompile(`[\-]+`)
+
+	accents = map[rune]string{
+		'À': "A",
+		'Á': "A",
+		'Â': "A",
+		'Ã': "A",
+		'Ä': "A",
+		'Å': "AA",
+		'Æ': "AE",
+		'Ç': "C",
+		'È': "E",
+		'É': "E",
+		'Ê': "E",
+		'Ë': "E",
+		'Ì': "I",
+		'Í': "I",
+		'Î': "I",
+		'Ï': "I",
+		'Ð': "D",
+		'Ł': "L",
+		'Ñ': "N",
+		'Ò': "O",
+		'Ó': "O",
+		'Ô': "O",
+		'Õ': "O",
+		'Ö': "OE",
+		'Ø': "OE",
+		'Œ': "OE",
+		'Ù': "U",
+		'Ú': "U",
+		'Ü': "UE",
+		'Û': "U",
+		'Ý': "Y",
+		'Þ': "TH",
+		'ẞ': "SS",
+		'à': "a",
+		'á': "a",
+		'â': "a",
+		'ã': "a",
+		'ä': "ae",
+		'å': "aa",
+		'æ': "ae",
+		'ç': "c",
+		'è': "e",
+		'é': "e",
+		'ê': "e",
+		'ë': "e",
+		'ì': "i",
+		'í': "i",
+		'î': "i",
+		'ï': "i",
+		'ð': "d",
+		'ł': "l",
+		'ñ': "n",
+		'ń': "n",
+		'ò': "o",
+		'ó': "o",
+		'ô': "o",
+		'õ': "o",
+		'ō': "o",
+		'ö': "oe",
+		'ø': "oe",
+		'œ': "oe",
+		'ś': "s",
+		'ù': "u",
+		'ú': "u",
+		'û': "u",
+		'ū': "u",
+		'ü': "ue",
+		'ý': "y",
+		'ÿ': "y",
+		'ż': "z",
+		'þ': "th",
+		'ß': "ss",
+	}
+)
+
+func SanitizeName(name string) string {
+	name = strings.TrimSpace(name)
+	if len(name) == 0 {
+		return name
+	}
+	name = replaceableChars.ReplaceAllString(name, "-")
+	name = sanitizeAccents(name)
+	name = removableChars.ReplaceAllString(name, "")
+	name = dashes.ReplaceAllString(name, "-")
+	// todo: always to lowercase ?
+	return name
+}
+
+func sanitizeAccents(s string) string {
+	bs := bytes.NewBufferString("")
+	for _, c := range s {
+		if val, ok := accents[c]; ok {
+			bs.WriteString(val)
+		} else {
+			bs.WriteRune(c)
+		}
+	}
+	return bs.String()
 }
