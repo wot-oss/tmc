@@ -110,14 +110,14 @@ func Test_ListInventory(t *testing.T) {
 	listResult := model.SearchResult{
 		Entries: []model.FoundEntry{
 			{
-				Name:         "a-corp/eagle/BT2000",
+				Name:         "a-corp/eagle/bt2000",
 				Author:       model.SchemaAuthor{Name: "a-corp"},
 				Manufacturer: model.SchemaManufacturer{Name: "eagle"},
-				Mpn:          "BT2000",
+				Mpn:          "bt2000",
 				Versions: []model.FoundVersion{
 					{
 						IndexVersion: model.IndexVersion{
-							TMID:        "a-corp/eagle/BT2000/v1.0.0-20240108140117-243d1b462ccc.tm.json",
+							TMID:        "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccc.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
 							Digest:      "243d1b462ccc",
@@ -128,7 +128,7 @@ func Test_ListInventory(t *testing.T) {
 					},
 					{
 						IndexVersion: model.IndexVersion{
-							TMID:        "a-corp/eagle/BT2000/v1.0.0-20231231153548-243d1b462ddd.tm.json",
+							TMID:        "a-corp/eagle/bt2000/v1.0.0-20231231153548-243d1b462ddd.tm.json",
 							Description: "desc version v0.0.0",
 							Version:     model.Version{Model: "0.0.0"},
 							Digest:      "243d1b462ddd",
@@ -140,14 +140,14 @@ func Test_ListInventory(t *testing.T) {
 				},
 			},
 			{
-				Name:         "b-corp/frog/BT3000",
+				Name:         "b-corp/frog/bt3000r",
 				Author:       model.SchemaAuthor{Name: "b-corp"},
 				Manufacturer: model.SchemaManufacturer{Name: "frog"},
-				Mpn:          "BT3000",
+				Mpn:          "bt3000r",
 				Versions: []model.FoundVersion{
 					{
 						IndexVersion: model.IndexVersion{
-							TMID:        "b-corp/frog/BT3000/v1.0.0-20240108140117-743d1b462uuu.tm.json",
+							TMID:        "b-corp/frog/bt3000r/v1.0.0-20240108140117-743d1b462uuu.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
 							Digest:      "743d1b462uuu",
@@ -237,11 +237,11 @@ func Test_ListAuthors(t *testing.T) {
 	listResult := model.SearchResult{
 		Entries: []model.FoundEntry{
 			{
-				Name:   "z-corp/eagle/BT2000",
+				Name:   "z-corp/eagle/bt2000",
 				Author: model.SchemaAuthor{Name: "z-corp"},
 			},
 			{
-				Name:   "a-corp/frog/BT4000",
+				Name:   "a-corp/frog/bt4000",
 				Author: model.SchemaAuthor{Name: "a-corp"},
 			},
 			{
@@ -279,11 +279,11 @@ func Test_ListManufacturers(t *testing.T) {
 	listResult := model.SearchResult{
 		Entries: []model.FoundEntry{
 			{
-				Name:         "a-corp/frog/BT4000",
+				Name:         "a-corp/frog/bt4000",
 				Manufacturer: model.SchemaManufacturer{Name: "frog"},
 			},
 			{
-				Name:         "z-corp/eagle/BT2000",
+				Name:         "z-corp/eagle/bt2000",
 				Manufacturer: model.SchemaManufacturer{Name: "eagle"},
 			},
 			{
@@ -321,16 +321,16 @@ func Test_ListMpns(t *testing.T) {
 	listResult := model.SearchResult{
 		Entries: []model.FoundEntry{
 			{
-				Name: "a-corp/frog/BT4000",
-				Mpn:  "BT4000",
+				Name: "a-corp/frog/bt4000",
+				Mpn:  "bt4000",
 			},
 			{
-				Name: "z-corp/eagle/BT2000",
-				Mpn:  "BT2000",
+				Name: "z-corp/eagle/bt2000",
+				Mpn:  "bt2000",
 			},
 			{
-				Name: "a-corp/frog/BT4000",
-				Mpn:  "BT4000",
+				Name: "a-corp/frog/bt4000",
+				Mpn:  "bt4000",
 			},
 		},
 	}
@@ -351,7 +351,7 @@ func Test_ListMpns(t *testing.T) {
 		})
 		assert.True(t, isSorted)
 		// and then: the result contains no duplicates
-		assert.Equal(t, []string{"BT2000", "BT4000"}, res)
+		assert.Equal(t, []string{"bt2000", "bt4000"}, res)
 	})
 }
 
@@ -389,7 +389,7 @@ func Test_FetchingThingModel(t *testing.T) {
 	})
 
 	t.Run("with tmID not found", func(t *testing.T) {
-		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
+		tmID := "b-corp/eagle/pm20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, repos.ErrTmNotFound).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
@@ -401,7 +401,7 @@ func Test_FetchingThingModel(t *testing.T) {
 	})
 
 	t.Run("with fetch name not found", func(t *testing.T) {
-		fn := "b-corp/eagle/PM20"
+		fn := "b-corp/eagle/pm20"
 		r.On("Versions", mock.Anything, fn).Return(nil, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
@@ -414,7 +414,7 @@ func Test_FetchingThingModel(t *testing.T) {
 
 	t.Run("with tmID found", func(t *testing.T) {
 		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
-		tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
+		tmID := "b-corp/eagle/pm20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", mock.Anything, tmID).Return(tmID, raw, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel

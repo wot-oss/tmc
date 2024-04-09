@@ -24,7 +24,7 @@ type FetchName struct {
 
 var ErrInvalidFetchName = errors.New("invalid fetch name")
 
-var fetchNameRegex = regexp.MustCompile(`^([\w\-0-9]+(/[\w\-0-9]+){2,})(:(.+))?$`)
+var fetchNameRegex = regexp.MustCompile(`^([a-z\-0-9]+(/[\w\-0-9]+){2,})(:(.+))?$`)
 
 func ParseFetchName(fetchName string) (FetchName, error) {
 	// Find submatches in the input string

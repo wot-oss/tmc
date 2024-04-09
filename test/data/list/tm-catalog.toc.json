@@ -4,13 +4,13 @@
   },
   "data": [
     {
-      "name": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b",
+      "name": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/b",
       "schema:manufacturer": {
-        "schema:name": "omnicorp-Gmbh-Co-KG"
+        "schema:name": "omnicorp-gmbh-co-kg"
       },
       "schema:mpn": "senseall",
       "schema:author": {
-        "schema:name": "omnicorp-R-D-research"
+        "schema:name": "omnicorp-r-d-research"
       },
       "versions": [
         {
@@ -19,9 +19,9 @@
             "model": "1.0.1"
           },
           "links": {
-            "content": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b/v1.0.1-20231208142856-c49617d2e4fc.tm.json"
+            "content": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/b/v1.0.1-20231208142856-c49617d2e4fc.tm.json"
           },
-          "tmID": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/a/b/v1.0.1-20231208142856-c49617d2e4fc.tm.json",
+          "tmID": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/b/v1.0.1-20231208142856-c49617d2e4fc.tm.json",
           "digest": "c49617d2e4fc",
           "timestamp": "20231208142856",
           "externalID": ""
@@ -29,13 +29,13 @@
       ]
     },
     {
-      "name": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath",
+      "name": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath",
       "schema:manufacturer": {
-        "schema:name": "omnicorp-Gmbh-Co-KG"
+        "schema:name": "omnicorp-gmbh-co-kg"
       },
       "schema:mpn": "senseall",
       "schema:author": {
-        "schema:name": "omnicorp-R-D-research"
+        "schema:name": "omnicorp-r-d-research"
       },
       "versions": [
         {
@@ -44,9 +44,9 @@
             "model": "1.0.1"
           },
           "links": {
-            "content": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath/v1.0.1-20231201110829-c49617d2e4fc.tm.json"
+            "content": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath/v1.0.1-20231201110829-c49617d2e4fc.tm.json"
           },
-          "tmID": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/subpath/v1.0.1-20231201110829-c49617d2e4fc.tm.json",
+          "tmID": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath/v1.0.1-20231201110829-c49617d2e4fc.tm.json",
           "digest": "c49617d2e4fc",
           "timestamp": "20231201110829",
           "externalID": ""
@@ -54,13 +54,13 @@
       ]
     },
     {
-      "name": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall",
+      "name": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall",
       "schema:manufacturer": {
-        "schema:name": "omnicorp-Gmbh-Co-KG"
+        "schema:name": "omnicorp-gmbh-co-kg"
       },
       "schema:mpn": "senseall",
       "schema:author": {
-        "schema:name": "omnicorp-R-D-research"
+        "schema:name": "omnicorp-r-d-research"
       },
       "versions": [
         {
@@ -69,9 +69,9 @@
             "model": "1.0.1"
           },
           "links": {
-            "content": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json"
+            "content": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json"
           },
-          "tmID": "omnicorp-R-D-research/omnicorp-Gmbh-Co-KG/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json",
+          "tmID": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json",
           "digest": "c49617d2e4fc",
           "timestamp": "20231208142830",
           "externalID": ""

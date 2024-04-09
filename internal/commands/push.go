@@ -48,12 +48,12 @@ func (c *PushCommand) PushFile(ctx context.Context, raw []byte, repo repos.Repo,
 	retriesLeft := maxPushRetries
 RETRY:
 	retriesLeft--
-	versioned, id, err := prepareToImport(c.now, tm, raw, optPath)
+	prepared, id, err := prepareToImport(c.now, tm, raw, optPath)
 	if err != nil {
 		return "", err
 	}
 
-	err = repo.Push(ctx, id, versioned)
+	err = repo.Push(ctx, id, prepared)
 	if err != nil {
 		var errConflict *repos.ErrTMIDConflict
 		if errors.As(err, &errConflict) {
@@ -77,6 +77,11 @@ RETRY:
 func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
 	var intermediate = make([]byte, len(raw))
 	copy(intermediate, raw)
+
+	intermediate, err := replaceKeysWithSanitized(intermediate, tm)
+	if err != nil {
+		return nil, model.TMID{}, err
+	}
 
 	// see if there's an id in the file that needs to be preserved
 	value, dataType, _, err := jsonparser.Get(intermediate, "id")
@@ -116,6 +121,22 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 		return nil, model.TMID{}, err
 	}
 	return final, finalId, nil
+}
+
+func replaceKeysWithSanitized(bytes []byte, tm *model.ThingModel) ([]byte, error) {
+	authorString, _ := json.Marshal(tm.Author.Name)
+	bytes, err := jsonparser.Set(bytes, authorString, "schema:author", "schema:name")
+	if err != nil {
+		return bytes, err
+	}
+	manufString, _ := json.Marshal(tm.Manufacturer.Name)
+	bytes, err = jsonparser.Set(bytes, manufString, "schema:manufacturer", "schema:name")
+	if err != nil {
+		return bytes, err
+	}
+	mpnString, _ := json.Marshal(tm.Mpn)
+	bytes, err = jsonparser.Set(bytes, mpnString, "schema:mpn")
+	return bytes, err
 }
 func moveIdToOriginalLink(raw []byte, id string) []byte {
 	linksValue, dataType, _, err := jsonparser.Get(raw, "links")

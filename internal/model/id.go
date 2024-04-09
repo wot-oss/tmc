@@ -109,6 +109,9 @@ func MustParseTMID(s string) TMID {
 	return tmid
 }
 func ParseTMID(s string) (TMID, error) {
+	if s != strings.ToLower(s) {
+		return TMID{}, ErrInvalidId
+	}
 	if !strings.HasSuffix(s, TMFileExtension) {
 		return TMID{}, ErrInvalidId
 	}
