@@ -11,7 +11,6 @@ require (
 	github.com/google/renameio v1.0.1
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.1
-	github.com/kennygrant/sanitize v1.2.4
 	github.com/kinbiko/jsonassert v1.1.1
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.0
@@ -44,7 +43,6 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
-	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect

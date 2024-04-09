@@ -47,3 +47,35 @@ func TestParseAsList(t *testing.T) {
 		assert.Equal(t, test.out, ParseAsList(test.in, test.sep, test.trim), "in test %d", i)
 	}
 }
+
+func TestSanitizeName(t *testing.T) {
+	tests := []struct {
+		in  string
+		exp string
+	}{
+		{in: "", exp: ""},
+		{in: " ", exp: ""},
+		{in: "&", exp: "-"},
+		{in: "_", exp: "-"},
+		{in: "=", exp: "-"},
+		{in: "+", exp: "-"},
+		{in: ":", exp: "-"},
+		{in: "/", exp: "-"},
+		{in: "a b&c=D+e:f/G", exp: "a-b-c-d-e-f-g"},
+		{in: "a++:b", exp: "a-b"},
+		{in: "a//b", exp: "a-b"},
+		{in: "//a/b", exp: "-a-b"},
+		{in: "a\\b", exp: "ab"},
+		{in: "a#b", exp: "ab"},
+		{in: " a b ", exp: "a-b"},
+		{in: "äö/ôm/før mи", exp: "aeoe-om-foer-m"},
+		{in: "a_b 123c", exp: "a-b-123c"},
+		{in: "a\r\nb", exp: "ab"},
+		{in: "Ñ-É-Þ", exp: "n-e-th"},
+	}
+
+	for i, test := range tests {
+		out := SanitizeName(test.in)
+		assert.Equal(t, test.exp, out, "failed for %s (test %d)", test.in, i)
+	}
+}

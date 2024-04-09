@@ -75,8 +75,8 @@ func TestParseRequiredMetadata(t *testing.T) {
 	assert.NoError(t, err)
 	tm, err := ValidateAsTmcImportable(raw, parsed)
 	assert.NoError(t, err)
-	assert.Equal(t, "omnicorp-GmbH-Co-KG", tm.Manufacturer.Name)
-	assert.Equal(t, "omnicorp-R-D-research", tm.Author.Name)
+	assert.Equal(t, "omnicorp-gmbh-co-kg", tm.Manufacturer.Name)
+	assert.Equal(t, "omnicorp-r-d-research", tm.Author.Name)
 	assert.Equal(t, "sense-all", tm.Mpn)
 
 	tmFile = `{
