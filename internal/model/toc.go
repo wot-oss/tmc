@@ -136,7 +136,7 @@ func (idx *Index) findByName(name string) *IndexEntry {
 // Insert uses CatalogThingModel to add a version, either to an existing
 // entry or as a new entry. Returns the TMID of the inserted entry
 func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
-	tmid, err := ParseTMID(ctm.ID, ctm.IsOfficial())
+	tmid, err := ParseTMID(ctm.ID)
 	if err != nil {
 		return TMID{}, err
 	}

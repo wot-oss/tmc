@@ -88,7 +88,7 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 	case jsonparser.String:
 		origId := string(value)
 		// check if the id from file is ours or external
-		idFromFile, err = model.ParseTMID(origId, tm.Author.Name == tm.Manufacturer.Name)
+		idFromFile, err = model.ParseTMID(origId)
 		if err != nil {
 			if errors.Is(err, model.ErrInvalidId) {
 				// move the existing id to original link if it's external

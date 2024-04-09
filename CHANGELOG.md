@@ -15,6 +15,7 @@
 - Renamed command `update-toc` to `index`
 - Tab-completions now only complete a path segment instead of the full name to resemble shell completion in a file system
 - Removed mockery dependency from final binary
+- Removed the concept of official TMs
 
 ## [v0.0.0-alpha.5]
 

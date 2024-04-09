@@ -24,7 +24,7 @@ type FetchName struct {
 
 var ErrInvalidFetchName = errors.New("invalid fetch name")
 
-var fetchNameRegex = regexp.MustCompile(`^([\w\-0-9]+(/[\w\-0-9]+)+)(:(.+))?$`)
+var fetchNameRegex = regexp.MustCompile(`^([\w\-0-9]+(/[\w\-0-9]+){2,})(:(.+))?$`)
 
 func ParseFetchName(fetchName string) (FetchName, error) {
 	// Find submatches in the input string
@@ -53,7 +53,7 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 // ParseAsTMIDOrFetchName parses idOrName as model.TMID. If that fails, parses it as FetchName.
 // Returns error is idOrName is not valid as either. Only one of returned pointers may be not nil
 func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
-	tmid, err := model.ParseTMID(idOrName, true)
+	tmid, err := model.ParseTMID(idOrName)
 	if err == nil {
 		return &tmid, nil, nil
 	}

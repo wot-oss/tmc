@@ -3,8 +3,6 @@ package model
 import (
 	"errors"
 	"fmt"
-
-	"github.com/wot-oss/tmc/internal/utils"
 )
 
 // ThingModel is a model for unmarshalling a Thing Model to be
@@ -18,14 +16,6 @@ type ThingModel struct {
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Version      Version            `json:"version"`
 	Links        `json:"links"`
-}
-
-func (tm *ThingModel) IsOfficial() bool {
-	return EqualsAsSchemaName(tm.Manufacturer.Name, tm.Author.Name)
-}
-
-func EqualsAsSchemaName(s1, s2 string) bool {
-	return utils.ToTrimmedLower(s1) == utils.ToTrimmedLower(s2)
 }
 
 type SchemaAuthor struct {

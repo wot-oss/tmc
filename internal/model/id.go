@@ -33,11 +33,7 @@ func NewTMID(author, manufacturer, mpn, optPath string, version TMVersion) TMID 
 		Mpn:          mpn,
 		Version:      version,
 	}
-	parts := []string{id.Author}
-	if id.Manufacturer != id.Author {
-		parts = append(parts, id.Manufacturer)
-	}
-	parts = append(parts, id.Mpn, id.OptionalPath)
+	parts := []string{id.Author, id.Manufacturer, id.Mpn, id.OptionalPath}
 	name := JoinSkippingEmpty(parts, "/")
 	id.Name = name
 
@@ -79,12 +75,7 @@ func (v TMVersion) BaseString() string {
 }
 
 func (id TMID) String() string {
-	parts := []string{id.Author}
-	if id.Manufacturer != id.Author {
-		parts = append(parts, id.Manufacturer)
-	}
-	parts = append(parts, id.Mpn, id.OptionalPath)
-	parts = append(parts, id.Version.String()+TMFileExtension)
+	parts := []string{id.Author, id.Manufacturer, id.Mpn, id.OptionalPath, id.Version.String() + TMFileExtension}
 	return JoinSkippingEmpty(parts, "/")
 }
 
@@ -110,39 +101,29 @@ func init() {
 	pseudoVersionRegex = regexp.MustCompile("^" + pseudoVersionRegexString + "$")
 }
 
-func MustParseTMID(s string, official bool) TMID {
-	tmid, err := ParseTMID(s, official)
+func MustParseTMID(s string) TMID {
+	tmid, err := ParseTMID(s)
 	if err != nil {
 		panic(fmt.Errorf("%w: %s", err, s))
 	}
 	return tmid
 }
-func ParseTMID(s string, official bool) (TMID, error) {
+func ParseTMID(s string) (TMID, error) {
 	if !strings.HasSuffix(s, TMFileExtension) {
 		return TMID{}, ErrInvalidId
 	}
 	s = strings.TrimSuffix(s, TMFileExtension)
 	parts := strings.Split(s, "/")
-	minLength := 4
-	if official {
-		minLength = 3
-	}
+	const minLength = 4
 	if len(parts) < minLength {
 		return TMID{}, ErrInvalidId
 	}
 	filename := parts[len(parts)-1]
 	parts = parts[0 : len(parts)-1]
+	const optPathStart = 3
 	auth := parts[0]
-	var manuf, mpn string
-	optPathStart := 3
-	if official {
-		optPathStart = 2
-		manuf = auth
-		mpn = parts[1]
-	} else {
-		manuf = parts[1]
-		mpn = parts[2]
-	}
+	manuf := parts[1]
+	mpn := parts[2]
 	optPath := ""
 	if len(parts) > optPathStart {
 		optPath = strings.Join(parts[optPathStart:], "/")

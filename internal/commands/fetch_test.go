@@ -30,13 +30,13 @@ func TestParseFetchName(t *testing.T) {
 		{"", true, "", ""},
 		{"manufacturer", true, "", ""},
 		{"manufacturer\\mpn", true, "", ""},
-		{"manu-facturer/mpn", false, "manu-facturer/mpn", ""},
-		{"manufacturer/mpn:1.2.3", false, "manufacturer/mpn", "1.2.3"},
+		{"manu-facturer/mpn", true, "", ""},
+		{"manufacturer/mpn:1.2.3", true, "", ""},
 		{"manufacturer/mpn:1.2.", true, "", ""},
-		{"manufacturer/mpn:1.2", false, "manufacturer/mpn", "1.2"},
-		{"manufacturer/mpn:v1.2.3", false, "manufacturer/mpn", "v1.2.3"},
+		{"manufacturer/mpn:1.2", true, "", "1.2"},
+		{"manufacturer/mpn:v1.2.3", true, "", "v1.2.3"},
 		{"manufacturer/mpn:43748209adcb", true, "", ""},
-		{"author/manufacturer/mpn:1.2.3", false, "author/manufacturer/mpn", "1.2.3"},
+		{"author/manu-facturer/mpn:1.2.3", false, "author/manu-facturer/mpn", "1.2.3"},
 		{"author/manufacturer/mpn:v1.2.3", false, "author/manufacturer/mpn", "v1.2.3"},
 		{"author/manufacturer/mpn/folder/structure:1.2.3", false, "author/manufacturer/mpn/folder/structure", "1.2.3"},
 		{"author/manufacturer/mpn/folder/structure:v1.2.3-alpha1", false, "author/manufacturer/mpn/folder/structure", "v1.2.3-alpha1"},
@@ -61,7 +61,6 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
 	setUpVersionsForFetchByTMIDOrName(r)
 
-	r.On("Fetch", mock.Anything, "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
 	r.On("Fetch", mock.Anything, "manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
 	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.0\"}"), nil)
 	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.4-20231206123243-d49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.4-20231206123243-d49617d2e4fc.tm.json", []byte("{\"ver\":\"v1.0.4\"}"), nil)
@@ -77,9 +76,9 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	}{
 		{"", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
 		{"manufacturer", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
-		{"manufacturer/mpn", nil, "", ""},
-		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
-		{"manufacturer/mpn:v1.0.0", nil, "", "v1.0.0"},
+		{"manufacturer/mpn", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer/mpn:v1.0.0", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
 		{"manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
 		{"author/manufacturer/mpn", nil, "", "v2.0.0"},
 		{"author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
@@ -110,17 +109,6 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 }
 
 func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
-	r.On("Versions", mock.Anything, "manufacturer/mpn").Return([]model.FoundVersion{
-		{
-			IndexVersion: model.IndexVersion{
-				Version:   model.Version{Model: "v1.0.0"},
-				TMID:      "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
-				Digest:    "c49617d2e4fc",
-				TimeStamp: "20231205123243",
-			},
-			FoundIn: model.FoundSource{RepoName: "r1"},
-		},
-	}, nil)
 	r.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{
 			IndexVersion: model.IndexVersion{

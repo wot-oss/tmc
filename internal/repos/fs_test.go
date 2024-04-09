@@ -189,9 +189,9 @@ func TestFileRepo_Push(t *testing.T) {
 	}
 	tmName := "omnicorp-TM-department/omnicorp/omnilamp"
 	id := tmName + "/v0.0.0-20231208142856-c49617d2e4fc.tm.json"
-	err := r.Push(context.Background(), model.MustParseTMID(id, false), []byte{})
+	err := r.Push(context.Background(), model.MustParseTMID(id), []byte{})
 	assert.Error(t, err)
-	err = r.Push(context.Background(), model.MustParseTMID(id, false), []byte("{}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id), []byte("{}"))
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id))
 
@@ -201,16 +201,16 @@ func TestFileRepo_Push(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 
 	id2 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-a49617d2e4fc.tm.json"
-	err = r.Push(context.Background(), model.MustParseTMID(id2, false), []byte("{}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id2), []byte("{}"))
 	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}, err)
 
 	id3 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-f49617d2e4fc.tm.json"
-	err = r.Push(context.Background(), model.MustParseTMID(id3, false), []byte("{}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id3), []byte("{}"))
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id3))
 
 	id4 := "omnicorp-TM-department/omnicorp/omnilamp/v1.0.0-20231219123456-b49617d2e4fc.tm.json"
-	err = r.Push(context.Background(), model.MustParseTMID(id4, false), []byte("{\"val\":1}"))
+	err = r.Push(context.Background(), model.MustParseTMID(id4), []byte("{\"val\":1}"))
 	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}, err)
 
 }
@@ -299,7 +299,7 @@ func TestFileRepo_Delete(t *testing.T) {
 				assert.ErrorIs(t, err, model.ErrInvalidId)
 			})
 			t.Run("non-existent id", func(t *testing.T) {
-				err := r.Delete(context.Background(), "man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
+				err := r.Delete(context.Background(), "auth/man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
 				assert.ErrorIs(t, err, ErrTmNotFound)
 			})
 			t.Run("hash matching id", func(t *testing.T) {
@@ -537,7 +537,7 @@ func TestFileRepo_Index_Parallel(t *testing.T) {
 		auths, manuf := filepath.Split(filepath.Clean(manufs))
 		auth := filepath.Base(filepath.Clean(auths))
 		ids := fmt.Sprintf("%s/%s/%s/%s", auth, manuf, mpn, ver)
-		id := model.MustParseTMID(ids, false)
+		id := model.MustParseTMID(ids)
 		res := bytes.NewBuffer(nil)
 		err := templ.Execute(res, map[string]any{
 			"manufacturer": id.Manufacturer,
