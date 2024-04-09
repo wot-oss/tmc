@@ -61,7 +61,7 @@ func TestSanitizeName(t *testing.T) {
 		{in: "+", exp: "-"},
 		{in: ":", exp: "-"},
 		{in: "/", exp: "-"},
-		{in: "a b&c=d+e:f/g", exp: "a-b-c-d-e-f-g"},
+		{in: "a b&c=D+e:f/G", exp: "a-b-c-d-e-f-g"},
 		{in: "a++:b", exp: "a-b"},
 		{in: "a//b", exp: "a-b"},
 		{in: "//a/b", exp: "-a-b"},
@@ -71,6 +71,7 @@ func TestSanitizeName(t *testing.T) {
 		{in: "äö/ôm/før mи", exp: "aeoe-om-foer-m"},
 		{in: "a_b 123c", exp: "a-b-123c"},
 		{in: "a\r\nb", exp: "ab"},
+		{in: "Ñ-É-Þ", exp: "n-e-th"},
 	}
 
 	for i, test := range tests {

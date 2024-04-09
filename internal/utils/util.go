@@ -189,39 +189,6 @@ var (
 	dashes           = regexp.MustCompile(`[\-]+`)
 
 	accents = map[rune]string{
-		'À': "A",
-		'Á': "A",
-		'Â': "A",
-		'Ã': "A",
-		'Ä': "A",
-		'Å': "AA",
-		'Æ': "AE",
-		'Ç': "C",
-		'È': "E",
-		'É': "E",
-		'Ê': "E",
-		'Ë': "E",
-		'Ì': "I",
-		'Í': "I",
-		'Î': "I",
-		'Ï': "I",
-		'Ð': "D",
-		'Ł': "L",
-		'Ñ': "N",
-		'Ò': "O",
-		'Ó': "O",
-		'Ô': "O",
-		'Õ': "O",
-		'Ö': "OE",
-		'Ø': "OE",
-		'Œ': "OE",
-		'Ù': "U",
-		'Ú': "U",
-		'Ü': "UE",
-		'Û': "U",
-		'Ý': "Y",
-		'Þ': "TH",
-		'ẞ': "SS",
 		'à': "a",
 		'á': "a",
 		'â': "a",
@@ -269,11 +236,11 @@ func SanitizeName(name string) string {
 	if len(name) == 0 {
 		return name
 	}
+	name = strings.ToLower(name)
 	name = replaceableChars.ReplaceAllString(name, "-")
 	name = sanitizeAccents(name)
 	name = removableChars.ReplaceAllString(name, "")
 	name = dashes.ReplaceAllString(name, "-")
-	// todo: always to lowercase ?
 	return name
 }
 
