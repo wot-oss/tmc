@@ -912,14 +912,14 @@ var (
 				},
 			},
 			{
-				Name:         "b-corp/frog/bt3000r",
+				Name:         "b-corp/frog/bt3000",
 				Author:       model.SchemaAuthor{Name: "b-corp"},
 				Manufacturer: model.SchemaManufacturer{Name: "frog"},
-				Mpn:          "bt3000r",
+				Mpn:          "bt3000",
 				Versions: []model.FoundVersion{
 					{
 						IndexVersion: model.IndexVersion{
-							TMID:        "b-corp/frog/bt3000r/v1.0.0-20240108140117-743d1b462uuu.tm.json",
+							TMID:        "b-corp/frog/bt3000/v1.0.0-20240108140117-743d1b462uuu.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
 							Digest:      "743d1b462uuu",
