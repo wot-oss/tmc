@@ -12,7 +12,7 @@
   },
   "schema:mpn": "omnilamp",
   "schema:author": {
-    "schema:name": "omnicorp TM department"
+    "schema:name": "omnicorp-tm-department"
   },
   "properties": {
     "status": {
@@ -33,5 +33,8 @@
         "type": "string"
       }
     }
+  },
+  "version": {
+    "model": "v3.2.1"
   }
-,"id":"omnicorp-TM-department/omnicorp/omnilamp/subfolder/v0.0.0-20240109125023-be839ce9daf1.tm.json"}
+,"id":"omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json"}

@@ -1,9 +1,9 @@
 {
   "data": [
     {
-      "name": "omnicorp-R-D-research/omnicorp/senseall",
+      "name": "omnicorp-r-d-research/omnicorp/senseall",
       "schema:author": {
-        "schema:name": "omnicorp-R-D-research"
+        "schema:name": "omnicorp-r-d-research"
       },
       "schema:manufacturer": {
         "schema:name": "omnicorp"
@@ -16,16 +16,16 @@
             "model": "1.0.1"
           },
           "links": {
-            "content": "./thing-models/omnicorp-R-D-research/omnicorp/senseall/v1.0.1-20240110180532-9949f719fd0f.tm.json"
+            "content": "./thing-models/omnicorp-r-d-research/omnicorp/senseall/v1.0.1-20240110180532-9949f719fd0f.tm.json"
           },
-          "tmID": "omnicorp-R-D-research/omnicorp/senseall/v1.0.1-20240110180532-9949f719fd0f.tm.json",
+          "tmID": "omnicorp-r-d-research/omnicorp/senseall/v1.0.1-20240110180532-9949f719fd0f.tm.json",
           "digest": "9949f719fd0f",
           "timestamp": "20240110180532",
           "externalID": ""
         }
       ],
       "links": {
-        "self": "./inventory/omnicorp-R-D-research/omnicorp/senseall"
+        "self": "./inventory/omnicorp-r-d-research/omnicorp/senseall"
       }
     },
     {

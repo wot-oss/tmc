@@ -6,6 +6,11 @@
 
 - Put a limit on importable TM name length at 255 characters
 
+### Changed
+
+- Removed the concept of official TMs
+- Force all TM ids and key fields in imported TMs to be sanitized and lower case
+
 ## [v0.0.0-alpha.6]
 
 ### Changed
@@ -15,7 +20,6 @@
 - Renamed command `update-toc` to `index`
 - Tab-completions now only complete a path segment instead of the full name to resemble shell completion in a file system
 - Removed mockery dependency from final binary
-- Removed the concept of official TMs
 
 ## [v0.0.0-alpha.5]
 
