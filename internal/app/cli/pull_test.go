@@ -84,15 +84,14 @@ func TestPullExecutor_Pull(t *testing.T) {
 	tmContent1 := []byte("some TM content 1")
 	tmContent2 := []byte("some TM content 2")
 	tmContent3 := []byte("some TM content 3")
-	search := &model.SearchParams{}
-
-	r.On("List", mock.Anything, search).Return(listResult, nil).Once()
+	var sp *model.SearchParams
+	r.On("List", mock.Anything, sp).Return(listResult, nil).Once()
 	r.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 	r.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
 	r.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
 
 	// when: pulling from repo
-	err = Pull(context.Background(), model.NewRepoSpec("r1"), search, tempDir, false)
+	err = Pull(context.Background(), model.NewRepoSpec("r1"), nil, tempDir, false)
 	// then: there is no error
 	assert.NoError(t, err)
 	// and then: the pulled ThingModels are written to the output path
@@ -146,18 +145,17 @@ func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 	r := mocks.NewRepo(t)
 	rMocks.MockReposGet(t, func(s model.RepoSpec) (repos.Repo, error) { return r, nil })
 	r.On("List", mock.Anything).Return(listResult, nil).Maybe()
-	search := &model.SearchParams{}
 
 	t.Run("with empty output path", func(t *testing.T) {
 		// given: an empty output path
 		outputPath := ""
 		// when: pulling from repo
-		err := Pull(context.Background(), model.NewRepoSpec("r1"), search, outputPath, false)
+		err := Pull(context.Background(), model.NewRepoSpec("r1"), nil, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: there are no calls on Repo
-		r.AssertNotCalled(t, "List", mock.Anything)
-		r.AssertNotCalled(t, "Fetch", mock.Anything)
+		r.AssertNotCalled(t, "List", mock.Anything, mock.Anything)
+		r.AssertNotCalled(t, "Fetch", mock.Anything, mock.Anything)
 	})
 
 	t.Run("with output path is a file", func(t *testing.T) {
@@ -169,12 +167,12 @@ func TestPullExecutor_Pull_InvalidOutputPath(t *testing.T) {
 		outputPath := filepath.Join(tempDir, "foo.bar")
 		_ = os.WriteFile(outputPath, []byte("foobar"), 0660)
 		// when: pulling from repo
-		err = Pull(context.Background(), model.NewRepoSpec("r1"), search, outputPath, false)
+		err = Pull(context.Background(), model.NewRepoSpec("r1"), nil, outputPath, false)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: there are no calls on Repo
-		r.AssertNotCalled(t, "List", mock.Anything)
-		r.AssertNotCalled(t, "Fetch", mock.Anything)
+		r.AssertNotCalled(t, "List", mock.Anything, mock.Anything)
+		r.AssertNotCalled(t, "Fetch", mock.Anything, mock.Anything)
 	})
 }
 

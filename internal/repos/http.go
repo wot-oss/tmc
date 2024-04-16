@@ -207,7 +207,8 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete 
 	switch kind {
 	case CompletionKindNames:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(ctx, &model.SearchParams{Name: namePrefix, Options: model.SearchOptions{NameFilterType: model.PrefixMatch}}) // fixme: search for name = toComplete(less the part after last /)
+		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, &namePrefix, nil,
+			&model.SearchOptions{NameFilterType: model.PrefixMatch}))
 		if err != nil {
 			return nil, err
 		}

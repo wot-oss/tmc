@@ -6,7 +6,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
@@ -29,32 +28,9 @@ type FilterFlags struct {
 	Search             string
 }
 
-func (ff *FilterFlags) IsSet() bool {
-	return ff.FilterAuthor != "" || ff.FilterManufacturer != "" || ff.FilterMpn != "" || ff.Search != ""
-}
-
 func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
-	var search *model.SearchParams
-	if flags.IsSet() || name != "" {
-		search = &model.SearchParams{}
-		if flags.FilterAuthor != "" {
-			search.Author = strings.Split(flags.FilterAuthor, DefaultListSeparator)
-		}
-		if flags.FilterManufacturer != "" {
-			search.Manufacturer = strings.Split(flags.FilterManufacturer, DefaultListSeparator)
-		}
-		if flags.FilterMpn != "" {
-			search.Mpn = strings.Split(flags.FilterMpn, DefaultListSeparator)
-		}
-		if flags.Search != "" {
-			search.Query = flags.Search
-		}
-		if name != "" {
-			search.Name = name
-		}
-		search.Options.NameFilterType = model.PrefixMatch
-	}
-	return search
+	return model.ToSearchParams(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &name, &flags.Search,
+		&model.SearchOptions{NameFilterType: model.PrefixMatch})
 }
 
 func printErrs(hdr string, errs []*repos.RepoAccessError) {

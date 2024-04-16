@@ -124,7 +124,7 @@ func TestValidatesRoot(t *testing.T) {
 		"loc":  "/temp/surely-does-not-exist-5245874598745",
 	}, model.EmptySpec)
 
-	_, err := repo.List(context.Background(), &model.SearchParams{Query: ""})
+	_, err := repo.List(context.Background(), nil)
 	assert.ErrorIs(t, err, ErrRootInvalid)
 	_, err = repo.Versions(context.Background(), "manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
@@ -526,6 +526,8 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 
 }
 
+func strp(s string) *string { return &s }
+
 func TestFileRepo_Index_Parallel(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
@@ -536,12 +538,11 @@ func TestFileRepo_Index_Parallel(t *testing.T) {
 		auths, manuf := filepath.Split(filepath.Clean(manufs))
 		auth := filepath.Base(filepath.Clean(auths))
 		ids := fmt.Sprintf("%s/%s/%s/%s", auth, manuf, mpn, ver)
-		id := model.MustParseTMID(ids)
 		res := bytes.NewBuffer(nil)
 		err := templ.Execute(res, map[string]any{
-			"manufacturer": id.Manufacturer,
-			"mpn":          id.Mpn,
-			"author":       id.Author,
+			"manufacturer": manufs,
+			"mpn":          mpns,
+			"author":       auths,
 			"id":           ids,
 		})
 		assert.NoError(t, err)
