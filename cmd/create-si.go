@@ -13,7 +13,6 @@ import (
 	"os"
 
 	"github.com/blevesearch/bleve/v2"
-	//_ "github.com/blevesearch/bleve/v2/config"
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/commands"
