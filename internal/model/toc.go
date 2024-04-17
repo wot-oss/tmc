@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -70,9 +71,9 @@ func (idx *Index) Filter(search *SearchParams) {
 		return
 	}
 	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
-		if !entry.MatchesSearchText(search.Query) {
-			return true
-		}
+		// if !entry.MatchesSearchText(search.Query) {
+		// 	return true
+		// }
 
 		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
 			return true
@@ -92,7 +93,31 @@ func (idx *Index) Filter(search *SearchParams) {
 
 		return false
 	})
+	if len(search.Query) > 0 {
+		bleveIdx, errOpen := bleve.Open("../catalog.bleve")
+		if errOpen != nil {
+			//return fmt.Errorf("error opening bleve index: %v", errOpen)
+		} else {
+			defer bleveIdx.Close()
+			query := bleve.NewQueryStringQuery(search.Query)
+			req := bleve.NewSearchRequestOptions(query, 100000, 0, false)
+			sr, err := bleveIdx.Search(req)
+			_ = sr
+			if err == nil {
+				acceptedValues := make([]string, 0, sr.Size())
+				for _, hit := range sr.Hits {
+					parts := strings.Split(hit.ID, ":")
+					acceptedValues = append(acceptedValues, parts[0])
 
+				}
+				fmt.Printf("list from filter %d - list from bleve %d\n", len(idx.Data), len(acceptedValues))
+				idx.Data = slices.DeleteFunc(idx.Data, func(tocEntry *IndexEntry) bool {
+					return !matchesFilter(acceptedValues, tocEntry.Name)
+				})
+				fmt.Printf("list after and %d\n", len(idx.Data))
+			}
+		}
+	}
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
