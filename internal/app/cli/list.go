@@ -32,13 +32,20 @@ func printIndex(res model.SearchResult) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tAUTHOR\tMANUFACTURER\tMPN\n")
+	_, _ = fmt.Fprintf(table, "NAME\tAUTHOR\tMANUFACTURER\tMPN\tSCORE\n")
 	for _, value := range res.Entries {
 		name := value.Name
 		man := elideString(value.Manufacturer.Name, colWidth)
 		mpn := elideString(value.Mpn, colWidth)
 		auth := elideString(value.Author.Name, colWidth)
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n", name, auth, man, mpn)
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t", name, auth, man, mpn)
+		for i, vers := range value.Versions {
+			if i > 0 {
+				fmt.Fprint(table, ", ")
+			}
+			fmt.Fprintf(table, "%2.1f", vers.SearchScore)
+		}
+		fmt.Fprint(table, "\n")
 	}
 	_ = table.Flush()
 }

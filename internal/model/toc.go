@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
+	bleveSearch "github.com/blevesearch/bleve/v2/search"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -27,6 +28,23 @@ type IndexEntry struct {
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Versions     []IndexVersion     `json:"versions"`
 }
+
+// func (idx *Index) getMap() *indexmap.IndexMap[string, IndexVersion] {
+// 	versions := indexmap.NewIndexMap(indexmap.NewPrimaryIndex(func(value *IndexVersion) string {
+// 		return value.TMID
+// 	}))
+
+// 	versions.SetCmpFn(func(value1, value2 *IndexVersion) int {
+// 		return cmp.Compare(value2.searchScore, value1.searchScore)
+// 	})
+// 	versions.AddIndex("manufacturer",indexmap.NewSecondaryIndex(func(value *IndexVersion) []any {
+// 		return []any{value.}
+// 	}))
+// 	for _,ve := range idx.Data {
+// 		versions.Insert(&ve.Versions[])
+// 	}
+// 	return versions
+// }
 
 func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
 	if e == nil {
@@ -64,6 +82,7 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
+	SearchScore float32           `json:"-"`
 }
 
 func (idx *Index) Filter(search *SearchParams) {
@@ -100,24 +119,41 @@ func (idx *Index) Filter(search *SearchParams) {
 		} else {
 			defer bleveIdx.Close()
 			query := bleve.NewQueryStringQuery(search.Query)
-			req := bleve.NewSearchRequestOptions(query, 100000, 0, false)
+			req := bleve.NewSearchRequestOptions(query, 100000, 0, true)
 			sr, err := bleveIdx.Search(req)
 			_ = sr
 			if err == nil {
-				acceptedValues := make([]string, 0, sr.Size())
-				for _, hit := range sr.Hits {
-					parts := strings.Split(hit.ID, ":")
-					acceptedValues = append(acceptedValues, parts[0])
-
+				fmt.Printf("list from filter %d TMs - list from bleve %d TM-Versions\n", len(idx.Data), sr.Hits.Len())
+				if sr.Hits.Len() == 0 {
+					idx.Data = make([]*IndexEntry, 0)
+				} else {
+					idx.Data = slices.DeleteFunc(idx.Data, func(tocEntry *IndexEntry) bool {
+						return !matchesFilterVersions(sr.Hits, tocEntry)
+					})
 				}
-				fmt.Printf("list from filter %d - list from bleve %d\n", len(idx.Data), len(acceptedValues))
-				idx.Data = slices.DeleteFunc(idx.Data, func(tocEntry *IndexEntry) bool {
-					return !matchesFilter(acceptedValues, tocEntry.Name)
-				})
-				fmt.Printf("list after and %d\n", len(idx.Data))
+				fmt.Printf("Found %d TD's\n", len(idx.Data))
 			}
 		}
 	}
+}
+
+func matchesFilterVersions(hits bleveSearch.DocumentMatchCollection, value *IndexEntry) bool {
+	if hits.Len() == 0 {
+		return true
+	}
+	match := false
+	for i, v := range value.Versions {
+		//match = match || slices.Contains(acceptedValues, v.TMID)
+		for _, hv := range hits {
+			parts := strings.Split(hv.ID, ":")
+			if v.TMID == parts[0] {
+				match = true
+				value.Versions[i].SearchScore = float32(hv.Score)
+			}
+		}
+	}
+	return match
+	// return true
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {

@@ -42,8 +42,7 @@ func init() {
 }
 
 func executeCreateSearchIndex(cmd *cobra.Command, args []string) {
-	asBatch := true
-	count := 0
+	count, countTotal := 0, 0
 	maxDocuments := math.MaxInt
 	repoName := cmd.Flag("repo").Value.String()
 	dirName := cmd.Flag("directory").Value.String()
@@ -73,16 +72,27 @@ func executeCreateSearchIndex(cmd *cobra.Command, args []string) {
 
 	contents := searchResult.Entries
 	var batch *bleve.Batch
-	if asBatch {
-		batch = index.NewBatch()
-	}
+
+	batch = index.NewBatch()
+
 	//contents = contents[14:]
 testLoop:
 	for _, value := range contents {
 		for _, version := range value.Versions {
+			countTotal++
 			fqName := version.TMID
 			// for now we use the relative filename as documentID
 			blID := fqName
+
+			// ask if Document is already indexed
+			doc, _ := index.Document(blID)
+			if doc != nil {
+				//fmt.Printf("thing model with id=%s already indexed\n", blID)
+				continue
+			} else {
+				fmt.Printf("index new thing model with id=%s\n", blID)
+			}
+			// fetch document
 			id, thing, err, _ := commands.FetchByTMID(context.Background(), spec, fqName, false)
 			_ = id
 			if err != nil {
@@ -93,27 +103,11 @@ testLoop:
 			unmErr := json.Unmarshal(thing, &data)
 			checkFatal(unmErr, "Unmarshal")
 
-			// ask if Document is already indexed
-			doc, _ := index.Document(blID)
-			if doc != nil {
-				if batch != nil {
-					batch.Delete(blID)
-				} else {
-					index.Delete(blID)
-				}
-				fmt.Printf("deleted exisiting document with id=%s first\n", blID)
-				// deleteErr := index.Delete(blID)
-				// fmt.Printf("deleted exisiting document with id=%s first%v\n", blID, deleteErr)
-			} else {
-				fmt.Printf("new document with id=%s\n", blID)
-			}
 			var idxErr error
-			if batch != nil {
-				idxErr = batch.Index(blID, data)
-			} else {
-				idxErr = index.Index(blID, data)
-			}
-			checkFatal(idxErr, "index Document")
+
+			idxErr = batch.Index(blID, data)
+
+			checkFatal(idxErr, "index thing model")
 			count++
 			if count >= maxDocuments {
 				break testLoop
@@ -121,11 +115,10 @@ testLoop:
 		}
 
 	}
-	if batch != nil {
-		fmt.Printf("index batch for %d Documents\n", count)
-		err = index.Batch(batch)
-		checkFatal(err, "run batch")
-	}
+	fmt.Printf("indexed %d new thing models out of %d\n", count, countTotal)
+	err = index.Batch(batch)
+	checkFatal(err, "run batch")
+
 	err = index.Close()
 	checkFatal(err, "close index")
 }
