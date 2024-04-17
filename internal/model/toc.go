@@ -153,7 +153,6 @@ func matchesFilterVersions(hits bleveSearch.DocumentMatchCollection, value *Inde
 		}
 	}
 	return match
-	// return true
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
