@@ -16,6 +16,7 @@ import (
 	"github.com/wot-oss/tmc/internal/model"
 )
 
+// checkFatal exit in case of error
 func checkFatal(err error, txt string) {
 	if err != nil {
 		slog.Default().Error(txt, "error", err)
