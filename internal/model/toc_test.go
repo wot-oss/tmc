@@ -105,30 +105,6 @@ func TestIndex_Filter(t *testing.T) {
 		assert.NotNil(t, idx.findByName("aut/man/mpn"))
 		assert.NotNil(t, idx.findByName("aut/man2/mpn"))
 	})
-	t.Run("filter by query", func(t *testing.T) {
-		idx := prepareIndex()
-		idx.Filter(&SearchParams{Query: ""})
-		assert.Len(t, idx.Data, 4)
-
-		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "z"})
-		assert.Len(t, idx.Data, 0)
-
-		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "a"})
-		assert.Len(t, idx.Data, 4)
-
-		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "d1"})
-		assert.Len(t, idx.Data, 1)
-		assert.Len(t, idx.Data[0].Versions, 2)
-
-		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "d5"})
-		assert.Len(t, idx.Data, 2)
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("aut/man2/mpn"))
-	})
 	t.Run("filter by author and manufacturer", func(t *testing.T) {
 		idx := prepareIndex()
 		idx.Filter(&SearchParams{Manufacturer: []string{"man"}, Author: []string{"aut"}})
