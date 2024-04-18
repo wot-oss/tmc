@@ -33,4 +33,4 @@ go.work
 
 # tmc configuration
 config.json
-.vscode/launch.json
+.vscode/
