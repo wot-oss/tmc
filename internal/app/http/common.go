@@ -89,7 +89,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidId),
-		errors.Is(err, commands.ErrInvalidFetchName),
+		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title

@@ -36,6 +36,26 @@ type HttpRepo struct {
 	templatedQuery bool
 }
 
+func (h *HttpRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h *HttpRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h *HttpRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h *HttpRepo) PutAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewHttpRepo(config map[string]any, spec model.RepoSpec) (*HttpRepo, error) {
 	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {

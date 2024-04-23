@@ -29,6 +29,7 @@ const (
 	RepoConfDir              = ".tmc"
 	IndexFilename            = "tm-catalog.toc.json"
 	TmNamesFile              = "tmnames.txt"
+	AttachmentsDir           = "_attachments"
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -59,6 +60,13 @@ type Repo interface {
 	Delete(ctx context.Context, id string) error
 
 	ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error)
+
+	// ListAttachments returns the list of attachment names associated with the given tmNameOrId. Returns ErrTmNotFound
+	// if the tmNameOrId does not refer to an existing TM name or TM id
+	ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error)
+	PutAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error
+	FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error)
+	DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {

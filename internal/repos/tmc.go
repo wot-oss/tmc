@@ -28,6 +28,26 @@ type TmcRepo struct {
 	baseHttpRepo
 }
 
+func (t TmcRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t TmcRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t TmcRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t TmcRepo) PutAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
+	//TODO implement me
+	panic("implement me")
+}
+
 func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
 	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {

@@ -20,41 +20,6 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func TestParseFetchName(t *testing.T) {
-	tests := []struct {
-		in      string
-		expErr  bool
-		expName string
-		expSV   string
-	}{
-		{"", true, "", ""},
-		{"manufacturer", true, "", ""},
-		{"manufacturer\\mpn", true, "", ""},
-		{"manu-facturer/mpn", true, "", ""},
-		{"manufacturer/mpn:1.2.3", true, "", ""},
-		{"manufacturer/mpn:1.2.", true, "", ""},
-		{"manufacturer/mpn:1.2", true, "", "1.2"},
-		{"manufacturer/mpn:v1.2.3", true, "", "v1.2.3"},
-		{"manufacturer/mpn:43748209adcb", true, "", ""},
-		{"author/manu-facturer/mpn:1.2.3", false, "author/manu-facturer/mpn", "1.2.3"},
-		{"author/manufacturer/mpn:v1.2.3", false, "author/manufacturer/mpn", "v1.2.3"},
-		{"author/manufacturer/mpn/folder/structure:1.2.3", false, "author/manufacturer/mpn/folder/structure", "1.2.3"},
-		{"author/manufacturer/mpn/folder/structure:v1.2.3-alpha1", false, "author/manufacturer/mpn/folder/structure", "v1.2.3-alpha1"},
-	}
-
-	for _, test := range tests {
-		out, err := ParseFetchName(test.in)
-		if test.expErr {
-			assert.Error(t, err, "Want: error in ParseFetchName(%s). Got: nil", test.in)
-			assert.ErrorIs(t, err, ErrInvalidFetchName)
-		} else {
-			assert.NoError(t, err, "Want: no error in ParseFetchName(%s). Got: %v", test.in, err)
-			exp := FetchName{test.expName, test.expSV}
-			assert.Equal(t, exp, out, "Want: ParseFetchName(%s) = %v. Got: %v", test.in, exp, out)
-		}
-	}
-}
-
 func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 	r := mocks.NewRepo(t)
 	rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
@@ -74,17 +39,17 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 		expErrText string
 		expVer     string
 	}{
-		{"", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
-		{"manufacturer", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
-		{"manufacturer/mpn", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
-		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
-		{"manufacturer/mpn:v1.0.0", ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"", model.ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer", model.ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer/mpn", model.ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", model.ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
+		{"manufacturer/mpn:v1.0.0", model.ErrInvalidFetchName, "must be NAME[:SEMVER]", ""},
 		{"manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
 		{"author/manufacturer/mpn", nil, "", "v2.0.0"},
 		{"author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", nil, "", "v1.0.0"},
 		{"author/manufacturer/mpn:v1.0.0", nil, "", "v1.0.0"},
 		{"author/manufacturer/mpn:1.0.0", nil, "", "v1.0.0"},
-		{"author/manufacturer/mpn:1.a.0", ErrInvalidFetchName, "invalid semantic version", ""},
+		{"author/manufacturer/mpn:1.a.0", model.ErrInvalidFetchName, "invalid semantic version", ""},
 		{"author/manufacturer/mpn:v1.0", nil, "", "v1.0.4"},
 		{"author/manufacturer/mpn:1.3", repos.ErrTmNotFound, "no version 1.3 found", ""},
 		{"author/manufacturer/mpn:1.1", repos.ErrTmNotFound, "no version 1.1 found", ""},
@@ -338,7 +303,7 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 		r2.On("Versions", mock.Anything, "author/manufacturer/mpn").Return(nil, errors.New("unexpected"))
 
 		t.Run("fetch from unspecified by name", func(t *testing.T) {
-			id, b, err, errs := FetchByName(context.Background(), model.EmptySpec, FetchName{Name: "author/manufacturer/mpn"}, false)
+			id, b, err, errs := FetchByName(context.Background(), model.EmptySpec, model.FetchName{Name: "author/manufacturer/mpn"}, false)
 			assert.NoError(t, err)
 			if assert.Len(t, errs, 1) {
 				assert.ErrorContains(t, errs[0], "unexpected")
@@ -354,7 +319,7 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 		r2.On("Versions", mock.Anything, "author/manufacturer/mpn2").Return(nil, errors.New("unexpected2"))
 
 		t.Run("fetch from unspecified by name", func(t *testing.T) {
-			_, _, err, errs := FetchByName(context.Background(), model.EmptySpec, FetchName{Name: "author/manufacturer/mpn2"}, false)
+			_, _, err, errs := FetchByName(context.Background(), model.EmptySpec, model.FetchName{Name: "author/manufacturer/mpn2"}, false)
 			assert.ErrorIs(t, err, repos.ErrTmNotFound)
 			if assert.Len(t, errs, 2) {
 				slices.SortStableFunc(errs, func(a, b *repos.RepoAccessError) int { return strings.Compare(a.Error(), b.Error()) })

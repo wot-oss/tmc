@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
-	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/repos/mocks"
 	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -369,7 +368,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
-		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
+		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
 	})
 
 	t.Run("with invalid fetch name", func(t *testing.T) {
@@ -378,7 +377,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
-		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
+		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
 	})
 
 	t.Run("with invalid semantic version", func(t *testing.T) {
@@ -387,7 +386,7 @@ func Test_FetchingThingModel(t *testing.T) {
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
-		assert.ErrorIs(t, err, commands.ErrInvalidFetchName)
+		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
 	})
 
 	t.Run("with tmID not found", func(t *testing.T) {

@@ -32,6 +32,24 @@ func (_m *Repo) Delete(ctx context.Context, id string) error {
 	return r0
 }
 
+// DeleteAttachment provides a mock function with given fields: ctx, tmNameOrId, attachmentName
+func (_m *Repo) DeleteAttachment(ctx context.Context, tmNameOrId string, attachmentName string) error {
+	ret := _m.Called(ctx, tmNameOrId, attachmentName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAttachment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, tmNameOrId, attachmentName)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Fetch provides a mock function with given fields: ctx, id
 func (_m *Repo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	ret := _m.Called(ctx, id)
@@ -67,6 +85,36 @@ func (_m *Repo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	}
 
 	return r0, r1, r2
+}
+
+// FetchAttachment provides a mock function with given fields: ctx, tmNameOrId, attachmentName
+func (_m *Repo) FetchAttachment(ctx context.Context, tmNameOrId string, attachmentName string) ([]byte, error) {
+	ret := _m.Called(ctx, tmNameOrId, attachmentName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FetchAttachment")
+	}
+
+	var r0 []byte
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]byte, error)); ok {
+		return rf(ctx, tmNameOrId, attachmentName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []byte); ok {
+		r0 = rf(ctx, tmNameOrId, attachmentName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, tmNameOrId, attachmentName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Index provides a mock function with given fields: ctx, updatedIds
@@ -122,6 +170,36 @@ func (_m *Repo) List(ctx context.Context, search *model.SearchParams) (model.Sea
 	return r0, r1
 }
 
+// ListAttachments provides a mock function with given fields: ctx, tmNameOrId
+func (_m *Repo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
+	ret := _m.Called(ctx, tmNameOrId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAttachments")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]string, error)); ok {
+		return rf(ctx, tmNameOrId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []string); ok {
+		r0 = rf(ctx, tmNameOrId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, tmNameOrId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListCompletions provides a mock function with given fields: ctx, kind, toComplete
 func (_m *Repo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
 	ret := _m.Called(ctx, kind, toComplete)
@@ -163,6 +241,24 @@ func (_m *Repo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, model.TMID, []byte) error); ok {
 		r0 = rf(ctx, id, raw)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// PutAttachment provides a mock function with given fields: ctx, tmNameOrId, attachmentName, content
+func (_m *Repo) PutAttachment(ctx context.Context, tmNameOrId string, attachmentName string, content []byte) error {
+	ret := _m.Called(ctx, tmNameOrId, attachmentName, content)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PutAttachment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte) error); ok {
+		r0 = rf(ctx, tmNameOrId, attachmentName, content)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -124,7 +124,7 @@ func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name s
 }
 
 func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error) {
-	_, _, err := commands.ParseAsTMIDOrFetchName(tmID)
+	_, _, err := model.ParseAsTMIDOrFetchName(tmID)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
 	pushRepo := dhs.pushRepo
 
-	err := commands.NewDeleteCommand().Delete(ctx, pushRepo, tmID)
+	err := commands.Delete(ctx, pushRepo, tmID)
 	return err
 }
 

@@ -3,6 +3,10 @@ package model
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"regexp"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 // ThingModel is a model for unmarshalling a Thing Model to be
@@ -27,6 +31,60 @@ type SchemaManufacturer struct {
 
 type Version struct {
 	Model string `json:"model"`
+}
+
+type Attachment struct {
+	Name    string
+	Content []byte
+}
+
+type FetchName struct {
+	Name   string
+	Semver string
+}
+
+var ErrInvalidFetchName = errors.New("invalid fetch name")
+
+var fetchNameRegex = regexp.MustCompile(`^([a-z\-0-9]+(/[\w\-0-9]+){2,})(:(.+))?$`)
+
+func ParseFetchName(fetchName string) (FetchName, error) {
+	// Find submatches in the input string
+	matches := fetchNameRegex.FindStringSubmatch(fetchName)
+
+	// Check if there are enough submatches
+	if len(matches) < 2 {
+		err := fmt.Errorf("%w: %s - must be NAME[:SEMVER]", ErrInvalidFetchName, fetchName)
+		slog.Default().Error(err.Error())
+		return FetchName{}, err
+	}
+
+	fn := FetchName{}
+	// Extract values from submatches
+	fn.Name = matches[1]
+	if len(matches) > 4 && matches[4] != "" {
+		fn.Semver = matches[4]
+		_, err := semver.NewVersion(fn.Semver)
+		if err != nil {
+			return FetchName{}, fmt.Errorf("%w: %s - invalid semantic version", ErrInvalidFetchName, fetchName)
+		}
+	}
+	return fn, nil
+}
+
+// ParseAsTMIDOrFetchName parses idOrName as model.TMID. If that fails, parses it as FetchName.
+// Returns error is idOrName is not valid as either. Only one of returned pointers may be not nil
+func ParseAsTMIDOrFetchName(idOrName string) (*TMID, *FetchName, error) {
+	tmid, err := ParseTMID(idOrName)
+	if err == nil {
+		return &tmid, nil, nil
+	}
+	fn, err := ParseFetchName(idOrName)
+	if err == nil {
+		return nil, &fn, nil
+	}
+
+	slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
+	return nil, nil, err
 }
 
 type RepoSpec struct {

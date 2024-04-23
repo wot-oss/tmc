@@ -3,10 +3,8 @@ package commands
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -17,57 +15,8 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-type FetchName struct {
-	Name   string
-	Semver string
-}
-
-var ErrInvalidFetchName = errors.New("invalid fetch name")
-
-var fetchNameRegex = regexp.MustCompile(`^([a-z\-0-9]+(/[\w\-0-9]+){2,})(:(.+))?$`)
-
-func ParseFetchName(fetchName string) (FetchName, error) {
-	// Find submatches in the input string
-	matches := fetchNameRegex.FindStringSubmatch(fetchName)
-
-	// Check if there are enough submatches
-	if len(matches) < 2 {
-		err := fmt.Errorf("%w: %s - must be NAME[:SEMVER]", ErrInvalidFetchName, fetchName)
-		slog.Default().Error(err.Error())
-		return FetchName{}, err
-	}
-
-	fn := FetchName{}
-	// Extract values from submatches
-	fn.Name = matches[1]
-	if len(matches) > 4 && matches[4] != "" {
-		fn.Semver = matches[4]
-		_, err := semver.NewVersion(fn.Semver)
-		if err != nil {
-			return FetchName{}, fmt.Errorf("%w: %s - invalid semantic version", ErrInvalidFetchName, fetchName)
-		}
-	}
-	return fn, nil
-}
-
-// ParseAsTMIDOrFetchName parses idOrName as model.TMID. If that fails, parses it as FetchName.
-// Returns error is idOrName is not valid as either. Only one of returned pointers may be not nil
-func ParseAsTMIDOrFetchName(idOrName string) (*model.TMID, *FetchName, error) {
-	tmid, err := model.ParseTMID(idOrName)
-	if err == nil {
-		return &tmid, nil, nil
-	}
-	fn, err := ParseFetchName(idOrName)
-	if err == nil {
-		return nil, &fn, nil
-	}
-
-	slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
-	return nil, nil, err
-}
-
 func FetchByTMIDOrName(ctx context.Context, spec model.RepoSpec, idOrName string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
-	tmid, fn, err := ParseAsTMIDOrFetchName(idOrName)
+	tmid, fn, err := model.ParseAsTMIDOrFetchName(idOrName)
 	if err != nil {
 		return "", nil, err, nil
 	}
@@ -148,7 +97,7 @@ func restoreExternalId(raw []byte) []byte {
 
 }
 
-func FetchByName(ctx context.Context, spec model.RepoSpec, fn FetchName, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
+func FetchByName(ctx context.Context, spec model.RepoSpec, fn model.FetchName, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
 	log := slog.Default()
 	res, err, errs := NewVersionsCommand().ListVersions(ctx, spec, fn.Name)
 	if err != nil {

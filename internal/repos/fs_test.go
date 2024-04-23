@@ -295,6 +295,8 @@ func TestFileRepo_Delete(t *testing.T) {
 				root: test.root,
 				spec: spec,
 			}
+			assert.NoError(t, r.Index(context.Background()))
+
 			t.Run("invalid id", func(t *testing.T) {
 				err := r.Delete(context.Background(), "invalid-id")
 				assert.ErrorIs(t, err, model.ErrInvalidId)
