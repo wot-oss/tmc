@@ -27,6 +27,9 @@ type HandlerService interface {
 	CheckHealthStartup(ctx context.Context) error
 	GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error)
 	ListAttachments(ctx context.Context, tmIdOrName string) ([]string, error)
+	FetchAttachment(ctx context.Context, tmIdOrName, attachmentFileName string) ([]byte, error)
+	PushAttachment(ctx context.Context, tmIdOrName, attachmentFileName string, content []byte) error
+	DeleteAttachment(ctx context.Context, tmIdOrName, attachmentFileName string) error
 }
 
 type defaultHandlerService struct {
@@ -174,6 +177,19 @@ func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toCo
 func (dhs *defaultHandlerService) ListAttachments(ctx context.Context, tmIdOrName string) ([]string, error) {
 	attachments, err := commands.AttachmentList(ctx, dhs.pushRepo, tmIdOrName)
 	return attachments, err
+}
+
+func (dhs *defaultHandlerService) FetchAttachment(ctx context.Context, tmIdOrName, attachmentFileName string) ([]byte, error) {
+	content, err := commands.AttachmentFetch(ctx, dhs.pushRepo, tmIdOrName, attachmentFileName)
+	return content, err
+}
+func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, tmIdOrName, attachmentFileName string) error {
+	err := commands.AttachmentDelete(ctx, dhs.pushRepo, tmIdOrName, attachmentFileName)
+	return err
+}
+func (dhs *defaultHandlerService) PushAttachment(ctx context.Context, tmIdOrName, attachmentFileName string, content []byte) error {
+	err := commands.AttachmentPut(ctx, dhs.pushRepo, tmIdOrName, attachmentFileName, content)
+	return err
 }
 
 func (dhs *defaultHandlerService) CheckHealth(ctx context.Context) error {

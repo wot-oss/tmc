@@ -257,7 +257,7 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 	HandleByteResponse(w, r, http.StatusOK, MimeText, buf.Bytes())
 }
 
-func (h *TmcHandler) GetThingModelAttachmentsByName(w http.ResponseWriter, r *http.Request, tmIDOrName string) {
+func (h *TmcHandler) GetThingModelAttachmentListByName(w http.ResponseWriter, r *http.Request, tmIDOrName string) {
 	attachments, err := h.Service.ListAttachments(r.Context(), tmIDOrName)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -265,6 +265,45 @@ func (h *TmcHandler) GetThingModelAttachmentsByName(w http.ResponseWriter, r *ht
 	}
 	resp := toAttachmentsListResponse(attachments)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+func (h *TmcHandler) GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName, attachmentFileName string) {
+	data, err := h.Service.FetchAttachment(r.Context(), tmIDOrName, attachmentFileName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	HandleByteResponse(w, r, http.StatusOK, MimeOctetStream, data)
+}
+
+func (h *TmcHandler) DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string) {
+	err := h.Service.DeleteAttachment(r.Context(), tmIDOrName, attachmentFileName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
+}
+
+func (h *TmcHandler) PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string) {
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
+	err = r.Body.Close()
+
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	err = h.Service.PushAttachment(r.Context(), tmIDOrName, attachmentFileName, b)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	_, _ = w.Write(nil)
 }
 
 func (h *TmcHandler) createContext(r *http.Request) context.Context {

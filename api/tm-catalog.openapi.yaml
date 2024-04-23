@@ -66,7 +66,7 @@ paths:
             The filter works additive to other filters.
           schema:
             type: string
-          example: 'siemens/POC1000'
+          example: 'siemens/siemens/poc1000'
         - name: 'search'
           in: query
           description: |
@@ -119,7 +119,7 @@ paths:
           required: true
           schema:
             type: string
-          example: 'siemens/POC1000'
+          example: 'siemens/siemens/poc1000'
       responses:
         '200':
           description: Successful operation
@@ -164,7 +164,7 @@ paths:
           required: true
           schema:
             type: string
-          example: 'siemens/POC1000'
+          example: 'siemens/siemens/poc1000'
       responses:
         '200':
           description: Successful operation
@@ -215,13 +215,13 @@ paths:
             type: string
           examples:
             id:
-              value: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+              value: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
             fullVersion:
-              value: 'siemens/POC1000:v1.2.3'
+              value: 'siemens/siemens/poc1000:v1.2.3'
             major:
-              value: 'siemens/POC1000:1'
+              value: 'siemens/siemens/poc1000:1'
             majorMinor:
-              value: 'siemens/POC1000:1.2'
+              value: 'siemens/siemens/poc1000:1.2'
         - name: restoreId
           in: query
           description: restore the TM's original external id, if it had one
@@ -275,7 +275,7 @@ paths:
           required: true
           schema:
             type: string
-          example: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+          example: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
         - name: force
           in: query
           description: flag to force the deletion. must be set to "true"
@@ -309,7 +309,7 @@ paths:
         - attachments
       summary: Get the attachments of a Thing Model or an inventory entry
       description: Returns the versions of an inventory entry by its name
-      operationId: getThingModelAttachmentsByName
+      operationId: getThingModelAttachmentListByName
       parameters:
         - name: tmIDOrName
           in: path
@@ -317,7 +317,7 @@ paths:
           required: true
           schema:
             type: string
-          example: 'siemens/POC1000'
+          example: 'siemens/siemens/poc1000'
       responses:
         '200':
           description: Successful operation
@@ -326,7 +326,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AttachmentsListResponse'
               examples:
-                attatchments:
+                attachments:
                   $ref: '#/components/examples/AttachmentsListResponseExample'
         '400':
           description: Invalid ID or inventory name supplied
@@ -338,6 +338,136 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: TM or inventory entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /thing-models/{tmIDOrName}/.attachments/{attachmentFileName}:
+    get:
+      tags:
+        - attachments
+      summary: Get the actual content of an attachment of a Thing Model or an inventory entry
+      description: Returns the versions of an inventory entry by its name
+      operationId: getThingModelAttachmentByName
+      parameters:
+        - name: tmIDOrName
+          in: path
+          description: ID or inventory name of the Thing Model
+          required: true
+          schema:
+            type: string
+          example: 'siemens/siemens/poc1000'
+        - name: attachmentFileName
+          in: path
+          description: File name of the attachment
+          required: true
+          schema:
+            type: string
+          example: 'README.md'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid ID or inventory name requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: TM or inventory entry or attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - attachments
+      summary: Get the actual content of an attachment of a Thing Model or an inventory entry
+      description: Returns the versions of an inventory entry by its name
+      operationId: putThingModelAttachmentByName
+      parameters:
+        - name: tmIDOrName
+          in: path
+          description: ID or inventory name of the Thing Model
+          required: true
+          schema:
+            type: string
+          example: 'siemens/siemens/poc1000'
+        - name: attachmentFileName
+          in: path
+          description: File name of the attachment
+          required: true
+          schema:
+            type: string
+          example: 'README.md'
+      responses:
+        '204':
+          description: Successfully pushed
+        '400':
+          description: Invalid ID or inventory name or attachment file name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - attachments
+      summary: Get the actual content of an attachment of a Thing Model or an inventory entry
+      description: Returns the versions of an inventory entry by its name
+      operationId: deleteThingModelAttachmentByName
+      parameters:
+        - name: tmIDOrName
+          in: path
+          description: ID or inventory name of the Thing Model
+          required: true
+          schema:
+            type: string
+          example: 'siemens/siemens/poc1000'
+        - name: attachmentFileName
+          in: path
+          description: File name of the attachment
+          required: true
+          schema:
+            type: string
+          example: 'README.md'
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid ID or inventory name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Thing Model or inventory name or attachment not found
           content:
             application/json:
               schema:
@@ -723,7 +853,7 @@ components:
       properties:
         name:
           type: string
-          example: 'siemens/POC1000'
+          example: 'siemens/siemens/poc1000'
         schema:author:
           $ref: '#/components/schemas/SchemaAuthor'
         schema:manufacturer:
@@ -749,7 +879,7 @@ components:
       properties:
         tmID:
           type: string
-          example: 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+          example: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
         externalID:
           type: string
           example: 'e7f19370-84a3-11ee-b962-0242ac120002'
@@ -774,7 +904,7 @@ components:
         self:
           type: string
           format: uri-reference
-          example: './inventory/siemens/POC1000'
+          example: './inventory/siemens/siemens/poc1000'
     InventoryEntryVersionLinks:
       type: object
       required:
@@ -783,7 +913,7 @@ components:
         content:
           type: string
           format: uri-reference
-          example: './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+          example: './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
     InventoryResponse:
       type: object
       required:
@@ -935,35 +1065,35 @@ components:
             'digest': '2cd14601ef09'
             'externalID': '{{ID}}'
             'links':
-              'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+              'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
             'timestamp': '20240108112117'
-            'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
             'version':
               'model': '1.0.0'
           - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
             'digest': 'f4184d08a02c'
             'externalID': '{{ID}}'
             'links':
-              'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+              'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
             'timestamp': '20231217140234'
-            'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+            'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
             'version':
               'model': '0.0.0'
           - 'description': ''
             'digest': 'e1594d08a01b'
             'externalID': '{{ID}}'
             'links':
-              'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+              'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
             'timestamp': '20231201133246'
-            'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+            'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
             'version':
               'model': '0.0.0'
     InventoryEntryResponseExample:
       value:
         data:
           'links':
-            'self': './inventory/siemens/POC1000'
-          'name': 'siemens/POC1000'
+            'self': './inventory/siemens/siemens/poc1000'
+          'name': 'siemens/siemens/poc1000'
           'schema:author':
             'schema:name': 'siemens'
           'schema:manufacturer':
@@ -974,27 +1104,27 @@ components:
               'digest': '2cd14601ef09'
               'externalID': '{{ID}}'
               'links':
-                'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
               'timestamp': '20240108112117'
-              'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+              'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
               'version':
                 'model': '1.0.0'
             - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
               'digest': 'f4184d08a02c'
               'externalID': '{{ID}}'
               'links':
-                'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
               'timestamp': '20231217140234'
-              'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+              'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
               'version':
                 'model': '0.0.0'
             - 'description': ''
               'digest': 'e1594d08a01b'
               'externalID': '{{ID}}'
               'links':
-                'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
               'timestamp': '20231201133246'
-              'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+              'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
               'version':
                 'model': '0.0.0'
     InventoryResponseExample:
@@ -1004,8 +1134,8 @@ components:
             elements: 2
         data:
           - 'links':
-              'self': './inventory/siemens/POC1000'
-            'name': 'siemens/POC1000'
+              'self': './inventory/siemens/siemens/poc1000'
+            'name': 'siemens/siemens/poc1000'
             'schema:author':
               'schema:name': 'siemens'
             'schema:manufacturer':
@@ -1016,27 +1146,27 @@ components:
                 'digest': '2cd14601ef09'
                 'externalID': '{{ID}}'
                 'links':
-                  'content': './thing-models/siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                 'timestamp': '20240108112117'
-                'tmID': 'siemens/POC1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                 'version':
                   'model': '1.0.0'
               - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
                 'digest': 'f4184d08a02c'
                 'externalID': '{{ID}}'
                 'links':
-                  'content': './thing-models/siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                 'timestamp': '20231217140234'
-                'tmID': 'siemens/POC1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                 'version':
                   'model': '0.0.0'
               - 'description': ''
                 'digest': 'e1594d08a01b'
                 'externalID': '{{ID}}'
                 'links':
-                  'content': './thing-models/siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'timestamp': '20231201133246'
-                'tmID': 'siemens/POC1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'version':
                   'model': '0.0.0'
           - 'links':

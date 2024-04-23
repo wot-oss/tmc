@@ -87,6 +87,24 @@ func (_m *HandlerService) CheckHealthStartup(ctx context.Context) error {
 	return r0
 }
 
+// DeleteAttachment provides a mock function with given fields: ctx, tmIdOrName, attachmentFileName
+func (_m *HandlerService) DeleteAttachment(ctx context.Context, tmIdOrName string, attachmentFileName string) error {
+	ret := _m.Called(ctx, tmIdOrName, attachmentFileName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAttachment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, tmIdOrName, attachmentFileName)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // DeleteThingModel provides a mock function with given fields: ctx, tmID
 func (_m *HandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
 	ret := _m.Called(ctx, tmID)
@@ -103,6 +121,36 @@ func (_m *HandlerService) DeleteThingModel(ctx context.Context, tmID string) err
 	}
 
 	return r0
+}
+
+// FetchAttachment provides a mock function with given fields: ctx, tmIdOrName, attachmentFileName
+func (_m *HandlerService) FetchAttachment(ctx context.Context, tmIdOrName string, attachmentFileName string) ([]byte, error) {
+	ret := _m.Called(ctx, tmIdOrName, attachmentFileName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FetchAttachment")
+	}
+
+	var r0 []byte
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]byte, error)); ok {
+		return rf(ctx, tmIdOrName, attachmentFileName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []byte); ok {
+		r0 = rf(ctx, tmIdOrName, attachmentFileName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, tmIdOrName, attachmentFileName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // FetchThingModel provides a mock function with given fields: ctx, tmID, restoreId
@@ -343,6 +391,24 @@ func (_m *HandlerService) ListMpns(ctx context.Context, search *model.SearchPara
 	}
 
 	return r0, r1
+}
+
+// PushAttachment provides a mock function with given fields: ctx, tmIdOrName, attachmentFileName, content
+func (_m *HandlerService) PushAttachment(ctx context.Context, tmIdOrName string, attachmentFileName string, content []byte) error {
+	ret := _m.Called(ctx, tmIdOrName, attachmentFileName, content)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PushAttachment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []byte) error); ok {
+		r0 = rf(ctx, tmIdOrName, attachmentFileName, content)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // PushThingModel provides a mock function with given fields: ctx, file

@@ -118,7 +118,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 		_attDir := filepath.Dir(attDir)
 		// make sure there's no mistake, and we're about to delete the correct dir with attachments
 		if filepath.Base(_attDir) != AttachmentsDir {
-			return fmt.Errorf("internal error: not in _attachments directory: %s", attDir)
+			return fmt.Errorf("internal error: not in .attachments directory: %s", attDir)
 		}
 		err = os.RemoveAll(_attDir)
 		if err != nil {

@@ -58,7 +58,16 @@ type ServerInterface interface {
 	GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params GetThingModelByIdParams)
 	// Get the attachments of a Thing Model or an inventory entry
 	// (GET /thing-models/{tmIDOrName}/.attachments)
-	GetThingModelAttachmentsByName(w http.ResponseWriter, r *http.Request, tmIDOrName string)
+	GetThingModelAttachmentListByName(w http.ResponseWriter, r *http.Request, tmIDOrName string)
+	// Get the actual content of an attachment of a Thing Model or an inventory entry
+	// (DELETE /thing-models/{tmIDOrName}/.attachments/{attachmentFileName})
+	DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string)
+	// Get the actual content of an attachment of a Thing Model or an inventory entry
+	// (GET /thing-models/{tmIDOrName}/.attachments/{attachmentFileName})
+	GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string)
+	// Get the actual content of an attachment of a Thing Model or an inventory entry
+	// (PUT /thing-models/{tmIDOrName}/.attachments/{attachmentFileName})
+	PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -526,8 +535,8 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// GetThingModelAttachmentsByName operation middleware
-func (siw *ServerInterfaceWrapper) GetThingModelAttachmentsByName(w http.ResponseWriter, r *http.Request) {
+// GetThingModelAttachmentListByName operation middleware
+func (siw *ServerInterfaceWrapper) GetThingModelAttachmentListByName(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -544,7 +553,118 @@ func (siw *ServerInterfaceWrapper) GetThingModelAttachmentsByName(w http.Respons
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetThingModelAttachmentsByName(w, r, tmIDOrName)
+		siw.Handler.GetThingModelAttachmentListByName(w, r, tmIDOrName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteThingModelAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmIDOrName" -------------
+	var tmIDOrName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmIDOrName", mux.Vars(r)["tmIDOrName"], &tmIDOrName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmIDOrName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteThingModelAttachmentByName(w, r, tmIDOrName, attachmentFileName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetThingModelAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmIDOrName" -------------
+	var tmIDOrName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmIDOrName", mux.Vars(r)["tmIDOrName"], &tmIDOrName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmIDOrName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetThingModelAttachmentByName(w, r, tmIDOrName, attachmentFileName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PutThingModelAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmIDOrName" -------------
+	var tmIDOrName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmIDOrName", mux.Vars(r)["tmIDOrName"], &tmIDOrName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmIDOrName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutThingModelAttachmentByName(w, r, tmIDOrName, attachmentFileName)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -667,7 +787,13 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
 
-	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}/.attachments", wrapper.GetThingModelAttachmentsByName).Methods("GET")
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}/.attachments/{attachmentFileName}", wrapper.PutThingModelAttachmentByName).Methods("PUT")
+
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}/.attachments/{attachmentFileName}", wrapper.GetThingModelAttachmentByName).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}/.attachments/{attachmentFileName}", wrapper.DeleteThingModelAttachmentByName).Methods("DELETE")
+
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}/.attachments", wrapper.GetThingModelAttachmentListByName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}", wrapper.GetThingModelById).Methods("GET")
 
