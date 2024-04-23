@@ -56,6 +56,9 @@ type ServerInterface interface {
 	// Get the content of a Thing Model by its ID or fetch name
 	// (GET /thing-models/{tmIDOrName})
 	GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params GetThingModelByIdParams)
+	// Get the attachments of a Thing Model or an inventory entry
+	// (GET /thing-models/{tmIDOrName}/.attachments)
+	GetThingModelAttachmentsByName(w http.ResponseWriter, r *http.Request, tmIDOrName string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -523,6 +526,34 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetThingModelAttachmentsByName operation middleware
+func (siw *ServerInterfaceWrapper) GetThingModelAttachmentsByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmIDOrName" -------------
+	var tmIDOrName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmIDOrName", mux.Vars(r)["tmIDOrName"], &tmIDOrName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmIDOrName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetThingModelAttachmentsByName(w, r, tmIDOrName)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 type UnescapedCookieParamError struct {
 	ParamName string
 	Err       error
@@ -635,6 +666,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 		HandlerMiddlewares: options.Middlewares,
 		ErrorHandlerFunc:   options.ErrorHandlerFunc,
 	}
+
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}/.attachments", wrapper.GetThingModelAttachmentsByName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmIDOrName:.+}", wrapper.GetThingModelById).Methods("GET")
 

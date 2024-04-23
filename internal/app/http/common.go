@@ -266,6 +266,16 @@ func toAuthorsResponse(authors []string) server.AuthorsResponse {
 	return resp
 }
 
+func toAttachmentsListResponse(attachments []string) server.AttachmentsListResponse {
+	if attachments == nil {
+		attachments = []string{}
+	}
+	resp := server.AttachmentsListResponse{
+		Data: attachments,
+	}
+	return resp
+}
+
 func toManufacturersResponse(manufacturers []string) server.ManufacturersResponse {
 	resp := server.ManufacturersResponse{
 		Data: manufacturers,

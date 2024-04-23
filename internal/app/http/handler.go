@@ -257,6 +257,16 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 	HandleByteResponse(w, r, http.StatusOK, MimeText, buf.Bytes())
 }
 
+func (h *TmcHandler) GetThingModelAttachmentsByName(w http.ResponseWriter, r *http.Request, tmIDOrName string) {
+	attachments, err := h.Service.ListAttachments(r.Context(), tmIDOrName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	resp := toAttachmentsListResponse(attachments)
+	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
 func (h *TmcHandler) createContext(r *http.Request) context.Context {
 	relPathDepth := getRelativeDepth(r.URL.Path, basePathInventory)
 

@@ -26,6 +26,7 @@ type HandlerService interface {
 	CheckHealthReady(ctx context.Context) error
 	CheckHealthStartup(ctx context.Context) error
 	GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error)
+	ListAttachments(ctx context.Context, tmIdOrName string) ([]string, error)
 }
 
 type defaultHandlerService struct {
@@ -168,6 +169,11 @@ func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toCo
 		return nil, err
 	}
 	return rs.ListCompletions(ctx, kind, toComplete), nil
+}
+
+func (dhs *defaultHandlerService) ListAttachments(ctx context.Context, tmIdOrName string) ([]string, error) {
+	attachments, err := commands.AttachmentList(ctx, dhs.pushRepo, tmIdOrName)
+	return attachments, err
 }
 
 func (dhs *defaultHandlerService) CheckHealth(ctx context.Context) error {

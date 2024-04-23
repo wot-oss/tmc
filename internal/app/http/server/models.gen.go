@@ -13,6 +13,11 @@ const (
 	Names      GetCompletionsParamsKind = "names"
 )
 
+// AttachmentsListResponse defines model for AttachmentsListResponse.
+type AttachmentsListResponse struct {
+	Data []string `json:"data"`
+}
+
 // AuthorsResponse defines model for AuthorsResponse.
 type AuthorsResponse struct {
 	Data []string `json:"data"`

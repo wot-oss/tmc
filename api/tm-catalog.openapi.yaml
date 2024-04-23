@@ -303,6 +303,51 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /thing-models/{tmIDOrName}/.attachments:
+    get:
+      tags:
+        - attachments
+      summary: Get the attachments of a Thing Model or an inventory entry
+      description: Returns the versions of an inventory entry by its name
+      operationId: getThingModelAttachmentsByName
+      parameters:
+        - name: tmIDOrName
+          in: path
+          description: ID or inventory name of the Thing Model
+          required: true
+          schema:
+            type: string
+          example: 'siemens/POC1000'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentsListResponse'
+              examples:
+                attatchments:
+                  $ref: '#/components/examples/AttachmentsListResponseExample'
+        '400':
+          description: Invalid ID or inventory name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: TM or inventory entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /thing-models:
     post:
       tags:
@@ -782,6 +827,15 @@ components:
           type: array
           items:
             type: string
+    AttachmentsListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
     ManufacturersResponse:
       type: object
       required:
@@ -1008,6 +1062,11 @@ components:
         data:
           - 'MyCompany'
           - 'siemens'
+    AttachmentsListResponseExample:
+      value:
+        data:
+          - 'README.md'
+          - 'User Manual.pdf'
     ManufacturersResponseExample:
       value:
         data:
