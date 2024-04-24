@@ -188,7 +188,7 @@ func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, tmIdOrNa
 	return err
 }
 func (dhs *defaultHandlerService) PushAttachment(ctx context.Context, tmIdOrName, attachmentFileName string, content []byte) error {
-	err := commands.AttachmentPut(ctx, dhs.pushRepo, tmIdOrName, attachmentFileName, content)
+	err := commands.AttachmentPush(ctx, dhs.pushRepo, tmIdOrName, attachmentFileName, content)
 	return err
 }
 

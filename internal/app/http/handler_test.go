@@ -529,7 +529,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(nil, repos.ErrTmNotFound).Once()
+		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(nil, repos.ErrNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -689,7 +689,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, tmID).Return(repos.ErrTmNotFound).Once()
+		hs.On("DeleteThingModel", mock.Anything, tmID).Return(repos.ErrNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body

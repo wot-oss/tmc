@@ -367,8 +367,8 @@ func Test_FetchingThingModel(t *testing.T) {
 		res, err := underTest.FetchThingModel(nil, invalidTmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is ErrInvalidFetchName
-		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
+		// and then: error is ErrInvalidIdOrName
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
 	})
 
 	t.Run("with invalid fetch name", func(t *testing.T) {
@@ -376,8 +376,8 @@ func Test_FetchingThingModel(t *testing.T) {
 		res, err := underTest.FetchThingModel(nil, "b-corp\\eagle/PM20", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is ErrInvalidFetchName
-		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
+		// and then: error is ErrInvalidIdOrName
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
 	})
 
 	t.Run("with invalid semantic version", func(t *testing.T) {
@@ -385,20 +385,20 @@ func Test_FetchingThingModel(t *testing.T) {
 		res, err := underTest.FetchThingModel(nil, "b-corp/eagle/PM20:v1.", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is ErrInvalidFetchName
-		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
+		// and then: error is ErrInvalidIdOrName
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
 	})
 
 	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/pm20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, repos.ErrTmNotFound).Once()
+		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, repos.ErrNotFound).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(context.Background(), tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is ErrTmNotFound
-		assert.ErrorIs(t, err, repos.ErrTmNotFound)
+		// and then: error is ErrNotFound
+		assert.ErrorIs(t, err, repos.ErrNotFound)
 	})
 
 	t.Run("with fetch name not found", func(t *testing.T) {
@@ -409,8 +409,8 @@ func Test_FetchingThingModel(t *testing.T) {
 		res, err := underTest.FetchThingModel(context.Background(), fn, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is ErrTmNotFound
-		assert.ErrorIs(t, err, repos.ErrTmNotFound)
+		// and then: error is ErrNotFound
+		assert.ErrorIs(t, err, repos.ErrNotFound)
 	})
 
 	t.Run("with tmID found", func(t *testing.T) {
@@ -445,11 +445,11 @@ func Test_DeleteThingModel(t *testing.T) {
 
 	t.Run("with error when deleting", func(t *testing.T) {
 		tmid := "some-id2"
-		r.On("Delete", mock.Anything, tmid).Return(repos.ErrTmNotFound).Once()
+		r.On("Delete", mock.Anything, tmid).Return(repos.ErrNotFound).Once()
 		// when: deleting ThingModel
 		err := underTest.DeleteThingModel(context.Background(), tmid)
 		// then: it returns error result
-		assert.ErrorIs(t, err, repos.ErrTmNotFound)
+		assert.ErrorIs(t, err, repos.ErrNotFound)
 	})
 
 	t.Run("with error when indexing", func(t *testing.T) {

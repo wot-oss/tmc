@@ -307,8 +307,8 @@ paths:
     get:
       tags:
         - attachments
-      summary: Get the attachments of a Thing Model or an inventory entry
-      description: Returns the versions of an inventory entry by its name
+      summary: Get the list of attachments of a Thing Model or an inventory entry
+      description: Returns the list of attachment names of a Thing Model or an inventory entry
       operationId: getThingModelAttachmentListByName
       parameters:
         - name: tmIDOrName
@@ -353,7 +353,7 @@ paths:
       tags:
         - attachments
       summary: Get the actual content of an attachment of a Thing Model or an inventory entry
-      description: Returns the versions of an inventory entry by its name
+      description: Returns the content of an attachment of a Thing Model or an inventory entry
       operationId: getThingModelAttachmentByName
       parameters:
         - name: tmIDOrName
@@ -401,8 +401,8 @@ paths:
     put:
       tags:
         - attachments
-      summary: Get the actual content of an attachment of a Thing Model or an inventory entry
-      description: Returns the versions of an inventory entry by its name
+      summary: Upload an attachment to a Thing Model or an inventory entry
+      description: Upload an attachment to a Thing Model or an inventory entry
       operationId: putThingModelAttachmentByName
       parameters:
         - name: tmIDOrName
@@ -423,7 +423,7 @@ paths:
         '204':
           description: Successfully pushed
         '400':
-          description: Invalid ID or inventory name or attachment file name supplied
+          description: Invalid ID or inventory name supplied
           content:
             application/json:
               schema:
@@ -439,8 +439,8 @@ paths:
     delete:
       tags:
         - attachments
-      summary: Get the actual content of an attachment of a Thing Model or an inventory entry
-      description: Returns the versions of an inventory entry by its name
+      summary: Delete an attachment of a Thing Model or an inventory entry
+      description: Delete an attachment of a Thing Model or an inventory entry
       operationId: deleteThingModelAttachmentByName
       parameters:
         - name: tmIDOrName
@@ -466,6 +466,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: Thing Model or inventory name or attachment not found
           content:

@@ -56,15 +56,15 @@ type Repo interface {
 	Versions(ctx context.Context, name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Repo has been created from
 	Spec() model.RepoSpec
-	// Delete deletes the TM with given id from repo. Returns ErrTmNotFound if TM does not exist
+	// Delete deletes the TM with given id from repo. Returns ErrNotFound if TM does not exist
 	Delete(ctx context.Context, id string) error
 
 	ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error)
 
-	// ListAttachments returns the list of attachment names associated with the given tmNameOrId. Returns ErrTmNotFound
+	// ListAttachments returns the list of attachment names associated with the given tmNameOrId. Returns ErrNotFound
 	// if the tmNameOrId does not refer to an existing TM name or TM id
 	ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error)
-	PutAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error
+	PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error
 	FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error)
 	DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error
 }

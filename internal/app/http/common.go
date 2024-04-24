@@ -85,11 +85,12 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 
 	switch true {
 	// handle sentinel errors with errors.Is()
-	case errors.Is(err, repos.ErrTmNotFound):
+	case errors.Is(err, repos.ErrNotFound):
 		errTitle = Error404Title
 		errDetail = err.Error()
 		errStatus = http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidId),
+		errors.Is(err, model.ErrInvalidIdOrName),
 		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
 		errors.Is(err, repos.ErrInvalidCompletionParams):

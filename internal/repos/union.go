@@ -62,7 +62,7 @@ func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []
 	mapper := func(r Repo) mapResult[fetchRes] {
 		fid, thing, err := r.Fetch(ctx, id)
 		res := fetchRes{id: fid, b: thing, err: err}
-		if errors.Is(err, ErrTmNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			return mapResult[fetchRes]{res: res, err: nil}
 		}
 		return mapResult[fetchRes]{res: res, err: newRepoAccessError(r, err)}
@@ -71,7 +71,7 @@ func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	results := mapConcurrent(ctx, u.rs, mapper)
-	res := fetchRes{err: ErrTmNotFound}
+	res := fetchRes{err: ErrNotFound}
 	res, errs := reduce(results, res, func(r1, r2 fetchRes) fetchRes {
 		if r1.err == nil {
 			cancel()
@@ -83,7 +83,7 @@ func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []
 		return r2
 	})
 	if res.err != nil {
-		return "", nil, ErrTmNotFound, errs
+		return "", nil, ErrNotFound, errs
 	}
 
 	return res.id, res.b, nil, nil
@@ -148,7 +148,7 @@ func mapConcurrent[T any](ctx context.Context, repos []Repo, mapper func(r Repo)
 func (u *Union) Versions(ctx context.Context, name string) ([]model.FoundVersion, []*RepoAccessError) {
 	mapper := func(r Repo) mapResult[[]model.FoundVersion] {
 		vers, err := r.Versions(ctx, name)
-		if errors.Is(err, ErrTmNotFound) {
+		if errors.Is(err, ErrNotFound) {
 			return mapResult[[]model.FoundVersion]{res: vers, err: nil}
 		}
 		return mapResult[[]model.FoundVersion]{res: vers, err: newRepoAccessError(r, err)}

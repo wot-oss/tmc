@@ -248,12 +248,12 @@ func (_m *Repo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 	return r0
 }
 
-// PutAttachment provides a mock function with given fields: ctx, tmNameOrId, attachmentName, content
-func (_m *Repo) PutAttachment(ctx context.Context, tmNameOrId string, attachmentName string, content []byte) error {
+// PushAttachment provides a mock function with given fields: ctx, tmNameOrId, attachmentName, content
+func (_m *Repo) PushAttachment(ctx context.Context, tmNameOrId string, attachmentName string, content []byte) error {
 	ret := _m.Called(ctx, tmNameOrId, attachmentName, content)
 
 	if len(ret) == 0 {
-		panic("no return value specified for PutAttachment")
+		panic("no return value specified for PushAttachment")
 	}
 
 	var r0 error

@@ -503,7 +503,7 @@ func TestTmcRepo_Delete(t *testing.T) {
 			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
 			status:   http.StatusNotFound,
 			respBody: []byte(`{"detail":"TM not found"}`),
-			expErr:   ErrTmNotFound,
+			expErr:   ErrNotFound,
 		},
 		{
 			name:     "existing id",

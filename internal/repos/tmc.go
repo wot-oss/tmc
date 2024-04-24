@@ -29,23 +29,126 @@ type TmcRepo struct {
 }
 
 func (t TmcRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir, attachmentName)
+	resp, err := doGet(ctx, reqUrl.String(), t.auth)
+	if err != nil {
+		return nil, err
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return b, nil
+	case http.StatusNotFound:
+		return nil, ErrNotFound
+	case http.StatusBadRequest:
+		return nil, model.ErrInvalidIdOrName
+	case http.StatusInternalServerError, http.StatusUnauthorized:
+		return nil, newErrorFromResponse(b)
+	default:
+		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
+	}
+}
+
+func newErrorFromResponse(b []byte) error {
+	var e server.ErrorResponse
+	err := json.Unmarshal(b, &e)
+	if err != nil {
+		return err
+	}
+	detail := e.Title
+	if e.Detail != nil {
+		detail = *e.Detail
+	}
+	return errors.New(detail)
 }
 
 func (t TmcRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
-	//TODO implement me
-	panic("implement me")
+	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir, attachmentName)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqUrl.String(), nil)
+	if err != nil {
+		return err
+	}
+	resp, err := doHttp(req, t.auth)
+	if err != nil {
+		return err
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusBadRequest:
+		return model.ErrInvalidIdOrName
+	case http.StatusNotFound:
+		return ErrNotFound
+	case http.StatusUnauthorized, http.StatusInternalServerError:
+		return newErrorFromResponse(b)
+	default:
+		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+	}
+
 }
 
 func (t TmcRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
-	//TODO implement me
-	panic("implement me")
+	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir)
+	resp, err := doGet(ctx, reqUrl.String(), t.auth)
+	if err != nil {
+		return nil, err
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	switch resp.StatusCode {
+	case http.StatusOK:
+		var tm server.AttachmentsListResponse
+		err = json.Unmarshal(b, &tm)
+		if err != nil {
+			return nil, err
+		}
+		return tm.Data, nil
+	case http.StatusNotFound:
+		return nil, ErrNotFound
+	case http.StatusBadRequest:
+		return nil, model.ErrInvalidIdOrName
+	case http.StatusInternalServerError, http.StatusUnauthorized:
+		return nil, newErrorFromResponse(b)
+	default:
+		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
+	}
 }
 
-func (t TmcRepo) PutAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
-	//TODO implement me
-	panic("implement me")
+func (t TmcRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
+	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir, attachmentName)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqUrl.String(), bytes.NewBuffer(content))
+	if err != nil {
+		return err
+	}
+	resp, err := doHttp(req, t.auth)
+	if err != nil {
+		return err
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	switch resp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusBadRequest:
+		return model.ErrInvalidIdOrName
+	case http.StatusUnauthorized, http.StatusInternalServerError:
+		return newErrorFromResponse(b)
+	default:
+		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+	}
 }
 
 func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
@@ -76,7 +179,7 @@ func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 	switch resp.StatusCode {
 	case http.StatusCreated:
 		return nil
-	case http.StatusConflict, http.StatusInternalServerError, http.StatusBadRequest:
+	case http.StatusConflict, http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 		var e server.ErrorResponse
 		err = json.Unmarshal(b, &e)
 		if err != nil {
@@ -97,7 +200,7 @@ func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 				return err
 			}
 			return cErr
-		case http.StatusInternalServerError, http.StatusBadRequest:
+		case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 			return errors.New(detail)
 		default:
 			return errors.New("unexpected status not handled correctly")
@@ -134,18 +237,9 @@ func (t TmcRepo) Delete(ctx context.Context, id string) error {
 		// we're sure that we've passed a valid 'force' flag, so it must be the id
 		return model.ErrInvalidId
 	case http.StatusNotFound:
-		return ErrTmNotFound
-	case http.StatusInternalServerError:
-		var e server.ErrorResponse
-		err = json.Unmarshal(b, &e)
-		if err != nil {
-			return err
-		}
-		detail := e.Title
-		if e.Detail != nil {
-			detail = *e.Detail
-		}
-		return errors.New(detail)
+		return ErrNotFound
+	case http.StatusInternalServerError, http.StatusUnauthorized:
+		return newErrorFromResponse(b)
 	default:
 		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
@@ -207,8 +301,8 @@ func (t TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.Se
 		}
 	case http.StatusNotFound:
 		return model.SearchResult{}, nil
-	case http.StatusBadRequest, http.StatusInternalServerError:
-		return model.SearchResult{}, errors.New(string(data))
+	case http.StatusBadRequest, http.StatusUnauthorized, http.StatusInternalServerError:
+		return model.SearchResult{}, newErrorFromResponse(data)
 	default:
 		return model.SearchResult{}, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
@@ -283,15 +377,15 @@ func (t TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersio
 		}
 		if len(vResp.Data) != 1 {
 			log.Error(fmt.Sprintf("No thing model found for repoName: %s", name))
-			return nil, ErrTmNotFound
+			return nil, ErrNotFound
 		}
 
 		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper).
 			ToFoundVersions(vResp.Data), nil
 	case http.StatusNotFound:
-		return nil, ErrTmNotFound
-	case http.StatusInternalServerError, http.StatusBadRequest:
-		return nil, errors.New(string(data))
+		return nil, ErrNotFound
+	case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
+		return nil, newErrorFromResponse(data)
 	default:
 		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
@@ -324,8 +418,8 @@ func (t TmcRepo) ListCompletions(ctx context.Context, kind string, toComplete st
 		return lines, scanner.Err()
 	case http.StatusBadRequest:
 		return nil, ErrInvalidCompletionParams
-	case http.StatusInternalServerError:
-		return nil, errors.New(string(data))
+	case http.StatusInternalServerError, http.StatusUnauthorized:
+		return nil, newErrorFromResponse(data)
 	default:
 		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}

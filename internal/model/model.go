@@ -74,17 +74,17 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 // ParseAsTMIDOrFetchName parses idOrName as model.TMID. If that fails, parses it as FetchName.
 // Returns error is idOrName is not valid as either. Only one of returned pointers may be not nil
 func ParseAsTMIDOrFetchName(idOrName string) (*TMID, *FetchName, error) {
-	tmid, err := ParseTMID(idOrName)
-	if err == nil {
+	tmid, err1 := ParseTMID(idOrName)
+	if err1 == nil {
 		return &tmid, nil, nil
 	}
-	fn, err := ParseFetchName(idOrName)
-	if err == nil {
+	fn, err2 := ParseFetchName(idOrName)
+	if err2 == nil {
 		return nil, &fn, nil
 	}
 
 	slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
-	return nil, nil, err
+	return nil, nil, fmt.Errorf("%w: %w, %w", ErrInvalidIdOrName, err1, err2)
 }
 
 type RepoSpec struct {

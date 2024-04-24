@@ -56,16 +56,16 @@ type ServerInterface interface {
 	// Get the content of a Thing Model by its ID or fetch name
 	// (GET /thing-models/{tmIDOrName})
 	GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params GetThingModelByIdParams)
-	// Get the attachments of a Thing Model or an inventory entry
+	// Get the list of attachments of a Thing Model or an inventory entry
 	// (GET /thing-models/{tmIDOrName}/.attachments)
 	GetThingModelAttachmentListByName(w http.ResponseWriter, r *http.Request, tmIDOrName string)
-	// Get the actual content of an attachment of a Thing Model or an inventory entry
+	// Delete an attachment of a Thing Model or an inventory entry
 	// (DELETE /thing-models/{tmIDOrName}/.attachments/{attachmentFileName})
 	DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string)
 	// Get the actual content of an attachment of a Thing Model or an inventory entry
 	// (GET /thing-models/{tmIDOrName}/.attachments/{attachmentFileName})
 	GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string)
-	// Get the actual content of an attachment of a Thing Model or an inventory entry
+	// Upload an attachment to a Thing Model or an inventory entry
 	// (PUT /thing-models/{tmIDOrName}/.attachments/{attachmentFileName})
 	PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmIDOrName string, attachmentFileName string)
 }

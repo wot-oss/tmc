@@ -24,7 +24,7 @@ func AttachmentList(spec model.RepoSpec, tmNameOrId string) error {
 	return nil
 }
 
-func AttachmentPut(spec model.RepoSpec, tmNameOrId, filename string) error {
+func AttachmentPush(spec model.RepoSpec, tmNameOrId, filename string) error {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		Stderrf("Error expanding file name %s: %v", filename, err)
@@ -40,7 +40,7 @@ func AttachmentPut(spec model.RepoSpec, tmNameOrId, filename string) error {
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 	}
-	err = commands.AttachmentPut(context.Background(), spec, tmNameOrId, filepath.Base(filename), raw)
+	err = commands.AttachmentPush(context.Background(), spec, tmNameOrId, filepath.Base(filename), raw)
 	if err != nil {
 		Stderrf("Failed to put attachment %s to %s: %v", filename, tmNameOrId, err)
 	}

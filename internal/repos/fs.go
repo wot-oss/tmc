@@ -93,12 +93,12 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	match, _ := f.getExistingID(id)
 	if match != idMatchFull {
-		return ErrTmNotFound
+		return ErrNotFound
 	}
 	fullFilename, dir, _ := f.filenames(id)
 	err = os.Remove(fullFilename)
 	if os.IsNotExist(err) {
-		return ErrTmNotFound
+		return ErrNotFound
 	}
 	unlock, err := f.lockIndex(ctx)
 	if err != nil {
@@ -246,7 +246,7 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 	}
 	match, actualId := f.getExistingID(id)
 	if match != idMatchFull && match != idMatchDigest {
-		return "", nil, ErrTmNotFound
+		return "", nil, ErrNotFound
 	}
 	actualFilename, _, _ := f.filenames(actualId)
 	b, err := os.ReadFile(actualFilename)
@@ -313,7 +313,7 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	}
 
 	if len(res.Entries) != 1 {
-		err := fmt.Errorf("%w: %s", ErrTmNotFound, name)
+		err := fmt.Errorf("%w: %s", ErrNotFound, name)
 		log.Error(err.Error())
 		return nil, err
 	}
@@ -321,7 +321,7 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	return res.Entries[0].Versions, nil
 }
 
-func (f *FileRepo) PutAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
+func (f *FileRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
 	log := slog.Default()
 	log.Debug(fmt.Sprintf("Putting attachment %s for '%v'", attachmentName, tmNameOrId))
 
@@ -378,7 +378,11 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentNa
 	}
 	log.Debug("attachments dir calculated", "tmNameOrId", tmNameOrId, "attDir", attDir)
 
-	return os.ReadFile(filepath.Join(attDir, attachmentName))
+	file, err := os.ReadFile(filepath.Join(attDir, attachmentName))
+	if os.IsNotExist(err) {
+		return nil, ErrNotFound
+	}
+	return file, err
 }
 func (f *FileRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
 	log := slog.Default()
@@ -461,7 +465,7 @@ func (f *FileRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]st
 }
 
 // getAttachmentsDir returns the directory where the attachments to the given tmNameOrId are stored. Returns
-// ErrTmNotFound if tmNameOrId is not present in this repository
+// ErrNotFound if tmNameOrId is not present in this repository
 // Must be called after the index lock has been acquired with lockIndex
 func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, bool, error) {
 	id, fName, err := model.ParseAsTMIDOrFetchName(tmNameOrId)
@@ -470,7 +474,7 @@ func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, bool, error) {
 	}
 	if fName != nil {
 		if fName.Semver != "" {
-			return "", false, fmt.Errorf("invalid TM name: %s", tmNameOrId)
+			return "", false, fmt.Errorf("%w: %s", model.ErrInvalidIdOrName, tmNameOrId)
 		}
 	}
 
@@ -487,7 +491,7 @@ func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, bool, error) {
 	}
 	index.Filter(&model.SearchParams{Name: tmName})
 	if len(index.Data) != 1 {
-		return "", false, ErrTmNotFound
+		return "", false, ErrNotFound
 	}
 	versions := index.Data[0].Versions
 	if id != nil {
@@ -499,7 +503,7 @@ func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, bool, error) {
 			}
 		}
 		if !found {
-			return "", false, ErrTmNotFound
+			return "", false, ErrNotFound
 		}
 	}
 

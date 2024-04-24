@@ -51,7 +51,7 @@ func (h *HttpRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]st
 	panic("implement me")
 }
 
-func (h *HttpRepo) PutAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
+func (h *HttpRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -134,7 +134,7 @@ func fetchTM(ctx context.Context, tmUrl string, auth map[string]any) (string, []
 			return fmt.Sprintf("%v", value), b, fmt.Errorf("unexpected type of 'id': %v", value)
 		}
 	case http.StatusNotFound:
-		return "", nil, ErrTmNotFound
+		return "", nil, ErrNotFound
 	case http.StatusInternalServerError, http.StatusBadRequest:
 		return "", nil, errors.New(string(b))
 	default:
@@ -217,7 +217,7 @@ func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 
 	if len(idx.Entries) != 1 {
 		log.Error(fmt.Sprintf("No thing model found for repoName: %s", name))
-		return nil, ErrTmNotFound
+		return nil, ErrNotFound
 	}
 
 	return idx.Entries[0].Versions, nil
