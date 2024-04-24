@@ -95,3 +95,13 @@ func TestTMID_String(t *testing.T) {
 
 	assert.Equal(t, "manufacturer/manufacturer/mpn/byfirmware/v1/v1.2.3-20241243052343-ab1234567890.tm.json", id2.String())
 }
+
+func TestNewTMID_SanitizesNameParts(t *testing.T) {
+	id := NewTMID("aut/hor", "MAN&UFACTURER", "mpn!", "by_firmware/v1",
+		TMVersion{
+			Base:      semver.MustParse("v1.2.3"),
+			Timestamp: "20241243052343",
+			Hash:      "ab1234567890",
+		})
+	assert.Equal(t, "aut-hor/man-ufacturer/mpn/by-firmware/v1", id.Name)
+}
