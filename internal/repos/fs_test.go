@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"text/template"
@@ -124,7 +125,7 @@ func TestValidatesRoot(t *testing.T) {
 		"loc":  "/temp/surely-does-not-exist-5245874598745",
 	}, model.EmptySpec)
 
-	_, err := repo.List(context.Background(), &model.SearchParams{Query: ""})
+	_, err := repo.List(context.Background(), nil)
 	assert.ErrorIs(t, err, ErrRootInvalid)
 	_, err = repo.Versions(context.Background(), "manufacturer/mpn")
 	assert.ErrorIs(t, err, ErrRootInvalid)
@@ -531,17 +532,18 @@ func TestFileRepo_Index_Parallel(t *testing.T) {
 	defer os.RemoveAll(temp)
 	templ := template.Must(template.New("tm").Parse(pTempl))
 	mockReader := func(name string) ([]byte, error) {
-		mpns, ver := filepath.Split(name)
-		manufs, mpn := filepath.Split(filepath.Clean(mpns))
-		auths, manuf := filepath.Split(filepath.Clean(manufs))
-		auth := filepath.Base(filepath.Clean(auths))
-		ids := fmt.Sprintf("%s/%s/%s/%s", auth, manuf, mpn, ver)
-		id := model.MustParseTMID(ids)
+		ids, _ := strings.CutPrefix(name, temp+string(filepath.Separator))
+		ids = filepath.ToSlash(ids)
+		parts := strings.Split(ids, "/")
+		assert.Len(t, parts, 4)
+		auths := parts[0]
+		manufs := parts[1]
+		mpns := parts[2]
 		res := bytes.NewBuffer(nil)
 		err := templ.Execute(res, map[string]any{
-			"manufacturer": id.Manufacturer,
-			"mpn":          id.Mpn,
-			"author":       id.Author,
+			"manufacturer": manufs,
+			"mpn":          mpns,
+			"author":       auths,
 			"id":           ids,
 		})
 		assert.NoError(t, err)

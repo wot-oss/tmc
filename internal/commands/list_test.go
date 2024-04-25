@@ -13,11 +13,12 @@ import (
 )
 
 func TestListCommand_List(t *testing.T) {
+	params := &model.SearchParams{Query: "omnicorp"}
 	t.Run("merged", func(t *testing.T) {
 		r1 := mocks.NewRepo(t)
 		r2 := mocks.NewRepo(t)
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
-		r1.On("List", mock.Anything, &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
+		r1.On("List", mock.Anything, params).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name:         "omnicorp/senseall",
@@ -33,7 +34,7 @@ func TestListCommand_List(t *testing.T) {
 				},
 			},
 		}, nil)
-		r2.On("List", mock.Anything, &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
+		r2.On("List", mock.Anything, params).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name:         "omnicorp/senseall",
@@ -50,7 +51,7 @@ func TestListCommand_List(t *testing.T) {
 			},
 		}, nil)
 
-		res, err, _ := List(context.Background(), model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
+		res, err, _ := List(context.Background(), model.EmptySpec, params)
 
 		assert.NoError(t, err)
 		assert.Len(t, res.Entries, 3)
@@ -63,7 +64,7 @@ func TestListCommand_List(t *testing.T) {
 		r2 := mocks.NewRepo(t)
 		r2.On("Spec").Return(model.NewRepoSpec("r2"))
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
-		r1.On("List", mock.Anything, &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{
+		r1.On("List", mock.Anything, params).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name:         "omnicorp/senseall",
@@ -79,9 +80,9 @@ func TestListCommand_List(t *testing.T) {
 				},
 			},
 		}, nil)
-		r2.On("List", mock.Anything, &model.SearchParams{Query: "omnicorp"}).Return(model.SearchResult{}, errors.New("unexpected error"))
+		r2.On("List", mock.Anything, params).Return(model.SearchResult{}, errors.New("unexpected error"))
 
-		res, err, errs := List(context.Background(), model.EmptySpec, &model.SearchParams{Query: "omnicorp"})
+		res, err, errs := List(context.Background(), model.EmptySpec, params)
 
 		assert.NoError(t, err)
 		if assert.Len(t, errs, 1) {

@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 var (
@@ -17,28 +18,23 @@ var (
 )
 
 type TMID struct {
-	Name         string
-	OptionalPath string
-	Author       string
-	Manufacturer string
-	Mpn          string
-	Version      TMVersion
+	Name    string
+	Version TMVersion
 }
 
 func NewTMID(author, manufacturer, mpn, optPath string, version TMVersion) TMID {
-	id := TMID{
-		OptionalPath: optPath,
-		Author:       author,
-		Manufacturer: manufacturer,
-		Mpn:          mpn,
-		Version:      version,
+	optPathParts := strings.Split(optPath, "/")
+	for i, p := range optPathParts {
+		optPathParts[i] = utils.SanitizeName(p)
 	}
-	parts := []string{id.Author, id.Manufacturer, id.Mpn, id.OptionalPath}
+	parts := []string{utils.SanitizeName(author), utils.SanitizeName(manufacturer), utils.SanitizeName(mpn)}
+	parts = append(parts, optPathParts...)
 	name := JoinSkippingEmpty(parts, "/")
-	id.Name = name
-
+	id := TMID{
+		Name:    name,
+		Version: version,
+	}
 	return id
-
 }
 
 type TMVersion struct {
@@ -75,8 +71,7 @@ func (v TMVersion) BaseString() string {
 }
 
 func (id TMID) String() string {
-	parts := []string{id.Author, id.Manufacturer, id.Mpn, id.OptionalPath, id.Version.String() + TMFileExtension}
-	return JoinSkippingEmpty(parts, "/")
+	return fmt.Sprintf("%s/%s%s", id.Name, id.Version, TMFileExtension)
 }
 
 func JoinSkippingEmpty(elems []string, sep string) string {
@@ -122,28 +117,15 @@ func ParseTMID(s string) (TMID, error) {
 		return TMID{}, ErrInvalidId
 	}
 	filename := parts[len(parts)-1]
-	parts = parts[0 : len(parts)-1]
-	const optPathStart = 3
-	auth := parts[0]
-	manuf := parts[1]
-	mpn := parts[2]
-	optPath := ""
-	if len(parts) > optPathStart {
-		optPath = strings.Join(parts[optPathStart:], "/")
-	}
-
+	name := strings.TrimSuffix(s, "/"+filename)
 	ver, err := ParseTMVersion(filename)
 	if err != nil {
 		return TMID{}, ErrInvalidId
 	}
 
 	return TMID{
-		Name:         strings.Join(parts, "/"),
-		OptionalPath: optPath,
-		Author:       auth,
-		Manufacturer: manuf,
-		Mpn:          mpn,
-		Version:      ver,
+		Name:    name,
+		Version: ver,
 	}, nil
 
 }
@@ -196,20 +178,7 @@ func TMVersionFromOriginal(ver string) TMVersion {
 }
 
 func (id TMID) Equals(other TMID) bool {
-	return id.Author == other.Author &&
-		id.Manufacturer == other.Manufacturer &&
-		id.Mpn == other.Mpn &&
+	return id.Name == other.Name &&
 		id.Version.BaseString() == other.Version.BaseString() &&
 		id.Version.Hash == other.Version.Hash
-}
-
-func (id TMID) AssertValidFor(tm *ThingModel) error {
-	if id.Mpn != tm.Mpn || id.Author != tm.Author.Name || id.Manufacturer != tm.Manufacturer.Name {
-		return ErrInvalidId
-	}
-	if id.Version.Base.Original() != TMVersionFromOriginal(tm.Version.Model).Base.Original() {
-		return ErrVersionDiffers
-	}
-
-	return nil
 }
