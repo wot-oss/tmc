@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"text/template"
@@ -526,18 +527,18 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 
 }
 
-func strp(s string) *string { return &s }
-
 func TestFileRepo_Index_Parallel(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
 	templ := template.Must(template.New("tm").Parse(pTempl))
 	mockReader := func(name string) ([]byte, error) {
-		mpns, ver := filepath.Split(name)
-		manufs, mpn := filepath.Split(filepath.Clean(mpns))
-		auths, manuf := filepath.Split(filepath.Clean(manufs))
-		auth := filepath.Base(filepath.Clean(auths))
-		ids := fmt.Sprintf("%s/%s/%s/%s", auth, manuf, mpn, ver)
+		ids, _ := strings.CutPrefix(name, temp+string(filepath.Separator))
+		ids = filepath.ToSlash(ids)
+		parts := strings.Split(ids, "/")
+		assert.Len(t, parts, 4)
+		auths := parts[0]
+		manufs := parts[1]
+		mpns := parts[2]
 		res := bytes.NewBuffer(nil)
 		err := templ.Execute(res, map[string]any{
 			"manufacturer": manufs,
