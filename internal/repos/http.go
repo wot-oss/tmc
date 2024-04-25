@@ -37,23 +37,24 @@ type HttpRepo struct {
 }
 
 func (h *HttpRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	attDir, err := calculateAttachmentsDir(tmNameOrId)
+	if err != nil {
+		return nil, err
+	}
+	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", attDir, attachmentName))
+	return fetchAttachment(ctx, reqUrl, h.auth)
 }
 
 func (h *HttpRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
-	//TODO implement me
-	panic("implement me")
+	return ErrNotSupported
 }
 
 func (h *HttpRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
-	//TODO implement me
-	panic("implement me")
+	return nil, ErrNotSupported
 }
 
 func (h *HttpRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
-	//TODO implement me
-	panic("implement me")
+	return ErrNotSupported
 }
 
 func NewHttpRepo(config map[string]any, spec model.RepoSpec) (*HttpRepo, error) {

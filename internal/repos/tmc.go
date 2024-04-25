@@ -30,7 +30,11 @@ type TmcRepo struct {
 
 func (t TmcRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir, attachmentName)
-	resp, err := doGet(ctx, reqUrl.String(), t.auth)
+	return fetchAttachment(ctx, reqUrl.String(), t.auth)
+}
+
+func fetchAttachment(ctx context.Context, reqUrl string, auth map[string]any) ([]byte, error) {
+	resp, err := doGet(ctx, reqUrl, auth)
 	if err != nil {
 		return nil, err
 	}

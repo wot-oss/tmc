@@ -105,7 +105,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 		return err
 	}
 	defer unlock()
-	attDir, isLast, err := f.getAttachmentsDir(id)
+	attDir, isLast, err := f.setUpForAttachmentOperation(id)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,6 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	// fixme: delete TM name attachments if the last version of a TM name was removed
 	if isLast {
 		_attDir := filepath.Dir(attDir)
 		// make sure there's no mistake, and we're about to delete the correct dir with attachments
@@ -338,23 +337,35 @@ func (f *FileRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentNam
 	}
 	log.Debug("index locked")
 
-	attDir, _, err := f.getAttachmentsDir(tmNameOrId)
+	attDir, _, err := f.setUpForAttachmentOperation(tmNameOrId)
 	if err != nil {
 		return err
 	}
-	log.Debug("attachments dir calculated", "tmNameOrId", tmNameOrId, "attDir", attDir)
 
 	err = os.MkdirAll(attDir, defaultDirPermissions)
 	if err != nil {
 		return err
 	}
 
-	// fixme: sanitize attachmentName somewhere
 	err = os.WriteFile(filepath.Join(attDir, attachmentName), content, defaultFilePermissions)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// setUpForAttachmentOperation prepares for a CRUD operation on attachments. returns
+// Must be called after the index lock has been acquired with lockIndex
+func (f *FileRepo) setUpForAttachmentOperation(tmNameOrId string) (string, bool, error) {
+	attDir, err := f.getAttachmentsDir(tmNameOrId)
+	if err != nil {
+		return "", false, err
+	}
+	isLast, err := f.validateTMNameOrId(tmNameOrId)
+	if err != nil {
+		return "", false, err
+	}
+	return attDir, isLast, nil
 }
 
 func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
@@ -372,7 +383,7 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentNa
 		return nil, err
 	}
 
-	attDir, _, err := f.getAttachmentsDir(tmNameOrId)
+	attDir, _, err := f.setUpForAttachmentOperation(tmNameOrId)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +410,7 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentN
 		return err
 	}
 
-	attDir, _, err := f.getAttachmentsDir(tmNameOrId)
+	attDir, _, err := f.setUpForAttachmentOperation(tmNameOrId)
 	if err != nil {
 		return err
 	}
@@ -444,7 +455,7 @@ func (f *FileRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]st
 		return nil, err
 	}
 
-	attDir, _, err := f.getAttachmentsDir(tmNameOrId)
+	attDir, _, err := f.setUpForAttachmentOperation(tmNameOrId)
 	if err != nil {
 		return nil, err
 	}
@@ -464,34 +475,57 @@ func (f *FileRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]st
 	return attachments, nil
 }
 
-// getAttachmentsDir returns the directory where the attachments to the given tmNameOrId are stored. Returns
-// ErrNotFound if tmNameOrId is not present in this repository
-// Must be called after the index lock has been acquired with lockIndex
-func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, bool, error) {
+// getAttachmentsDir returns the directory where the attachments to the given tmNameOrId are stored
+func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, error) {
+	relDir, err := calculateAttachmentsDir(tmNameOrId)
+	return filepath.Join(f.root, relDir), err
+}
+
+func calculateAttachmentsDir(tmNameOrId string) (string, error) {
 	id, fName, err := model.ParseAsTMIDOrFetchName(tmNameOrId)
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
 	if fName != nil {
 		if fName.Semver != "" {
-			return "", false, fmt.Errorf("%w: %s", model.ErrInvalidIdOrName, tmNameOrId)
+			return "", fmt.Errorf("%w: %s", model.ErrInvalidIdOrName, tmNameOrId)
 		}
 	}
+	var attDir string
+	if id != nil {
+		attDir = fmt.Sprintf("%s/%s/%s", id.Name, AttachmentsDir, id.Version.String())
+	} else {
+		attDir = fmt.Sprintf("%s/%s", fName.Name, AttachmentsDir)
+	}
+	slog.Default().Debug("attachments dir for tmNameOrId calculated", "tmNameOrId", tmNameOrId, "attDir", attDir)
+	return attDir, nil
 
+}
+
+// validateTMNameOrId ensures that tmNameOrId exists in this repository.
+// Returns ErrNotFound if tmNameOrId is not present in this repository
+// If tmNameOrId exists, the first return value is true if tmNameOrId is
+// an id and refers to the sole existing version of this TM.
+// Must be called after the index lock has been acquired with lockIndex
+func (f *FileRepo) validateTMNameOrId(tmNameOrId string) (bool, error) {
+	id, fName, err := model.ParseAsTMIDOrFetchName(tmNameOrId)
+	if err != nil {
+		return false, err
+	}
 	index, err := f.readIndex()
 	if err != nil {
-		return "", false, err
+		return false, err
 	}
 
 	var tmName string
 	if id != nil {
 		tmName = id.Name
-	} else { //fName must be not nil
+	} else { //fName is surely not nil
 		tmName = fName.Name
 	}
 	index.Filter(&model.SearchParams{Name: tmName})
 	if len(index.Data) != 1 {
-		return "", false, ErrNotFound
+		return false, ErrNotFound
 	}
 	versions := index.Data[0].Versions
 	if id != nil {
@@ -503,19 +537,13 @@ func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, bool, error) {
 			}
 		}
 		if !found {
-			return "", false, ErrNotFound
+			return false, ErrNotFound
 		}
 	}
 
-	var attDir string
-	if id != nil {
-		attDir = filepath.Join(f.root, id.Name, AttachmentsDir, id.Version.String())
-	} else {
-		attDir = filepath.Join(f.root, fName.Name, AttachmentsDir)
-	}
 	soleVersionRemaining := len(versions) == 1
-	slog.Default().Debug("attachments dir for tmNameOrId found", "tmNameOrId", tmNameOrId, "attDir", attDir, "soleVersionRemaining", soleVersionRemaining)
-	return attDir, soleVersionRemaining, nil
+	slog.Default().Debug("tmNameOrId validated", "tmNameOrId", tmNameOrId, "soleVersionRemaining", soleVersionRemaining)
+	return soleVersionRemaining, nil
 }
 
 func (f *FileRepo) checkRootValid() error {
