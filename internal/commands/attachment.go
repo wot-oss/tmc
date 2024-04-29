@@ -27,7 +27,12 @@ func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId string,
 	}
 
 	sanitizedAttachmentName := strings.ReplaceAll(filepath.ToSlash(filepath.Clean(attachmentName)), "/", "-")
-	return repo.PushAttachment(ctx, tmNameOrId, sanitizedAttachmentName, content)
+	err = repo.PushAttachment(ctx, tmNameOrId, sanitizedAttachmentName, content)
+	if err != nil {
+		return err
+	}
+	err = repo.Index(ctx, tmNameOrId)
+	return err
 }
 func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId string, attachmentName string) error {
 	repo, err := repos.Get(spec)
@@ -35,7 +40,12 @@ func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId strin
 		return fmt.Errorf("Could not ìnitialize a repo instance for %s: %w\ncheck config", spec, err)
 	}
 
-	return repo.DeleteAttachment(ctx, tmNameOrId, attachmentName)
+	err = repo.DeleteAttachment(ctx, tmNameOrId, attachmentName)
+	if err != nil {
+		return err
+	}
+	err = repo.Index(ctx, tmNameOrId)
+	return err
 }
 func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId string, attachmentName string) ([]byte, error) {
 	repo, err := repos.Get(spec)

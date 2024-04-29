@@ -158,7 +158,7 @@ func (idx *Index) FindByName(name string) *IndexEntry {
 
 // Insert uses CatalogThingModel to add a version, either to an existing
 // entry or as a new entry.
-func (idx *Index) Insert(ctm *ThingModel, nameAttachments, tmAttachments []string) error {
+func (idx *Index) Insert(ctm *ThingModel, tmAttachments []string) error {
 	mapAttachments := func(atts []string) []Attachment {
 		var res []Attachment
 		for _, a := range atts {
@@ -183,7 +183,6 @@ func (idx *Index) Insert(ctm *ThingModel, nameAttachments, tmAttachments []strin
 		idx.Data = append(idx.Data, idxEntry)
 		idx.dataByName[idxEntry.Name] = idxEntry
 	}
-	idxEntry.Attachments = mapAttachments(nameAttachments)
 	// TODO: check if id already exists?
 	// Append version information to entry
 	externalID := ""

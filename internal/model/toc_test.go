@@ -287,7 +287,7 @@ func TestIndex_Insert(t *testing.T) {
 		Links:        []Link{{Rel: "original", HRef: "externalID"}},
 		ID:           "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
 		Description:  "descr",
-	}, nil, nil)
+	}, []string{"README.md", "User Guide.pdf"})
 
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(idx.Data))
@@ -298,11 +298,12 @@ func TestIndex_Insert(t *testing.T) {
 		Version: Version{
 			Model: "1.2.5",
 		},
-		Links:      map[string]string{"content": "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"},
-		TMID:       "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
-		Digest:     "abcd12345678",
-		TimeStamp:  "20231023121314",
-		ExternalID: "externalID",
+		Links:       map[string]string{"content": "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"},
+		TMID:        "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
+		Digest:      "abcd12345678",
+		TimeStamp:   "20231023121314",
+		ExternalID:  "externalID",
+		Attachments: []Attachment{{Name: "README.md"}, {Name: "User Guide.pdf"}},
 	}, idx.Data[0].Versions[0])
 
 	err = idx.Insert(&ThingModel{
@@ -312,7 +313,7 @@ func TestIndex_Insert(t *testing.T) {
 		Links:        nil,
 		ID:           "aut/man/mpn/v1.2.6-20231024121314-abcd12345690.tm.json",
 		Description:  "descr",
-	}, nil, nil)
+	}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(idx.Data))
 	assert.Equal(t, 2, len(idx.Data[0].Versions))
@@ -324,7 +325,7 @@ func TestIndex_Insert(t *testing.T) {
 		Links:        nil,
 		ID:           "aut/man/mpn/opt/v1.2.6-20231024121314-abcd12345690.tm.json",
 		Description:  "descr",
-	}, nil, nil)
+	}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(idx.Data))
 	assert.Equal(t, "aut/man/mpn/opt", idx.Data[1].Name)

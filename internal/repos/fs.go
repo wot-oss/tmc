@@ -100,12 +100,12 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	if os.IsNotExist(err) {
 		return ErrNotFound
 	}
+	attDir, _ := f.getAttachmentsDir(id)
 	unlock, err := f.lockIndex(ctx)
 	if err != nil {
 		return err
 	}
 	defer unlock()
-	attDir, _ := f.getAttachmentsDir(id)
 	h, err := f.listAttachments(id)
 	if err != nil {
 		return err
@@ -390,6 +390,8 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentNa
 		return nil, err
 	}
 
+	// fixme: ensure the attachmentName is in toc
+
 	file, err := os.ReadFile(filepath.Join(attDir, attachmentName))
 	if os.IsNotExist(err) {
 		return nil, ErrNotFound
@@ -416,10 +418,13 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentN
 		return err
 	}
 
+	// fixme: ensure attachmentName is in toc
+
 	err = os.Remove(filepath.Join(attDir, attachmentName))
 	if err != nil {
 		return err
 	}
+
 	err = removeDirIfEmpty(attDir)
 	if err != nil {
 		return err
@@ -633,6 +638,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 	var newIndex *model.Index
 	names := f.readNamesFile()
 
+	namesToReindexAttachments := map[string]struct{}{}
 	if len(ids) == 0 { // full rebuild
 		newIndex = &model.Index{
 			Meta: model.IndexMeta{Created: time.Now()},
@@ -652,6 +658,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 			if upd {
 				fileCount++
 				names = append(names, name)
+				namesToReindexAttachments[name] = struct{}{}
 			}
 			return nil
 		})
@@ -688,11 +695,31 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 						return s == nameDeleted
 					})
 				} else if name != "" {
+					namesToReindexAttachments[name] = struct{}{}
 					names = append(names, name)
 				}
 			}
 		}
 	}
+
+	mapAttachments := func(atts []string) []model.Attachment {
+		var res []model.Attachment
+		for _, a := range atts {
+			res = append(res, model.Attachment{Name: a})
+		}
+		return res
+	}
+
+	for name, _ := range namesToReindexAttachments {
+		dir, _ := f.getAttachmentsDir(name) // name is sure to be valid
+		nameAttachments, err := readFileNames(dir)
+		if err != nil {
+			return err
+		}
+		entry := newIndex.FindByName(name)
+		entry.Attachments = mapAttachments(nameAttachments)
+	}
+
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
@@ -734,7 +761,7 @@ func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.Fi
 		log.Error("The file will be excluded from the table of contents.")
 		return false, "", "", nil
 	}
-	err = idx.Insert(&thingMeta.tm, thingMeta.nameAttachments, thingMeta.tmAttachments)
+	err = idx.Insert(&thingMeta.tm, thingMeta.tmAttachments)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to insert %s into index:", path))
 		log.Error(err.Error())
@@ -814,10 +841,9 @@ func (f *FileRepo) writeNamesFile(names []string) error {
 }
 
 type thingMetadata struct {
-	tm              model.ThingModel
-	id              model.TMID
-	nameAttachments []string
-	tmAttachments   []string
+	tm            model.ThingModel
+	id            model.TMID
+	tmAttachments []string
 }
 
 func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
@@ -837,11 +863,6 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 		return nil, err
 	}
 
-	nameAttDir, _ := f.getAttachmentsDir(tmid.Name) // there cannot be any error parsing the tmid.Name which we just got from parsing an id
-	nameAttachments, err := readFileNames(nameAttDir)
-	if err != nil {
-		return nil, err
-	}
 	tmAttDir, _ := f.getAttachmentsDir(ctm.ID) // there cannot be any error parsing the id we just parsed
 	tmAttachments, err := readFileNames(tmAttDir)
 	if err != nil {
@@ -849,10 +870,9 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 	}
 
 	return &thingMetadata{
-		tm:              ctm,
-		id:              tmid,
-		nameAttachments: nameAttachments,
-		tmAttachments:   tmAttachments,
+		tm:            ctm,
+		id:            tmid,
+		tmAttachments: tmAttachments,
 	}, nil
 }
 
