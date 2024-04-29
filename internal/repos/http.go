@@ -50,7 +50,15 @@ func (h *HttpRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentN
 }
 
 func (h *HttpRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
-	return nil, ErrNotSupported
+	idx, err := h.getIndex(ctx)
+	if err != nil {
+		return nil, err
+	}
+	attContainer, err := findAttachmentContainer(idx, tmNameOrId)
+	if err != nil {
+		return nil, err
+	}
+	return mapToAttachmentNames(attContainer.attachments), nil
 }
 
 func (h *HttpRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
@@ -161,27 +169,32 @@ func (h *HttpRepo) Spec() model.RepoSpec {
 }
 
 func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
-	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", RepoConfDir, IndexFilename))
-	resp, err := doGet(ctx, reqUrl, h.auth)
+	idx, err := h.getIndex(ctx)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
+	idx.Filter(search)
+	return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx), nil
+}
+
+func (h *HttpRepo) getIndex(ctx context.Context) (*model.Index, error) {
+	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", RepoConfDir, IndexFilename))
+	resp, err := doGet(ctx, reqUrl, h.auth)
+	if err != nil {
+		return nil, err
+	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return model.SearchResult{}, err
+		return nil, err
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var idx model.Index
 		err = json.Unmarshal(data, &idx)
-		idx.Filter(search)
-		if err != nil {
-			return model.SearchResult{}, err
-		}
-		return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(idx), nil
+		return &idx, nil
 	default:
-		return model.SearchResult{}, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
+		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
 	}
 }
 

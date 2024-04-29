@@ -285,19 +285,19 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 		return model.SearchResult{}, err
 	}
 	idx.Filter(search)
-	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(idx), nil
+	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx), nil
 }
 
 // readIndex reads the contents of the index file. Must be called after the lock is acquired with lockIndex()
-func (f *FileRepo) readIndex() (model.Index, error) {
+func (f *FileRepo) readIndex() (*model.Index, error) {
 	data, err := os.ReadFile(f.indexFilename())
 	if err != nil {
-		return model.Index{}, errors.New("no table of contents found. Run `index` for this repo")
+		return nil, errors.New("no table of contents found. Run `index` for this repo")
 	}
 
 	var index model.Index
 	err = json.Unmarshal(data, &index)
-	return index, err
+	return &index, err
 }
 
 func (f *FileRepo) indexFilename() string {
@@ -465,12 +465,17 @@ func (f *FileRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]st
 		return nil, err
 	}
 	log.Debug("found attachments for tmNameOrId", "tmNameOrId", tmNameOrId, "count", len(atts.attachments))
-	var attNames []string
-	for _, a := range atts.attachments {
-		attNames = append(attNames, a.Name)
-	}
+	attNames := mapToAttachmentNames(atts.attachments)
 
 	return attNames, err
+}
+
+func mapToAttachmentNames(atts []model.Attachment) []string {
+	var attNames []string
+	for _, a := range atts {
+		attNames = append(attNames, a.Name)
+	}
+	return attNames
 }
 
 type attachmentsContainer struct {
@@ -482,6 +487,14 @@ type attachmentsContainer struct {
 // Returns ErrNotFound if tmNameOrId is not present in this repository
 // Must be called after the index lock has been acquired with lockIndex
 func (f *FileRepo) listAttachments(tmNameOrId string) (*attachmentsContainer, error) {
+	index, err := f.readIndex()
+	if err != nil {
+		return nil, err
+	}
+	return findAttachmentContainer(index, tmNameOrId)
+}
+
+func findAttachmentContainer(index *model.Index, tmNameOrId string) (*attachmentsContainer, error) {
 	id, fName, err := model.ParseAsTMIDOrFetchName(tmNameOrId)
 	if err != nil {
 		return nil, err
@@ -493,10 +506,6 @@ func (f *FileRepo) listAttachments(tmNameOrId string) (*attachmentsContainer, er
 		tmName = fName.Name
 	}
 
-	index, err := f.readIndex()
-	if err != nil {
-		return nil, err
-	}
 	indexEntry := index.FindByName(tmName)
 	if indexEntry == nil {
 		return nil, ErrNotFound
@@ -674,7 +683,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 				Data: []*model.IndexEntry{},
 			}
 		} else {
-			newIndex = &index
+			newIndex = index
 		}
 		for _, id := range ids {
 			select {
