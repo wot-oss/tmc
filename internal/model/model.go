@@ -33,11 +33,6 @@ type Version struct {
 	Model string `json:"model"`
 }
 
-type Attachment struct {
-	Name    string
-	Content []byte
-}
-
 type FetchName struct {
 	Name   string
 	Semver string

@@ -11,8 +11,16 @@ import (
 )
 
 type Index struct {
-	Meta IndexMeta     `json:"meta"`
-	Data []*IndexEntry `json:"data"`
+	Meta       IndexMeta     `json:"meta"`
+	Data       []*IndexEntry `json:"data"`
+	dataByName map[string]*IndexEntry
+}
+
+func (i *Index) reindexData() {
+	i.dataByName = make(map[string]*IndexEntry)
+	for _, v := range i.Data {
+		i.dataByName[v.Name] = v
+	}
 }
 
 type IndexMeta struct {
@@ -25,6 +33,11 @@ type IndexEntry struct {
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Versions     []IndexVersion     `json:"versions"`
+	Attachments  []Attachment       `json:"attachments,omitempty"`
+}
+
+type Attachment struct {
+	Name string `json:"name"`
 }
 
 func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
@@ -66,6 +79,7 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
+	Attachments []Attachment      `json:"attachments,omitempty"`
 }
 
 func (idx *Index) Filter(search *SearchParams) {
@@ -73,7 +87,7 @@ func (idx *Index) Filter(search *SearchParams) {
 		return
 	}
 	search.Sanitize()
-	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
+	exclude := func(entry *IndexEntry) bool {
 		if !entry.MatchesSearchText(search.Query) {
 			return true
 		}
@@ -95,6 +109,13 @@ func (idx *Index) Filter(search *SearchParams) {
 		}
 
 		return false
+	}
+	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
+		e := exclude(entry)
+		if e && idx.dataByName != nil {
+			delete(idx.dataByName, entry.Name)
+		}
+		return e
 	})
 
 }
@@ -127,25 +148,31 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-// findByName searches by name and returns a pointer to the IndexEntry if found
-func (idx *Index) findByName(name string) *IndexEntry {
-	for _, value := range idx.Data {
-		if value.Name == name {
-			return value
-		}
+// FindByName searches by name and returns a pointer to the IndexEntry if found
+func (idx *Index) FindByName(name string) *IndexEntry {
+	if idx.dataByName == nil {
+		idx.reindexData()
 	}
-	return nil
+	return idx.dataByName[name]
 }
 
 // Insert uses CatalogThingModel to add a version, either to an existing
-// entry or as a new entry. Returns the TMID of the inserted entry
-func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
+// entry or as a new entry.
+func (idx *Index) Insert(ctm *ThingModel, nameAttachments, tmAttachments []string) error {
+	mapAttachments := func(atts []string) []Attachment {
+		var res []Attachment
+		for _, a := range atts {
+			res = append(res, Attachment{Name: a})
+		}
+		return res
+	}
+
 	tmid, err := ParseTMID(ctm.ID)
 	if err != nil {
-		return TMID{}, err
+		return err
 	}
 	// find the right entry, or create if it doesn't exist
-	idxEntry := idx.findByName(tmid.Name)
+	idxEntry := idx.FindByName(tmid.Name)
 	if idxEntry == nil {
 		idxEntry = &IndexEntry{
 			Name:         tmid.Name,
@@ -154,7 +181,9 @@ func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 			Author:       SchemaAuthor{Name: ctm.Author.Name},
 		}
 		idx.Data = append(idx.Data, idxEntry)
+		idx.dataByName[idxEntry.Name] = idxEntry
 	}
+	idxEntry.Attachments = mapAttachments(nameAttachments)
 	// TODO: check if id already exists?
 	// Append version information to entry
 	externalID := ""
@@ -170,6 +199,7 @@ func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 		ExternalID:  externalID,
 		Digest:      tmid.Version.Hash,
 		Links:       map[string]string{"content": tmid.String()},
+		Attachments: mapAttachments(tmAttachments),
 	}
 	if idx := slices.IndexFunc(idxEntry.Versions, func(version IndexVersion) bool {
 		return version.TMID == ctm.ID
@@ -178,7 +208,7 @@ func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 	} else {
 		idxEntry.Versions[idx] = tv
 	}
-	return tmid, nil
+	return nil
 }
 
 // Delete deletes the record for the given id. Returns TM name to be removed from names file if no more versions are left
@@ -189,7 +219,7 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 	if !found {
 		return false, "", ErrInvalidId
 	}
-	idxEntry = idx.findByName(name)
+	idxEntry = idx.FindByName(name)
 	if idxEntry != nil {
 		idxEntry.Versions = slices.DeleteFunc(idxEntry.Versions, func(version IndexVersion) bool {
 			fnd := version.TMID == id
@@ -202,6 +232,7 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 			idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
 				return entry.Name == name
 			})
+			delete(idx.dataByName, name)
 			return updated, name, nil
 		}
 	}
