@@ -390,13 +390,30 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentNa
 		return nil, err
 	}
 
-	// fixme: ensure the attachmentName is in toc
+	err = f.verifyAttachmentExistsInIndex(tmNameOrId, attachmentName)
+	if err != nil {
+		return nil, err
+	}
 
 	file, err := os.ReadFile(filepath.Join(attDir, attachmentName))
 	if os.IsNotExist(err) {
 		return nil, ErrNotFound
 	}
 	return file, err
+}
+
+func (f *FileRepo) verifyAttachmentExistsInIndex(tmNameOrId string, attachmentName string) error {
+	atts, err := f.listAttachments(tmNameOrId)
+	if err != nil {
+		return err
+	}
+
+	if !slices.ContainsFunc(atts.attachments, func(attachment model.Attachment) bool {
+		return attachment.Name == attachmentName
+	}) {
+		return ErrNotFound
+	}
+	return nil
 }
 func (f *FileRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
 	log := slog.Default()
@@ -418,7 +435,10 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentN
 		return err
 	}
 
-	// fixme: ensure attachmentName is in toc
+	err = f.verifyAttachmentExistsInIndex(tmNameOrId, attachmentName)
+	if err != nil {
+		return err
+	}
 
 	err = os.Remove(filepath.Join(attDir, attachmentName))
 	if err != nil {
