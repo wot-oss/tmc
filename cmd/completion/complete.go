@@ -45,7 +45,7 @@ func CompleteFetchNames(cmd *cobra.Command, args []string, toComplete string) ([
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	fns := rs.ListCompletions(context.Background(), repos.CompletionKindFetchNames, toComplete)
+	fns := rs.ListCompletions(context.Background(), repos.CompletionKindFetchNames, nil, toComplete)
 	return fns, cobra.ShellCompDirectiveNoFileComp
 
 }
@@ -71,6 +71,25 @@ func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]st
 		return nil, cobra.ShellCompDirectiveError
 	}
 
-	cs := rs.ListCompletions(context.Background(), repos.CompletionKindNames, toComplete)
+	cs := rs.ListCompletions(context.Background(), repos.CompletionKindNames, nil, toComplete)
 	return cs, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+}
+
+func CompleteTMNamesOrIds(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	rs, err := getRepo(cmd)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	cs := rs.ListCompletions(context.Background(), repos.CompletionKindNamesOrIds, nil, toComplete)
+	return cs, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
+
+}
+
+func CompleteAttachmentNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	rs, err := getRepo(cmd)
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+	cs := rs.ListCompletions(context.Background(), repos.CompletionKindAttachments, nil, toComplete)
+	return cs, cobra.ShellCompDirectiveNoFileComp
 }

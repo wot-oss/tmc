@@ -817,6 +817,14 @@ paths:
             enum:
               - 'names'
               - 'fetchNames'
+        - name: 'args'
+          in: query
+          description: |
+            Current args
+          schema:
+            type: array
+            items:
+              type: string
         - name: 'toComplete'
           in: query
           description: |

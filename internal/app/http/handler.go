@@ -240,7 +240,11 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 	if params.ToComplete != nil {
 		toComplete = *params.ToComplete
 	}
-	vals, err := h.Service.GetCompletions(r.Context(), kind, toComplete)
+	var args []string
+	if params.Args != nil {
+		args = *params.Args
+	}
+	vals, err := h.Service.GetCompletions(r.Context(), kind, args, toComplete)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return

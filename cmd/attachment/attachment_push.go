@@ -5,16 +5,29 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/model"
 )
 
 var attachmentPushCmd = &cobra.Command{
-	Use:   "push",
+	Use:   "push <tmNameOrId> <attachmentFile>",
 	Short: "Push an attachment",
 	Long:  `Add or replace an attachment`,
 	Args:  cobra.ExactArgs(2),
 	Run:   attachmentPush,
+	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		var comps []string
+		switch len(args) {
+		case 0:
+			return completion.CompleteTMNamesOrIds(cmd, args, toComplete)
+		case 1:
+			return comps, cobra.ShellCompDirectiveDefault
+		default:
+			comps = cobra.AppendActiveHelp(comps, "This command does not take any more arguments")
+			return comps, cobra.ShellCompDirectiveNoFileComp
+		}
+	},
 }
 
 func attachmentPush(cmd *cobra.Command, args []string) {

@@ -199,10 +199,10 @@ func Test_GetCompletions(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
 		names := []string{"a/b/c", "d/e/f"}
-		r.On("ListCompletions", mock.Anything, "names", "toComplete").Return(names, nil)
+		r.On("ListCompletions", mock.Anything, "names", mock.Anything, "toComplete").Return(names, nil)
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
-		res, err := underTest.GetCompletions(context.Background(), "names", "toComplete")
+		res, err := underTest.GetCompletions(context.Background(), "names", nil, "toComplete")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned

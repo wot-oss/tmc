@@ -159,9 +159,9 @@ func (u *Union) Versions(ctx context.Context, name string) ([]model.FoundVersion
 	return res, errs
 }
 
-func (u *Union) ListCompletions(ctx context.Context, kind string, toComplete string) []string {
+func (u *Union) ListCompletions(ctx context.Context, kind string, args []string, toComplete string) []string {
 	mapper := func(r Repo) mapResult[[]string] {
-		rcs, err := r.ListCompletions(ctx, kind, toComplete)
+		rcs, err := r.ListCompletions(ctx, kind, args, toComplete)
 		if err != nil {
 			rcs = nil
 		}

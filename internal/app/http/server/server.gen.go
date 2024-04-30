@@ -98,6 +98,14 @@ func (siw *ServerInterfaceWrapper) GetCompletions(w http.ResponseWriter, r *http
 		return
 	}
 
+	// ------------- Optional query parameter "args" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "args", r.URL.Query(), &params.Args)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "args", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "toComplete" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "toComplete", r.URL.Query(), &params.ToComplete)

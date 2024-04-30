@@ -237,7 +237,7 @@ func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	return idx.Entries[0].Versions, nil
 }
 
-func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
+func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
 	switch kind {
 	case CompletionKindNames:
 		namePrefix, seg := longestPath(toComplete)
@@ -246,12 +246,12 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete 
 		if err != nil {
 			return nil, err
 		}
-		var ns []string
+		var names []string
 		for _, e := range sr.Entries {
-			ns = append(ns, e.Name)
+			names = append(names, e.Name)
 		}
-		names := namesToCompletions(ns, toComplete, seg+1)
-		return names, nil
+		comps := namesToCompletions(names, toComplete, seg+1)
+		return comps, nil
 	case CompletionKindFetchNames:
 		if strings.Contains(toComplete, "..") {
 			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
@@ -267,6 +267,31 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete 
 			vs = append(vs, fmt.Sprintf("%s:%s", name, fv.Version.Model))
 		}
 		return vs, nil
+	case CompletionKindNamesOrIds:
+		namePrefix, seg := longestPath(toComplete)
+		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, &namePrefix, nil,
+			&model.SearchOptions{NameFilterType: model.PrefixMatch}))
+		if err != nil {
+			return nil, err
+		}
+		var names, comps []string
+		for _, e := range sr.Entries {
+			names = append(names, e.Name)
+			if namePrefix == e.Name {
+				for _, v := range e.Versions {
+					comps = append(comps, v.TMID)
+				}
+			}
+		}
+		comps = append(comps, namesToCompletions(names, toComplete, seg+1)...)
+		return comps, nil
+	case CompletionKindAttachments:
+		if len(args) > 0 {
+			attNames, err := h.ListAttachments(ctx, args[0])
+			return attNames, err
+		} else {
+			return nil, ErrInvalidCompletionParams
+		}
 	default:
 		return nil, ErrInvalidCompletionParams
 	}

@@ -133,6 +133,9 @@ type GetCompletionsParams struct {
 	// Kind Kind of data to complete
 	Kind *GetCompletionsParamsKind `form:"kind,omitempty" json:"kind,omitempty"`
 
+	// Args Current args
+	Args *[]string `form:"args,omitempty" json:"args,omitempty"`
+
 	// ToComplete Data to complete
 	ToComplete *string `form:"toComplete,omitempty" json:"toComplete,omitempty"`
 }

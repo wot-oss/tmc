@@ -213,9 +213,9 @@ func (_m *HandlerService) FindInventoryEntry(ctx context.Context, name string) (
 	return r0, r1
 }
 
-// GetCompletions provides a mock function with given fields: ctx, kind, toComplete
-func (_m *HandlerService) GetCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
-	ret := _m.Called(ctx, kind, toComplete)
+// GetCompletions provides a mock function with given fields: ctx, kind, args, toComplete
+func (_m *HandlerService) GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
+	ret := _m.Called(ctx, kind, args, toComplete)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetCompletions")
@@ -223,19 +223,19 @@ func (_m *HandlerService) GetCompletions(ctx context.Context, kind string, toCom
 
 	var r0 []string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]string, error)); ok {
-		return rf(ctx, kind, toComplete)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string, string) ([]string, error)); ok {
+		return rf(ctx, kind, args, toComplete)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) []string); ok {
-		r0 = rf(ctx, kind, toComplete)
+	if rf, ok := ret.Get(0).(func(context.Context, string, []string, string) []string); ok {
+		r0 = rf(ctx, kind, args, toComplete)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, kind, toComplete)
+	if rf, ok := ret.Get(1).(func(context.Context, string, []string, string) error); ok {
+		r1 = rf(ctx, kind, args, toComplete)
 	} else {
 		r1 = ret.Error(1)
 	}

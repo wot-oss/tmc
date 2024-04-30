@@ -598,12 +598,12 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(temp, ".tmc"), defaultDirPermissions)
 
 	t.Run("invalid", func(t *testing.T) {
-		_, err := r.ListCompletions(context.Background(), "invalid", "")
+		_, err := r.ListCompletions(context.Background(), "invalid", nil, "")
 		assert.ErrorIs(t, err, ErrInvalidCompletionParams)
 	})
 
 	t.Run("no names file", func(t *testing.T) {
-		names, err := r.ListCompletions(context.Background(), CompletionKindNames, "")
+		names, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "")
 		assert.NoError(t, err)
 		var exp []string
 		assert.Equal(t, exp, names)
@@ -614,48 +614,48 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 			"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/b\n"+
 			"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath\n"), defaultFilePermissions)
 		t.Run("empty", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/"}, completions)
 		})
 		t.Run("some letters", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "om")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "om")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/"}, completions)
 		})
 		t.Run("some letters non existing", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "aaa")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "aaa")
 			assert.NoError(t, err)
 			var expRes []string
 			assert.Equal(t, expRes, completions)
 		})
 		t.Run("full first name part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/"}, completions)
 		})
 		t.Run("some letters second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/"}, completions)
 		})
 		t.Run("full second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall", "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/"}, completions)
 		})
 		t.Run("full third part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/", "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath"}, completions)
 		})
 		t.Run("full fourth part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/b"}, completions)
 		})
 		t.Run("full name", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath"}, completions)
 		})
@@ -668,7 +668,7 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.0.0-20231207142856-b49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.2.1-20231209142856-c49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
-		fNames, err := r.ListCompletions(context.Background(), CompletionKindFetchNames, tmName)
+		fNames, err := r.ListCompletions(context.Background(), CompletionKindFetchNames, nil, tmName)
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp:v0.0.1", "omnicorp-tm-department/omnicorp/omnilamp:v1.0.0", "omnicorp-tm-department/omnicorp/omnilamp:v1.2.1"}, fNames)
 	})

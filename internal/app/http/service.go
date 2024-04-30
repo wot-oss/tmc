@@ -25,7 +25,7 @@ type HandlerService interface {
 	CheckHealthLive(ctx context.Context) error
 	CheckHealthReady(ctx context.Context) error
 	CheckHealthStartup(ctx context.Context) error
-	GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error)
+	GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 	ListAttachments(ctx context.Context, tmIdOrName string) ([]string, error)
 	FetchAttachment(ctx context.Context, tmIdOrName, attachmentFileName string) ([]byte, error)
 	PushAttachment(ctx context.Context, tmIdOrName, attachmentFileName string, content []byte) error
@@ -166,12 +166,12 @@ func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID str
 	return err
 }
 
-func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error) {
+func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
 	rs, err := repos.GetSpecdOrAll(dhs.serveRepo)
 	if err != nil {
 		return nil, err
 	}
-	return rs.ListCompletions(ctx, kind, toComplete), nil
+	return rs.ListCompletions(ctx, kind, args, toComplete), nil
 }
 
 func (dhs *defaultHandlerService) ListAttachments(ctx context.Context, tmIdOrName string) ([]string, error) {

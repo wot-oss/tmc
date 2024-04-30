@@ -905,7 +905,7 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 	}, nil
 }
 
-func (f *FileRepo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
+func (f *FileRepo) ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
 	switch kind {
 	case CompletionKindNames:
 		unlock, err := f.lockIndex(ctx)
@@ -945,7 +945,36 @@ func (f *FileRepo) ListCompletions(ctx context.Context, kind string, toComplete 
 		}
 		slices.Sort(vs)
 		return vs, nil
-
+	case CompletionKindNamesOrIds:
+		unlock, err := f.lockIndex(ctx)
+		defer unlock()
+		if err != nil {
+			return nil, err
+		}
+		names := f.readNamesFile()
+		lPath, seg := longestPath(toComplete)
+		comps := namesToCompletions(names, toComplete, seg+1)
+		if _, found := slices.BinarySearch(names, lPath); found { // current toComplete is a full TM name plus '/'
+			// append versions to comps
+			idx, err := f.readIndex()
+			if err != nil {
+				return nil, err
+			}
+			entry := idx.FindByName(lPath)
+			if entry != nil { // shouldn't ever be nil, if index is in sync with names file, but paranoia never sleeps
+				for _, v := range entry.Versions {
+					comps = append(comps, v.TMID)
+				}
+			}
+		}
+		return comps, nil
+	case CompletionKindAttachments:
+		if len(args) > 0 {
+			attNames, err := f.ListAttachments(ctx, args[0])
+			return attNames, err
+		} else {
+			return nil, ErrInvalidCompletionParams
+		}
 	default:
 		return nil, ErrInvalidCompletionParams
 	}

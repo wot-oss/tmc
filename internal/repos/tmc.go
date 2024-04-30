@@ -396,10 +396,13 @@ func (t TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersio
 
 }
 
-func (t TmcRepo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
+func (t TmcRepo) ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
 	u := t.parsedRoot.JoinPath(".completions")
 	vals := u.Query()
 	vals.Set("kind", kind)
+	for _, a := range args {
+		vals.Add("args", a)
+	}
 	vals.Set("toComplete", toComplete)
 	u.RawQuery = vals.Encode()
 

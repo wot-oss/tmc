@@ -454,7 +454,7 @@ func TestTmcRepo_ListCompletions(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
 
-			cs, err := r.ListCompletions(context.Background(), test.kind, test.toComplete)
+			cs, err := r.ListCompletions(context.Background(), test.kind, nil, test.toComplete)
 			if test.expErr == nil {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expComps, cs)

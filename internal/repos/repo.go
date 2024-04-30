@@ -21,15 +21,17 @@ const (
 	KeyRepoAuth    = "auth"
 	KeyRepoEnabled = "enabled"
 
-	RepoTypeFile             = "file"
-	RepoTypeHttp             = "http"
-	RepoTypeTmc              = "tmc"
-	CompletionKindNames      = "names"
-	CompletionKindFetchNames = "fetchNames"
-	RepoConfDir              = ".tmc"
-	IndexFilename            = "tm-catalog.toc.json"
-	TmNamesFile              = "tmnames.txt"
-	AttachmentsDir           = ".attachments"
+	RepoTypeFile              = "file"
+	RepoTypeHttp              = "http"
+	RepoTypeTmc               = "tmc"
+	CompletionKindNames       = "names"
+	CompletionKindFetchNames  = "fetchNames"
+	CompletionKindNamesOrIds  = "namesOrIds"
+	CompletionKindAttachments = "attachments"
+	RepoConfDir               = ".tmc"
+	IndexFilename             = "tm-catalog.toc.json"
+	TmNamesFile               = "tmnames.txt"
+	AttachmentsDir            = ".attachments"
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -59,7 +61,7 @@ type Repo interface {
 	// Delete deletes the TM with given id from repo. Returns ErrNotFound if TM does not exist
 	Delete(ctx context.Context, id string) error
 
-	ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error)
+	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 
 	// ListAttachments returns the list of attachment names associated with the given tmNameOrId. Returns ErrNotFound
 	// if the tmNameOrId does not refer to an existing TM name or TM id

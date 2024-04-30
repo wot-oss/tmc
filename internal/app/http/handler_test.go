@@ -706,7 +706,7 @@ func Test_Completions(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("no parameters", func(t *testing.T) {
-		hs.On("GetCompletions", mock.Anything, "", "").Return(nil, repos.ErrInvalidCompletionParams).Once()
+		hs.On("GetCompletions", mock.Anything, "", mock.Anything, "").Return(nil, repos.ErrInvalidCompletionParams).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -718,7 +718,7 @@ func Test_Completions(t *testing.T) {
 	})
 
 	t.Run("unknown completion kind", func(t *testing.T) {
-		hs.On("GetCompletions", mock.Anything, "something", "").Return(nil, repos.ErrInvalidCompletionParams).Once()
+		hs.On("GetCompletions", mock.Anything, "something", mock.Anything, "").Return(nil, repos.ErrInvalidCompletionParams).Once()
 
 		// when: calling the route
 		rr := fmt.Sprintf("%s?kind=something", route)
@@ -731,7 +731,7 @@ func Test_Completions(t *testing.T) {
 	})
 
 	t.Run("known completion kind", func(t *testing.T) {
-		hs.On("GetCompletions", mock.Anything, "names", "").Return([]string{"abc", "def"}, nil).Once()
+		hs.On("GetCompletions", mock.Anything, "names", mock.Anything, "").Return([]string{"abc", "def"}, nil).Once()
 
 		// when: calling the route
 		rr := fmt.Sprintf("%s?kind=names&toComplete=", route)
@@ -744,7 +744,7 @@ func Test_Completions(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("GetCompletions", mock.Anything, "names", "").Return(nil, unknownErr).Once()
+		hs.On("GetCompletions", mock.Anything, "names", mock.Anything, "").Return(nil, unknownErr).Once()
 		// when: calling the route
 		rr := fmt.Sprintf("%s?kind=names&toComplete=", route)
 		rec := testutils.NewRequest(http.MethodGet, rr).RunOnHandler(httpHandler)
