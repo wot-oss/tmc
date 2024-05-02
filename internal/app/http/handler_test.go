@@ -476,6 +476,48 @@ func Test_Mpns(t *testing.T) {
 		assertResponse500(t, rec, route)
 	})
 }
+func Test_ListAttachments(t *testing.T) {
+	tmID := listResult2.Entries[0].Versions[0].TMID
+	route := "/thing-models/" + tmID + "/.attachments"
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+	attachments := []string{"README.md", "User Guide.pdf"}
+
+	t.Run("list attachments", func(t *testing.T) {
+		hs.On("ListAttachments", mock.Anything, tmID).Return(attachments, nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		// and then: the body is of correct type
+		var response server.AttachmentsListResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// and then: result contains all data
+		assert.Equal(t, attachments, response.Data)
+	})
+
+	t.Run("list with invalid tm id", func(t *testing.T) {
+		// given: the route with invalid tm id
+		route := "/thing-models/invalid-id/.attachments"
+
+		hs.On("ListAttachments", mock.Anything, "invalid-id").Return(nil, model.ErrInvalidIdOrName).Once()
+
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with unknown error", func(t *testing.T) {
+		// given: unknown error calling ListAttachments
+		hs.On("ListAttachments", mock.Anything, tmID).Return(nil, unknownErr).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 500 and json error as body
+		assertResponse500(t, rec, route)
+	})
+}
 
 func Test_FetchThingModel(t *testing.T) {
 	tmID := listResult2.Entries[0].Versions[0].TMID
@@ -530,6 +572,43 @@ func Test_FetchThingModel(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(nil, repos.ErrNotFound).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 404 and json error as body
+		assertResponse404(t, rec, route)
+	})
+}
+func Test_FetchAttachment(t *testing.T) {
+	tmID := listResult2.Entries[0].Versions[0].TMID
+	attContent := []byte("this is the content of an attachment")
+
+	route := "/thing-models/" + tmID + "/.attachments/README.txt"
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("with valid repo", func(t *testing.T) {
+		hs.On("FetchAttachment", mock.Anything, tmID, "README.txt").Return(attContent, nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, MimeOctetStream, rec.Header().Get(HeaderContentType))
+		assert.Equal(t, attContent, rec.Body.Bytes())
+	})
+
+	t.Run("with invalid tmID", func(t *testing.T) {
+		// given: route with invalid tmID
+		invalidRoute := "/thing-models/some-invalid-tm-id/.attachments/README.txt"
+		hs.On("FetchAttachment", mock.Anything, "some-invalid-tm-id", "README.txt").Return(nil, model.ErrInvalidId).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, invalidRoute).RunOnHandler(httpHandler)
+		// then: it returns status 400 and json error as body
+		assertResponse400(t, rec, invalidRoute)
+	})
+
+	t.Run("with not found error", func(t *testing.T) {
+		hs.On("FetchAttachment", mock.Anything, tmID, "README.txt").Return(nil, repos.ErrNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -644,6 +723,56 @@ func Test_PushThingModel(t *testing.T) {
 		assertResponse500(t, rec, route)
 	})
 }
+func Test_PushAttachment(t *testing.T) {
+
+	tmID := "a-corp/eagle/bt2000/v1.0.0-20231231153548-243d1b462ddd.tm.json"
+	attContent := []byte("# readme.md file")
+
+	route := "/thing-models/" + tmID + "/.attachments/README.md"
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("with success", func(t *testing.T) {
+		hs.On("PushAttachment", mock.Anything, tmID, "README.md", attContent).Return(nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodPut, route).
+			WithHeader(HeaderContentType, MimeOctetStream).
+			WithBody(attContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 202
+		assert.Equal(t, http.StatusAccepted, rec.Code)
+	})
+
+	t.Run("with invalid id", func(t *testing.T) {
+		// given: some route with invalid tmID
+		route := "/thing-models/not-an-id/.attachments/README.md"
+		hs.On("PushAttachment", mock.Anything, "not-an-id", "README.md", attContent).Return(model.ErrInvalidIdOrName).Once()
+		// when: calling the route
+
+		rec := testutils.NewRequest(http.MethodPut, route).
+			WithHeader(HeaderContentType, MimeOctetStream).
+			WithBody(attContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with unknown error", func(t *testing.T) {
+		// and given: some unknown error
+		hs.On("PushAttachment", mock.Anything, tmID, "README.md", attContent).Return(unknownErr).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodPut, route).
+			WithHeader(HeaderContentType, MimeOctetStream).
+			WithBody(attContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 500
+		assertResponse500(t, rec, route)
+	})
+}
 
 func Test_DeleteThingModelById(t *testing.T) {
 	tmID := listResult2.Entries[0].Versions[0].TMID
@@ -697,6 +826,42 @@ func Test_DeleteThingModelById(t *testing.T) {
 	})
 
 }
+func Test_DeleteAttachment(t *testing.T) {
+	tmID := listResult2.Entries[0].Versions[0].TMID
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	route := "/thing-models/" + tmID + "/.attachments/README.txt"
+
+	t.Run("with valid tmID", func(t *testing.T) {
+		hs.On("DeleteAttachment", mock.Anything, tmID, "README.txt").Return(nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
+		// then: it returns status 204
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, 0, rec.Body.Len())
+	})
+
+	t.Run("with invalid tmID", func(t *testing.T) {
+		// given: route with invalid tmID
+		route := "/thing-models/some-invalid-tm-id/.attachments/README.txt"
+		hs.On("DeleteAttachment", mock.Anything, "some-invalid-tm-id", "README.txt").Return(model.ErrInvalidId).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
+		// then: it returns status 400 and json error as body
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with not found error", func(t *testing.T) {
+		hs.On("DeleteAttachment", mock.Anything, tmID, "README.txt").Return(repos.ErrNotFound).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
+		// then: it returns status 404 and json error as body
+		assertResponse404(t, rec, route)
+	})
+
+}
 
 func Test_Completions(t *testing.T) {
 
@@ -731,16 +896,16 @@ func Test_Completions(t *testing.T) {
 	})
 
 	t.Run("known completion kind", func(t *testing.T) {
-		hs.On("GetCompletions", mock.Anything, "names", mock.Anything, "").Return([]string{"abc", "def"}, nil).Once()
+		hs.On("GetCompletions", mock.Anything, "names", []string{"aut/man/mpn"}, "RE").Return([]string{"README.md", "README.pdf"}, nil).Once()
 
 		// when: calling the route
-		rr := fmt.Sprintf("%s?kind=names&toComplete=", route)
+		rr := fmt.Sprintf("%s?kind=names&toComplete=RE&args=aut%%2Fman%%2Fmpn", route)
 		rec := testutils.NewRequest(http.MethodGet, rr).RunOnHandler(httpHandler)
 		// then: it returns status 200
 		assert.Equal(t, http.StatusOK, rec.Code)
 		// and then: the body is of correct type
 		assert.Equal(t, MimeText, rec.Header().Get(HeaderContentType))
-		assert.Equal(t, []byte("abc\ndef\n"), rec.Body.Bytes())
+		assert.Equal(t, []byte("README.md\nREADME.pdf\n"), rec.Body.Bytes())
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {

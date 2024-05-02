@@ -156,7 +156,22 @@ func (idx *Index) FindByName(name string) *IndexEntry {
 	return idx.dataByName[name]
 }
 
-// Insert uses CatalogThingModel to add a version, either to an existing
+func mapAttachments(atts []string) []Attachment {
+	var res []Attachment
+	for _, a := range atts {
+		res = append(res, Attachment{Name: a})
+	}
+	return res
+}
+
+func (idx *Index) SetEntryAttachments(name string, attachmentNames []string) {
+	entry := idx.FindByName(name)
+	if entry != nil {
+		entry.Attachments = mapAttachments(attachmentNames)
+	}
+}
+
+// Insert uses ThingModel to add a version, either to an existing
 // entry or as a new entry.
 func (idx *Index) Insert(ctm *ThingModel, tmAttachments []string) error {
 	mapAttachments := func(atts []string) []Attachment {

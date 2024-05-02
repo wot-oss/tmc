@@ -199,10 +199,11 @@ func Test_GetCompletions(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
 		names := []string{"a/b/c", "d/e/f"}
-		r.On("ListCompletions", mock.Anything, "names", mock.Anything, "toComplete").Return(names, nil)
+		args := []string{"arg0", "arg1"}
+		r.On("ListCompletions", mock.Anything, "names", args, "toComplete").Return(names, nil)
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
-		res, err := underTest.GetCompletions(context.Background(), "names", nil, "toComplete")
+		res, err := underTest.GetCompletions(context.Background(), "names", args, "toComplete")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned
@@ -356,7 +357,7 @@ func Test_ListMpns(t *testing.T) {
 	})
 }
 
-func Test_FetchingThingModel(t *testing.T) {
+func Test_Service_FetchThingModel(t *testing.T) {
 
 	r := mocks.NewRepo(t)
 	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)

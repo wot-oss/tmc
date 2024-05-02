@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"errors"
 	"os"
 
@@ -39,7 +40,7 @@ func attachmentFetch(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	err = cli.AttachmentFetch(spec, args[0], args[1])
+	err = cli.AttachmentFetch(context.Background(), spec, args[0], args[1])
 	if err != nil {
 		os.Exit(1)
 	}

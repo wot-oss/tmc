@@ -11,8 +11,8 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func AttachmentList(spec model.RepoSpec, tmNameOrId string) error {
-	list, err := commands.AttachmentList(context.Background(), spec, tmNameOrId)
+func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId string) error {
+	list, err := commands.AttachmentList(ctx, spec, tmNameOrId)
 	if err != nil {
 		Stderrf("Could not list attachments for %s: %v", tmNameOrId, err)
 		return err
@@ -24,7 +24,7 @@ func AttachmentList(spec model.RepoSpec, tmNameOrId string) error {
 	return nil
 }
 
-func AttachmentPush(spec model.RepoSpec, tmNameOrId, filename string) error {
+func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string) error {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		Stderrf("Error expanding file name %s: %v", filename, err)
@@ -40,23 +40,23 @@ func AttachmentPush(spec model.RepoSpec, tmNameOrId, filename string) error {
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 	}
-	err = commands.AttachmentPush(context.Background(), spec, tmNameOrId, filepath.Base(filename), raw)
+	err = commands.AttachmentPush(ctx, spec, tmNameOrId, filepath.Base(filename), raw)
 	if err != nil {
 		Stderrf("Failed to put attachment %s to %s: %v", filename, tmNameOrId, err)
 	}
 
 	return err
 }
-func AttachmentDelete(spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	err := commands.AttachmentDelete(context.Background(), spec, tmNameOrId, attachmentName)
+func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
+	err := commands.AttachmentDelete(ctx, spec, tmNameOrId, attachmentName)
 	if err != nil {
 		Stderrf("Failed to delete attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}
 
 	return err
 }
-func AttachmentFetch(spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	content, err := commands.AttachmentFetch(context.Background(), spec, tmNameOrId, attachmentName)
+func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
+	content, err := commands.AttachmentFetch(ctx, spec, tmNameOrId, attachmentName)
 	if err != nil {
 		Stderrf("Failed to delete attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}

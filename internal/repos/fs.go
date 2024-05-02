@@ -731,22 +731,13 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 		}
 	}
 
-	mapAttachments := func(atts []string) []model.Attachment {
-		var res []model.Attachment
-		for _, a := range atts {
-			res = append(res, model.Attachment{Name: a})
-		}
-		return res
-	}
-
 	for name, _ := range namesToReindexAttachments {
 		dir, _ := f.getAttachmentsDir(name) // name is sure to be valid
 		nameAttachments, err := readFileNames(dir)
 		if err != nil {
 			return err
 		}
-		entry := newIndex.FindByName(name)
-		entry.Attachments = mapAttachments(nameAttachments)
+		newIndex.SetEntryAttachments(name, nameAttachments)
 	}
 
 	duration := time.Now().Sub(start)

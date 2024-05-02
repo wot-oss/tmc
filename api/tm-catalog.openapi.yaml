@@ -420,7 +420,7 @@ paths:
             type: string
           example: 'README.md'
       responses:
-        '204':
+        '202':
           description: Successfully pushed
         '400':
           description: Invalid ID or inventory name supplied

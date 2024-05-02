@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"errors"
 	"os"
 
@@ -37,7 +38,7 @@ func attachmentList(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	err = cli.AttachmentList(spec, args[0])
+	err = cli.AttachmentList(context.Background(), spec, args[0])
 	if err != nil {
 		os.Exit(1)
 	}
