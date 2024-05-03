@@ -674,6 +674,166 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 	})
 }
 
+func TestFileRepo_ListAttachments(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.indexFilename())
+	t.Run("inventory name attachments", func(t *testing.T) {
+		atts, err := r.ListAttachments(context.Background(), "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"README.md", "User Guide.pdf"}, atts)
+	})
+	t.Run("tmid attachments", func(t *testing.T) {
+		atts, err := r.ListAttachments(context.Background(), "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json")
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"firmware update notes.md"}, atts)
+	})
+}
+
+func TestFileRepo_FetchAttachment(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	assert.NoError(t, testutils.CopyDir("../../test/data/repos/file/attachments", temp))
+	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
+	fileA := []byte("# readme\n")
+	fileB := []byte("{\"config\": 42}\n")
+	idA := tmName + "/v3.2.1-20240409155220-3f779458e453.tm.json"
+	baseNameA := "README.md"
+	baseNameB := "cfg.json"
+
+	t.Run("tm name attachment", func(t *testing.T) {
+		content, err := r.FetchAttachment(context.Background(), tmName, baseNameA)
+		assert.NoError(t, err)
+		assert.Equal(t, fileA, content)
+	})
+	t.Run("tm id attachment", func(t *testing.T) {
+		content, err := r.FetchAttachment(context.Background(), idA, baseNameB)
+		assert.NoError(t, err)
+		assert.Equal(t, fileB, content)
+	})
+	t.Run("non existent attachment", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), tmName, "nothing-here")
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("non existent tm name", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), "omnicorp-tm-department/omnicorp/omnidarkness", baseNameA)
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("non existent tm id", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json", baseNameA)
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("invalid tm name", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), "omnicorp-tm-departmentomnicorp/omnilamp", baseNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+	t.Run("invalid tm id", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), tmName+"/v1.2.3-20240409155220-3f779458e453", baseNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+}
+
+func TestFileRepo_PushAttachment(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	assert.NoError(t, testutils.CopyDir("../../test/data/repos/file/attachments", temp))
+	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
+	ver := "v3.2.1-20240409155220-3f779458e453"
+	id := tmName + "/" + ver + TMExt
+	r2Name := "README2.md"
+	r2Content := []byte("# read this, too")
+	t.Run("tm name attachment", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), tmName, r2Name, r2Content)
+		assert.NoError(t, err)
+		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, r2Name))
+	})
+	t.Run("tm id attachment", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), id, r2Name, r2Content)
+		assert.NoError(t, err)
+		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, ver, r2Name))
+	})
+	t.Run("non existent tm name", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), "omnicorp-tm-department/omnicorp/omnidarkness", r2Name, r2Content)
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("non existent tm id", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json", r2Name, r2Content)
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("invalid tm name", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), "omnicorp-tm-departmentomnicorp/omnilamp", r2Name, r2Content)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+	t.Run("invalid tm id", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), tmName+"/v1.2.3-20240409155220-3f779458e453", r2Name, r2Content)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+}
+
+func TestFileRepo_DeleteAttachment(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	assert.NoError(t, testutils.CopyDir("../../test/data/repos/file/attachments", temp))
+	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
+	ver := "v3.2.1-20240409155220-3f779458e453"
+	idA := tmName + "/" + ver + TMExt
+	attNameA := "README.md"
+	attNameB := "cfg.json"
+
+	t.Run("non existent attachment", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), tmName, "nothing-here")
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("non existent tm name", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), "omnicorp-tm-department/omnicorp/omnidarkness", attNameA)
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("non existent tm id", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json", attNameA)
+		assert.ErrorIs(t, err, ErrNotFound)
+	})
+	t.Run("invalid tm name", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), "omnicorp-tm-departmentomnicorp/omnilamp", attNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+	t.Run("invalid tm id", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), tmName+"/v1.2.3-20240409155220-3f779458e453", attNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+	t.Run("tm id attachment", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), idA, attNameB)
+		assert.NoError(t, err)
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver, attNameA))
+		assert.True(t, os.IsNotExist(err))
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver))
+		assert.True(t, os.IsNotExist(err))
+	})
+	t.Run("tm name attachment", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), tmName, attNameA)
+		assert.NoError(t, err)
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, attNameA))
+		assert.True(t, os.IsNotExist(err))
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir))
+		assert.True(t, os.IsNotExist(err))
+	})
+}
+
 var pTempl = `{
   "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",

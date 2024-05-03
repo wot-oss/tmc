@@ -357,7 +357,7 @@ func Test_ListMpns(t *testing.T) {
 	})
 }
 
-func Test_Service_FetchThingModel(t *testing.T) {
+func TestService_FetchThingModel(t *testing.T) {
 
 	r := mocks.NewRepo(t)
 	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
@@ -464,7 +464,7 @@ func Test_DeleteThingModel(t *testing.T) {
 	})
 }
 
-func Test_PushingThingModel(t *testing.T) {
+func TestService_PushThingModel(t *testing.T) {
 	r := mocks.NewRepo(t)
 	pushTarget := model.NewRepoSpec("pushRepo")
 	underTest, _ := NewDefaultHandlerService(repo, pushTarget)
@@ -527,4 +527,66 @@ func Test_PushingThingModel(t *testing.T) {
 		// and then: there is an error
 		assert.NoError(t, err)
 	})
+}
+
+func TestService_ListAttachments(t *testing.T) {
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
+	inventoryName := "a/b/c"
+	// given: repo returns some attachments
+	r := mocks.NewRepo(t)
+	attNames := []string{"README.md", "User Guide.pdf"}
+	r.On("ListAttachments", mock.Anything, inventoryName).Return(attNames, nil).Once()
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+	// when: listing attachments
+	res, err := underTest.ListAttachments(context.Background(), inventoryName)
+	// then: service returns the attachment names
+	assert.NoError(t, err)
+	assert.Equal(t, attNames, res)
+}
+
+func TestService_FetchAttachment(t *testing.T) {
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
+	inventoryName := "a/b/c"
+	attContent := []byte("# readme file")
+	attName := "README.md"
+	// given: repo returns an attachment
+	r := mocks.NewRepo(t)
+	r.On("FetchAttachment", mock.Anything, inventoryName, attName).Return(attContent, nil).Once()
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+	// when: fetching an attachment
+	res, err := underTest.FetchAttachment(context.Background(), inventoryName, attName)
+	// then: service returns the attachment content
+	assert.NoError(t, err)
+	assert.Equal(t, attContent, res)
+}
+
+func TestService_PushAttachment(t *testing.T) {
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
+	inventoryName := "a/b/c"
+	attContent := []byte("# readme file")
+	attName := "README.md"
+	// given: a repo
+	r := mocks.NewRepo(t)
+	r.On("PushAttachment", mock.Anything, inventoryName, attName, attContent).Return(nil).Once()
+	r.On("Index", mock.Anything, inventoryName).Return(nil).Once()
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+	// when: pushing an attachment
+	err := underTest.PushAttachment(context.Background(), inventoryName, attName, attContent)
+	// then: service returns no error
+	assert.NoError(t, err)
+}
+
+func TestService_DeleteAttachment(t *testing.T) {
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
+	inventoryName := "a/b/c"
+	attName := "README.md"
+	// given: repo returns an attachment
+	r := mocks.NewRepo(t)
+	r.On("DeleteAttachment", mock.Anything, inventoryName, attName).Return(nil).Once()
+	r.On("Index", mock.Anything, inventoryName).Return(nil).Once()
+	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+	// when: deleting an attachment
+	err := underTest.DeleteAttachment(context.Background(), inventoryName, attName)
+	// then: service returns no error
+	assert.NoError(t, err)
 }

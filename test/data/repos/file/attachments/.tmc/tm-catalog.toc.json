@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "created": "2024-05-03T15:20:26.96061534+03:00"
+  },
+  "data": [
+    {
+      "name": "omnicorp-tm-department/omnicorp/omnilamp",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "omnilamp",
+      "schema:author": {
+        "schema:name": "omnicorp-tm-department"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "3.2.1"
+          },
+          "links": {
+            "content": "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json"
+          },
+          "tmID": "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json",
+          "digest": "3f779458e453",
+          "timestamp": "20240409155220",
+          "externalID": "",
+          "attachments": [
+            {
+              "name": "cfg.json"
+            }
+          ]
+        }
+      ],
+      "attachments": [
+        {
+          "name": "README.md"
+        }
+      ]
+    }
+  ]
+}

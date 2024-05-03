@@ -28,7 +28,7 @@ func TestSaveConfigOverwritesOnlyKeyValue(t *testing.T) {
 	defer setupDefaultConfigDir()()
 
 	// given: a config file
-	configFile := filepath.Join(DefaultConfigDir, "config.json")
+	configFile := filepath.Join(DefaultConfigDir, "cfg.json")
 	err := os.WriteFile(configFile, []byte(`{
   "loglevel": "debug",
   "repos": {

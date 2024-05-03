@@ -76,6 +76,67 @@ func TestHttpRepo_Fetch(t *testing.T) {
 	assert.Equal(t, aid, actId)
 	assert.Equal(t, []byte(tm), b)
 }
+func TestHttpRepo_FetchAttachment(t *testing.T) {
+	const tmName = "author/manufacturer/mpn"
+	const ver = "v1.0.0-20231205123243-c49617d2e4fc"
+	const tmid = tmName + "/" + ver + TMExt
+	const attContent = "## readme"
+	const fName = "README.md"
+
+	t.Run("tm name attachment", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, fmt.Sprintf("/%s/%s/%s", tmName, AttachmentsDir, fName), r.URL.Path)
+			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+			_, _ = w.Write([]byte(attContent))
+		}))
+		defer srv.Close()
+		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+		assert.NoError(t, err)
+
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		b, err := r.FetchAttachment(context.Background(), tmName, fName)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte(attContent), b)
+
+	})
+	t.Run("tm id attachment", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, fmt.Sprintf("/%s/%s/%s/%s", tmName, AttachmentsDir, ver, fName), r.URL.Path)
+			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+			_, _ = w.Write([]byte(attContent))
+		}))
+		defer srv.Close()
+		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+		assert.NoError(t, err)
+
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		b, err := r.FetchAttachment(context.Background(), tmid, fName)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte(attContent), b)
+
+	})
+}
+func TestHttpRepo_ListAttachments(t *testing.T) {
+	const tmName = "omnicorp-tm-department/omnicorp/omnilamp"
+	_, idx, err := utils.ReadRequiredFile("../../test/data/repos/file/attachments/.tmc/tm-catalog.toc.json")
+	assert.NoError(t, err)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/.tmc/"+IndexFilename, r.URL.Path)
+		_, _ = w.Write(idx)
+	}))
+	defer srv.Close()
+	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+	assert.NoError(t, err)
+	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+
+	res, err := r.ListAttachments(context.Background(), tmName)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"README.md"}, res)
+}
 
 func TestHttpRepo_ListCompletions(t *testing.T) {
 	_, idx, err := utils.ReadRequiredFile("../../test/data/list/tm-catalog.toc.json")
