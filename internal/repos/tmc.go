@@ -146,6 +146,8 @@ func (t TmcRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName 
 	switch resp.StatusCode {
 	case http.StatusNoContent:
 		return nil
+	case http.StatusNotFound:
+		return ErrNotFound
 	case http.StatusBadRequest:
 		return model.ErrInvalidIdOrName
 	case http.StatusUnauthorized, http.StatusInternalServerError:

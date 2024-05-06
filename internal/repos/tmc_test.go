@@ -299,6 +299,387 @@ func TestTmcRepo_Versions(t *testing.T) {
 		})
 	}
 }
+func TestTmcRepo_ListAttachments(t *testing.T) {
+	type ht struct {
+		name       string
+		body       []byte
+		status     int
+		tmNameOrId string
+		expUrl     string
+		expErr     string
+		expRes     []string
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		eu, _ := url.Parse(h.expUrl)
+		assert.Equal(t, eu.Path, r.URL.Path)
+		assert.Equal(t, http.MethodGet, r.Method)
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.body)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRepoConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:       "tmname",
+			body:       []byte("{\"data\": [\"README.md\", \"User Guide.pdf\"]}"),
+			status:     http.StatusOK,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments",
+			expErr:     "",
+			expRes:     []string{"README.md", "User Guide.pdf"},
+		},
+		{
+			name:       "tmid",
+			body:       []byte("{\"data\": [\"README.md\", \"User Guide.pdf\"]}"),
+			status:     http.StatusOK,
+			tmNameOrId: "omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json",
+			expUrl:     "/thing-models/omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json/.attachments",
+			expErr:     "",
+			expRes:     []string{"README.md", "User Guide.pdf"},
+		},
+		{
+			name:       "bad request",
+			body:       []byte(`{"detail":"invalid name"}`),
+			status:     http.StatusBadRequest,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments",
+			expErr:     "id or name invalid",
+			expRes:     nil,
+		},
+		{
+			name:       "not found",
+			body:       []byte(`{"detail":"not found"}`),
+			status:     http.StatusNotFound,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments",
+			expErr:     "item not found",
+			expRes:     nil,
+		},
+		{
+			name:       "internal server error",
+			body:       []byte(`{"detail":"something bad happened"}`),
+			status:     http.StatusInternalServerError,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments",
+			expErr:     "something bad happened",
+			expRes:     nil,
+		},
+		{
+			name:       "unexpected status",
+			body:       []byte(`{"detail":"no coffee for you"}`),
+			status:     http.StatusTeapot,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments",
+			expErr:     "received unexpected HTTP response",
+			expRes:     nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+			atts, err := r.ListAttachments(context.Background(), test.tmNameOrId)
+			if test.expErr == "" {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expRes, atts)
+			} else {
+				assert.ErrorContains(t, err, test.expErr)
+			}
+		})
+	}
+}
+func TestTmcRepo_FetchAttachment(t *testing.T) {
+	type ht struct {
+		name       string
+		body       []byte
+		status     int
+		tmNameOrId string
+		expUrl     string
+		expErr     string
+		expRes     []byte
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		eu, _ := url.Parse(h.expUrl)
+		assert.Equal(t, eu.Path, r.URL.Path)
+		assert.Equal(t, http.MethodGet, r.Method)
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.body)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRepoConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:       "tmname",
+			body:       []byte("# README"),
+			status:     http.StatusOK,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "",
+			expRes:     []byte("# README"),
+		},
+		{
+			name:       "tmid",
+			body:       []byte("# README"),
+			status:     http.StatusOK,
+			tmNameOrId: "omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json",
+			expUrl:     "/thing-models/omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json/.attachments/README.md",
+			expErr:     "",
+			expRes:     []byte("# README"),
+		},
+		{
+			name:       "bad request",
+			body:       []byte(`{"detail":"invalid name"}`),
+			status:     http.StatusBadRequest,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
+			expErr:     "id or name invalid",
+			expRes:     nil,
+		},
+		{
+			name:       "not found",
+			body:       []byte(`{"detail":"not found"}`),
+			status:     http.StatusNotFound,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
+			expErr:     "item not found",
+			expRes:     nil,
+		},
+		{
+			name:       "internal server error",
+			body:       []byte(`{"detail":"something bad happened"}`),
+			status:     http.StatusInternalServerError,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "something bad happened",
+			expRes:     nil,
+		},
+		{
+			name:       "unexpected status",
+			body:       []byte(`{"detail":"no coffee for you"}`),
+			status:     http.StatusTeapot,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "received unexpected HTTP response",
+			expRes:     nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+			content, err := r.FetchAttachment(context.Background(), test.tmNameOrId, "README.md")
+			if test.expErr == "" {
+				assert.NoError(t, err)
+				assert.Equal(t, test.expRes, content)
+			} else {
+				assert.ErrorContains(t, err, test.expErr)
+			}
+		})
+	}
+}
+func TestTmcRepo_DeleteAttachment(t *testing.T) {
+	type ht struct {
+		name       string
+		body       []byte
+		status     int
+		tmNameOrId string
+		expUrl     string
+		expErr     string
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		eu, _ := url.Parse(h.expUrl)
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, eu.Path, r.URL.Path)
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.body)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRepoConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:       "tmname",
+			body:       nil,
+			status:     http.StatusNoContent,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "",
+		},
+		{
+			name:       "tmid",
+			body:       nil,
+			status:     http.StatusNoContent,
+			tmNameOrId: "omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json",
+			expUrl:     "/thing-models/omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json/.attachments/README.md",
+			expErr:     "",
+		},
+		{
+			name:       "bad request",
+			body:       []byte(`{"detail":"invalid name"}`),
+			status:     http.StatusBadRequest,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
+			expErr:     "id or name invalid",
+		},
+		{
+			name:       "not found",
+			body:       []byte(`{"detail":"not found"}`),
+			status:     http.StatusNotFound,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
+			expErr:     "item not found",
+		},
+		{
+			name:       "internal server error",
+			body:       []byte(`{"detail":"something bad happened"}`),
+			status:     http.StatusInternalServerError,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "something bad happened",
+		},
+		{
+			name:       "unexpected status",
+			body:       []byte(`{"detail":"no coffee for you"}`),
+			status:     http.StatusTeapot,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "received unexpected HTTP response",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+			err := r.DeleteAttachment(context.Background(), test.tmNameOrId, "README.md")
+			if test.expErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, test.expErr)
+			}
+		})
+	}
+}
+func TestTmcRepo_PushAttachment(t *testing.T) {
+	type ht struct {
+		name       string
+		body       []byte
+		status     int
+		tmNameOrId string
+		expUrl     string
+		expErr     string
+		reqBody    []byte
+	}
+	htc := make(chan ht, 1)
+	defer close(htc)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := <-htc
+		eu, _ := url.Parse(h.expUrl)
+		assert.Equal(t, http.MethodPut, r.Method)
+		assert.Equal(t, eu.Path, r.URL.Path)
+		rBody, _ := io.ReadAll(r.Body)
+		assert.Equal(t, h.reqBody, rBody)
+		w.WriteHeader(h.status)
+		_, _ = w.Write(h.body)
+	}))
+	defer srv.Close()
+
+	config, err := createTmcRepoConfig(srv.URL, nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+
+	tests := []ht{
+		{
+			name:       "tmname",
+			body:       nil,
+			status:     http.StatusNoContent,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "",
+			reqBody:    []byte("# README"),
+		},
+		{
+			name:       "tmid",
+			body:       nil,
+			status:     http.StatusNoContent,
+			tmNameOrId: "omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json",
+			expUrl:     "/thing-models/omniauthor/omnicorp/senseall/v0.35.0-20231230153548-243d1b462bbb.tm.json/.attachments/README.md",
+			expErr:     "",
+			reqBody:    []byte("# README"),
+		},
+		{
+			name:       "bad request",
+			body:       []byte(`{"detail":"invalid name"}`),
+			status:     http.StatusBadRequest,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
+			expErr:     "id or name invalid",
+			reqBody:    []byte("# README"),
+		},
+		{
+			name:       "not found",
+			body:       []byte(`{"detail":"not found"}`),
+			status:     http.StatusNotFound,
+			tmNameOrId: "zzzzzz",
+			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
+			expErr:     "item not found",
+			reqBody:    []byte("# README"),
+		},
+		{
+			name:       "internal server error",
+			body:       []byte(`{"detail":"something bad happened"}`),
+			status:     http.StatusInternalServerError,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "something bad happened",
+			reqBody:    []byte("# README"),
+		},
+		{
+			name:       "unexpected status",
+			body:       []byte(`{"detail":"no coffee for you"}`),
+			status:     http.StatusTeapot,
+			tmNameOrId: "author/manufacturer/mpn",
+			expUrl:     "/thing-models/author/manufacturer/mpn/.attachments/README.md",
+			expErr:     "received unexpected HTTP response",
+			reqBody:    []byte("# README"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			htc <- test
+			err := r.PushAttachment(context.Background(), test.tmNameOrId, "README.md", test.reqBody)
+			if test.expErr == "" {
+				assert.NoError(t, err)
+			} else {
+				assert.ErrorContains(t, err, test.expErr)
+			}
+		})
+	}
+}
 func TestTmcRepo_Push(t *testing.T) {
 	_, pushBody, _ := utils.ReadRequiredFile("../../test/data/push/omnilamp.json")
 
