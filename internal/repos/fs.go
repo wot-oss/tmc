@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -24,8 +25,7 @@ const (
 	indexLockTimeout       = 5 * time.Second
 	indexLocRetryDelay     = 13 * time.Millisecond
 	errTmExistsPrefix      = "Thing Model already exists under id: "
-
-	TMExt = ".tm.json"
+	TMExt                  = ".tm.json"
 )
 
 var ErrRootInvalid = errors.New("root is not a directory")
@@ -240,7 +240,38 @@ func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 	if err != nil {
 		return err
 	}
-	return f.updateIndex(ctx, ids)
+	_, err = f.updateIndex(ctx, ids, true)
+	return err
+}
+
+func (f *FileRepo) AnalyzeIndex(ctx context.Context) error {
+	err := f.checkRootValid()
+	if err != nil {
+		return err
+	}
+
+	idxOld, err := f.readIndex()
+	if err != nil {
+		return err
+	}
+
+	idxNew, err := f.updateIndex(ctx, []string{}, false)
+	if err != nil {
+		return err
+	}
+
+	slices.SortFunc(idxOld.Data, func(a *model.IndexEntry, b *model.IndexEntry) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	slices.SortFunc(idxNew.Data, func(a *model.IndexEntry, b *model.IndexEntry) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
+	idxOk := reflect.DeepEqual(idxOld.Data, idxNew.Data)
+	if !idxOk {
+		return ErrIndexMismatch
+	}
+	return nil
 }
 
 func (f *FileRepo) Spec() model.RepoSpec {
@@ -360,7 +391,7 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
+func (f *FileRepo) updateIndex(ctx context.Context, ids []string, persist bool) (*model.Index, error) {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	fileCount := 0
@@ -369,7 +400,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 	cancel, err := f.lockIndex(ctx)
 	defer cancel()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var newIndex *model.Index
@@ -398,7 +429,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 			return nil
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 	} else { // partial update
@@ -414,14 +445,14 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 		for _, id := range ids {
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				return nil, ctx.Err()
 			default:
 			}
 			path := filepath.Join(f.root, id)
 			info, statErr := osStat(path)
 			upd, name, nameDeleted, err := f.updateIndexWithFile(newIndex, path, info, log, statErr)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			if upd {
 				fileCount++
@@ -439,18 +470,21 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
 	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
-	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
-	if err != nil {
-		return err
+	if persist {
+		err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
+		if err != nil {
+			return nil, err
+		}
+		err = f.writeNamesFile(names)
+		if err != nil {
+			return nil, err
+		}
 	}
-	err = f.writeNamesFile(names)
-	if err != nil {
-		return err
-	}
+
 	msg := "Updated index with %d entries in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
-	return nil
+	return newIndex, nil
 }
 
 func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {

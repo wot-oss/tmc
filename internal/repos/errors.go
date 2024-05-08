@@ -15,6 +15,11 @@ var (
 	ErrTmNotFound              = errors.New("TM not found")
 	ErrInvalidErrorCode        = errors.New("invalid error code")
 	ErrInvalidCompletionParams = errors.New("invalid completion parameters")
+	ErrNotSupported            = errors.New("method not supported")
+	ErrResourceAccess          = errors.New("cannot access resource")
+	ErrResourceInvalid         = errors.New("invalid resource name")
+	ErrResourceNotExists       = errors.New("resource does not exist")
+	ErrIndexMismatch           = errors.New("index mismatch, needs rebuild")
 )
 
 type ErrTMIDConflict struct {
