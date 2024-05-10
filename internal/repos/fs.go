@@ -126,6 +126,8 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 		}
 	}
 	_ = rmEmptyDirs(dir, f.root)
+
+	err = f.updateIndex(ctx, []string{id})
 	return err
 }
 
@@ -258,6 +260,12 @@ func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 	if err != nil {
 		return err
 	}
+	unlock, err := f.lockIndex(ctx)
+	defer unlock()
+	if err != nil {
+		return err
+	}
+
 	return f.updateIndex(ctx, ids)
 }
 
@@ -323,7 +331,7 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 
 func (f *FileRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
 	log := slog.Default()
-	log.Debug(fmt.Sprintf("Putting attachment %s for '%v'", attachmentName, tmNameOrId))
+	log.Debug(fmt.Sprintf("Pushing attachment %s for '%v'", attachmentName, tmNameOrId))
 
 	err := f.checkRootValid()
 	if err != nil {
@@ -658,12 +666,6 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 	fileCount := 0
 	start := time.Now()
 
-	cancel, err := f.lockIndex(ctx)
-	defer cancel()
-	if err != nil {
-		return err
-	}
-
 	var newIndex *model.Index
 	names := f.readNamesFile()
 
@@ -744,7 +746,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
 	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
-	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
+	err := utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
 	if err != nil {
 		return err
 	}
@@ -759,10 +761,10 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 }
 
 func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
+	idOrName, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
+	idOrName, _ = strings.CutPrefix(idOrName, "/")
 	if os.IsNotExist(err) {
-		id, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
-		id, _ = strings.CutPrefix(id, "/")
-		upd, name, err := idx.Delete(id)
+		upd, name, err := idx.Delete(idOrName)
 		if err != nil {
 			return false, "", "", err
 		}
@@ -771,7 +773,13 @@ func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.Fi
 	if err != nil {
 		return false, "", "", err
 	}
-	if info.IsDir() || !strings.HasSuffix(info.Name(), TMExt) || inAttachmentsDir(path, f.root) {
+	if info.IsDir() {
+		if idx.FindByName(idOrName) != nil { // is a valid TM name
+			return true, idOrName, "", nil // force reindexing attachments for idOrName
+		}
+		return false, "", "", nil
+	}
+	if !strings.HasSuffix(info.Name(), TMExt) {
 		return false, "", "", nil
 	}
 	thingMeta, err := f.getThingMetadata(path)
@@ -789,15 +797,6 @@ func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.Fi
 		return false, "", "", nil
 	}
 	return true, thingMeta.id.Name, "", nil
-}
-
-func inAttachmentsDir(path string, root string) bool {
-	for ; strings.HasPrefix(path, root); path = filepath.Dir(path) {
-		if filepath.Base(path) == AttachmentsDir {
-			return true
-		}
-	}
-	return false
 }
 
 type unlockFunc func()

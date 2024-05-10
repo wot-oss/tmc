@@ -437,7 +437,6 @@ func Test_DeleteThingModel(t *testing.T) {
 	t.Run("without errors", func(t *testing.T) {
 		tmid := "some-id"
 		r.On("Delete", mock.Anything, tmid).Return(nil).Once()
-		r.On("Index", mock.Anything, tmid).Return(nil).Once()
 		// when: deleting ThingModel
 		err := underTest.DeleteThingModel(context.Background(), tmid)
 		// then: it returns nil result
@@ -453,15 +452,6 @@ func Test_DeleteThingModel(t *testing.T) {
 		assert.ErrorIs(t, err, repos.ErrNotFound)
 	})
 
-	t.Run("with error when indexing", func(t *testing.T) {
-		tmid := "some-id3"
-		r.On("Delete", mock.Anything, tmid).Return(nil).Once()
-		r.On("Index", mock.Anything, tmid).Return(errors.New("could not update index")).Once()
-		// when: deleting ThingModel
-		err := underTest.DeleteThingModel(context.Background(), tmid)
-		// then: it returns error result
-		assert.ErrorContains(t, err, "could not update index")
-	})
 }
 
 func TestService_PushThingModel(t *testing.T) {

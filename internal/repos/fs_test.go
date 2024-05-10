@@ -389,6 +389,10 @@ func TestFileRepo_Index(t *testing.T) {
 			"omnicorp-tm-department/omnicorp/omnilamp",
 			"omnicorp-tm-department/omnicorp/omnilamp/subfolder",
 		}, names)
+
+		entry := idx.FindByName("omnicorp-tm-department/omnicorp/omnilamp")
+		assert.NotNil(t, entry)
+		assert.Equal(t, []model.Attachment{{Name: "manual.txt"}}, entry.Versions[0].Attachments)
 	})
 
 	t.Run("full update/no index file", func(t *testing.T) {
@@ -408,6 +412,23 @@ func TestFileRepo_Index(t *testing.T) {
 			"omnicorp-tm-department/omnicorp/omnilamp/subfolder",
 		}, names)
 	})
+
+	t.Run("single tm name indexes attachments", func(t *testing.T) {
+		tmName := "omnicorp-tm-department/omnicorp/omnilamp/subfolder"
+		attDir := filepath.Join(temp, tmName, AttachmentsDir)
+		assert.NoError(t, os.MkdirAll(attDir, defaultDirPermissions))
+		assert.NoError(t, os.WriteFile(filepath.Join(attDir, "README.md"), []byte("# Read This, or Else"), defaultFilePermissions))
+
+		err := r.Index(context.Background(), tmName)
+		assert.NoError(t, err)
+
+		idx, err := r.readIndex()
+		assert.NoError(t, err)
+		entry := idx.FindByName(tmName)
+		assert.NotNil(t, entry)
+		assert.Equal(t, []model.Attachment{{Name: "README.md"}}, entry.Attachments)
+	})
+
 }
 
 func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {

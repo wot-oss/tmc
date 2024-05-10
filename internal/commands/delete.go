@@ -13,9 +13,5 @@ func Delete(ctx context.Context, rSpec model.RepoSpec, id string) error {
 		return err
 	}
 	err = r.Delete(ctx, id)
-	if err != nil {
-		return err
-	}
-	err = r.Index(ctx, id)
 	return err
 }
