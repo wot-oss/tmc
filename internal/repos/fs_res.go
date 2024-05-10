@@ -32,7 +32,7 @@ func (f *FileRepo) RangeResources(ctx context.Context, filter model.ResourceFilt
 			if !info.IsDir() {
 				resType := resourceType(info.Name())
 
-				if slices.Contains(filter.Types, resType) {
+				if len(filter.Types) == 0 || slices.Contains(filter.Types, resType) {
 					id, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
 					id, _ = strings.CutPrefix(id, "/")
 					resources = append(resources, model.Resource{
@@ -51,7 +51,7 @@ func (f *FileRepo) RangeResources(ctx context.Context, filter model.ResourceFilt
 		for _, name := range filter.Names {
 			resType := resourceType(name)
 
-			if slices.Contains(filter.Types, resType) {
+			if len(filter.Types) == 0 || slices.Contains(filter.Types, resType) {
 				resources = append(resources, model.Resource{
 					Name:    name,
 					RelPath: name,
