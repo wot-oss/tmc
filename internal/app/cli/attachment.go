@@ -58,7 +58,7 @@ func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, atta
 func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
 	content, err := commands.AttachmentFetch(ctx, spec, tmNameOrId, attachmentName)
 	if err != nil {
-		Stderrf("Failed to delete attachment %s to %s: %v", attachmentName, tmNameOrId, err)
+		Stderrf("Failed to fetch attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}
 
 	fmt.Print(string(content))

@@ -16,7 +16,7 @@ For all attachment operations you must unambiguously specify the repository.`,
 
 func init() {
 	cmd.RootCmd.AddCommand(attachmentCmd)
-	attachmentCmd.PersistentFlags().StringP("repo", "r", "", "Name of the repository from which to get the list of attachments. Lists all if omitted")
+	attachmentCmd.PersistentFlags().StringP("repo", "r", "", "Use the named repository for the operation.")
 	_ = attachmentCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
 	attachmentCmd.PersistentFlags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = attachmentCmd.MarkFlagDirname("directory")
