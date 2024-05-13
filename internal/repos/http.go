@@ -80,8 +80,9 @@ func newBaseHttpRepo(config map[string]any, spec model.RepoSpec) (baseHttpRepo, 
 	return base, nil
 }
 
-func (h *HttpRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
-	return ErrNotSupported
+func (h *HttpRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error) {
+	err := ErrNotSupported
+	return PushResult{PushResultWarning, err.Error(), ""}, nil
 }
 func (h *HttpRepo) Delete(ctx context.Context, id string) error {
 	return ErrNotSupported

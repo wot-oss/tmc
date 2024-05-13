@@ -18,8 +18,7 @@ import (
 )
 
 const (
-	maxPushRetries = 3
-	maxNameLength  = 255
+	maxNameLength = 255
 )
 
 var ErrTMNameTooLong = fmt.Errorf("TM name too long (max %d allowed)", maxNameLength)
@@ -36,42 +35,25 @@ func NewPushCommand(now Now) *PushCommand {
 }
 
 // PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to repo.
-// Returns the ID that the TM has been stored under, and error.
-// If the repo already contains the same TM, returns the id of the existing TM and an instance of repos.ErrTMIDConflict
-func (c *PushCommand) PushFile(ctx context.Context, raw []byte, repo repos.Repo, optPath string) (string, error) {
+// Returns PushResult which includes the ID that the TM has been stored under, and error.
+// If the repo already contains the same TM, the error will be an instance of repos.ErrTMIDConflict
+func (c *PushCommand) PushFile(ctx context.Context, raw []byte, repo repos.Repo, opts repos.PushOptions) (repos.PushResult, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
 		log.Error("validation failed", "error", err)
-		return "", err
+		return repos.NewErrorPushResult(err)
 	}
-	retriesLeft := maxPushRetries
-RETRY:
-	retriesLeft--
-	prepared, id, err := prepareToImport(c.now, tm, raw, optPath)
+	prepared, id, err := prepareToImport(c.now, tm, raw, opts.OptPath)
 	if err != nil {
-		return "", err
+		return repos.NewErrorPushResult(err)
 	}
 
-	err = repo.Push(ctx, id, prepared)
-	if err != nil {
-		var errConflict *repos.ErrTMIDConflict
-		if errors.As(err, &errConflict) {
-			if errConflict.Type == repos.IdConflictSameTimestamp {
-				if retriesLeft >= 0 {
-					time.Sleep(1 * time.Second) // sleep 1 sec to get a different timestamp in id
-					goto RETRY
-				}
-				return errConflict.ExistingId, err
-			}
-			log.Info("Thing Model conflicts with existing", "id", id, "existing-id", errConflict.ExistingId, "conflictType", errConflict.Type)
-			return errConflict.ExistingId, err
-		}
-		log.Error("error pushing to repo", "error", err)
-		return id.String(), err
+	res, err := repo.Push(ctx, id, prepared, opts)
+	if err == nil {
+		log.Info("pushed successfully")
 	}
-	log.Info("pushed successfully")
-	return id.String(), nil
+	return res, err
 }
 
 func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {

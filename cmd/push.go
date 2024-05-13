@@ -11,6 +11,7 @@ import (
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 // pushCmd represents the push command
@@ -39,6 +40,7 @@ func init() {
 	pushCmd.Flags().BoolP("opt-tree", "t", false, `Use original directory tree structure below file-or-dirname as --opt-path for each found ThingModel file.
 	Has no effect when file-or-dirname points to a file.
 	Overrides --opt-path`)
+	pushCmd.Flags().Bool("force", false, `Force push, even if there are conflicts with existing TMs.`)
 }
 
 func executePush(cmd *cobra.Command, args []string) {
@@ -46,13 +48,17 @@ func executePush(cmd *cobra.Command, args []string) {
 	dirName := cmd.Flag("directory").Value.String()
 	optPath := cmd.Flag("opt-path").Value.String()
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
+	force, _ := cmd.Flags().GetBool("force")
 	spec, err := model.NewSpec(repoName, dirName)
 	if errors.Is(err, model.ErrInvalidSpec) {
 		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
-
-	results, err := cli.NewPushExecutor(time.Now).Push(context.Background(), args[0], spec, optPath, optTree)
+	opts := repos.PushOptions{
+		Force:   force,
+		OptPath: optPath,
+	}
+	results, err := cli.NewPushExecutor(time.Now).Push(context.Background(), args[0], spec, optTree, opts)
 	for _, res := range results {
 		fmt.Println(res)
 	}

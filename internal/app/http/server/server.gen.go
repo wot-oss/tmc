@@ -49,7 +49,7 @@ type ServerInterface interface {
 	GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams)
 	// Push a new Thing Model
 	// (POST /thing-models)
-	PushThingModel(w http.ResponseWriter, r *http.Request)
+	PushThingModel(w http.ResponseWriter, r *http.Request, params PushThingModelParams)
 	// Delete a Thing Model by ID
 	// (DELETE /thing-models/{tmIDOrName})
 	DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params DeleteThingModelByIdParams)
@@ -425,10 +425,31 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 func (siw *ServerInterfaceWrapper) PushThingModel(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	var err error
+
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PushThingModelParams
+
+	// ------------- Optional query parameter "force" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "force", r.URL.Query(), &params.Force)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "optPath" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "optPath", r.URL.Query(), &params.OptPath)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "optPath", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PushThingModel(w, r)
+		siw.Handler.PushThingModel(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {

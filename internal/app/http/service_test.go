@@ -464,7 +464,7 @@ func Test_DeleteThingModel(t *testing.T) {
 	})
 }
 
-func Test_PushingThingModel(t *testing.T) {
+func Test_HandlerService_PushThingModel(t *testing.T) {
 	r := mocks.NewRepo(t)
 	pushTarget := model.NewRepoSpec("pushRepo")
 	underTest, _ := NewDefaultHandlerService(repo, pushTarget)
@@ -474,9 +474,13 @@ func Test_PushingThingModel(t *testing.T) {
 		invalidContent := []byte("invalid content")
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
 		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, invalidContent)
-		// then: it returns empty tmID
-		assert.Equal(t, "", res)
+		res, err := underTest.PushThingModel(nil, invalidContent, repos.PushOptions{})
+		// then: it returns an error PushResult
+		assert.Equal(t, repos.PushResult{
+			Type: repos.PushResultError,
+			Text: "invalid character 'i' looking for beginning of value",
+			TmID: "",
+		}, res)
 		// and then: there is an error
 		assert.Error(t, err)
 	})
@@ -485,9 +489,13 @@ func Test_PushingThingModel(t *testing.T) {
 		// given: invalid pushTarget
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, nil, repos.ErrRepoNotFound))
 		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, []byte("some TM content"))
+		res, err := underTest.PushThingModel(nil, []byte("some TM content"), repos.PushOptions{})
 		// then: it returns empty tmID
-		assert.Equal(t, "", res)
+		assert.Equal(t, repos.PushResult{
+			Type: repos.PushResultError,
+			Text: "repo not found",
+			TmID: "",
+		}, res)
 		// and then: there is an error
 		assert.Error(t, err)
 		// and then: the error says that the repo cannot be found
@@ -501,11 +509,12 @@ func Test_PushingThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameContent,
 			ExistingId: "existing-id",
 		}
-		r.On("Push", mock.Anything, mock.Anything, mock.Anything).Return(cErr).Once()
+		expRes := repos.PushResult{repos.PushResultTMExists, "", "existing-id"}
+		r.On("Push", mock.Anything, mock.Anything, mock.Anything, repos.PushOptions{}).Return(expRes, cErr).Once()
 		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, tmContent)
+		res, err := underTest.PushThingModel(nil, tmContent, repos.PushOptions{})
 		// then: it returns empty tmID
-		assert.Equal(t, "", res)
+		assert.Equal(t, expRes, res)
 		// and then: there is an error
 		assert.Equal(t, cErr, err)
 	})
@@ -517,14 +526,14 @@ func Test_PushingThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
-		r.On("Push", mock.Anything, mock.Anything, mock.Anything).Return(cErr).Once()
-		r.On("Push", mock.Anything, mock.Anything, mock.Anything).Return(nil).Once() // expect a second push attempt
+		expRes := repos.PushResult{repos.PushResultWarning, cErr.Error(), "existing-id"}
+		r.On("Push", mock.Anything, mock.Anything, mock.Anything, repos.PushOptions{}).Return(expRes, nil).Once()
 		r.On("Index", mock.Anything, mock.Anything).Return(nil)
 		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, tmContent)
-		// then: it returns non-empty tmID
-		assert.NotEmpty(t, res)
-		// and then: there is an error
+		res, err := underTest.PushThingModel(nil, tmContent, repos.PushOptions{})
+		// then: it returns expected warning result
+		assert.Equal(t, expRes, res)
+		// and then: there is no error
 		assert.NoError(t, err)
 	})
 }

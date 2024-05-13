@@ -54,34 +54,40 @@ func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) 
 	}, nil
 }
 
-func (f *FileRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
+func (f *FileRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error) {
 	if len(raw) == 0 {
-		return errors.New("nothing to write")
+		err := errors.New("nothing to write")
+		return NewErrorPushResult(err)
 	}
 	idS := id.String()
 	fullPath, dir, _ := f.filenames(idS)
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
-		return fmt.Errorf("could not create directory %s: %w", dir, err)
+		err := fmt.Errorf("could not create directory %s: %w", dir, err)
+		return NewErrorPushResult(err)
 	}
 
 	match, existingId := f.getExistingID(idS)
-	switch match {
-	case idMatchDigest:
+	if match == idMatchDigest && !opts.Force {
 		slog.Default().Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
-		return &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
-	case idMatchTimestamp:
-		slog.Default().Info(fmt.Sprintf("Version and timestamp clash with existing %v", existingId))
-		return &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: existingId}
+		err := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
+		return PushResult{PushResultTMExists, err.Error(), existingId}, err
 	}
 
 	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)
 	if err != nil {
-		return fmt.Errorf("could not write TM to catalog: %v", err)
+		err := fmt.Errorf("could not write TM to catalog: %v", err)
+		return NewErrorPushResult(err)
 	}
 	slog.Default().Info("saved Thing Model file", "filename", fullPath)
 
-	return nil
+	if match == idMatchTimestamp && !opts.Force {
+		msg := fmt.Sprintf("Version and timestamp clash with existing %v", existingId)
+		slog.Default().Info(msg)
+		err := &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: existingId}
+		return PushResult{PushResultWarning, err.Error(), idS}, nil
+	}
+	return PushResult{PushResultOK, "", idS}, nil
 }
 
 func (f *FileRepo) Delete(ctx context.Context, id string) error {
@@ -169,18 +175,17 @@ func (f *FileRepo) getExistingID(ids string) (idMatch, string) {
 		slog.Default().Error("invalid TM version in TM id", "id", ids, "error", err)
 		return idMatchNone, ""
 	}
+	idPrefix := strings.TrimSuffix(ids, base)
 	existingTMVersions := findTMFileEntriesByBaseVersion(entries, version)
-	if len(existingTMVersions) > 0 {
-		if existingTMVersions[0].Hash == version.Hash {
-			return idMatchDigest,
-				strings.TrimSuffix(ids, base) + existingTMVersions[0].String() + model.TMFileExtension
-		} else {
-			for _, v := range existingTMVersions {
-				if version.Timestamp == v.Timestamp {
-					return idMatchTimestamp, strings.TrimSuffix(ids, base) + v.String() + TMExt
-				}
-			}
-		}
+	if idx := slices.IndexFunc(existingTMVersions, func(v model.TMVersion) bool {
+		return v.Hash == version.Hash
+	}); idx != -1 {
+		return idMatchDigest, idPrefix + existingTMVersions[idx].String() + TMExt
+	}
+	if idx := slices.IndexFunc(existingTMVersions, func(v model.TMVersion) bool {
+		return v.Timestamp == version.Timestamp
+	}); idx != -1 {
+		return idMatchTimestamp, idPrefix + existingTMVersions[idx].String() + TMExt
 	}
 
 	return idMatchNone, ""

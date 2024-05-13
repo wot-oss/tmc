@@ -331,7 +331,7 @@ func TestTmcRepo_Push(t *testing.T) {
 		{
 			name:     "plain",
 			reqBody:  pushBody,
-			respBody: nil,
+			respBody: []byte(`{"data": {"tmID": "tmid"}}`),
 			status:   http.StatusCreated,
 			expErr:   nil,
 		},
@@ -368,7 +368,7 @@ func TestTmcRepo_Push(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
-			err := r.Push(context.Background(), model.TMID{Name: "ignored in tmc repo"}, pushBody)
+			_, err := r.Push(context.Background(), model.TMID{Name: "ignored in tmc repo"}, pushBody, PushOptions{})
 			if test.expErr == nil {
 				assert.NoError(t, err)
 			} else {

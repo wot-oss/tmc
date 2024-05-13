@@ -549,7 +549,7 @@ func Test_PushThingModel(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("PushThingModel", mock.Anything, tmContent).Return(tmID, nil).Once()
+		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(repos.PushResult{repos.PushResultOK, "", tmID}, nil).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -586,7 +586,8 @@ func Test_PushThingModel(t *testing.T) {
 	t.Run("with validation error", func(t *testing.T) {
 		// given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
-		hs.On("PushThingModel", mock.Anything, invalidContent).Return("", &jsonschema.ValidationError{}).Once()
+		pr, err := repos.NewErrorPushResult(&jsonschema.ValidationError{})
+		hs.On("PushThingModel", mock.Anything, invalidContent, repos.PushOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -600,7 +601,8 @@ func Test_PushThingModel(t *testing.T) {
 
 	t.Run("with too long name", func(t *testing.T) {
 		// given: a thing model with too long name
-		hs.On("PushThingModel", mock.Anything, tmContent).Return("", fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long")).Once()
+		pr, err := repos.NewErrorPushResult(fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long"))
+		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -612,13 +614,14 @@ func Test_PushThingModel(t *testing.T) {
 		assertResponse400(t, rec, route)
 	})
 
-	t.Run("with conflicting id", func(t *testing.T) {
+	t.Run("with conflicting id with same content", func(t *testing.T) {
 		// given: a thing model file that conflicts with existing id
 		cErr := &repos.ErrTMIDConflict{
-			Type:       repos.IdConflictSameTimestamp,
+			Type:       repos.IdConflictSameContent,
 			ExistingId: "existing-id",
 		}
-		hs.On("PushThingModel", mock.Anything, tmContent).Return("", cErr).Once()
+		result := repos.PushResult{repos.PushResultTMExists, cErr.Error(), "existing-id"}
+		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(result, cErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
@@ -629,10 +632,37 @@ func Test_PushThingModel(t *testing.T) {
 		assertResponse409(t, rec, route, cErr)
 	})
 
+	t.Run("with conflicting id with same timestamp", func(t *testing.T) {
+		// given: a thing model file that conflicts with existing id
+		cErr := &repos.ErrTMIDConflict{
+			Type:       repos.IdConflictSameTimestamp,
+			ExistingId: "existing-id",
+		}
+		result := repos.PushResult{repos.PushResultWarning, cErr.Error(), tmID}
+		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(result, nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody(tmContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 201
+		assertResponse201(t, rec)
+		// and then: the body is of correct type
+		var response server.PushThingModelResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// and then: tmID is set in response
+		assert.NotNil(t, response.Data.TmID)
+		assert.Equal(t, tmID, response.Data.TmID)
+		assert.NotNil(t, response.Data.Warning)
+		assert.Contains(t, *response.Data.Warning, "existing-id")
+	})
+
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
-		hs.On("PushThingModel", mock.Anything, invalidContent).Return("", unknownErr).Once()
+		result, _ := repos.NewErrorPushResult(unknownErr)
+		hs.On("PushThingModel", mock.Anything, invalidContent, repos.PushOptions{}).Return(result, unknownErr).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).

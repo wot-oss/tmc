@@ -37,12 +37,50 @@ type Config map[string]map[string]any
 
 var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
 
+type PushResultType int
+
+const (
+	PushResultOK = PushResultType(iota)
+	PushResultWarning
+	PushResultTMExists
+	PushResultError
+)
+
+func (t PushResultType) String() string {
+	switch t {
+	case PushResultOK:
+		return "OK"
+	case PushResultWarning:
+		return "warning"
+	case PushResultTMExists:
+		return "exists"
+	case PushResultError:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
+type PushResult struct {
+	Type PushResultType
+	Text string
+	TmID string
+}
+
+func (r PushResult) String() string {
+	return fmt.Sprintf("%v\t %s", r.Type, r.Text)
+}
+
+func NewErrorPushResult(err error) (PushResult, error) {
+	return PushResult{PushResultError, err.Error(), ""}, err
+}
+
 //go:generate mockery --name Repo --outpkg mocks --output mocks
 type Repo interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
 	// there is a file with the same semantic version and timestamp but different content
-	Push(ctx context.Context, id model.TMID, raw []byte) error
+	Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error)
 	// Fetch retrieves the Thing Model file from repo
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(ctx context.Context, id string) (string, []byte, error)
@@ -59,6 +97,11 @@ type Repo interface {
 	Delete(ctx context.Context, id string) error
 
 	ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error)
+}
+
+type PushOptions struct {
+	Force   bool
+	OptPath string
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {

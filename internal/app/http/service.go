@@ -19,7 +19,7 @@ type HandlerService interface {
 	ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error)
 	FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error)
-	PushThingModel(ctx context.Context, file []byte) (string, error)
+	PushThingModel(ctx context.Context, file []byte, opts repos.PushOptions) (repos.PushResult, error)
 	DeleteThingModel(ctx context.Context, tmID string) error
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
@@ -136,23 +136,23 @@ func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID stri
 	return data, nil
 }
 
-func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byte) (string, error) {
+func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byte, opts repos.PushOptions) (repos.PushResult, error) {
 	pushRepo := dhs.pushRepo
 
 	repo, err := repos.Get(pushRepo)
 	if err != nil {
-		return "", err
+		return repos.NewErrorPushResult(err)
 	}
-	tmID, err := commands.NewPushCommand(time.Now).PushFile(ctx, file, repo, "")
+	res, err := commands.NewPushCommand(time.Now).PushFile(ctx, file, repo, opts)
 	if err != nil {
-		return "", err
+		return res, err
 	}
-	err = repo.Index(ctx, tmID)
+	err = repo.Index(ctx, res.TmID)
 	if err != nil {
-		return "", err
+		return repos.NewErrorPushResult(err)
 	}
 
-	return tmID, nil
+	return res, nil
 }
 
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {

@@ -280,9 +280,12 @@ func toMpnsResponse(mpns []string) server.MpnsResponse {
 	return resp
 }
 
-func toPushThingModelResponse(tmID string) server.PushThingModelResponse {
+func toPushThingModelResponse(res repos.PushResult) server.PushThingModelResponse {
 	data := server.PushThingModelResult{
-		TmID: tmID,
+		TmID: res.TmID,
+	}
+	if res.Type == repos.PushResultWarning {
+		data.Warning = &res.Text
 	}
 	return server.PushThingModelResponse{
 		Data: data,

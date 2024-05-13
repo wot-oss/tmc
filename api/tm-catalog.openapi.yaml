@@ -310,6 +310,19 @@ paths:
       summary: Push a new Thing Model
       description: Push a new Thing Model
       operationId: pushThingModel
+      parameters:
+        - name: force
+          in: query
+          description: flag to force the push, ignoring any conflicts with existing TMs
+          required: false
+          schema:
+            type: string
+        - name: optPath
+          in: query
+          description: optional path parts to append to the target path (and id) of imported TM, after the mandatory path structure
+          required: false
+          schema:
+            type: string
       requestBody:
         description: |
           Push a new Thing Model  
@@ -843,7 +856,10 @@ components:
       properties:
         tmID:
           type: string
-          example: 'MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
+          example: 'mycompany/bartech/bazlamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
+        warning:
+          type: string
+          example: "a TM with the same timestamp but different content exists under ID: mycompany/bartech/bazlamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json"
     ErrorResponse:
       required:
         - title
