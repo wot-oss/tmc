@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,6 +16,8 @@ const (
 	CheckOK = CheckResultType(iota)
 	CheckErr
 )
+
+var errCheckResourcesFailed = errors.New("check resources failed")
 
 type CheckResultType int
 
@@ -65,19 +68,22 @@ func CheckResources(ctx context.Context, spec model.RepoSpec, names []string) er
 			res, cErr := checkThingModel(res)
 			if cErr != nil {
 				totalRes = append(totalRes, res)
-				err = cErr
 				return true
 			}
 		}
 		return true
 	})
 
-	for _, res := range totalRes {
-		fmt.Println(res)
-	}
-
 	if err != nil {
 		Stderrf(err.Error())
+	}
+
+	for _, res := range totalRes {
+		fmt.Println(res)
+
+		if err == nil && res.typ == CheckErr {
+			err = errCheckResourcesFailed
+		}
 	}
 	return err
 }
@@ -95,7 +101,8 @@ func checkThingModel(res model.Resource) (CheckResult, error) {
 	}
 
 	if tm.ID == "" {
-		return CheckResult{typ: CheckErr, refName: res.Name, text: "missing id in ThingModel"}, err
+		err = errors.New("id missing")
+		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
 	}
 
 	_, err = model.ParseTMID(strings.ToLower(tm.ID))
@@ -104,7 +111,7 @@ func checkThingModel(res model.Resource) (CheckResult, error) {
 	}
 
 	if res.RelPath != tm.ID {
-		err = fmt.Errorf("id %s does not match expected resource location", tm.ID)
+		err = errors.New("id does not match resource location")
 		return CheckResult{typ: CheckErr, refName: res.RelPath, text: err.Error()}, err
 	}
 

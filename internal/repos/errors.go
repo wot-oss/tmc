@@ -20,6 +20,7 @@ var (
 	ErrResourceInvalid         = errors.New("invalid resource name")
 	ErrResourceNotExists       = errors.New("resource does not exist")
 	ErrIndexMismatch           = errors.New("index mismatch, needs rebuild")
+	ErrNoIndex                 = errors.New("no table of contents found. Run `index` for this repo")
 )
 
 type ErrTMIDConflict struct {

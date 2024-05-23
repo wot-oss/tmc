@@ -305,7 +305,7 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 func (f *FileRepo) readIndex() (model.Index, error) {
 	data, err := os.ReadFile(f.indexFilename())
 	if err != nil {
-		return model.Index{}, errors.New("no table of contents found. Run `index` for this repo")
+		return model.Index{}, ErrNoIndex
 	}
 
 	var index model.Index

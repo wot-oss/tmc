@@ -672,6 +672,68 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 	})
 }
 
+func TestFileRepo_AnalyzeIndex(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+
+	assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
+
+	removeIndex := func() {
+		err := os.RemoveAll(filepath.Join(temp, RepoConfDir))
+		assert.NoError(t, err)
+	}
+
+	spec := model.NewDirSpec(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: spec,
+	}
+
+	// collect all TM Ids within the file repo
+	var tmIds []string
+	err := filepath.Walk(temp, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(path, TMExt) {
+			tmId, _ := filepath.Rel(temp, path)
+			tmIds = append(tmIds, tmId)
+		}
+		return nil
+	})
+
+	t.Run("with complete index file", func(t *testing.T) {
+		// given: complete index file
+		removeIndex()
+		err = r.Index(context.Background())
+		assert.NoError(t, err)
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is no error
+		assert.NoError(t, err)
+	})
+
+	t.Run("with incomplete index file", func(t *testing.T) {
+		// given: incomplete index file (contains only one TM)
+		removeIndex()
+		err = r.Index(context.Background(), tmIds[0])
+		assert.NoError(t, err)
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is an error for index mismatch
+		assert.ErrorIs(t, err, ErrIndexMismatch)
+	})
+
+	t.Run("with missing index file", func(t *testing.T) {
+		// given: there is no index file
+		removeIndex()
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is an error for missing index
+		assert.ErrorIs(t, err, ErrNoIndex)
+	})
+}
+
 var pTempl = `{
   "@context": [
     "https://www.w3.org/2022/wot/td/v1.1",
