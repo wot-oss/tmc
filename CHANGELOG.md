@@ -4,6 +4,9 @@
 
 ### Added
 
+- Added verb ```check``` with sub-commands ```index``` and ```resources```
+- ```check index```: validates the index wrt stored Thing Models
+- ```check resources```: validates stored Thing Models (path, name, syntax etc.)
 - Put a limit on importable TM name length at 255 characters
 
 ### Changed

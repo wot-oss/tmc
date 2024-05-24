@@ -17,8 +17,6 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-var ErrNotSupported = errors.New("method not supported")
-
 const RelFileUriPlaceholder = "{{ID}}"
 
 type baseHttpRepo struct {
@@ -135,6 +133,15 @@ func (h *HttpRepo) buildUrl(fileId string) string {
 func (h *HttpRepo) Index(context.Context, ...string) error {
 	return ErrNotSupported
 }
+
+func (h *HttpRepo) AnalyzeIndex(context.Context) error {
+	return ErrNotSupported
+}
+
+func (h *HttpRepo) RangeResources(context.Context, model.ResourceFilter, func(model.Resource, error) bool) error {
+	return ErrNotSupported
+}
+
 func (h *HttpRepo) Spec() model.RepoSpec {
 	return h.spec
 }
