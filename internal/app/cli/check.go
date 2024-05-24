@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/wot-oss/tmc/internal/commands/validate"
 	"github.com/wot-oss/tmc/internal/model"
@@ -105,7 +104,7 @@ func checkThingModel(res model.Resource) (CheckResult, error) {
 		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
 	}
 
-	_, err = model.ParseTMID(strings.ToLower(tm.ID))
+	_, err = model.ParseTMID(tm.ID)
 	if err != nil {
 		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
 	}
