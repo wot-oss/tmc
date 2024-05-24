@@ -19,7 +19,7 @@ var (
 	ErrResourceAccess          = errors.New("cannot access resource")
 	ErrResourceInvalid         = errors.New("invalid resource name")
 	ErrResourceNotExists       = errors.New("resource does not exist")
-	ErrIndexMismatch           = errors.New("index mismatch, needs rebuild")
+	ErrIndexMismatch           = errors.New("index does not reflect repository content, maybe needs rebuild")
 	ErrNoIndex                 = errors.New("no table of contents found. Run `index` for this repo")
 )
 

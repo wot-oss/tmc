@@ -101,7 +101,7 @@ func checkThingModel(res model.Resource) (CheckResult, error) {
 	}
 
 	if tm.ID == "" {
-		err = errors.New("id missing")
+		err = errors.New("TM id missing")
 		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
 	}
 
@@ -111,7 +111,7 @@ func checkThingModel(res model.Resource) (CheckResult, error) {
 	}
 
 	if res.RelPath != tm.ID {
-		err = errors.New("id does not match resource location")
+		err = errors.New("TM id does not match resource location")
 		return CheckResult{typ: CheckErr, refName: res.RelPath, text: err.Error()}, err
 	}
 
