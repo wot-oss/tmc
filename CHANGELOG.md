@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+
+## [v0.0.0-alpha.7]
+
 ### Added
 
 - Added verb ```check``` with sub-commands ```index``` and ```resources```
