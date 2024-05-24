@@ -26,12 +26,12 @@ func TestCheck_Resources(t *testing.T) {
 		// given: some ThingModels found in a repository
 		tms := []model.Resource{
 			{ // correct TM
-				Name:    "MyCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-				RelPath: "MyCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
+				Name:    "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+				RelPath: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
 			},
 			{ // another correct TM
-				Name:    "YourCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-				RelPath: "YourCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm6),
+				Name:    "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+				RelPath: "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm6),
 			},
 		}
 
@@ -59,28 +59,28 @@ func TestCheck_Resources(t *testing.T) {
 		// given: some ThingModels found in a repository
 		tms := []model.Resource{
 			{ // correct TM
-				Name:    "MyCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-				RelPath: "MyCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
+				Name:    "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+				RelPath: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
 			},
 			{ // missing id
-				Name:    "MyCompany/BarTech/BazLamp/v0.0.2-20240101130000-2fc13316b7d8.tm.json",
-				RelPath: "MyCompany/BarTech/BazLamp/v0.0.2-20240101130000-2fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm2),
+				Name:    "mycompany/bartech/bazlamp/v0.0.2-20240101130000-2fc13316b7d8.tm.json",
+				RelPath: "mycompany/bartech/bazlamp/v0.0.2-20240101130000-2fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm2),
 			},
 			{ // invalid id
-				Name:    "MyCompany/BarTech/BazLamp/v0.0.3-20240101140000-3fc13316b7d8.tm.json",
-				RelPath: "MyCompany/BarTech/BazLamp/v0.0.3-20240101140000-3fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm3),
+				Name:    "mycompany/bartech/bazlamp/v0.0.3-20240101140000-3fc13316b7d8.tm.json",
+				RelPath: "mycompany/bartech/bazlamp/v0.0.3-20240101140000-3fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm3),
 			},
 			{ // missing MPN
-				Name:    "MyCompany/BarTech/BazLamp/v0.0.4-20240101150000-4fc13316b7d8.tm.json",
-				RelPath: "MyCompany/BarTech/BazLamp/v0.0.4-20240101150000-4fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm4),
+				Name:    "mycompany/bartech/bazlamp/v0.0.4-20240101150000-4fc13316b7d8.tm.json",
+				RelPath: "mycompany/bartech/bazlamp/v0.0.4-20240101150000-4fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm4),
 			},
 			{ // invalid json
-				Name:    "MyCompany/BarTech/BazLamp/v0.0.5-20240101160000-5fc13316b7d8.tm.json",
-				RelPath: "MyCompany/BarTech/BazLamp/v0.0.5-20240101160000-5fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm5),
+				Name:    "mycompany/bartech/bazlamp/v0.0.5-20240101160000-5fc13316b7d8.tm.json",
+				RelPath: "mycompany/bartech/bazlamp/v0.0.5-20240101160000-5fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm5),
 			},
 			{ // id does not match resource location
-				Name:    "MyCompany/BarTech/BazLamp/v0.0.6-20240101160000-5fc13316b7d8.tm.json",
-				RelPath: "MyCompany/BarTech/BazLamp/v0.0.6-20240101160000-5fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
+				Name:    "mycompany/bartech/bazlamp/v0.0.6-20240101160000-5fc13316b7d8.tm.json",
+				RelPath: "mycompany/bartech/bazlamp/v0.0.6-20240101160000-5fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
 			},
 		}
 
@@ -113,8 +113,8 @@ func TestCheck_Resources(t *testing.T) {
 		// given: some ThingModels found in a repository
 		tm := model.Resource{
 			// correct TM
-			Name:    "MyCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-			RelPath: "MyCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
+			Name:    "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+			RelPath: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
 		}
 
 		someVisitError := errors.New("some visit error")
@@ -173,7 +173,7 @@ func TestCheck_Index(t *testing.T) {
 var tm1 = `{
   "@context": [ "https://www.w3.org/2022/wot/td/v1.1", { "schema":"https://schema.org/" }],
   "@type": "tm:ThingModel",
-  "id": "MyCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+  "id": "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
   "title": "Lamp Thing Model",
   "schema:author": { "schema:name": "MyCompany" },
   "schema:manufacturer": { "schema:name": "BarTech" },
@@ -208,7 +208,7 @@ var tm3 = `{
 var tm4 = `{
   "@context": [ "https://www.w3.org/2022/wot/td/v1.1", { "schema":"https://schema.org/" }],
   "@type": "tm:ThingModel",
-  "id": "MyCompany/BarTech/BazLamp/v0.0.4-20240206142430-2cc13316b7d8.tm.json",
+  "id": "mycompany/bartech/bazlamp/v0.0.4-20240206142430-2cc13316b7d8.tm.json",
   "title": "Lamp Thing Model",
   "schema:author": { "schema:name": "MyCompany" },
   "schema:manufacturer": { "schema:name": "BarTech" }, 
@@ -225,7 +225,7 @@ var tm5 = `
 var tm6 = `{
   "@context": [ "https://www.w3.org/2022/wot/td/v1.1", { "schema":"https://schema.org/" }],
   "@type": "tm:ThingModel",
-  "id": "YourCompany/BarTech/BazLamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+  "id": "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
   "title": "Lamp Thing Model",
   "schema:author": { "schema:name": "YourCompany" },
   "schema:manufacturer": { "schema:name": "BarTech" },
