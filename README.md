@@ -1,6 +1,7 @@
 # Thing Model Catalog CLI
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/wot-oss/tmc)](https://goreportcard.com/report/github.com/wot-oss/tmc) [![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/wot-oss/tmc)](https://github.com/wot-oss/tmc/releases) [![PkgGoDev](https://img.shields.io/badge/go.dev-docs-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/wot-oss/tmc)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc?ref=badge_shield)
 
 ![Thing Model Catalog Logo](https://raw.githubusercontent.com/wot-oss/tmc/main/docs/media/tm-catalog-logo.svg)
 ---
@@ -98,3 +99,7 @@ tmc fetch <NAME> -o .
 
 [1]: https://www.w3.org/TR/wot-thing-description11/
 [2]: https://github.com/wot-oss/tmc/releases
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc?ref=badge_large)
