@@ -15,29 +15,6 @@ func resetSearchFlags(flags *FilterFlags) {
 	flags.Search = ""
 }
 
-func TestFilterFlagsSet(t *testing.T) {
-	underTest := FilterFlags{}
-
-	resetSearchFlags(&underTest)
-	underTest.FilterAuthor = "some value"
-	assert.True(t, underTest.IsSet())
-
-	resetSearchFlags(&underTest)
-	underTest.FilterManufacturer = "some value"
-	assert.True(t, underTest.IsSet())
-
-	resetSearchFlags(&underTest)
-	underTest.FilterMpn = "some value"
-	assert.True(t, underTest.IsSet())
-
-	resetSearchFlags(&underTest)
-	underTest.Search = "some value"
-	assert.True(t, underTest.IsSet())
-
-	resetSearchFlags(&underTest)
-	assert.False(t, underTest.IsSet())
-}
-
 func TestConvertSearchParams(t *testing.T) {
 
 	// given: no filter params set via CLI flags

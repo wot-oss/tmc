@@ -164,10 +164,11 @@ func Test_ListInventory(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", mock.Anything, &model.SearchParams{Author: []string{"a-corp", "b-corp"}}).Return(listResult, nil).Once()
+		searchParams := &model.SearchParams{Author: []string{"a-corp", "b-corp"}}
+		r.On("List", mock.Anything, searchParams).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: list all
-		res, err := underTest.ListInventory(context.Background(), &model.SearchParams{Author: []string{"a-corp", "b-corp"}})
+		res, err := underTest.ListInventory(context.Background(), searchParams)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned
@@ -177,12 +178,13 @@ func Test_ListInventory(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
 		r2 := mocks.NewRepo(t)
-		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
-		r2.On("List", mock.Anything, &model.SearchParams{}).Return(model.SearchResult{}, errors.New("unexpected")).Once()
+		var sp *model.SearchParams
+		r.On("List", mock.Anything, sp).Return(listResult, nil).Once()
+		r2.On("List", mock.Anything, sp).Return(model.SearchResult{}, errors.New("unexpected")).Once()
 		r2.On("Spec").Return(model.NewRepoSpec("r2")).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r, r2))
 		// when: list all
-		res, err := underTest.ListInventory(context.Background(), &model.SearchParams{})
+		res, err := underTest.ListInventory(context.Background(), sp)
 		// then: there is an error of type repos.RepoAccessError
 		var aErr *repos.RepoAccessError
 		assert.ErrorAs(t, err, &aErr)

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -224,27 +223,8 @@ func convertParams(params any) *model.SearchParams {
 		search = mpnsParams.Search
 	}
 
-	var searchParams model.SearchParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterName != nil || search != nil {
-		searchParams = model.SearchParams{}
-		if filterAuthor != nil {
-			searchParams.Author = strings.Split(*filterAuthor, ",")
-		}
-		if filterManufacturer != nil {
-			searchParams.Manufacturer = strings.Split(*filterManufacturer, ",")
-		}
-		if filterMpn != nil {
-			searchParams.Mpn = strings.Split(*filterMpn, ",")
-		}
-		if filterName != nil {
-			searchParams.Name = *filterName
-			searchParams.Options.NameFilterType = model.PrefixMatch
-		}
-		if search != nil {
-			searchParams.Query = *search
-		}
-	}
-	return &searchParams
+	return model.ToSearchParams(filterAuthor, filterManufacturer, filterMpn, filterName, search,
+		&model.SearchOptions{NameFilterType: model.PrefixMatch})
 }
 
 func toInventoryResponse(ctx context.Context, res model.SearchResult) server.InventoryResponse {

@@ -25,7 +25,7 @@ var repoListCmd = &cobra.Command{
 
 func init() {
 	cmd.RootCmd.AddCommand(repoCmd)
-	cmd.RootCmd.AddCommand(repoListCmd)
+	repoCmd.AddCommand(repoListCmd)
 }
 
 func repoList(cmd *cobra.Command, args []string) {

@@ -35,6 +35,9 @@ func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
 	if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
 		return true
 	}
+	if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
+		return true
+	}
 	if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
 		return true
 	}
@@ -69,6 +72,7 @@ func (idx *Index) Filter(search *SearchParams) {
 	if search == nil {
 		return
 	}
+	search.Sanitize()
 	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
 		if !entry.MatchesSearchText(search.Query) {
 			return true
@@ -120,7 +124,7 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	if len(acceptedValues) == 0 {
 		return true
 	}
-	return slices.Contains(acceptedValues, value)
+	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
 // findByName searches by name and returns a pointer to the IndexEntry if found
@@ -145,9 +149,9 @@ func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 	if idxEntry == nil {
 		idxEntry = &IndexEntry{
 			Name:         tmid.Name,
-			Manufacturer: SchemaManufacturer{Name: tmid.Manufacturer},
-			Mpn:          tmid.Mpn,
-			Author:       SchemaAuthor{Name: tmid.Author},
+			Manufacturer: SchemaManufacturer{Name: ctm.Manufacturer.Name},
+			Mpn:          ctm.Mpn,
+			Author:       SchemaAuthor{Name: ctm.Author.Name},
 		}
 		idx.Data = append(idx.Data, idxEntry)
 	}

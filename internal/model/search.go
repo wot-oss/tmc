@@ -3,12 +3,15 @@ package model
 import (
 	"slices"
 	"strings"
+
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const (
 	FullMatch FilterType = iota
 	PrefixMatch
 )
+const DefaultListSeparator = ","
 
 type SearchResult struct {
 	Entries []FoundEntry
@@ -103,10 +106,50 @@ type SearchParams struct {
 	Options      SearchOptions
 }
 
+func (p *SearchParams) Sanitize() {
+	p.Author = sanitizeList(p.Author)
+	p.Manufacturer = sanitizeList(p.Manufacturer)
+	p.Mpn = sanitizeList(p.Mpn)
+}
+
 type FilterType byte
 
 type SearchOptions struct {
 	// NameFilterType specifies whether SearchParams.Name must match a prefix or the full length of a TM name
 	// Note that using FullMatch effectively limits the search result to at most one FoundEntry
 	NameFilterType FilterType
+}
+
+func ToSearchParams(author, manufacturer, mpn, name, query *string, opts *SearchOptions) *SearchParams {
+	var search *SearchParams
+	isSet := func(s *string) bool { return s != nil && *s != "" }
+	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(name) || isSet(query) {
+		search = &SearchParams{}
+		if isSet(author) {
+			search.Author = strings.Split(*author, DefaultListSeparator)
+		}
+		if isSet(manufacturer) {
+			search.Manufacturer = strings.Split(*manufacturer, DefaultListSeparator)
+		}
+		if isSet(mpn) {
+			search.Mpn = strings.Split(*mpn, DefaultListSeparator)
+		}
+		if isSet(query) {
+			search.Query = *query
+		}
+		if isSet(name) {
+			search.Name = *name
+		}
+		if opts != nil {
+			search.Options = *opts
+		}
+	}
+	return search
+}
+
+func sanitizeList(l []string) []string {
+	for i, v := range l {
+		l[i] = utils.SanitizeName(v)
+	}
+	return l
 }

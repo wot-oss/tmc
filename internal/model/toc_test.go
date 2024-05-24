@@ -144,6 +144,39 @@ func TestIndex_Filter(t *testing.T) {
 		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
 		assert.NotNil(t, idx.findByName("man/mpn"))
 	})
+	t.Run("filter by sanitized key fields", func(t *testing.T) {
+		idx := &Index{
+			Meta: IndexMeta{},
+			Data: []*IndexEntry{
+				{
+					Name:         "aut-hor/man-ufacturer/m-pn",
+					Manufacturer: SchemaManufacturer{"Man&ufacturer"},
+					Mpn:          "M/PN",
+					Author:       SchemaAuthor{"aut^hor"},
+					Versions: []IndexVersion{
+						{
+							Description: "d2",
+							Version:     Version{"1.0.0"},
+							TMID:        "aut/man/mpn/v1.0.0-20231023121314-abcd12345680.tm.json",
+							Digest:      "abcd12345680",
+							TimeStamp:   "20231023121314",
+						},
+					},
+				},
+			},
+		}
+		author := "aut^hor"
+		manuf := "Man&ufacturer"
+		mpn := "M/PN"
+		idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil))
+		assert.Len(t, idx.Data, 1)
+
+		author = "Aut%hor"
+		manuf = "Man-ufacturer"
+		mpn = "M&pN"
+		idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil))
+		assert.Len(t, idx.Data, 1)
+	})
 }
 
 func prepareIndex() *Index {
@@ -237,6 +270,29 @@ func prepareIndex() *Index {
 						TMID:        "aut/man/mpn2/v1.0.1-20231024121314-abcd12345681.tm.json",
 						Digest:      "abcd12345681",
 						TimeStamp:   "20231024121314",
+					},
+				},
+			},
+		},
+	}
+	return idx
+}
+func prepareTinyIndex() *Index {
+	idx := &Index{
+		Meta: IndexMeta{},
+		Data: []*IndexEntry{
+			{
+				Name:         "aut-hor/man-ufacturer/m-pn",
+				Manufacturer: SchemaManufacturer{"Man&ufacturer"},
+				Mpn:          "M/PN",
+				Author:       SchemaAuthor{"aut^hor"},
+				Versions: []IndexVersion{
+					{
+						Description: "d2",
+						Version:     Version{"1.0.0"},
+						TMID:        "aut/man/mpn/v1.0.0-20231023121314-abcd12345680.tm.json",
+						Digest:      "abcd12345680",
+						TimeStamp:   "20231023121314",
 					},
 				},
 			},
