@@ -109,25 +109,35 @@ func CreateFile(rootDir, filePath string, content []byte) error {
 	return nil
 }
 
-// ReplaceStdout temporarily replaces os.Stdout with a buffer and captures the standard output in a string
+// ReplaceStdout temporarily replaces os.Stdout with a buffer and captures the standard output in a string.
 // Use `defer restore()` to restore the original os.Stdout. Call getOutput once done writing to standard output.
 func ReplaceStdout() (restore func(), getOutput func() string) {
-	old := os.Stdout
-	restore = func() {
-		os.Stdout = old
+	return replaceFileDescriptor(&os.Stdout)
+}
+
+// ReplaceStderr temporarily replaces os.Stderr with a buffer and captures the standard error in a string.
+// Use `defer restore()` to restore the original os.Stderr. Call getOutput once done writing to standard error.
+func ReplaceStderr() (restore func(), getOutput func() string) {
+	return replaceFileDescriptor(&os.Stderr)
+}
+
+func replaceFileDescriptor(fd **os.File) (func(), func() string) {
+	old := *fd
+	restore := func() {
+		*fd = old
 	}
 
 	rr, w, _ := os.Pipe()
-	os.Stdout = w
+	*fd = w
 	out := make(chan string, 1)
 	go func() {
 		var buf bytes.Buffer
 		_, _ = io.Copy(&buf, rr)
 		out <- buf.String()
 	}()
-	getOutput = func() string {
+	getOutput := func() string {
 		_ = w.Close()
 		return <-out
 	}
-	return
+	return restore, getOutput
 }

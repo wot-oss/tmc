@@ -22,9 +22,13 @@ func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams) 
 		return err
 	}
 
+	if len(errs) > 0 {
+		err = errs[0]
+	}
+
 	printIndex(index)
 	printErrs("Errors occurred while listing:", errs)
-	return nil
+	return err
 }
 
 // TODO: use better table writer with eliding etc.
