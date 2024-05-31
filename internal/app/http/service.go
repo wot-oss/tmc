@@ -141,15 +141,17 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 
 	repo, err := repos.Get(pushRepo)
 	if err != nil {
-		return repos.NewErrorPushResult(err)
+		return repos.PushResult{}, err
 	}
 	res, err := commands.NewPushCommand(time.Now).PushFile(ctx, file, repo, opts)
 	if err != nil {
 		return res, err
 	}
-	err = repo.Index(ctx, res.TmID)
-	if err != nil {
-		return repos.NewErrorPushResult(err)
+	if res.IsSuccessful() {
+		err = repo.Index(ctx, res.TmID)
+		if err != nil {
+			return repos.PushResult{}, err
+		}
 	}
 
 	return res, nil

@@ -202,8 +202,10 @@ func TestFileRepo_Push(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 
 	id2 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-a49617d2e4fc.tm.json"
-	_, err = r.Push(context.Background(), model.MustParseTMID(id2), []byte("{}"), PushOptions{})
-	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}, err)
+	res, err := r.Push(context.Background(), model.MustParseTMID(id2), []byte("{}"), PushOptions{})
+	assert.NoError(t, err)
+	expCErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}
+	assert.Equal(t, PushResult{Type: PushResultTMExists, Message: expCErr.Error(), Err: expCErr}, res)
 
 	id3 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-f49617d2e4fc.tm.json"
 	_, err = r.Push(context.Background(), model.MustParseTMID(id3), []byte("{}"), PushOptions{})
@@ -211,10 +213,10 @@ func TestFileRepo_Push(t *testing.T) {
 	assert.FileExists(t, filepath.Join(temp, id3))
 
 	id4 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-049617d2e4fc.tm.json"
-	res, err := r.Push(context.Background(), model.MustParseTMID(id4), []byte("{\"val\":1}"), PushOptions{})
+	res, err = r.Push(context.Background(), model.MustParseTMID(id4), []byte("{\"val\":1}"), PushOptions{})
 	assert.NoError(t, err)
-	expCErr := &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}
-	assert.Equal(t, PushResult{PushResultWarning, expCErr.Error(), id4}, res)
+	expCErr = &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}
+	assert.Equal(t, PushResult{Type: PushResultWarning, TmID: id4, Message: expCErr.Error(), Err: expCErr}, res)
 
 }
 

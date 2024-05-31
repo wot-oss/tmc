@@ -200,12 +200,14 @@ func TestPushToRepoUnversioned(t *testing.T) {
 
 	var firstSaved string
 	_, raw, err := utils.ReadRequiredFile("../../test/data/push/omnilamp.json")
+	assert.NoError(t, err)
+	var testTMDir string
 	t.Run("write first TM", func(t *testing.T) {
 
-		assert.NoError(t, err)
 		res, err := c.PushFile(context.Background(), raw, repo, repos.PushOptions{})
 		assert.NoError(t, err)
-		testTMDir := filepath.Join(root, filepath.Dir(res.TmID))
+		assert.True(t, res.IsSuccessful())
+		testTMDir = filepath.Join(root, filepath.Dir(res.TmID))
 		t.Logf("test TM dir: %s", testTMDir)
 		_, err = os.Stat(filepath.Join(root, res.TmID))
 		assert.NoError(t, err)
@@ -217,9 +219,13 @@ func TestPushToRepoUnversioned(t *testing.T) {
 	t.Run("attempt overwriting with the same content", func(t *testing.T) {
 		// attempt overwriting with the same content - no change
 		res, err := c.PushFile(context.Background(), raw, repo, repos.PushOptions{})
-		var errExists *repos.ErrTMIDConflict
-		assert.ErrorAs(t, err, &errExists)
-		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(res.TmID)))
+		assert.NoError(t, err)
+		assert.False(t, res.IsSuccessful())
+		if assert.NotNil(t, res.Err) {
+			assert.Equal(t, repos.PushResultTMExists, res.Type)
+			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
+		}
+		entries, _ := os.ReadDir(testTMDir)
 		assert.Len(t, entries, 1)
 		assert.Equal(t, firstSaved, entries[0].Name())
 	})
@@ -229,17 +235,21 @@ func TestPushToRepoUnversioned(t *testing.T) {
 		raw = bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing"), 1)
 		res, err := c.PushFile(context.Background(), raw, repo, repos.PushOptions{})
 		assert.NoError(t, err)
-		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(res.TmID)))
+		assert.True(t, res.IsSuccessful())
+		entries, _ := os.ReadDir(testTMDir)
 		assert.Len(t, entries, 2)
 		assert.Equal(t, firstSaved, entries[0].Name())
 	})
 	t.Run("change the file back and write", func(t *testing.T) {
-		// change the file back and write - no change again
+		// change the file back and write - no change
 		raw = bytes.Replace(raw, []byte("Lamp Thing"), []byte("Lamp Thing Model"), 1)
 		res, err := c.PushFile(context.Background(), raw, repo, repos.PushOptions{})
-		var errExists *repos.ErrTMIDConflict
-		assert.ErrorAs(t, err, &errExists)
-		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(res.TmID)))
+		assert.NoError(t, err)
+		if assert.NotNil(t, res.Err) {
+			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
+		}
+		assert.False(t, res.IsSuccessful())
+		entries, _ := os.ReadDir(testTMDir)
 		assert.Len(t, entries, 2)
 		assert.Equal(t, firstSaved, entries[0].Name())
 	})
@@ -247,7 +257,8 @@ func TestPushToRepoUnversioned(t *testing.T) {
 		// force writing the changed back file with option ForcePush - saves as new version
 		res, err := c.PushFile(context.Background(), raw, repo, repos.PushOptions{Force: true})
 		assert.NoError(t, err)
-		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(res.TmID)))
+		assert.True(t, res.IsSuccessful())
+		entries, _ := os.ReadDir(testTMDir)
 		assert.Len(t, entries, 3)
 		assert.Equal(t, firstSaved, entries[0].Name())
 	})
@@ -255,17 +266,16 @@ func TestPushToRepoUnversioned(t *testing.T) {
 	t.Run("write multiple content versions in the same second", func(t *testing.T) {
 		c = NewPushCommand(time.Now) // use real clock to be able to produce timestamp clash
 		// change content and write multiple times in the same second - at least one of the push results includes a warning
-		var id string
 		warningFound := false
 		for i := 0; i < 5; i++ {
 			content := bytes.Replace(raw, []byte("Lamp Thing Model"), []byte("Lamp Thing Model"+strconv.Itoa(i)), 1)
 			var err error
 			res, err := c.PushFile(context.Background(), content, repo, repos.PushOptions{})
-			id = res.TmID
 			assert.NoError(t, err)
+			assert.True(t, res.IsSuccessful())
 			warningFound = warningFound || res.Type == repos.PushResultWarning
 		}
-		entries, _ := os.ReadDir(filepath.Join(root, filepath.Dir(id)))
+		entries, _ := os.ReadDir(testTMDir)
 		assert.Len(t, entries, 8)
 		assert.True(t, warningFound)
 	})

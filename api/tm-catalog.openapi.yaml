@@ -857,9 +857,11 @@ components:
         tmID:
           type: string
           example: 'mycompany/bartech/bazlamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
-        warning:
+        message:
           type: string
           example: "a TM with the same timestamp but different content exists under ID: mycompany/bartech/bazlamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json"
+        code:
+          type: string
     ErrorResponse:
       required:
         - title

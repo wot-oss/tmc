@@ -284,8 +284,10 @@ func toPushThingModelResponse(res repos.PushResult) server.PushThingModelRespons
 	data := server.PushThingModelResult{
 		TmID: res.TmID,
 	}
+	data.Message = &res.Message
 	if res.Type == repos.PushResultWarning {
-		data.Warning = &res.Text
+		code := res.Err.Code()
+		data.Code = &code
 	}
 	return server.PushThingModelResponse{
 		Data: data,

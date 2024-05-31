@@ -42,16 +42,16 @@ func (c *PushCommand) PushFile(ctx context.Context, raw []byte, repo repos.Repo,
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
 		log.Error("validation failed", "error", err)
-		return repos.NewErrorPushResult(err)
+		return repos.PushResult{}, err
 	}
 	prepared, id, err := prepareToImport(c.now, tm, raw, opts.OptPath)
 	if err != nil {
-		return repos.NewErrorPushResult(err)
+		return repos.PushResult{}, err
 	}
 
 	res, err := repo.Push(ctx, id, prepared, opts)
 	if err == nil {
-		log.Info("pushed successfully")
+		log.Info("pushed execuded without error")
 	}
 	return res, err
 }

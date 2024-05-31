@@ -57,37 +57,39 @@ func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) 
 func (f *FileRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error) {
 	if len(raw) == 0 {
 		err := errors.New("nothing to write")
-		return NewErrorPushResult(err)
+		return PushResult{}, err
 	}
 	idS := id.String()
 	fullPath, dir, _ := f.filenames(idS)
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
 		err := fmt.Errorf("could not create directory %s: %w", dir, err)
-		return NewErrorPushResult(err)
+		return PushResult{}, err
 	}
 
 	match, existingId := f.getExistingID(idS)
-	if match == idMatchDigest && !opts.Force {
-		slog.Default().Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
+	log := slog.Default()
+	log.Debug(fmt.Sprintf("match: %v, existingId: %v", match, existingId))
+	if (match == idMatchDigest || match == idMatchFull) && !opts.Force {
+		log.Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
 		err := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
-		return PushResult{PushResultTMExists, err.Error(), existingId}, err
+		return PushResult{Type: PushResultTMExists, Message: err.Error(), Err: err}, nil
 	}
 
 	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)
 	if err != nil {
 		err := fmt.Errorf("could not write TM to catalog: %v", err)
-		return NewErrorPushResult(err)
+		return PushResult{}, err
 	}
-	slog.Default().Info("saved Thing Model file", "filename", fullPath)
+	log.Info("saved Thing Model file", "filename", fullPath)
 
 	if match == idMatchTimestamp && !opts.Force {
 		msg := fmt.Sprintf("Version and timestamp clash with existing %v", existingId)
-		slog.Default().Info(msg)
+		log.Info(msg)
 		err := &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: existingId}
-		return PushResult{PushResultWarning, err.Error(), idS}, nil
+		return PushResult{Type: PushResultWarning, TmID: idS, Message: err.Error(), Err: err}, nil
 	}
-	return PushResult{PushResultOK, "", idS}, nil
+	return PushResult{Type: PushResultOK, TmID: idS, Message: "OK"}, nil
 }
 
 func (f *FileRepo) Delete(ctx context.Context, id string) error {

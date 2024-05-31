@@ -40,10 +40,9 @@ var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
 type PushResultType int
 
 const (
-	PushResultOK = PushResultType(iota)
+	PushResultOK = PushResultType(iota + 1)
 	PushResultWarning
 	PushResultTMExists
-	PushResultError
 )
 
 func (t PushResultType) String() string {
@@ -54,8 +53,6 @@ func (t PushResultType) String() string {
 		return "warning"
 	case PushResultTMExists:
 		return "exists"
-	case PushResultError:
-		return "error"
 	default:
 		return "unknown"
 	}
@@ -63,16 +60,19 @@ func (t PushResultType) String() string {
 
 type PushResult struct {
 	Type PushResultType
-	Text string
-	TmID string
+	// TmID is not empty when the result is successful, i.e. Type is OK or Warning
+	TmID    string
+	Message string
+	// Err is not nil when there was a conflict during push, i.e. Type is TMExists or Warning
+	Err *ErrTMIDConflict
 }
 
 func (r PushResult) String() string {
-	return fmt.Sprintf("%v\t %s", r.Type, r.Text)
+	return fmt.Sprintf("%v\t %s", r.Type, r.Message)
 }
 
-func NewErrorPushResult(err error) (PushResult, error) {
-	return PushResult{PushResultError, err.Error(), ""}, err
+func (t PushResult) IsSuccessful() bool {
+	return t.Type == PushResultOK || t.Type == PushResultWarning
 }
 
 //go:generate mockery --name Repo --outpkg mocks --output mocks

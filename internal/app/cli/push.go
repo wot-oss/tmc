@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -55,9 +54,9 @@ func (p *PushExecutor) Push(ctx context.Context, filename string, spec model.Rep
 		err = pushErr
 	}
 
-	okIds := getOkIds(res)
-	if len(okIds) > 0 {
-		indexErr := repo.Index(ctx, okIds...)
+	successfulIds := getSuccessfulIds(res)
+	if len(successfulIds) > 0 {
+		indexErr := repo.Index(ctx, successfulIds...)
 		if indexErr != nil {
 			Stderrf("Cannot create index: %v", indexErr)
 			return res, indexErr
@@ -66,10 +65,10 @@ func (p *PushExecutor) Push(ctx context.Context, filename string, spec model.Rep
 	return res, err
 }
 
-func getOkIds(res []repos.PushResult) []string {
+func getSuccessfulIds(res []repos.PushResult) []string {
 	var r []string
 	for _, pr := range res {
-		if pr.Type == repos.PushResultOK {
+		if pr.IsSuccessful() {
 			r = append(r, pr.TmID)
 		}
 	}
@@ -104,17 +103,22 @@ func (p *PushExecutor) pushFile(ctx context.Context, filename string, repo repos
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
-		return repos.NewErrorPushResult(fmt.Errorf("error pushing file %s: %w", filename, err))
+		return repos.PushResult{}, fmt.Errorf("error pushing file %s: %w", filename, err)
 	}
 	res, err := commands.NewPushCommand(p.now).PushFile(ctx, raw, repo, opts)
 	if err != nil {
-		var errExists *repos.ErrTMIDConflict
-		if errors.As(err, &errExists) {
-			return repos.PushResult{repos.PushResultTMExists, fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId), errExists.ExistingId}, nil
-		}
 		err := fmt.Errorf("error pushing file %s: %w", filename, err)
-		return repos.NewErrorPushResult(err)
+		return repos.PushResult{}, err
 	}
-
-	return repos.PushResult{repos.PushResultOK, fmt.Sprintf("file %s pushed as %s", filename, res.TmID), res.TmID}, nil
+	switch res.Type {
+	case repos.PushResultTMExists:
+		res.Message = fmt.Sprintf("file %s already exists as %s", filename, res.Err.ExistingId)
+	case repos.PushResultWarning:
+		res.Message = fmt.Sprintf("file %s pushed as %s. TM's version and timestamp clash with existing one %s", filename, res.TmID, res.Err.ExistingId)
+	case repos.PushResultOK:
+		res.Message = fmt.Sprintf("file %s pushed as %s", filename, res.TmID)
+	default:
+		return res, fmt.Errorf("unknown PushResult type: %v", res.Type)
+	}
+	return res, nil
 }

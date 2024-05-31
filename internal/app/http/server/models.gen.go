@@ -107,8 +107,9 @@ type PushThingModelResponse struct {
 
 // PushThingModelResult defines model for PushThingModelResult.
 type PushThingModelResult struct {
+	Code    *string `json:"code,omitempty"`
+	Message *string `json:"message,omitempty"`
 	TmID    string  `json:"tmID"`
-	Warning *string `json:"warning,omitempty"`
 }
 
 // SchemaAuthor defines model for SchemaAuthor.
