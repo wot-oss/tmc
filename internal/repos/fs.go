@@ -73,7 +73,7 @@ func (f *FileRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts Pus
 	if (match == idMatchDigest || match == idMatchFull) && !opts.Force {
 		log.Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
 		err := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
-		return PushResult{Type: PushResultTMExists, Message: err.Error(), Err: err}, nil
+		return PushResult{Type: PushResultTMExists, Message: err.Error(), Err: err}, err
 	}
 
 	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)

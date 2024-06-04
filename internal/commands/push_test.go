@@ -219,9 +219,10 @@ func TestPushToRepoUnversioned(t *testing.T) {
 	t.Run("attempt overwriting with the same content", func(t *testing.T) {
 		// attempt overwriting with the same content - no change
 		res, err := c.PushFile(context.Background(), raw, repo, repos.PushOptions{})
-		assert.NoError(t, err)
+		assert.Error(t, err)
 		assert.False(t, res.IsSuccessful())
 		if assert.NotNil(t, res.Err) {
+			assert.Equal(t, err, res.Err)
 			assert.Equal(t, repos.PushResultTMExists, res.Type)
 			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
 		}
@@ -244,9 +245,10 @@ func TestPushToRepoUnversioned(t *testing.T) {
 		// change the file back and write - no change
 		raw = bytes.Replace(raw, []byte("Lamp Thing"), []byte("Lamp Thing Model"), 1)
 		res, err := c.PushFile(context.Background(), raw, repo, repos.PushOptions{})
-		assert.NoError(t, err)
+		assert.Error(t, err)
 		if assert.NotNil(t, res.Err) {
 			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
+			assert.Equal(t, err, res.Err)
 		}
 		assert.False(t, res.IsSuccessful())
 		entries, _ := os.ReadDir(testTMDir)

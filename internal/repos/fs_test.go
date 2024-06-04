@@ -203,8 +203,8 @@ func TestFileRepo_Push(t *testing.T) {
 
 	id2 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-a49617d2e4fc.tm.json"
 	res, err := r.Push(context.Background(), model.MustParseTMID(id2), []byte("{}"), PushOptions{})
-	assert.NoError(t, err)
 	expCErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}
+	assert.Equal(t, expCErr, err)
 	assert.Equal(t, PushResult{Type: PushResultTMExists, Message: expCErr.Error(), Err: expCErr}, res)
 
 	id3 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-f49617d2e4fc.tm.json"
