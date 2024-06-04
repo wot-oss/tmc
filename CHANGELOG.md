@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- ```list, pull, versions```: return exit code 1 if at least one repo returns an error
+
 
 ## [v0.0.0-alpha.7]
 
