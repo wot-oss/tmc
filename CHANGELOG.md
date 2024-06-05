@@ -2,9 +2,16 @@
 
 ## [Unreleased]
 
+### Added
+
+- REST API: added query parameter `force` to POST endpoint `/thing-models` to enforce pushing TMs with same TM name, semantic version and digest
+- REST API: added query parameter `optPath` to POST endpoint `/thing-models` to append optional path parts to the target path (and id)
+
 ### Changed
 
-- ```list, pull, versions```: return exit code 1 if at least one repo returns an error
+- `push`: always reject pushing TMs with same TM name, semantic version and digest by default, but can be enforced by flag `--force`
+- `push`: shows a warning if there is a timestamp collision (retrying after a second has been removed)
+- `list, pull, versions`: return exit code 1 if at least one repo returns an error
 
 
 ## [v0.0.0-alpha.7]
