@@ -75,11 +75,15 @@ func Pull(ctx context.Context, repo model.RepoSpec, search *model.SearchParams, 
 			}
 
 			res, pErr := pullThingModel(ctx, outputPath, version, restoreId)
-			totalRes = append(totalRes, res)
-			if pErr != nil {
+			if err == nil && pErr != nil {
 				err = pErr
 			}
+			totalRes = append(totalRes, res)
 		}
+	}
+
+	if err == nil && len(errs) > 0 {
+		err = errs[0]
 	}
 
 	for _, res := range totalRes {

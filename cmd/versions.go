@@ -40,6 +40,7 @@ func listVersions(cmd *cobra.Command, args []string) {
 	name := args[0]
 	err = cli.ListVersions(context.Background(), spec, name)
 	if err != nil {
+		cli.Stderrf("versions failed")
 		os.Exit(1)
 	}
 }

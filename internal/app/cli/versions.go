@@ -16,9 +16,14 @@ func ListVersions(ctx context.Context, spec model.RepoSpec, name string) error {
 		Stderrf("Could not list versions of %s: %v", name, err)
 		return err
 	}
+
+	if len(errs) > 0 {
+		err = errs[0]
+	}
+
 	printIndexThing(name, indexVersions)
 	printErrs("Errors occurred while listing versions:", errs)
-	return nil
+	return err
 }
 
 func printIndexThing(name string, versions []model.FoundVersion) {
