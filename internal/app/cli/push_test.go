@@ -57,11 +57,12 @@ func TestPushExecutor_Push(t *testing.T) {
 			TmID:    "",
 			Message: cErr.Error(),
 			Err:     cErr,
-		}, nil)
+		}, cErr)
 		res, err := e.Push(context.Background(), "../../../test/data/push/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.PushOptions{})
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, repos.PushResultTMExists, res[0].Type)
+		assert.Equal(t, cErr, res[0].Err)
 	})
 
 	t.Run("push fails", func(t *testing.T) {
@@ -115,7 +116,7 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 				TmID:    "",
 				Message: cErr.Error(),
 				Err:     cErr,
-			}, nil)
+			}, cErr)
 		tmid = model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123246-575dfac219e2.tm.json")
 		cErr = &repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
 			ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"}
@@ -125,7 +126,7 @@ func TestPushExecutor_Push_Directory(t *testing.T) {
 				TmID:    "",
 				Message: cErr.Error(),
 				Err:     cErr,
-			}, nil)
+			}, cErr)
 		r.On("Index", mock.Anything,
 			"omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
 			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)

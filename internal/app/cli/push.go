@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -107,18 +108,20 @@ func (p *PushExecutor) pushFile(ctx context.Context, filename string, repo repos
 	}
 	res, err := commands.NewPushCommand(p.now).PushFile(ctx, raw, repo, opts)
 	if err != nil {
+		var errExists *repos.ErrTMIDConflict
+		if errors.As(err, &errExists) {
+			return repos.PushResult{Type: repos.PushResultTMExists, Message: fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId), Err: errExists}, nil
+		}
 		err := fmt.Errorf("error pushing file %s: %w", filename, err)
-		return repos.PushResult{}, err
+		return res, err
 	}
 	switch res.Type {
-	case repos.PushResultTMExists:
-		res.Message = fmt.Sprintf("file %s already exists as %s", filename, res.Err.ExistingId)
 	case repos.PushResultWarning:
 		res.Message = fmt.Sprintf("file %s pushed as %s. TM's version and timestamp clash with existing one %s", filename, res.TmID, res.Err.ExistingId)
 	case repos.PushResultOK:
 		res.Message = fmt.Sprintf("file %s pushed as %s", filename, res.TmID)
 	default:
-		return res, fmt.Errorf("unknown PushResult type: %v", res.Type)
+		return res, fmt.Errorf("unexpected PushResult type: %v", res.Type)
 	}
-	return res, nil
+	return res, err
 }
