@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 type TmcHandler struct {
@@ -110,7 +112,7 @@ func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request
 	_, _ = w.Write(nil)
 }
 
-func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
+func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request, p server.PushThingModelParams) {
 	contentType := r.Header.Get(HeaderContentType)
 
 	if contentType != MimeJSON {
@@ -127,13 +129,22 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tmID, err := h.Service.PushThingModel(r.Context(), b)
+	opts := repos.PushOptions{}
+	if p.Force != nil {
+		parsedForce, err := strconv.ParseBool(*p.Force)
+		opts.Force = parsedForce && err == nil
+	}
+	if p.OptPath != nil {
+		opts.OptPath = *p.OptPath
+	}
+
+	res, err := h.Service.PushThingModel(r.Context(), b, opts)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
-	resp := toPushThingModelResponse(tmID)
+	resp := toPushThingModelResponse(res)
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
 }
