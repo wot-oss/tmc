@@ -99,9 +99,20 @@ func restoreExternalId(raw []byte) []byte {
 
 func FetchByName(ctx context.Context, spec model.RepoSpec, fn model.FetchName, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
 	log := slog.Default()
-	res, err, errs := NewVersionsCommand().ListVersions(ctx, spec, fn.Name)
+	id, foundIn, err, errs := ResolveFetchName(ctx, spec, fn)
 	if err != nil {
 		return "", nil, err, errs
+	}
+
+	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
+	tmid, bytes, err, _ := FetchByTMID(ctx, foundIn, id, restoreId)
+	return tmid, bytes, err, errs
+}
+
+func ResolveFetchName(ctx context.Context, spec model.RepoSpec, fn model.FetchName) (string, model.RepoSpec, error, []*repos.RepoAccessError) {
+	res, err, errs := NewVersionsCommand().ListVersions(ctx, spec, fn.Name)
+	if err != nil {
+		return "", model.RepoSpec{}, err, errs
 	}
 	versions := make([]model.FoundVersion, len(res))
 	copy(versions, res)
@@ -112,22 +123,19 @@ func FetchByName(ctx context.Context, spec model.RepoSpec, fn model.FetchName, r
 	if len(fn.Semver) == 0 {
 		id, foundIn, err = findMostRecentVersion(versions)
 		if err != nil {
-			return "", nil, err, errs
+			return id, foundIn, err, errs
 		}
 	} else {
 		if _, err := semver.NewVersion(fn.Semver); err == nil {
 			id, foundIn, err = findMostRecentMatchingVersion(versions, fn.Semver)
 			if err != nil {
-				return "", nil, err, errs
+				return id, foundIn, err, errs
 			}
 		} else {
-			return "", nil, err, errs
+			return id, foundIn, err, errs
 		}
 	}
-
-	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
-	tmid, bytes, err, _ := FetchByTMID(ctx, foundIn, id, restoreId)
-	return tmid, bytes, err, errs
+	return id, foundIn, err, errs
 }
 
 func findMostRecentVersion(versions []model.FoundVersion) (string, model.RepoSpec, error) {

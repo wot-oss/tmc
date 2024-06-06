@@ -298,12 +298,12 @@ func TestIndex_Insert(t *testing.T) {
 		Version: Version{
 			Model: "1.2.5",
 		},
-		Links:       map[string]string{"content": "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"},
-		TMID:        "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
-		Digest:      "abcd12345678",
-		TimeStamp:   "20231023121314",
-		ExternalID:  "externalID",
-		Attachments: []Attachment{{Name: "README.md"}, {Name: "User Guide.pdf"}},
+		Links:               map[string]string{"content": "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"},
+		TMID:                "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
+		Digest:              "abcd12345678",
+		TimeStamp:           "20231023121314",
+		ExternalID:          "externalID",
+		AttachmentContainer: AttachmentContainer{[]Attachment{{Name: "README.md"}, {Name: "User Guide.pdf"}}},
 	}, idx.Data[0].Versions[0])
 
 	err = idx.Insert(&ThingModel{

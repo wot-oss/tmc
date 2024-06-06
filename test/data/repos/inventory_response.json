@@ -29,7 +29,7 @@
       }
     },
     {
-      "name": "omnicorp/lightall",
+      "name": "omnicorp/omnicorp/lightall",
       "schema:author": {
         "schema:name": "omnicorp"
       },
@@ -50,6 +50,14 @@
           "digest": "c81be4ed973d",
           "timestamp": "20240104165612",
           "externalID": ""
+        }
+      ],
+      "attachments": [
+        {
+          "links": {
+            "content": "./thing-models/tmid/.attachments/README.md"
+          },
+          "name": "README.md"
         }
       ],
       "links": {

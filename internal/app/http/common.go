@@ -251,12 +251,12 @@ func toInventoryEntryResponse(ctx context.Context, e model.FoundEntry) server.In
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(ctx context.Context, versions []model.FoundVersion) server.InventoryEntryVersionsResponse {
+func toInventoryEntryVersionResponse(ctx context.Context, v model.FoundVersion) server.InventoryEntryVersionResponse {
 	mapper := NewMapper(ctx)
 
-	invEntryVersions := mapper.GetInventoryEntryVersions(versions)
-	resp := server.InventoryEntryVersionsResponse{
-		Data: invEntryVersions,
+	ev := mapper.GetInventoryEntryVersion(v)
+	resp := server.InventoryEntryVersionResponse{
+		Data: ev,
 	}
 	return resp
 }
@@ -264,16 +264,6 @@ func toInventoryEntryVersionsResponse(ctx context.Context, versions []model.Foun
 func toAuthorsResponse(authors []string) server.AuthorsResponse {
 	resp := server.AuthorsResponse{
 		Data: authors,
-	}
-	return resp
-}
-
-func toAttachmentsListResponse(attachments []string) server.AttachmentsListResponse {
-	if attachments == nil {
-		attachments = []string{}
-	}
-	resp := server.AttachmentsListResponse{
-		Data: attachments,
 	}
 	return resp
 }

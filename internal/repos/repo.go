@@ -63,12 +63,10 @@ type Repo interface {
 
 	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 
-	// ListAttachments returns the list of attachment names associated with the given tmNameOrId. Returns ErrNotFound
-	// if the tmNameOrId does not refer to an existing TM name or TM id
-	ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error)
-	PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error
-	FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error)
-	DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error
+	GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error)
+	PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error
+	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
+	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {

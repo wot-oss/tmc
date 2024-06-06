@@ -36,35 +36,6 @@ type HttpRepo struct {
 	templatedQuery bool
 }
 
-func (h *HttpRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
-	attDir, err := calculateAttachmentsDir(tmNameOrId)
-	if err != nil {
-		return nil, err
-	}
-	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", attDir, attachmentName))
-	return fetchAttachment(ctx, reqUrl, h.auth)
-}
-
-func (h *HttpRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
-	return ErrNotSupported
-}
-
-func (h *HttpRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
-	idx, err := h.getIndex(ctx)
-	if err != nil {
-		return nil, err
-	}
-	attContainer, err := findAttachmentContainer(idx, tmNameOrId)
-	if err != nil {
-		return nil, err
-	}
-	return mapToAttachmentNames(attContainer.attachments), nil
-}
-
-func (h *HttpRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
-	return ErrNotSupported
-}
-
 func NewHttpRepo(config map[string]any, spec model.RepoSpec) (*HttpRepo, error) {
 	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {
@@ -220,8 +191,8 @@ func doHttp(req *http.Request, auth map[string]any) (*http.Response, error) {
 func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	if len(name) == 0 {
-		log.Error("Please specify a repoName to show the TM.")
-		return nil, errors.New("please specify a repoName to show the TM")
+		log.Error("Please specify a name to show the TM.")
+		return nil, errors.New("please specify a name to show the TM")
 	}
 	name = strings.TrimSpace(name)
 	idx, err := h.List(ctx, &model.SearchParams{Name: name})
@@ -230,11 +201,46 @@ func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	}
 
 	if len(idx.Entries) != 1 {
-		log.Error(fmt.Sprintf("No thing model found for repoName: %s", name))
+		log.Error(fmt.Sprintf("No TM found with name: %s", name))
 		return nil, ErrNotFound
 	}
 
 	return idx.Entries[0].Versions, nil
+}
+
+func (h *HttpRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+	idx, err := h.getIndex(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_, err = model.ParseTMID(tmID)
+	if err != nil {
+		return nil, err
+	}
+	v := idx.FindByTMID(tmID)
+	if v == nil {
+		return nil, ErrNotFound
+	}
+	mapper := model.NewIndexToFoundMapper(h.Spec().ToFoundSource())
+	fv := mapper.ToFoundVersion(*v)
+	return &fv, nil
+}
+
+func (h *HttpRepo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {
+	return ErrNotSupported
+}
+
+func (h *HttpRepo) DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error {
+	return ErrNotSupported
+}
+
+func (h *HttpRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
+	attDir, err := calculateAttachmentsDir(container)
+	if err != nil {
+		return nil, err
+	}
+	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", attDir, attachmentName))
+	return fetchAttachment(ctx, reqUrl, h.auth)
 }
 
 func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
@@ -286,12 +292,7 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []stri
 		comps = append(comps, namesToCompletions(names, toComplete, seg+1)...)
 		return comps, nil
 	case CompletionKindAttachments:
-		if len(args) > 0 {
-			attNames, err := h.ListAttachments(ctx, args[0])
-			return attNames, err
-		} else {
-			return nil, ErrInvalidCompletionParams
-		}
+		return getAttachmentCompletions(ctx, args, h)
 	default:
 		return nil, ErrInvalidCompletionParams
 	}

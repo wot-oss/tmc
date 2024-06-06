@@ -38,7 +38,7 @@ func (m *Mapper) GetInventoryData(entries []model.FoundEntry) []server.Inventory
 
 func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry {
 	invEntry := server.InventoryEntry{}
-	invEntry.Name = entry.Name
+	invEntry.TmName = entry.Name
 	invEntry.SchemaAuthor.SchemaName = entry.Author.Name
 	invEntry.SchemaManufacturer.SchemaName = entry.Manufacturer.Name
 	invEntry.SchemaMpn = entry.Mpn
@@ -50,7 +50,10 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 		Self: hrefSelf,
 	}
 
+	atts := m.GetAttachmentsList(entry.AttachmentContainer)
+
 	invEntry.Links = &links
+	invEntry.Attachments = &atts
 
 	return invEntry
 }
@@ -84,17 +87,53 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 
 	invVersion.Links = &links
 
+	atts := m.GetAttachmentsList(version.AttachmentContainer)
+	invVersion.Attachments = &atts
+
 	return invVersion
+}
+
+func (m *Mapper) GetAttachmentsList(container model.AttachmentContainer) server.AttachmentsList {
+	var attList server.AttachmentsList
+	for _, v := range container.Attachments {
+		att := m.GetAttachmentListEntry(v)
+		attList = append(attList, att)
+	}
+
+	return attList
+}
+
+func (m *Mapper) GetAttachmentListEntry(a model.Attachment) server.AttachmentsListEntry {
+
+	hrefContent, _ := url.JoinPath(basePathThingModels, "tmid", ".attachments", a.Name)
+	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
+
+	links := server.AttachmentLinks{
+		Content: hrefContent,
+	}
+	entry := server.AttachmentsListEntry{
+		Links: &links,
+		Name:  a.Name,
+	}
+
+	return entry
+
 }
 
 func resolveRelativeLink(ctx context.Context, link string) string {
 	link, _ = strings.CutPrefix(link, "/")
-	basePath := ctx.Value(ctxUrlRoot).(string)
+	basePath, ok := ctx.Value(ctxUrlRoot).(string)
+	if !ok {
+		basePath = ""
+	}
 
 	if basePath != "" {
 		link, _ = url.JoinPath("/", basePath, link)
 	} else {
-		relDepth := ctx.Value(ctxRelPathDepth).(int)
+		relDepth, ok := ctx.Value(ctxRelPathDepth).(int)
+		if !ok {
+			relDepth = 0
+		}
 		if relDepth <= 0 {
 			link = "./" + link
 		} else {

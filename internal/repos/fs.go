@@ -100,13 +100,13 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	if os.IsNotExist(err) {
 		return ErrNotFound
 	}
-	attDir, _ := f.getAttachmentsDir(id)
+	attDir, _ := f.getAttachmentsDir(model.NewTMIDAttachmentContainerRef(id))
 	unlock, err := f.lockIndex(ctx)
 	if err != nil {
 		return err
 	}
 	defer unlock()
-	h, err := f.listAttachments(id)
+	h, err := f.listAttachments(model.NewTMIDAttachmentContainerRef(id))
 	if err != nil {
 		return err
 	}
@@ -329,9 +329,31 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	return res.Entries[0].Versions, nil
 }
 
-func (f *FileRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
+func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+	id, err := model.ParseTMID(tmID)
+	if err != nil {
+		return nil, err
+	}
+	match, actualId := f.getExistingID(tmID)
+	if match != idMatchFull && match != idMatchDigest {
+		return nil, ErrNotFound
+	}
+
+	versions, err := f.Versions(ctx, id.Name)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range versions {
+		if v.TMID == actualId {
+			return &v, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (f *FileRepo) PushAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentName string, content []byte) error {
 	log := slog.Default()
-	log.Debug(fmt.Sprintf("Pushing attachment %s for '%v'", attachmentName, tmNameOrId))
+	log.Debug(fmt.Sprintf("Pushing attachment %s for '%v'", attachmentName, ref))
 
 	err := f.checkRootValid()
 	if err != nil {
@@ -346,7 +368,7 @@ func (f *FileRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentNam
 	}
 	log.Debug("index locked")
 
-	attDir, err := f.prepareAttachmentOperation(tmNameOrId)
+	attDir, err := f.prepareAttachmentOperation(ref)
 	if err != nil {
 		return err
 	}
@@ -365,22 +387,22 @@ func (f *FileRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentNam
 
 // prepareAttachmentOperation prepares for a CRUD operation on attachments
 // Must be called after the index lock has been acquired with lockIndex
-func (f *FileRepo) prepareAttachmentOperation(tmNameOrId string) (string, error) {
-	attDir, err := f.getAttachmentsDir(tmNameOrId)
+func (f *FileRepo) prepareAttachmentOperation(ref model.AttachmentContainerRef) (string, error) {
+	attDir, err := f.getAttachmentsDir(ref)
 	if err != nil {
 		return "", err
 	}
-	// use listAttachments to validate tmNameOrId
-	_, err = f.listAttachments(tmNameOrId)
+	// use listAttachments to validate ref
+	_, err = f.listAttachments(ref)
 	if err != nil {
 		return "", err
 	}
 	return attDir, nil
 }
 
-func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
+func (f *FileRepo) FetchAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
 	log := slog.Default()
-	log.Debug(fmt.Sprintf("Fetching attachment %s for '%v'", attachmentName, tmNameOrId))
+	log.Debug(fmt.Sprintf("Fetching attachment %s for '%v'", attachmentName, ref))
 
 	err := f.checkRootValid()
 	if err != nil {
@@ -393,12 +415,12 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentNa
 		return nil, err
 	}
 
-	attDir, err := f.prepareAttachmentOperation(tmNameOrId)
+	attDir, err := f.prepareAttachmentOperation(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	err = f.verifyAttachmentExistsInIndex(tmNameOrId, attachmentName)
+	err = f.verifyAttachmentExistsInIndex(ref, attachmentName)
 	if err != nil {
 		return nil, err
 	}
@@ -410,8 +432,8 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentNa
 	return file, err
 }
 
-func (f *FileRepo) verifyAttachmentExistsInIndex(tmNameOrId string, attachmentName string) error {
-	atts, err := f.listAttachments(tmNameOrId)
+func (f *FileRepo) verifyAttachmentExistsInIndex(ref model.AttachmentContainerRef, attachmentName string) error {
+	atts, err := f.listAttachments(ref)
 	if err != nil {
 		return err
 	}
@@ -423,9 +445,9 @@ func (f *FileRepo) verifyAttachmentExistsInIndex(tmNameOrId string, attachmentNa
 	}
 	return nil
 }
-func (f *FileRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
+func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentName string) error {
 	log := slog.Default()
-	log.Debug(fmt.Sprintf("Deleting attachment %s for '%v'", attachmentName, tmNameOrId))
+	log.Debug(fmt.Sprintf("Deleting attachment %s for '%v'", attachmentName, ref))
 
 	err := f.checkRootValid()
 	if err != nil {
@@ -438,12 +460,12 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentN
 		return err
 	}
 
-	attDir, err := f.prepareAttachmentOperation(tmNameOrId)
+	attDir, err := f.prepareAttachmentOperation(ref)
 	if err != nil {
 		return err
 	}
 
-	err = f.verifyAttachmentExistsInIndex(tmNameOrId, attachmentName)
+	err = f.verifyAttachmentExistsInIndex(ref, attachmentName)
 	if err != nil {
 		return err
 	}
@@ -474,37 +496,6 @@ func removeDirIfEmpty(dir string) error {
 	}
 	return nil
 }
-func (f *FileRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
-	log := slog.Default()
-	log.Debug(fmt.Sprintf("Listing attachments for '%v'", tmNameOrId))
-
-	err := f.checkRootValid()
-	if err != nil {
-		return nil, err
-	}
-
-	unlock, err := f.lockIndex(ctx)
-	defer unlock()
-	if err != nil {
-		return nil, err
-	}
-	atts, err := f.listAttachments(tmNameOrId)
-	if err != nil {
-		return nil, err
-	}
-	log.Debug("found attachments for tmNameOrId", "tmNameOrId", tmNameOrId, "count", len(atts.attachments))
-	attNames := mapToAttachmentNames(atts.attachments)
-
-	return attNames, err
-}
-
-func mapToAttachmentNames(atts []model.Attachment) []string {
-	var attNames []string
-	for _, a := range atts {
-		attNames = append(attNames, a.Name)
-	}
-	return attNames
-}
 
 type attachmentsContainer struct {
 	attachments []model.Attachment
@@ -514,24 +505,32 @@ type attachmentsContainer struct {
 // listAttachments returns the attachment list belonging to given tmNameOrId
 // Returns ErrNotFound if tmNameOrId is not present in this repository
 // Must be called after the index lock has been acquired with lockIndex
-func (f *FileRepo) listAttachments(tmNameOrId string) (*attachmentsContainer, error) {
+func (f *FileRepo) listAttachments(ref model.AttachmentContainerRef) (*attachmentsContainer, error) {
 	index, err := f.readIndex()
 	if err != nil {
 		return nil, err
 	}
-	return findAttachmentContainer(index, tmNameOrId)
+	return findAttachmentContainer(index, ref)
 }
 
-func findAttachmentContainer(index *model.Index, tmNameOrId string) (*attachmentsContainer, error) {
-	id, fName, err := model.ParseAsTMIDOrFetchName(tmNameOrId)
-	if err != nil {
-		return nil, err
-	}
+func findAttachmentContainer(index *model.Index, ref model.AttachmentContainerRef) (*attachmentsContainer, error) {
+	k := ref.Kind()
 	var tmName string
-	if id != nil {
+	switch k {
+	case model.AttachmentContainerKindInvalid:
+		return nil, model.ErrInvalidIdOrName
+	case model.AttachmentContainerKindTMID:
+		id, err := model.ParseTMID(ref.TMID)
+		if err != nil {
+			return nil, err
+		}
 		tmName = id.Name
-	} else { //fName is surely not nil
-		tmName = fName.Name
+	case model.AttachmentContainerKindTMName:
+		fn, err := model.ParseFetchName(ref.TMName)
+		if err != nil || fn.Semver != "" {
+			return nil, model.ErrInvalidIdOrName
+		}
+		tmName = ref.TMName
 	}
 
 	indexEntry := index.FindByName(tmName)
@@ -539,9 +538,9 @@ func findAttachmentContainer(index *model.Index, tmNameOrId string) (*attachment
 		return nil, ErrNotFound
 	}
 	versions := indexEntry.Versions
-	if id != nil { // tmNameOrId is an id -> look for the exact version and return its attachments
+	if k == model.AttachmentContainerKindTMID {
 		for _, v := range versions {
-			if v.TMID == tmNameOrId {
+			if v.TMID == ref.TMID {
 				return &attachmentsContainer{
 					attachments: v.Attachments,
 					soleVersion: len(versions) == 1,
@@ -550,7 +549,7 @@ func findAttachmentContainer(index *model.Index, tmNameOrId string) (*attachment
 		}
 		return nil, ErrNotFound
 	}
-	// tmNameOrId is a name -> return inventory entry's attachments
+	// k==model.AttachmentContainerKindTMName -> return inventory entry's attachments
 	return &attachmentsContainer{
 		attachments: indexEntry.Attachments,
 		soleVersion: false,
@@ -572,30 +571,28 @@ func readFileNames(dir string) ([]string, error) {
 }
 
 // getAttachmentsDir returns the directory where the attachments to the given tmNameOrId are stored
-func (f *FileRepo) getAttachmentsDir(tmNameOrId string) (string, error) {
-	relDir, err := calculateAttachmentsDir(tmNameOrId)
+func (f *FileRepo) getAttachmentsDir(ref model.AttachmentContainerRef) (string, error) {
+	relDir, err := calculateAttachmentsDir(ref)
 	attDir := filepath.Join(f.root, relDir)
-	slog.Default().Debug("attachments dir calculated", "tmNameOrId", tmNameOrId, "attDir", attDir)
+	slog.Default().Debug("attachments dir calculated", "container", ref, "attDir", attDir)
 	return attDir, err
 }
 
-func calculateAttachmentsDir(tmNameOrId string) (string, error) {
-	id, fName, err := model.ParseAsTMIDOrFetchName(tmNameOrId)
-	if err != nil {
-		return "", err
-	}
-	if fName != nil {
-		if fName.Semver != "" {
-			return "", fmt.Errorf("%w: %s", model.ErrInvalidIdOrName, tmNameOrId)
-		}
-	}
+func calculateAttachmentsDir(ref model.AttachmentContainerRef) (string, error) {
 	var attDir string
-	if id != nil {
+	switch ref.Kind() {
+	case model.AttachmentContainerKindInvalid:
+		return "", fmt.Errorf("%w: %v", model.ErrInvalidIdOrName, ref)
+	case model.AttachmentContainerKindTMID:
+		id, err := model.ParseTMID(ref.TMID)
+		if err != nil {
+			return "", err
+		}
 		attDir = fmt.Sprintf("%s/%s/%s", id.Name, AttachmentsDir, id.Version.String())
-	} else {
-		attDir = fmt.Sprintf("%s/%s", fName.Name, AttachmentsDir)
+	case model.AttachmentContainerKindTMName:
+		attDir = fmt.Sprintf("%s/%s", ref.TMName, AttachmentsDir)
 	}
-	slog.Default().Debug("attachments dir for tmNameOrId calculated", "tmNameOrId", tmNameOrId, "attDir", attDir)
+	slog.Default().Debug("attachments dir for tmNameOrId calculated", "container", ref, "attDir", attDir)
 	return attDir, nil
 
 }
@@ -734,7 +731,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string) error {
 	}
 
 	for name, _ := range namesToReindexAttachments {
-		dir, _ := f.getAttachmentsDir(name) // name is sure to be valid
+		dir, _ := f.getAttachmentsDir(model.NewTMNameAttachmentContainerRef(name)) // name is sure to be valid
 		nameAttachments, err := readFileNames(dir)
 		if err != nil {
 			return err
@@ -882,7 +879,7 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 		return nil, err
 	}
 
-	tmAttDir, _ := f.getAttachmentsDir(ctm.ID) // there cannot be any error parsing the id we just parsed
+	tmAttDir, _ := f.getAttachmentsDir(model.NewTMIDAttachmentContainerRef(ctm.ID)) // there cannot be any error parsing the id we just parsed
 	tmAttachments, err := readFileNames(tmAttDir)
 	if err != nil {
 		return nil, err
@@ -959,13 +956,41 @@ func (f *FileRepo) ListCompletions(ctx context.Context, kind string, args []stri
 		}
 		return comps, nil
 	case CompletionKindAttachments:
-		if len(args) > 0 {
-			attNames, err := f.ListAttachments(ctx, args[0])
-			return attNames, err
-		} else {
-			return nil, ErrInvalidCompletionParams
-		}
+		return getAttachmentCompletions(ctx, args, f)
 	default:
 		return nil, ErrInvalidCompletionParams
 	}
+}
+
+func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]string, error) {
+	if len(args) > 0 {
+		_, err := model.ParseTMID(args[0])
+		if err == nil {
+			metadata, err := f.GetTMMetadata(ctx, args[0])
+			if err != nil {
+				return nil, err
+			}
+			var attNames []string
+			for _, a := range metadata.Attachments {
+				attNames = append(attNames, a.Name)
+			}
+			return attNames, nil
+		}
+		sp := &model.SearchParams{Name: args[0]}
+		sr, err := f.List(ctx, sp)
+		if err != nil {
+			return nil, err
+		}
+		if len(sr.Entries) == 0 {
+			return nil, nil
+		}
+		var attNames []string
+		for _, a := range sr.Entries[0].Attachments {
+			attNames = append(attNames, a.Name)
+		}
+		return attNames, nil
+	} else {
+		return nil, ErrInvalidCompletionParams
+	}
+	return nil, nil
 }

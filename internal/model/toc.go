@@ -27,17 +27,65 @@ type IndexMeta struct {
 	Created time.Time `json:"created"`
 }
 
+type AttachmentContainer struct {
+	Attachments []Attachment `json:"attachments,omitempty"`
+}
+
 type IndexEntry struct {
 	Name         string             `json:"name"`
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Versions     []IndexVersion     `json:"versions"`
-	Attachments  []Attachment       `json:"attachments,omitempty"`
+	AttachmentContainer
 }
 
 type Attachment struct {
 	Name string `json:"name"`
+}
+
+// AttachmentContainerRef contains a reference to an entity which can have file attachments
+// Either TMName field must be not empty, or TMID. Never both and never none.
+type AttachmentContainerRef struct {
+	TMName string
+	TMID   string
+}
+
+type AttachmentContainerKind byte
+
+const (
+	AttachmentContainerKindInvalid AttachmentContainerKind = iota
+	AttachmentContainerKindTMName
+	AttachmentContainerKindTMID
+)
+
+func NewTMIDAttachmentContainerRef(tmid string) AttachmentContainerRef {
+	return AttachmentContainerRef{TMID: tmid}
+}
+func NewTMNameAttachmentContainerRef(tmName string) AttachmentContainerRef {
+	return AttachmentContainerRef{TMName: tmName}
+}
+func (r AttachmentContainerRef) String() string {
+	switch r.Kind() {
+	case AttachmentContainerKindInvalid:
+		return fmt.Sprintf("invalid AttachmentContainerRef (TMID=%s, TMName=%s)", r.TMID, r.TMName)
+	case AttachmentContainerKindTMID:
+		return fmt.Sprintf("TMID=%s", r.TMID)
+	case AttachmentContainerKindTMName:
+		return fmt.Sprintf("TMName=%s", r.TMName)
+	default:
+		return fmt.Sprintf("unknown container ref kind:%v", r.Kind())
+	}
+}
+
+func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
+	if (r.TMID != "" && r.TMName != "") || (r.TMID == "" && r.TMName == "") {
+		return AttachmentContainerKindInvalid
+	}
+	if r.TMName != "" {
+		return AttachmentContainerKindTMName
+	}
+	return AttachmentContainerKindTMID
 }
 
 func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
@@ -79,7 +127,7 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
-	Attachments []Attachment      `json:"attachments,omitempty"`
+	AttachmentContainer
 }
 
 func (idx *Index) Filter(search *SearchParams) {
@@ -148,12 +196,31 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-// FindByName searches by name and returns a pointer to the IndexEntry if found
+// FindByName searches by TM name and returns a pointer to the IndexEntry if found
 func (idx *Index) FindByName(name string) *IndexEntry {
 	if idx.dataByName == nil {
 		idx.reindexData()
 	}
 	return idx.dataByName[name]
+}
+
+// FindByTMID searches by TM name and returns a pointer to the IndexVersion if found.
+// returns nil if tmID is not valid or not found in
+func (idx *Index) FindByTMID(tmID string) *IndexVersion {
+	id, err := ParseTMID(tmID)
+	if err != nil {
+		return nil
+	}
+	e := idx.FindByName(id.Name)
+	if e == nil {
+		return nil
+	}
+	for _, v := range e.Versions {
+		if v.TMID == tmID {
+			return &v
+		}
+	}
+	return nil
 }
 
 func mapAttachments(atts []string) []Attachment {
@@ -206,14 +273,14 @@ func (idx *Index) Insert(ctm *ThingModel, tmAttachments []string) error {
 		externalID = original.HRef
 	}
 	tv := IndexVersion{
-		Description: ctm.Description,
-		TimeStamp:   tmid.Version.Timestamp,
-		Version:     Version{Model: tmid.Version.Base.String()},
-		TMID:        ctm.ID,
-		ExternalID:  externalID,
-		Digest:      tmid.Version.Hash,
-		Links:       map[string]string{"content": tmid.String()},
-		Attachments: mapAttachments(tmAttachments),
+		Description:         ctm.Description,
+		TimeStamp:           tmid.Version.Timestamp,
+		Version:             Version{Model: tmid.Version.Base.String()},
+		TMID:                ctm.ID,
+		ExternalID:          externalID,
+		Digest:              tmid.Version.Hash,
+		Links:               map[string]string{"content": tmid.String()},
+		AttachmentContainer: AttachmentContainer{mapAttachments(tmAttachments)},
 	}
 	if idx := slices.IndexFunc(idxEntry.Versions, func(version IndexVersion) bool {
 		return version.TMID == ctm.ID

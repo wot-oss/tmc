@@ -22,23 +22,28 @@ func (m *IndexToSearchResultMapper) ToSearchResult(idx Index) SearchResult {
 
 func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 	return FoundEntry{
-		Name:         e.Name,
-		Manufacturer: e.Manufacturer,
-		Mpn:          e.Mpn,
-		Author:       e.Author,
-		Versions:     m.ToFoundVersions(e.Versions),
+		Name:                e.Name,
+		Manufacturer:        e.Manufacturer,
+		Mpn:                 e.Mpn,
+		Author:              e.Author,
+		Versions:            m.ToFoundVersions(e.Versions),
+		AttachmentContainer: e.AttachmentContainer,
 	}
 }
 
 func (m *IndexToSearchResultMapper) ToFoundVersions(versions []IndexVersion) []FoundVersion {
 	var r []FoundVersion
 	for _, v := range versions {
-		r = append(r, FoundVersion{
-			IndexVersion: v,
-			FoundIn:      m.foundIn,
-		})
+		r = append(r, m.ToFoundVersion(v))
 	}
 	return r
+}
+
+func (m *IndexToSearchResultMapper) ToFoundVersion(v IndexVersion) FoundVersion {
+	return FoundVersion{
+		IndexVersion: v,
+		FoundIn:      m.foundIn,
+	}
 }
 
 type InventoryResponseToSearchResultMapper struct {
@@ -62,7 +67,7 @@ func (m *InventoryResponseToSearchResultMapper) ToSearchResult(inv server.Invent
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryEntry) FoundEntry {
 	return FoundEntry{
-		Name:         e.Name,
+		Name:         e.TmName,
 		Manufacturer: SchemaManufacturer{Name: e.SchemaManufacturer.SchemaName},
 		Mpn:          e.SchemaMpn,
 		Author:       SchemaAuthor{Name: e.SchemaAuthor.SchemaName},

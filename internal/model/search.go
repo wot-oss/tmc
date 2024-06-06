@@ -22,6 +22,7 @@ type FoundEntry struct {
 	Mpn          string
 	Author       SchemaAuthor
 	Versions     []FoundVersion
+	AttachmentContainer
 }
 type FoundVersion struct {
 	IndexVersion

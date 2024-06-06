@@ -13,9 +13,18 @@ const (
 	Names      GetCompletionsParamsKind = "names"
 )
 
-// AttachmentsListResponse defines model for AttachmentsListResponse.
-type AttachmentsListResponse struct {
-	Data []string `json:"data"`
+// AttachmentLinks defines model for AttachmentLinks.
+type AttachmentLinks struct {
+	Content string `json:"content"`
+}
+
+// AttachmentsList defines model for AttachmentsList.
+type AttachmentsList = []AttachmentsListEntry
+
+// AttachmentsListEntry defines model for AttachmentsListEntry.
+type AttachmentsListEntry struct {
+	Links *AttachmentLinks `json:"links,omitempty"`
+	Name  string           `json:"name"`
 }
 
 // AuthorsResponse defines model for AuthorsResponse.
@@ -35,11 +44,12 @@ type ErrorResponse struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
+	Attachments        *AttachmentsList        `json:"attachments,omitempty"`
 	Links              *InventoryEntryLinks    `json:"links,omitempty"`
-	Name               string                  `json:"name"`
 	SchemaAuthor       SchemaAuthor            `json:"schema:author"`
 	SchemaManufacturer SchemaManufacturer      `json:"schema:manufacturer"`
 	SchemaMpn          string                  `json:"schema:mpn"`
+	TmName             string                  `json:"tmName"`
 	Versions           []InventoryEntryVersion `json:"versions"`
 }
 
@@ -55,6 +65,7 @@ type InventoryEntryResponse struct {
 
 // InventoryEntryVersion defines model for InventoryEntryVersion.
 type InventoryEntryVersion struct {
+	Attachments *AttachmentsList            `json:"attachments,omitempty"`
 	Description string                      `json:"description"`
 	Digest      string                      `json:"digest"`
 	ExternalID  string                      `json:"externalID"`
@@ -67,11 +78,12 @@ type InventoryEntryVersion struct {
 // InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.
 type InventoryEntryVersionLinks struct {
 	Content string `json:"content"`
+	Self    string `json:"self"`
 }
 
-// InventoryEntryVersionsResponse defines model for InventoryEntryVersionsResponse.
-type InventoryEntryVersionsResponse struct {
-	Data []InventoryEntryVersion `json:"data"`
+// InventoryEntryVersionResponse defines model for InventoryEntryVersionResponse.
+type InventoryEntryVersionResponse struct {
+	Data InventoryEntryVersion `json:"data"`
 }
 
 // InventoryResponse defines model for InventoryResponse.
@@ -124,6 +136,18 @@ type SchemaAuthor struct {
 type SchemaManufacturer struct {
 	SchemaName string `json:"schema:name"`
 }
+
+// AttachmentFileName defines model for AttachmentFileName.
+type AttachmentFileName = string
+
+// FetchName defines model for FetchName.
+type FetchName = string
+
+// TMID defines model for TMID.
+type TMID = string
+
+// TMName defines model for TMName.
+type TMName = string
 
 // UnauthorizedError defines model for UnauthorizedError.
 type UnauthorizedError = ErrorResponse
@@ -218,6 +242,12 @@ type GetMpnsParams struct {
 
 // PushThingModelJSONBody defines parameters for PushThingModel.
 type PushThingModelJSONBody = map[string]interface{}
+
+// GetThingModelByFetchNameParams defines parameters for GetThingModelByFetchName.
+type GetThingModelByFetchNameParams struct {
+	// RestoreId restore the TM's original external id, if it had one
+	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
+}
 
 // DeleteThingModelByIdParams defines parameters for DeleteThingModelById.
 type DeleteThingModelByIdParams struct {

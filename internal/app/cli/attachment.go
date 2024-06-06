@@ -8,18 +8,35 @@ import (
 
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId string) error {
-	list, err := commands.AttachmentList(ctx, spec, tmNameOrId)
+	ref := toAttachmentContainerRef(tmNameOrId)
+
+	var atts []model.Attachment
+	var err error
+	switch ref.Kind() {
+	case model.AttachmentContainerKindTMID:
+		var meta *model.FoundVersion
+		meta, err = commands.GetTMMetadata(ctx, spec, tmNameOrId)
+		atts = meta.Attachments
+	case model.AttachmentContainerKindTMName:
+		var res model.SearchResult
+		var errs []*repos.RepoAccessError
+		res, err, errs = commands.List(ctx, spec, &model.SearchParams{Name: tmNameOrId})
+		defer printErrs("Errors occurred while listing:", errs)
+		if len(res.Entries) != 0 {
+			atts = res.Entries[0].Attachments
+		}
+	}
 	if err != nil {
 		Stderrf("Could not list attachments for %s: %v", tmNameOrId, err)
 		return err
 	}
-
-	for _, v := range list {
-		fmt.Println(v)
+	for _, v := range atts {
+		fmt.Println(v.Name)
 	}
 	return nil
 }
@@ -40,7 +57,7 @@ func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId, filena
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 	}
-	err = commands.AttachmentPush(ctx, spec, tmNameOrId, filepath.Base(filename), raw)
+	err = commands.AttachmentPush(ctx, spec, toAttachmentContainerRef(tmNameOrId), filepath.Base(filename), raw)
 	if err != nil {
 		Stderrf("Failed to put attachment %s to %s: %v", filename, tmNameOrId, err)
 	}
@@ -48,7 +65,7 @@ func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId, filena
 	return err
 }
 func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	err := commands.AttachmentDelete(ctx, spec, tmNameOrId, attachmentName)
+	err := commands.AttachmentDelete(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName)
 	if err != nil {
 		Stderrf("Failed to delete attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}
@@ -56,11 +73,19 @@ func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, atta
 	return err
 }
 func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	content, err := commands.AttachmentFetch(ctx, spec, tmNameOrId, attachmentName)
+	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName)
 	if err != nil {
 		Stderrf("Failed to fetch attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}
 
 	fmt.Print(string(content))
 	return nil
+}
+
+func toAttachmentContainerRef(tmNameOrId string) model.AttachmentContainerRef {
+	_, err := model.ParseTMID(tmNameOrId)
+	if err != nil {
+		return model.NewTMNameAttachmentContainerRef(tmNameOrId)
+	}
+	return model.NewTMIDAttachmentContainerRef(tmNameOrId)
 }

@@ -95,7 +95,7 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)
-		b, err := r.FetchAttachment(context.Background(), tmName, fName)
+		b, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), fName)
 		assert.NoError(t, err)
 		assert.Equal(t, []byte(attContent), b)
 
@@ -112,13 +112,34 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)
-		b, err := r.FetchAttachment(context.Background(), tmid, fName)
+		b, err := r.FetchAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmid), fName)
 		assert.NoError(t, err)
 		assert.Equal(t, []byte(attContent), b)
 
 	})
 }
-func TestHttpRepo_ListAttachments(t *testing.T) {
+func TestHttpRepo_GetTMMetadata(t *testing.T) {
+	const tmID = "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json"
+	_, idx, err := utils.ReadRequiredFile("../../test/data/repos/file/attachments/.tmc/tm-catalog.toc.json")
+	assert.NoError(t, err)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/.tmc/"+IndexFilename, r.URL.Path)
+		_, _ = w.Write(idx)
+	}))
+	defer srv.Close()
+	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`))
+	assert.NoError(t, err)
+	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+
+	res, err := r.GetTMMetadata(context.Background(), tmID)
+	assert.NoError(t, err)
+	if assert.Len(t, res.Attachments, 1) {
+		assert.Equal(t, "cfg.json", res.Attachments[0].Name)
+	}
+}
+func TestHttpRepo_ListByName(t *testing.T) {
 	const tmName = "omnicorp-tm-department/omnicorp/omnilamp"
 	_, idx, err := utils.ReadRequiredFile("../../test/data/repos/file/attachments/.tmc/tm-catalog.toc.json")
 	assert.NoError(t, err)
@@ -133,9 +154,13 @@ func TestHttpRepo_ListAttachments(t *testing.T) {
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
-	res, err := r.ListAttachments(context.Background(), tmName)
+	res, err := r.List(context.Background(), &model.SearchParams{Name: tmName})
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"README.md"}, res)
+	if assert.Len(t, res.Entries, 1) {
+		if assert.Len(t, res.Entries[0].Attachments, 1) {
+			assert.Equal(t, "README.md", res.Entries[0].Attachments[0].Name)
+		}
+	}
 }
 
 func TestHttpRepo_ListCompletions(t *testing.T) {

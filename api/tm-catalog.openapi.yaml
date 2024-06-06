@@ -105,15 +105,91 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /inventory/{name}:
+  /inventory/{tmID}:
     get:
       tags:
         - inventory
-      summary: Get an inventory entry by it's name
+      summary: Get the metadata of a single TM by ID
+      description: Returns the metadata of a single TM
+      operationId: getInventoryByID
+      parameters:
+        - $ref: '#/components/parameters/TMID'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryEntryVersionResponse'
+              example:
+                $ref: '#/components/examples/InventoryEntryVersionResponseExample'
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Inventory entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /inventory/.latest/{fetchName}:
+    get:
+      tags:
+        - inventory
+      summary: Get the metadata of the most recent TM version matching the name
+      description: Returns the metadata of the most recent TM version matching the fetch name
+      operationId: getInventoryByFetchName
+      parameters:
+        - $ref: '#/components/parameters/FetchName'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryEntryVersion'
+              example:
+                $ref: '#/components/examples/InventoryEntryVersionExample'
+        '400':
+          description: Invalid fetch name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Inventory entry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /inventory/.tmName/{tmName}:
+    get:
+      tags:
+        - inventory
+      summary: Get an inventory entry by TM name
       description: Returns a single inventory entry
       operationId: getInventoryByName
       parameters:
-        - name: name
+        - name: tmName
           in: path
           description: Name of the inventory entry
           required: true
@@ -131,7 +207,7 @@ paths:
                 inventoryEntry:
                   $ref: '#/components/examples/InventoryEntryResponseExample'
         '400':
-          description: Invalid ID supplied
+          description: Invalid TM name supplied
           content:
             application/json:
               schema:
@@ -150,78 +226,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /inventory/{name}/.versions:
-    get:
-      tags:
-        - inventory
-      summary: Get the versions of an inventory entry
-      description: Returns the versions of an inventory entry by its name
-      operationId: getInventoryVersionsByName
-      parameters:
-        - name: name
-          in: path
-          description: Name of the inventory entry
-          required: true
-          schema:
-            type: string
-          example: 'siemens/siemens/poc1000'
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InventoryEntryVersionsResponse'
-              examples:
-                inventoryVersions:
-                  $ref: '#/components/examples/InventoryEntryVersionsResponseExample'
-        '400':
-          description: Invalid ID supplied
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          description: Inventory entry not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /thing-models/{tmIDOrName}:
+  /thing-models/{tmID}:
     get:
       tags:
         - thing-models
-      summary: Get the content of a Thing Model by its ID or fetch name
+      summary: Get the content of a Thing Model by its ID
       description: > 
         Returns the actual content of a Thing Model.
-        The Thing Model is selected by the ID or fetch name. Fetch name is defined as \<name\>[:\<semver\>], 
-        where \<name\> is the inventory name, \<semver\> is a full or partial semantic version.
-        Using \<semver\> will return the most recent version of the TM that matches the provided part of semantic version
       operationId: getThingModelById
       parameters:
-        - name: tmIDOrName
-          in: path
-          description: ID or fetch name of the Thing Model
-          required: true
-          schema:
-            type: string
-          examples:
-            id:
-              value: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-            fullVersion:
-              value: 'siemens/siemens/poc1000:v1.2.3'
-            major:
-              value: 'siemens/siemens/poc1000:1'
-            majorMinor:
-              value: 'siemens/siemens/poc1000:1.2'
+        - $ref: '#/components/parameters/TMID'
         - name: restoreId
           in: query
           description: restore the TM's original external id, if it had one
@@ -263,19 +277,13 @@ paths:
         - thing-models
       summary: Delete a Thing Model by ID
       description: >
-        Deletes a Thing Model. Only accepts a complete ID as tmIDOrName
+        Deletes a Thing Model.
         Normally, the catalog is write-only and no TMs are ever deleted.
-        The delete function is implemented for the rare cases when a TM has been pushed whilst containing major errors 
-        or by mistake. Therefore, it is mandatory to provide the query parameter ?force=true to delete a TM.
+        The delete operation is implemented for the rare cases when a TM has been pushed whilst containing major errors 
+        or by mistake. It is mandatory to provide the query parameter ?force=true to delete a TM.
       operationId: deleteThingModelById
       parameters:
-        - name: tmIDOrName
-          in: path
-          description: ID of the Thing Model
-          required: true
-          schema:
-            type: string
-          example: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+        - $ref: '#/components/parameters/TMID'
         - name: force
           in: query
           description: flag to force the deletion. must be set to "true"
@@ -303,33 +311,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /thing-models/{tmIDOrName}/.attachments:
+  /thing-models/.latest/{fetchName}:
     get:
       tags:
-        - attachments
-      summary: Get the list of attachments of a Thing Model or an inventory entry
-      description: Returns the list of attachment names of a Thing Model or an inventory entry
-      operationId: getThingModelAttachmentListByName
+        - thing-models
+      summary: Get the content of a Thing Model by fetch name
+      description: > 
+        Returns the actual content of the Thing Model selected by given fetch name.
+      operationId: getThingModelByFetchName
       parameters:
-        - name: tmIDOrName
-          in: path
-          description: ID or inventory name of the Thing Model
-          required: true
+        - $ref: '#/components/parameters/FetchName'
+        - name: restoreId
+          in: query
+          description: restore the TM's original external id, if it had one
+          required: false
           schema:
-            type: string
-          example: 'siemens/siemens/poc1000'
+            type: boolean
       responses:
         '200':
-          description: Successful operation
+          description: |
+            Successful operation 
+
+            **For the schema of the returned Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AttachmentsListResponse'
-              examples:
-                attachments:
-                  $ref: '#/components/examples/AttachmentsListResponseExample'
+                type: object
         '400':
-          description: Invalid ID or inventory name supplied
+          description: Invalid ID or fetch name supplied
           content:
             application/json:
               schema:
@@ -337,7 +346,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: TM or inventory entry not found
+          description: Content of the Thing Model not found
           content:
             application/json:
               schema:
@@ -348,28 +357,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /thing-models/{tmIDOrName}/.attachments/{attachmentFileName}:
+  /thing-models/{tmID}/.attachments/{attachmentFileName}:
     get:
       tags:
         - attachments
-      summary: Get the actual content of an attachment of a Thing Model or an inventory entry
-      description: Returns the content of an attachment of a Thing Model or an inventory entry
+      summary: Get the actual content of an attachment to a Thing Model
+      description:
+        Returns the content of an attachment to a Thing Model.
+        Use '/thing-models/.tmName/{tmName}/.attachments/{attachmentFileName}' endpoint to get TM name's attachments
       operationId: getThingModelAttachmentByName
       parameters:
-        - name: tmIDOrName
-          in: path
-          description: ID or inventory name of the Thing Model
-          required: true
-          schema:
-            type: string
-          example: 'siemens/siemens/poc1000'
-        - name: attachmentFileName
-          in: path
-          description: File name of the attachment
-          required: true
-          schema:
-            type: string
-          example: 'README.md'
+        - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/AttachmentFileName'
       responses:
         '200':
           description: Successful operation
@@ -379,7 +378,7 @@ paths:
                 type: string
                 format: binary
         '400':
-          description: Invalid ID or inventory name requested
+          description: Invalid ID requested
           content:
             application/json:
               schema:
@@ -387,7 +386,7 @@ paths:
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: TM or inventory entry or attachment not found
+          description: TM or attachment not found
           content:
             application/json:
               schema:
@@ -401,29 +400,17 @@ paths:
     put:
       tags:
         - attachments
-      summary: Upload an attachment to a Thing Model or an inventory entry
-      description: Upload an attachment to a Thing Model or an inventory entry
+      summary: Upload an attachment to a Thing Model
+      description: Upload an attachment to a Thing Model
       operationId: putThingModelAttachmentByName
       parameters:
-        - name: tmIDOrName
-          in: path
-          description: ID or inventory name of the Thing Model
-          required: true
-          schema:
-            type: string
-          example: 'siemens/siemens/poc1000'
-        - name: attachmentFileName
-          in: path
-          description: File name of the attachment
-          required: true
-          schema:
-            type: string
-          example: 'README.md'
+        - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/AttachmentFileName'
       responses:
         '202':
           description: Successfully pushed
         '400':
-          description: Invalid ID or inventory name supplied
+          description: Invalid ID supplied
           content:
             application/json:
               schema:
@@ -439,24 +426,12 @@ paths:
     delete:
       tags:
         - attachments
-      summary: Delete an attachment of a Thing Model or an inventory entry
-      description: Delete an attachment of a Thing Model or an inventory entry
+      summary: Delete an attachment to a Thing Model
+      description: Delete an attachment to a Thing Model
       operationId: deleteThingModelAttachmentByName
       parameters:
-        - name: tmIDOrName
-          in: path
-          description: ID or inventory name of the Thing Model
-          required: true
-          schema:
-            type: string
-          example: 'siemens/siemens/poc1000'
-        - name: attachmentFileName
-          in: path
-          description: File name of the attachment
-          required: true
-          schema:
-            type: string
-          example: 'README.md'
+        - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/AttachmentFileName'
       responses:
         '204':
           description: Successful operation
@@ -470,6 +445,103 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: Thing Model or inventory name or attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName}:
+    get:
+      tags:
+        - attachments
+      summary: Get the actual content of an attachment to a TM name
+      description:
+        Returns the content of an attachment to a TM name
+      operationId: getTMNameAttachment
+      parameters:
+        - $ref: '#/components/parameters/TMName'
+        - $ref: '#/components/parameters/AttachmentFileName'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid TM name requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: TM name or attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - attachments
+      summary: Upload an attachment to a TM name
+      description: Upload an attachment to a TM name
+      operationId: putTMNameAttachment
+      parameters:
+        - $ref: '#/components/parameters/TMName'
+        - $ref: '#/components/parameters/AttachmentFileName'
+      responses:
+        '202':
+          description: Successfully pushed
+        '400':
+          description: Invalid TM name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - attachments
+      summary: Delete an attachment to a TM name
+      description: Delete an attachment to a TM name
+      operationId: deleteTMNameAttachment
+      parameters:
+        - $ref: '#/components/parameters/TMName'
+        - $ref: '#/components/parameters/AttachmentFileName'
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid TM name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: TM name or attachment not found
           content:
             application/json:
               schema:
@@ -854,14 +926,14 @@ components:
   schemas:
     InventoryEntry:
       required:
-        - name
+        - tmName
         - schema:author
         - schema:manufacturer
         - schema:mpn
         - versions
       type: object
       properties:
-        name:
+        tmName:
           type: string
           example: 'siemens/siemens/poc1000'
         schema:author:
@@ -877,6 +949,15 @@ components:
             $ref: '#/components/schemas/InventoryEntryVersion'
         links:
           $ref: '#/components/schemas/InventoryEntryLinks'
+        attachments:
+          $ref: "#/components/schemas/AttachmentsList"
+    InventoryEntryVersionResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/InventoryEntryVersion'
     InventoryEntryVersion:
       required:
         - tmID
@@ -906,6 +987,8 @@ components:
           example: '20231201133246'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
+        attachments:
+          $ref: "#/components/schemas/AttachmentsList"
     InventoryEntryLinks:
       type: object
       required:
@@ -914,12 +997,17 @@ components:
         self:
           type: string
           format: uri-reference
-          example: './inventory/siemens/siemens/poc1000'
+          example: './inventory/.tmname/siemens/siemens/poc1000'
     InventoryEntryVersionLinks:
       type: object
       required:
+        - self
         - content
       properties:
+        self:
+          type: string
+          format: uri-reference
+          example: './inventory/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
         content:
           type: string
           format: uri-reference
@@ -942,15 +1030,6 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/InventoryEntry'
-    InventoryEntryVersionsResponse:
-      type: object
-      required:
-        - data
-      properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/InventoryEntryVersion'
     PushThingModelResponse:
       required:
         - data
@@ -967,15 +1046,28 @@ components:
           type: array
           items:
             type: string
-    AttachmentsListResponse:
+    AttachmentsList:
+      type: array
+      items:
+        $ref: '#/components/schemas/AttachmentsListEntry'
+    AttachmentsListEntry:
       type: object
       required:
-        - data
+        - name
       properties:
-        data:
-          type: array
-          items:
-            type: string
+        name:
+          type: string
+        links:
+          $ref: '#/components/schemas/AttachmentLinks'
+    AttachmentLinks:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          format: uri-reference
+          example: './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json/.attachments/README.md'
     ManufacturersResponse:
       type: object
       required:
@@ -1056,6 +1148,57 @@ components:
           type: string
         status:
           type: integer
+  parameters:
+    FetchName:
+      name: fetchName
+      in: path
+      description: >
+        Fetch name of a Thing Model. Fetch name is defined as \<name\>[:\<semver\>], 
+        where \<name\> is the inventory TM name, \<semver\> is a full or partial semantic version.
+        Using \<semver\> will return the most recent version of the TM that matches the provided part of semantic version.
+        Without \<semver\>, fetch name refers to the latest available TM version
+      required: true
+      schema:
+        type: string
+      examples:
+        id:
+          value: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+        fullVersion:
+          value: 'siemens/siemens/poc1000:v1.2.3'
+        major:
+          value: 'siemens/siemens/poc1000:1'
+        majorMinor:
+          value: 'siemens/siemens/poc1000:1.2'
+    TMID:
+      name: tmID
+      in: path
+      description: TM ID
+      required: true
+      schema:
+        type: string
+      example: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+    TMName:
+      name: tmName
+      in: path
+      description: >
+        Inventory name of a Thing Model. It is the part of a TM ID up to the last /
+      required: true
+      schema:
+        type: string
+      examples:
+        basic:
+          value: 'siemens/siemens/poc1000'
+        withOptionalPath:
+          value: 'siemens/siemens/poc1000/variants/with-bluetooth'
+    AttachmentFileName:
+      name: attachmentFileName
+      in: path
+      description: File name of the attachment
+      required: true
+      schema:
+        type: string
+      example: 'README.md'
+
   responses:
     UnauthorizedError:
       description: API key is missing or invalid
@@ -1102,8 +1245,8 @@ components:
       value:
         data:
           'links':
-            'self': './inventory/siemens/siemens/poc1000'
-          'name': 'siemens/siemens/poc1000'
+            'self': './inventory/.tmName/siemens/siemens/poc1000'
+          'tmName': 'siemens/siemens/poc1000'
           'schema:author':
             'schema:name': 'siemens'
           'schema:manufacturer':
@@ -1137,6 +1280,21 @@ components:
               'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
               'version':
                 'model': '0.0.0'
+    InventoryEntryVersionResponseExample:
+      value:
+        data:
+          $ref: '#/components/examples/InventoryEntryVersionExample/value'
+    InventoryEntryVersionExample:
+      value:
+        'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+        'digest': '2cd14601ef09'
+        'externalID': '{{ID}}'
+        'links':
+          'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+        'timestamp': '20240108112117'
+        'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+        'version':
+          'model': '1.0.0'
     InventoryResponseExample:
       value:
         meta:
@@ -1144,8 +1302,8 @@ components:
             elements: 2
         data:
           - 'links':
-              'self': './inventory/siemens/siemens/poc1000'
-            'name': 'siemens/siemens/poc1000'
+              'self': './inventory/.tmName/siemens/siemens/poc1000'
+            'tmName': 'siemens/siemens/poc1000'
             'schema:author':
               'schema:name': 'siemens'
             'schema:manufacturer':
@@ -1180,8 +1338,8 @@ components:
                 'version':
                   'model': '0.0.0'
           - 'links':
-              'self': './inventory/MyCompany/BarTech/BazLamp'
-            'name': 'MyCompany/BarTech/BazLamp'
+              'self': './inventory/.tmName/MyCompany/BarTech/BazLamp'
+            'tmName': 'MyCompany/BarTech/BazLamp'
             'schema:author':
               'schema:name': 'MyCompany'
             'schema:manufacturer':

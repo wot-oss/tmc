@@ -21,6 +21,7 @@ import (
 const (
 	headerContentType = "Content-Type"
 	mimeJSON          = "application/json"
+	tmNamePath        = ".tmName"
 )
 
 // TmcRepo implements a Repo TM repository backed by an instance of TM catalog REST API server
@@ -28,9 +29,29 @@ type TmcRepo struct {
 	baseHttpRepo
 }
 
-func (t TmcRepo) FetchAttachment(ctx context.Context, tmNameOrId, attachmentName string) ([]byte, error) {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir, attachmentName)
+func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
+	base, err := newBaseHttpRepo(config, spec)
+	if err != nil {
+		return nil, err
+	}
+	r := &TmcRepo{baseHttpRepo: base}
+	return r, nil
+}
+
+func (t TmcRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
+	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), AttachmentsDir, attachmentName)
 	return fetchAttachment(ctx, reqUrl.String(), t.auth)
+}
+
+func getContainerPath(ref model.AttachmentContainerRef) string {
+	switch ref.Kind() {
+	case model.AttachmentContainerKindTMName:
+		return fmt.Sprintf("%s/%s", tmNamePath, ref.TMName)
+	case model.AttachmentContainerKindTMID:
+		return ref.TMID
+	default:
+		return ref.String()
+	}
 }
 
 func fetchAttachment(ctx context.Context, reqUrl string, auth map[string]any) ([]byte, error) {
@@ -69,8 +90,8 @@ func newErrorFromResponse(b []byte) error {
 	return errors.New(detail)
 }
 
-func (t TmcRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentName string) error {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir, attachmentName)
+func (t TmcRepo) DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error {
+	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), AttachmentsDir, attachmentName)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqUrl.String(), nil)
 	if err != nil {
 		return err
@@ -99,8 +120,8 @@ func (t TmcRepo) DeleteAttachment(ctx context.Context, tmNameOrId, attachmentNam
 
 }
 
-func (t TmcRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]string, error) {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir)
+func (t TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+	reqUrl := t.parsedRoot.JoinPath("inventory", tmID)
 	resp, err := doGet(ctx, reqUrl.String(), t.auth)
 	if err != nil {
 		return nil, err
@@ -111,12 +132,12 @@ func (t TmcRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]stri
 	}
 	switch resp.StatusCode {
 	case http.StatusOK:
-		var tm server.AttachmentsListResponse
-		err = json.Unmarshal(b, &tm)
+		var r server.InventoryEntryVersionResponse
+		err = json.Unmarshal(b, &r)
 		if err != nil {
 			return nil, err
 		}
-		return tm.Data, nil
+		return t.toFoundVersion(r.Data), nil
 	case http.StatusNotFound:
 		return nil, ErrNotFound
 	case http.StatusBadRequest:
@@ -128,8 +149,8 @@ func (t TmcRepo) ListAttachments(ctx context.Context, tmNameOrId string) ([]stri
 	}
 }
 
-func (t TmcRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName string, content []byte) error {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", tmNameOrId, AttachmentsDir, attachmentName)
+func (t TmcRepo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {
+	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), AttachmentsDir, attachmentName)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqUrl.String(), bytes.NewBuffer(content))
 	if err != nil {
 		return err
@@ -155,15 +176,6 @@ func (t TmcRepo) PushAttachment(ctx context.Context, tmNameOrId, attachmentName 
 	default:
 		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
-}
-
-func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
-	base, err := newBaseHttpRepo(config, spec)
-	if err != nil {
-		return nil, err
-	}
-	r := &TmcRepo{baseHttpRepo: base}
-	return r, nil
 }
 
 func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
@@ -364,7 +376,7 @@ func (t TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersio
 		log.Error("Please specify a repoName to show the TM.")
 		return nil, errors.New("please specify a repoName to show the TM")
 	}
-	reqUrl := t.parsedRoot.JoinPath("inventory", url.PathEscape(name), ".versions")
+	reqUrl := t.parsedRoot.JoinPath("inventory", tmNamePath, url.PathEscape(name))
 	resp, err := doGet(ctx, reqUrl.String(), t.auth)
 	if err != nil {
 		return nil, err
@@ -376,18 +388,18 @@ func (t TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersio
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		var vResp server.InventoryEntryVersionsResponse
+		var vResp server.InventoryEntryResponse
 		err = json.Unmarshal(data, &vResp)
 		if err != nil {
 			return nil, err
 		}
-		if len(vResp.Data) != 1 {
+		if len(vResp.Data.Versions) != 1 {
 			log.Error(fmt.Sprintf("No thing model found for repoName: %s", name))
 			return nil, ErrNotFound
 		}
 
 		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper).
-			ToFoundVersions(vResp.Data), nil
+			ToFoundVersions(vResp.Data.Versions), nil
 	case http.StatusNotFound:
 		return nil, ErrNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
@@ -432,6 +444,39 @@ func (t TmcRepo) ListCompletions(ctx context.Context, kind string, args []string
 	default:
 		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
+}
+
+func (t TmcRepo) toFoundVersion(data server.InventoryEntryVersion) *model.FoundVersion {
+	v := model.FoundVersion{
+		IndexVersion: model.IndexVersion{
+			Description: data.Description,
+			Version:     model.Version{data.Version.Model},
+			Links:       nil, // fixme
+			TMID:        data.TmID,
+			Digest:      data.Digest,
+			TimeStamp:   data.Timestamp,
+			ExternalID:  data.ExternalID,
+			AttachmentContainer: model.AttachmentContainer{
+				Attachments: toFoundVersionAttachments(data.Attachments),
+			},
+		},
+		FoundIn: t.Spec().ToFoundSource(),
+	}
+	return &v
+}
+
+func toFoundVersionAttachments(al *server.AttachmentsList) []model.Attachment {
+	if al == nil {
+		return nil
+	}
+	var atts []model.Attachment
+	for _, a := range *al {
+		att := model.Attachment{
+			Name: a.Name,
+		}
+		atts = append(atts, att)
+	}
+	return atts
 }
 
 func createTmcRepoConfig(loc string, bytes []byte) (map[string]any, error) {
