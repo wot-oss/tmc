@@ -808,7 +808,7 @@ func TestTmcRepo_Push(t *testing.T) {
 		{
 			name:     "plain",
 			reqBody:  pushBody,
-			respBody: nil,
+			respBody: []byte(`{"data": {"tmID": "tmid"}}`),
 			status:   http.StatusCreated,
 			expErr:   nil,
 		},
@@ -845,7 +845,7 @@ func TestTmcRepo_Push(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
-			err := r.Push(context.Background(), model.TMID{Name: "ignored in tmc repo"}, pushBody)
+			_, err := r.Push(context.Background(), model.TMID{Name: "ignored in tmc repo"}, pushBody, PushOptions{})
 			if test.expErr == nil {
 				assert.NoError(t, err)
 			} else {
@@ -1017,4 +1017,30 @@ func TestTmcRepo_Delete(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTmcRepo_AnalyzeIndex(t *testing.T) {
+	// given: a TMC Repo
+	config, err := createTmcRepoConfig("http://example.com", nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+	// when: AnalyzingIndex on the repo
+	err = r.AnalyzeIndex(context.Background())
+	// then: it returns NotSupported error
+	assert.True(t, errors.Is(err, ErrNotSupported))
+}
+
+func TestTmcRepo_RangeResources(t *testing.T) {
+	// given: a TMC Repo
+	config, err := createTmcRepoConfig("http://example.com", nil)
+	assert.NoError(t, err)
+	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+	// when: RangeResources on the repo
+	err = r.RangeResources(context.Background(), model.ResourceFilter{}, func(resource model.Resource, err error) bool {
+		return true
+	})
+	// then: it returns NotSupported error
+	assert.True(t, errors.Is(err, ErrNotSupported))
 }

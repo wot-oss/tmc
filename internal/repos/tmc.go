@@ -178,30 +178,54 @@ func (t TmcRepo) PushAttachment(ctx context.Context, container model.AttachmentC
 	}
 }
 
-func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
+func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models")
+	vals := url.Values{}
+	if opts.Force {
+		vals["force"] = []string{"true"}
+	}
+	if opts.OptPath != "" {
+		vals["optPath"] = []string{opts.OptPath}
+	}
+	reqUrl.RawQuery = vals.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl.String(), bytes.NewBuffer(raw))
 	if err != nil {
-		return err
+		return PushResult{}, err
 	}
 	req.Header.Add(headerContentType, mimeJSON)
 	resp, err := doHttp(req, t.auth)
 	if err != nil {
-		return err
+		return PushResult{}, err
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return PushResult{}, err
 	}
 
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		return nil
+		var res server.PushThingModelResponse
+		err = json.Unmarshal(b, &res)
+		if err != nil {
+			return PushResult{}, err
+		}
+		msg := ""
+		if res.Data.Message != nil {
+			msg = *res.Data.Message
+		}
+		if res.Data.Code != nil && *res.Data.Code != "" {
+			cErr, err := ParseErrTMIDConflict(*res.Data.Code)
+			if err != nil {
+				return PushResult{}, err
+			}
+			return PushResult{Type: PushResultWarning, TmID: res.Data.TmID, Message: msg, Err: cErr}, nil
+		}
+		return PushResult{Type: PushResultOK, TmID: res.Data.TmID, Message: msg}, nil
 	case http.StatusConflict, http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 		var e server.ErrorResponse
 		err = json.Unmarshal(b, &e)
 		if err != nil {
-			return err
+			return PushResult{}, err
 		}
 		detail := e.Title
 		if e.Detail != nil {
@@ -215,16 +239,19 @@ func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
 			}
 			cErr, err := ParseErrTMIDConflict(eCode)
 			if err != nil {
-				return err
+				return PushResult{}, err
 			}
-			return cErr
+			return PushResult{}, cErr
 		case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
-			return errors.New(detail)
+			err := errors.New(detail)
+			return PushResult{}, err
 		default:
-			return errors.New("unexpected status not handled correctly")
+			err := errors.New("unexpected status not handled correctly")
+			return PushResult{}, err
 		}
 	default:
-		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+		err := errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+		return PushResult{}, err
 	}
 }
 func (t TmcRepo) Delete(ctx context.Context, id string) error {
@@ -273,6 +300,14 @@ func (t TmcRepo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 
 func (t TmcRepo) Index(context.Context, ...string) error {
 	return nil // ignore request to update index as index updates are presumed to be handled by the underlying repo
+}
+
+func (t TmcRepo) AnalyzeIndex(context.Context) error {
+	return ErrNotSupported
+}
+
+func (t TmcRepo) RangeResources(context.Context, model.ResourceFilter, func(model.Resource, error) bool) error {
+	return ErrNotSupported
 }
 
 func (t TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {

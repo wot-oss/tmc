@@ -2,6 +2,7 @@ package repos
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -238,4 +239,30 @@ func TestHttpRepo_ListCompletions(t *testing.T) {
 		slices.Sort(completions)
 		assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall:1.0.1"}, completions)
 	})
+}
+
+func TestHttpRepo_AnalyzeIndex(t *testing.T) {
+	// given: a Http Repo
+	config, err := createHttpRepoConfig("http://example.com", nil)
+	assert.NoError(t, err)
+	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+	// when: AnalyzingIndex on the repo
+	err = r.AnalyzeIndex(context.Background())
+	// then: it returns NotSupported error
+	assert.True(t, errors.Is(err, ErrNotSupported))
+}
+
+func TestHttpRepo_RangeResources(t *testing.T) {
+	// given: a Http Repo
+	config, err := createHttpRepoConfig("http://example.com", nil)
+	assert.NoError(t, err)
+	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+	// when: RangeResources on the repo
+	err = r.RangeResources(context.Background(), model.ResourceFilter{}, func(resource model.Resource, err error) bool {
+		return true
+	})
+	// then: it returns NotSupported error
+	assert.True(t, errors.Is(err, ErrNotSupported))
 }

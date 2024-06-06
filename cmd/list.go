@@ -55,6 +55,7 @@ func executeList(cmd *cobra.Command, args []string) {
 	search := cli.CreateSearchParamsFromCLI(filterFlags, name)
 	err = cli.List(context.Background(), spec, search)
 	if err != nil {
+		cli.Stderrf("list failed")
 		os.Exit(1)
 	}
 }

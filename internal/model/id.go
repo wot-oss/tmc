@@ -13,7 +13,7 @@ import (
 var (
 	ErrInvalidVersion       = errors.New("invalid version string")
 	ErrInvalidPseudoVersion = errors.New("no valid pseudo-version found")
-	ErrInvalidId            = errors.New("id invalid")
+	ErrInvalidId            = errors.New("TM id invalid")
 	ErrInvalidIdOrName      = errors.New("id or name invalid")
 	ErrVersionDiffers       = errors.New("id has a differing version from given ThingModel")
 )

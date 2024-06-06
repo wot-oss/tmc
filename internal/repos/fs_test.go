@@ -190,9 +190,9 @@ func TestFileRepo_Push(t *testing.T) {
 	}
 	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
 	id := tmName + "/v0.0.0-20231208142856-c49617d2e4fc.tm.json"
-	err := r.Push(context.Background(), model.MustParseTMID(id), []byte{})
+	_, err := r.Push(context.Background(), model.MustParseTMID(id), []byte{}, PushOptions{})
 	assert.Error(t, err)
-	err = r.Push(context.Background(), model.MustParseTMID(id), []byte("{}"))
+	_, err = r.Push(context.Background(), model.MustParseTMID(id), []byte("{}"), PushOptions{})
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id))
 
@@ -202,17 +202,21 @@ func TestFileRepo_Push(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 
 	id2 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-a49617d2e4fc.tm.json"
-	err = r.Push(context.Background(), model.MustParseTMID(id2), []byte("{}"))
-	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}, err)
+	res, err := r.Push(context.Background(), model.MustParseTMID(id2), []byte("{}"), PushOptions{})
+	expCErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}
+	assert.Equal(t, expCErr, err)
+	assert.Equal(t, PushResult{Type: PushResultTMExists, Message: expCErr.Error(), Err: expCErr}, res)
 
 	id3 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-f49617d2e4fc.tm.json"
-	err = r.Push(context.Background(), model.MustParseTMID(id3), []byte("{}"))
+	_, err = r.Push(context.Background(), model.MustParseTMID(id3), []byte("{}"), PushOptions{})
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id3))
 
-	id4 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-b49617d2e4fc.tm.json"
-	err = r.Push(context.Background(), model.MustParseTMID(id4), []byte("{\"val\":1}"))
-	assert.Equal(t, &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}, err)
+	id4 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-049617d2e4fc.tm.json"
+	res, err = r.Push(context.Background(), model.MustParseTMID(id4), []byte("{\"val\":1}"), PushOptions{})
+	assert.NoError(t, err)
+	expCErr = &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}
+	assert.Equal(t, PushResult{Type: PushResultWarning, TmID: id4, Message: expCErr.Error(), Err: expCErr}, res)
 
 }
 
@@ -692,6 +696,68 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 		fNames, err := r.ListCompletions(context.Background(), CompletionKindFetchNames, nil, tmName)
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp:v0.0.1", "omnicorp-tm-department/omnicorp/omnilamp:v1.0.0", "omnicorp-tm-department/omnicorp/omnilamp:v1.2.1"}, fNames)
+	})
+}
+
+func TestFileRepo_AnalyzeIndex(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+
+	assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
+
+	removeIndex := func() {
+		err := os.RemoveAll(filepath.Join(temp, RepoConfDir))
+		assert.NoError(t, err)
+	}
+
+	spec := model.NewDirSpec(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: spec,
+	}
+
+	// collect all TM Ids within the file repo
+	var tmIds []string
+	err := filepath.Walk(temp, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(path, TMExt) {
+			tmId, _ := filepath.Rel(temp, path)
+			tmIds = append(tmIds, tmId)
+		}
+		return nil
+	})
+
+	t.Run("with complete index file", func(t *testing.T) {
+		// given: complete index file
+		removeIndex()
+		err = r.Index(context.Background())
+		assert.NoError(t, err)
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is no error
+		assert.NoError(t, err)
+	})
+
+	t.Run("with incomplete index file", func(t *testing.T) {
+		// given: incomplete index file (contains only one TM)
+		removeIndex()
+		err = r.Index(context.Background(), tmIds[0])
+		assert.NoError(t, err)
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is an error for index mismatch
+		assert.ErrorIs(t, err, ErrIndexMismatch)
+	})
+
+	t.Run("with missing index file", func(t *testing.T) {
+		// given: there is no index file
+		removeIndex()
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is an error for missing index
+		assert.ErrorIs(t, err, ErrNoIndex)
 	})
 }
 

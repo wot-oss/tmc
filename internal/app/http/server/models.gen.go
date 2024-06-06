@@ -124,7 +124,9 @@ type PushThingModelResponse struct {
 
 // PushThingModelResult defines model for PushThingModelResult.
 type PushThingModelResult struct {
-	TmID string `json:"tmID"`
+	Code    *string `json:"code,omitempty"`
+	Message *string `json:"message,omitempty"`
+	TmID    string  `json:"tmID"`
 }
 
 // SchemaAuthor defines model for SchemaAuthor.
@@ -242,6 +244,15 @@ type GetMpnsParams struct {
 
 // PushThingModelJSONBody defines parameters for PushThingModel.
 type PushThingModelJSONBody = map[string]interface{}
+
+// PushThingModelParams defines parameters for PushThingModel.
+type PushThingModelParams struct {
+	// Force flag to force the push, ignoring any conflicts with existing TMs
+	Force *string `form:"force,omitempty" json:"force,omitempty"`
+
+	// OptPath optional path parts to append to the target path (and id) of imported TM, after the mandatory path structure
+	OptPath *string `form:"optPath,omitempty" json:"optPath,omitempty"`
+}
 
 // GetThingModelByFetchNameParams defines parameters for GetThingModelByFetchName.
 type GetThingModelByFetchNameParams struct {

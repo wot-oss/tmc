@@ -20,7 +20,7 @@ type HandlerService interface {
 	FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error)
 	FetchLatestThingModel(ctx context.Context, fetchName string, restoreId bool) ([]byte, error)
-	PushThingModel(ctx context.Context, file []byte) (string, error)
+	PushThingModel(ctx context.Context, file []byte, opts repos.PushOptions) (repos.PushResult, error)
 	DeleteThingModel(ctx context.Context, tmID string) error
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
@@ -158,23 +158,25 @@ func (dhs *defaultHandlerService) FetchLatestThingModel(ctx context.Context, fet
 	return data, nil
 }
 
-func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byte) (string, error) {
+func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byte, opts repos.PushOptions) (repos.PushResult, error) {
 	pushRepo := dhs.pushRepo
 
 	repo, err := repos.Get(pushRepo)
 	if err != nil {
-		return "", err
+		return repos.PushResult{}, err
 	}
-	tmID, err := commands.NewPushCommand(time.Now).PushFile(ctx, file, repo, "")
+	res, err := commands.NewPushCommand(time.Now).PushFile(ctx, file, repo, opts)
 	if err != nil {
-		return "", err
+		return res, err
 	}
-	err = repo.Index(ctx, tmID)
-	if err != nil {
-		return "", err
+	if res.IsSuccessful() {
+		err = repo.Index(ctx, res.TmID)
+		if err != nil {
+			return repos.PushResult{}, err
+		}
 	}
 
-	return tmID, nil
+	return res, nil
 }
 
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {

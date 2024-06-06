@@ -17,8 +17,6 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-var ErrNotSupported = errors.New("method not supported")
-
 const RelFileUriPlaceholder = "{{ID}}"
 
 type baseHttpRepo struct {
@@ -80,8 +78,8 @@ func newBaseHttpRepo(config map[string]any, spec model.RepoSpec) (baseHttpRepo, 
 	return base, nil
 }
 
-func (h *HttpRepo) Push(ctx context.Context, id model.TMID, raw []byte) error {
-	return ErrNotSupported
+func (h *HttpRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error) {
+	return PushResult{}, ErrNotSupported
 }
 func (h *HttpRepo) Delete(ctx context.Context, id string) error {
 	return ErrNotSupported
@@ -135,6 +133,15 @@ func (h *HttpRepo) buildUrl(fileId string) string {
 func (h *HttpRepo) Index(context.Context, ...string) error {
 	return ErrNotSupported
 }
+
+func (h *HttpRepo) AnalyzeIndex(context.Context) error {
+	return ErrNotSupported
+}
+
+func (h *HttpRepo) RangeResources(context.Context, model.ResourceFilter, func(model.Resource, error) bool) error {
+	return ErrNotSupported
+}
+
 func (h *HttpRepo) Spec() model.RepoSpec {
 	return h.spec
 }
