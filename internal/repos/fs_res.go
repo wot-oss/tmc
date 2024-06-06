@@ -2,7 +2,6 @@ package repos
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -71,7 +70,7 @@ func (f *FileRepo) RangeResources(ctx context.Context, filter model.ResourceFilt
 			log.Error(err.Error(), "resource", res.Name)
 		}
 
-		if errors.Is(err, os.ErrNotExist) {
+		if os.IsNotExist(err) {
 			err = ErrResourceNotExists
 		} else if stat != nil && stat.IsDir() {
 			err = ErrResourceInvalid

@@ -680,11 +680,28 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
 
-	assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
+	initRepo := func(copyTMs bool) []string {
+		os.RemoveAll(temp)
+		testutils.CreateDir(temp, "")
+		var tmIds []string
+		if copyTMs {
+			assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
 
-	removeIndex := func() {
-		err := os.RemoveAll(filepath.Join(temp, RepoConfDir))
-		assert.NoError(t, err)
+			err := filepath.Walk(temp, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if strings.HasSuffix(path, TMExt) {
+					tmId, _ := filepath.Rel(temp, path)
+					tmIds = append(tmIds, tmId)
+				}
+				return nil
+			})
+			assert.NoError(t, err)
+			// make sure there are at least 2 TM's in the repo
+			assert.GreaterOrEqual(t, len(tmIds), 2)
+		}
+		return tmIds
 	}
 
 	spec := model.NewDirSpec(temp)
@@ -693,23 +710,11 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		spec: spec,
 	}
 
-	// collect all TM Ids within the file repo
-	var tmIds []string
-	err := filepath.Walk(temp, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if strings.HasSuffix(path, TMExt) {
-			tmId, _ := filepath.Rel(temp, path)
-			tmIds = append(tmIds, tmId)
-		}
-		return nil
-	})
-
-	t.Run("with complete index file", func(t *testing.T) {
-		// given: complete index file
-		removeIndex()
-		err = r.Index(context.Background())
+	t.Run("with some TMs in the repo and complete index file", func(t *testing.T) {
+		// given: a repo with some TM's inside
+		initRepo(true)
+		// and given: complete index file in the repo
+		err := r.Index(context.Background())
 		assert.NoError(t, err)
 		// when: analyzing index
 		err = r.AnalyzeIndex(context.Background())
@@ -717,10 +722,11 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("with incomplete index file", func(t *testing.T) {
-		// given: incomplete index file (contains only one TM)
-		removeIndex()
-		err = r.Index(context.Background(), tmIds[0])
+	t.Run("with some TMs in the repo, but incomplete index file", func(t *testing.T) {
+		// given: a repo with some TM's inside
+		tmIds := initRepo(true)
+		// and given: incomplete index file in the repo (contains only one TM)
+		err := r.Index(context.Background(), tmIds[0])
 		assert.NoError(t, err)
 		// when: analyzing index
 		err = r.AnalyzeIndex(context.Background())
@@ -728,13 +734,36 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		assert.ErrorIs(t, err, ErrIndexMismatch)
 	})
 
-	t.Run("with missing index file", func(t *testing.T) {
-		// given: there is no index file
-		removeIndex()
+	t.Run("with some TMs in the repo, but missing index file", func(t *testing.T) {
+		// given: a repo with some TM's inside
+		initRepo(true)
+		// and given: there is no index file in the repo
 		// when: analyzing index
-		err = r.AnalyzeIndex(context.Background())
+		err := r.AnalyzeIndex(context.Background())
 		// then: there is an error for missing index
 		assert.ErrorIs(t, err, ErrNoIndex)
+	})
+
+	t.Run("with no TM's in the repo, but with index file", func(t *testing.T) {
+		// given: a repo with no TM's inside
+		initRepo(false)
+		// and given: a created index file in the repo
+		err := r.Index(context.Background())
+		assert.NoError(t, err)
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is no error, as an empty repo is a valid one
+		assert.NoError(t, err)
+	})
+
+	t.Run("with no TM's in the repo and missing index file", func(t *testing.T) {
+		// given: a repo with no TM's inside
+		initRepo(false)
+		// and given: there is no index file in the repo
+		// when: analyzing index
+		err := r.AnalyzeIndex(context.Background())
+		// then: there is no error, as an empty repo is a valid one
+		assert.NoError(t, err)
 	})
 }
 

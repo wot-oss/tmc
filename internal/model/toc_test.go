@@ -2,6 +2,7 @@ package model
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -414,4 +415,62 @@ func TestIndex_Delete(t *testing.T) {
 		})
 	}
 
+}
+
+func TestIndex_IsEmpty(t *testing.T) {
+	idx := &Index{
+		Meta: IndexMeta{
+			Created: time.Now(),
+		},
+	}
+
+	// nil Data
+	idx.Data = nil
+	assert.True(t, idx.IsEmpty())
+
+	// empty slice Data
+	idx.Data = []*IndexEntry{}
+	assert.True(t, idx.IsEmpty())
+
+	// non-empty Data
+	idx.Data = []*IndexEntry{{Name: "some entry"}}
+	assert.False(t, idx.IsEmpty())
+}
+
+func TestIndex_Sort(t *testing.T) {
+	idx := &Index{
+		Meta: IndexMeta{
+			Created: time.Now(),
+		},
+	}
+
+	// nil Data
+	idx.Data = nil
+	assert.NotPanics(t, func() { idx.Sort() })
+
+	// empty slice Data
+	idx.Data = []*IndexEntry{}
+	assert.NotPanics(t, func() { idx.Sort() })
+
+	// non-empty Data
+	tmName1 := "z/y/x"
+	tmId11 := "z/y/x/v0.1.0-20240606131725-1bbbbbbbbbbb.tm.json"
+	tmId12 := "z/y/x/v0.0.0-20240606131725-1aaaaaaaaaaa.tm.json"
+	tmId13 := "z/y/x/v0.0.1-20240606131725-1ccccccccccc.tm.json"
+	tmName2 := "a/b/c"
+	tmId21 := "a/b/c/v0.0.0-20240606131725-1aaaaaaaaaaa.tm.json"
+	tmId22 := "a/b/c/v0.0.0-20270730131725-1aaaaaaaaaaa.tm.json"
+	tmId23 := "a/b/c/v0.0.0-20240606131725-1bbbbbbbbbbb.tm.json"
+
+	idx.Data = []*IndexEntry{
+		{Name: tmName1, Versions: []IndexVersion{{TMID: tmId11}, {TMID: tmId12}, {TMID: tmId13}}},
+		{Name: tmName2, Versions: []IndexVersion{{TMID: tmId21}, {TMID: tmId22}, {TMID: tmId23}}},
+	}
+
+	idx.Sort()
+
+	assert.Equal(t, tmName2, idx.Data[0].Name)
+	assert.Equal(t, []IndexVersion{{TMID: tmId21}, {TMID: tmId23}, {TMID: tmId22}}, idx.Data[0].Versions)
+	assert.Equal(t, tmName1, idx.Data[1].Name)
+	assert.Equal(t, []IndexVersion{{TMID: tmId12}, {TMID: tmId13}, {TMID: tmId11}}, idx.Data[1].Versions)
 }

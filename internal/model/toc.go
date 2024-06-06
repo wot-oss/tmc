@@ -68,6 +68,26 @@ type IndexVersion struct {
 	ExternalID  string            `json:"externalID"`
 }
 
+func (idx *Index) IsEmpty() bool {
+	return len(idx.Data) == 0
+}
+
+func (idx *Index) Sort() {
+	if idx.IsEmpty() {
+		return
+	}
+	// sort versions of each entry ascending
+	for _, entry := range idx.Data {
+		slices.SortFunc(entry.Versions, func(a IndexVersion, b IndexVersion) int {
+			return strings.Compare(a.TMID, b.TMID)
+		})
+	}
+	// sort entries ascending
+	slices.SortFunc(idx.Data, func(a *IndexEntry, b *IndexEntry) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+}
+
 func (idx *Index) Filter(search *SearchParams) {
 	if search == nil {
 		return
