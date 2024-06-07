@@ -475,6 +475,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string, persist bool) 
 			}
 		}
 	}
+	newIndex.Sort()
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
