@@ -137,7 +137,9 @@ func (t TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVe
 		if err != nil {
 			return nil, err
 		}
-		return t.toFoundVersion(r.Data), nil
+		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
+		version := mapper.ToFoundVersion(r.Data)
+		return &version, nil
 	case http.StatusNotFound:
 		return nil, ErrNotFound
 	case http.StatusBadRequest:
@@ -479,39 +481,6 @@ func (t TmcRepo) ListCompletions(ctx context.Context, kind string, args []string
 	default:
 		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
 	}
-}
-
-func (t TmcRepo) toFoundVersion(data server.InventoryEntryVersion) *model.FoundVersion {
-	v := model.FoundVersion{
-		IndexVersion: model.IndexVersion{
-			Description: data.Description,
-			Version:     model.Version{data.Version.Model},
-			Links:       nil, // fixme
-			TMID:        data.TmID,
-			Digest:      data.Digest,
-			TimeStamp:   data.Timestamp,
-			ExternalID:  data.ExternalID,
-			AttachmentContainer: model.AttachmentContainer{
-				Attachments: toFoundVersionAttachments(data.Attachments),
-			},
-		},
-		FoundIn: t.Spec().ToFoundSource(),
-	}
-	return &v
-}
-
-func toFoundVersionAttachments(al *server.AttachmentsList) []model.Attachment {
-	if al == nil {
-		return nil
-	}
-	var atts []model.Attachment
-	for _, a := range *al {
-		att := model.Attachment{
-			Name: a.Name,
-		}
-		atts = append(atts, att)
-	}
-	return atts
 }
 
 func createTmcRepoConfig(loc string, bytes []byte) (map[string]any, error) {

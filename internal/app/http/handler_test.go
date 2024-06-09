@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"path"
 	"sort"
 	"strings"
 	"testing"
@@ -463,10 +465,7 @@ func Test_GetInventoryByID(t *testing.T) {
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, ctxRelPathDepth, 4)
 		ctx = context.WithValue(ctx, ctxUrlRoot, "")
-
-		mapper := NewMapper(ctx)
-		exp := mapper.GetInventoryEntryVersion(ver)
-		assert.Equal(t, exp, response.Data)
+		assertInventoryEntryVersion(t, ver, response.Data)
 	})
 
 	t.Run("list with invalid tm id", func(t *testing.T) {
@@ -1065,8 +1064,9 @@ func assertInventoryEntry(t *testing.T, ref model.FoundEntry, entry server.Inven
 	assert.Equal(t, ref.Author.Name, entry.SchemaAuthor.SchemaName)
 	assert.Equal(t, ref.Manufacturer.Name, entry.SchemaManufacturer.SchemaName)
 	assert.Equal(t, ref.Mpn, entry.SchemaMpn)
-	assert.True(t, strings.HasSuffix(entry.Links.Self, "./inventory/"+ref.Name))
-
+	expSuffix := "/inventory/.tmName/" + ref.Name
+	assert.Truef(t, strings.HasSuffix(entry.Links.Self, expSuffix), "%s does not end with %s", entry.Links.Self, expSuffix)
+	assertAttachments(t, path.Join(".tmName", ref.Name), ref.Attachments, entry.Attachments)
 	assert.Equal(t, len(ref.Versions), len(entry.Versions))
 	assertInventoryEntryVersions(t, ref.Versions, entry.Versions)
 }
@@ -1075,13 +1075,32 @@ func assertInventoryEntryVersions(t *testing.T, ref []model.FoundVersion, versio
 	for idx, refVer := range ref {
 		entryVer := versions[idx]
 
-		assert.Equal(t, refVer.Description, entryVer.Description)
-		assert.Equal(t, refVer.Version.Model, entryVer.Version.Model)
-		assert.True(t, strings.HasSuffix(entryVer.Links.Content, "/thing-models/"+refVer.TMID))
-		assert.Equal(t, refVer.TMID, entryVer.TmID)
-		assert.Equal(t, refVer.Digest, entryVer.Digest)
-		assert.Equal(t, refVer.TimeStamp, entryVer.Timestamp)
-		assert.Equal(t, refVer.ExternalID, entryVer.ExternalID)
+		assertInventoryEntryVersion(t, refVer, entryVer)
+	}
+}
+
+func assertInventoryEntryVersion(t *testing.T, refVer model.FoundVersion, entryVer server.InventoryEntryVersion) {
+	assert.Equal(t, refVer.Description, entryVer.Description)
+	assert.Equal(t, refVer.Version.Model, entryVer.Version.Model)
+	assert.True(t, strings.HasSuffix(entryVer.Links.Content, "/thing-models/"+refVer.TMID))
+	assert.Equal(t, refVer.TMID, entryVer.TmID)
+	assert.Equal(t, refVer.Digest, entryVer.Digest)
+	assert.Equal(t, refVer.TimeStamp, entryVer.Timestamp)
+	assert.Equal(t, refVer.ExternalID, entryVer.ExternalID)
+	assertAttachments(t, refVer.TMID, refVer.Attachments, entryVer.Attachments)
+}
+
+func assertAttachments(t *testing.T, linkPrefix string, expAtts []model.Attachment, atts *server.AttachmentsList) {
+	if atts == nil {
+		assert.True(t, len(expAtts) == 0, "empty attachments, but not empty expected attachments")
+		return
+	}
+	assert.Equal(t, len(expAtts), len(*atts))
+	for i, a := range *atts {
+		expAtt := expAtts[i]
+		assert.Equal(t, expAtt.Name, a.Name)
+		expSuffix := path.Join(linkPrefix, ".attachments", url.PathEscape(expAtt.Name))
+		assert.Truef(t, strings.HasSuffix(a.Links.Content, expSuffix), "%s does not end with %s", a.Links.Content, expSuffix)
 	}
 }
 
@@ -1093,6 +1112,13 @@ var (
 				Author:       model.SchemaAuthor{Name: "a-corp"},
 				Manufacturer: model.SchemaManufacturer{Name: "eagle"},
 				Mpn:          "bt2000",
+				AttachmentContainer: model.AttachmentContainer{
+					Attachments: []model.Attachment{
+						{
+							Name: "README.md",
+						},
+					},
+				},
 				Versions: []model.FoundVersion{
 					{
 						IndexVersion: model.IndexVersion{
@@ -1113,6 +1139,13 @@ var (
 							Digest:      "243d1b462ddd",
 							TimeStamp:   "20231231153548",
 							ExternalID:  "ext-1",
+							AttachmentContainer: model.AttachmentContainer{
+								Attachments: []model.Attachment{
+									{
+										Name: "CHANGELOG.md",
+									},
+								},
+							},
 						},
 						FoundIn: model.FoundSource{RepoName: "r1"},
 					},

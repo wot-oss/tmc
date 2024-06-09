@@ -160,9 +160,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InventoryEntryVersion'
+                $ref: '#/components/schemas/InventoryEntryVersionResponse'
               example:
-                $ref: '#/components/examples/InventoryEntryVersionExample'
+                $ref: '#/components/examples/InventoryEntryVersionResponseExample'
         '400':
           description: Invalid fetch name supplied
           content:
@@ -1231,36 +1231,6 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
   examples:
-    InventoryEntryVersionsResponseExample:
-      value:
-        data:
-          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
-            'digest': '2cd14601ef09'
-            'externalID': '{{ID}}'
-            'links':
-              'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-            'timestamp': '20240108112117'
-            'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-            'version':
-              'model': '1.0.0'
-          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
-            'digest': 'f4184d08a02c'
-            'externalID': '{{ID}}'
-            'links':
-              'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-            'timestamp': '20231217140234'
-            'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-            'version':
-              'model': '0.0.0'
-          - 'description': ''
-            'digest': 'e1594d08a01b'
-            'externalID': '{{ID}}'
-            'links':
-              'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-            'timestamp': '20231201133246'
-            'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-            'version':
-              'model': '0.0.0'
     InventoryEntryResponseExample:
       value:
         data:
@@ -1277,6 +1247,7 @@ components:
               'digest': '2cd14601ef09'
               'externalID': '{{ID}}'
               'links':
+                'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                 'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
               'timestamp': '20240108112117'
               'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
@@ -1286,6 +1257,7 @@ components:
               'digest': 'f4184d08a02c'
               'externalID': '{{ID}}'
               'links':
+                'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                 'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
               'timestamp': '20231217140234'
               'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
@@ -1295,26 +1267,32 @@ components:
               'digest': 'e1594d08a01b'
               'externalID': '{{ID}}'
               'links':
+                'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
               'timestamp': '20231201133246'
               'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
               'version':
                 'model': '0.0.0'
+          attachments:
+            - name: 'README.md'
+              links:
+                content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
+            - name: 'User Manual.pdf'
+              links:
+                content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
     InventoryEntryVersionResponseExample:
       value:
-        data:
-          $ref: '#/components/examples/InventoryEntryVersionExample/value'
-    InventoryEntryVersionExample:
-      value:
-        'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
-        'digest': '2cd14601ef09'
-        'externalID': '{{ID}}'
-        'links':
-          'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-        'timestamp': '20240108112117'
-        'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-        'version':
-          'model': '1.0.0'
+        'data':
+          'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+          'digest': '2cd14601ef09'
+          'externalID': '{{ID}}'
+          'links':
+            'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+          'timestamp': '20240108112117'
+          'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+          'version':
+            'model': '1.0.0'
     InventoryResponseExample:
       value:
         meta:
@@ -1334,6 +1312,7 @@ components:
                 'digest': '2cd14601ef09'
                 'externalID': '{{ID}}'
                 'links':
+                  'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                   'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                 'timestamp': '20240108112117'
                 'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
@@ -1343,6 +1322,7 @@ components:
                 'digest': 'f4184d08a02c'
                 'externalID': '{{ID}}'
                 'links':
+                  'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                   'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                 'timestamp': '20231217140234'
                 'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
@@ -1352,6 +1332,7 @@ components:
                 'digest': 'e1594d08a01b'
                 'externalID': '{{ID}}'
                 'links':
+                  'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                   'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'timestamp': '20231201133246'
                 'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
@@ -1370,6 +1351,7 @@ components:
                  'digest': '1fc13316b7d8'
                  'externalID': 'e7f19370-84a3-11ee-b962-0242ac120002'
                  'links':
+                   'self': './inventory/MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
                    'content': './thing-models/MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
                  'timestamp': '20240206122430'
                  'tmID': 'MyCompany/BarTech/BazLamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json'
@@ -1380,11 +1362,6 @@ components:
         data:
           - 'MyCompany'
           - 'siemens'
-    AttachmentsListResponseExample:
-      value:
-        data:
-          - 'README.md'
-          - 'User Manual.pdf'
     ManufacturersResponseExample:
       value:
         data:

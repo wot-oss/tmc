@@ -3,11 +3,14 @@ package http
 import (
 	"context"
 	"net/url"
+	"path"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 )
+
+const tmNamePath = ".tmName"
 
 type Mapper struct {
 	Ctx context.Context
@@ -44,16 +47,18 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 	invEntry.SchemaMpn = entry.Mpn
 	invEntry.Versions = m.GetInventoryEntryVersions(entry.Versions)
 
-	hrefSelf, _ := url.JoinPath(basePathInventory, entry.Name)
+	hrefSelf, _ := url.JoinPath(basePathInventory, tmNamePath, entry.Name)
 	hrefSelf = resolveRelativeLink(m.Ctx, hrefSelf)
 	links := server.InventoryEntryLinks{
 		Self: hrefSelf,
 	}
 
-	atts := m.GetAttachmentsList(entry.AttachmentContainer)
+	atts := m.GetAttachmentsList(model.NewTMNameAttachmentContainerRef(entry.Name), entry.AttachmentContainer)
 
 	invEntry.Links = &links
-	invEntry.Attachments = &atts
+	if atts != nil {
+		invEntry.Attachments = &atts
+	}
 
 	return invEntry
 }
@@ -81,31 +86,43 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 	hrefContent, _ := url.JoinPath(basePathThingModels, version.TMID)
 	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
 
+	hrefSelf, _ := url.JoinPath(basePathInventory, version.TMID)
+	hrefSelf = resolveRelativeLink(m.Ctx, hrefSelf)
+
 	links := server.InventoryEntryVersionLinks{
 		Content: hrefContent,
+		Self:    hrefSelf,
 	}
 
 	invVersion.Links = &links
 
-	atts := m.GetAttachmentsList(version.AttachmentContainer)
-	invVersion.Attachments = &atts
+	atts := m.GetAttachmentsList(model.NewTMIDAttachmentContainerRef(version.TMID), version.AttachmentContainer)
+	if atts != nil {
+		invVersion.Attachments = &atts
+	}
 
 	return invVersion
 }
 
-func (m *Mapper) GetAttachmentsList(container model.AttachmentContainer) server.AttachmentsList {
+func (m *Mapper) GetAttachmentsList(ref model.AttachmentContainerRef, container model.AttachmentContainer) server.AttachmentsList {
 	var attList server.AttachmentsList
 	for _, v := range container.Attachments {
-		att := m.GetAttachmentListEntry(v)
+		att := m.GetAttachmentListEntry(ref, v)
 		attList = append(attList, att)
 	}
 
 	return attList
 }
 
-func (m *Mapper) GetAttachmentListEntry(a model.Attachment) server.AttachmentsListEntry {
-
-	hrefContent, _ := url.JoinPath(basePathThingModels, "tmid", ".attachments", a.Name)
+func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a model.Attachment) server.AttachmentsListEntry {
+	var containerPrefix string
+	switch ref.Kind() {
+	case model.AttachmentContainerKindTMID:
+		containerPrefix = ref.TMID
+	case model.AttachmentContainerKindTMName:
+		containerPrefix = path.Join(tmNamePath, ref.TMName)
+	}
+	hrefContent, _ := url.JoinPath(basePathThingModels, containerPrefix, ".attachments", a.Name)
 	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
 
 	links := server.AttachmentLinks{
@@ -117,7 +134,6 @@ func (m *Mapper) GetAttachmentListEntry(a model.Attachment) server.AttachmentsLi
 	}
 
 	return entry
-
 }
 
 func resolveRelativeLink(ctx context.Context, link string) string {
