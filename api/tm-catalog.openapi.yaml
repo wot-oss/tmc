@@ -123,8 +123,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InventoryEntryVersionResponse'
-              example:
-                $ref: '#/components/examples/InventoryEntryVersionResponseExample'
+              examples:
+                inventoryEntryVersion:
+                  $ref: '#/components/examples/InventoryEntryVersionResponseExample'
         '400':
           description: Invalid ID supplied
           content:
@@ -161,8 +162,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InventoryEntryVersionResponse'
-              example:
-                $ref: '#/components/examples/InventoryEntryVersionResponseExample'
+              examples:
+                inventoryEntryVersion:
+                  $ref: '#/components/examples/InventoryEntryVersionResponseExample'
         '400':
           description: Invalid fetch name supplied
           content:
@@ -925,6 +927,8 @@ paths:
             text/plain:
               schema:
                 type: array
+                items:
+                  type: string
         '400':
           description: Illegal query parameters
           content:
