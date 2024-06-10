@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -76,10 +77,20 @@ func (idx *Index) Sort() {
 	if idx.IsEmpty() {
 		return
 	}
-	// sort versions of each entry ascending
+	// sort versions of each entry descending
 	for _, entry := range idx.Data {
 		slices.SortFunc(entry.Versions, func(a IndexVersion, b IndexVersion) int {
-			return strings.Compare(a.TMID, b.TMID)
+			av := semver.MustParse(a.Version.Model)
+			bv := semver.MustParse(b.Version.Model)
+			vc := bv.Compare(av)
+			if vc != 0 {
+				return vc
+			}
+			vc = strings.Compare(b.TimeStamp, a.TimeStamp) // our timestamps can be compared lexicographically
+			if vc != 0 {
+				return vc
+			}
+			return strings.Compare(b.TMID, a.TMID) // in case of semVer and timestamp uniqueness, use complete ID to ensure stable order
 		})
 	}
 	// sort entries ascending

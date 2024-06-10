@@ -453,24 +453,40 @@ func TestIndex_Sort(t *testing.T) {
 	assert.NotPanics(t, func() { idx.Sort() })
 
 	// non-empty Data
-	tmName1 := "z/y/x"
-	tmId11 := "z/y/x/v0.1.0-20240606131725-1bbbbbbbbbbb.tm.json"
-	tmId12 := "z/y/x/v0.0.0-20240606131725-1aaaaaaaaaaa.tm.json"
-	tmId13 := "z/y/x/v0.0.1-20240606131725-1ccccccccccc.tm.json"
-	tmName2 := "a/b/c"
-	tmId21 := "a/b/c/v0.0.0-20240606131725-1aaaaaaaaaaa.tm.json"
-	tmId22 := "a/b/c/v0.0.0-20270730131725-1aaaaaaaaaaa.tm.json"
-	tmId23 := "a/b/c/v0.0.0-20240606131725-1bbbbbbbbbbb.tm.json"
+	idxEntry1 := &IndexEntry{
+		Name: "z/y/x",
+		Versions: []IndexVersion{
+			{TMID: "z/y/x/v0.1.0-20240606131725-1bbbbbbbbbbb.tm.json", Version: Version{Model: "0.1.0"}},
+			{TMID: "z/y/x/v0.11.0-20240606131725-1aaaaaaaaaaa.tm.json", Version: Version{Model: "0.11.0"}},
+			{TMID: "z/y/x/v0.2.1-20240606131725-1ccccccccccc.tm.json", Version: Version{Model: "0.2.1"}},
+		},
+	}
+
+	idxEntry2 := &IndexEntry{
+		Name: "a/b/c",
+		Versions: []IndexVersion{
+			{TMID: "a/b/c/v0.0.0-20240606131725-1aaaaaaaaaaa.tm.json", Version: Version{Model: "0.0.0"}},
+			{TMID: "a/b/c/v0.0.0-20270730131725-1aaaaaaaaaaa.tm.json", Version: Version{Model: "0.0.0"}},
+			{TMID: "a/b/c/v0.0.0-20240606131725-1bbbbbbbbbbb.tm.json", Version: Version{Model: "0.0.0"}},
+		},
+	}
 
 	idx.Data = []*IndexEntry{
-		{Name: tmName1, Versions: []IndexVersion{{TMID: tmId11}, {TMID: tmId12}, {TMID: tmId13}}},
-		{Name: tmName2, Versions: []IndexVersion{{TMID: tmId21}, {TMID: tmId22}, {TMID: tmId23}}},
+		idxEntry1, idxEntry2,
+	}
+
+	expIdxData := []*IndexEntry{
+		{
+			Name:     idxEntry2.Name,
+			Versions: []IndexVersion{idxEntry2.Versions[1], idxEntry2.Versions[2], idxEntry2.Versions[0]},
+		},
+		{
+			Name:     idxEntry1.Name,
+			Versions: []IndexVersion{idxEntry1.Versions[1], idxEntry1.Versions[2], idxEntry1.Versions[0]},
+		},
 	}
 
 	idx.Sort()
 
-	assert.Equal(t, tmName2, idx.Data[0].Name)
-	assert.Equal(t, []IndexVersion{{TMID: tmId21}, {TMID: tmId23}, {TMID: tmId22}}, idx.Data[0].Versions)
-	assert.Equal(t, tmName1, idx.Data[1].Name)
-	assert.Equal(t, []IndexVersion{{TMID: tmId12}, {TMID: tmId13}, {TMID: tmId11}}, idx.Data[1].Versions)
+	assert.Equal(t, expIdxData, idx.Data)
 }
