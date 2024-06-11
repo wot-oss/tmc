@@ -322,6 +322,7 @@ func TestFileRepo_Delete(t *testing.T) {
 				id1 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json"
 				id2 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json"
 				id3 := "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json"
+				id4 := "omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json"
 				assert.NoError(t, r.Delete(context.Background(), id1))
 				assert.NoError(t, r.Delete(context.Background(), id2))
 				_, err := os.Stat(filepath.Join(r.root, "omnicorp-tm-department/omnicorp/omnilamp/subfolder"))
@@ -329,6 +330,7 @@ func TestFileRepo_Delete(t *testing.T) {
 				_, err = os.Stat(filepath.Join(r.root, "omnicorp-tm-department/omnicorp/omnilamp"))
 				assert.NoError(t, err)
 				assert.NoError(t, r.Delete(context.Background(), id3))
+				assert.NoError(t, r.Delete(context.Background(), id4))
 				_, err = os.Stat(filepath.Join(r.root, "omnicorp-tm-department"))
 				assert.True(t, os.IsNotExist(err))
 				_, err = os.Stat(r.root)
@@ -410,6 +412,37 @@ func TestFileRepo_Index(t *testing.T) {
 			"omnicorp-tm-department/omnicorp/omnilamp/subfolder",
 		}, names)
 	})
+
+	t.Run("single id's/index must be sorted", func(t *testing.T) {
+		err := os.Remove(r.indexFilename())
+		assert.NoError(t, err)
+		assert.NoError(t, r.writeNamesFile(nil))
+
+		tmName1 := "omnicorp-tm-department/omnicorp/omnilamp"
+		tmId11 := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json"
+		tmId12 := "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json"
+		tmId13 := "omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json"
+
+		tmName2 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder"
+		tmId21 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json"
+		tmId22 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json"
+
+		// update index with unordered ID's
+		err = r.Index(context.Background(), tmId21, tmId12, tmId22, tmId13, tmId11)
+		assert.NoError(t, err)
+
+		idx, err := r.readIndex()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(idx.Data))
+
+		assert.Equal(t, tmName1, idx.Data[0].Name)
+		assert.Equal(t, tmId13, idx.Data[0].Versions[0].TMID)
+		assert.Equal(t, tmId12, idx.Data[0].Versions[1].TMID)
+		assert.Equal(t, tmId11, idx.Data[0].Versions[2].TMID)
+		assert.Equal(t, tmName2, idx.Data[1].Name)
+		assert.Equal(t, tmId22, idx.Data[1].Versions[0].TMID)
+		assert.Equal(t, tmId21, idx.Data[1].Versions[1].TMID)
+	})
 }
 
 func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
@@ -464,7 +497,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				// then: nothing changes
 				index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
 				if assert.Equal(t, 1, len(index.Data)) {
-					assert.Equal(t, 2, len(index.Data[0].Versions))
+					assert.Equal(t, 3, len(index.Data[0].Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -481,7 +514,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				// then: nothing changes
 				index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
 				if assert.Equal(t, 1, len(index.Data)) {
-					assert.Equal(t, 2, len(index.Data[0].Versions))
+					assert.Equal(t, 3, len(index.Data[0].Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -500,7 +533,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				// then: version is removed from index
 				index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
 				if assert.Equal(t, 1, len(index.Data)) {
-					assert.Equal(t, 1, len(index.Data[0].Versions))
+					assert.Equal(t, 2, len(index.Data[0].Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -680,11 +713,28 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
 
-	assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
+	initRepo := func(copyTMs bool) []string {
+		os.RemoveAll(temp)
+		testutils.CreateDir(temp, "")
+		var tmIds []string
+		if copyTMs {
+			assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
 
-	removeIndex := func() {
-		err := os.RemoveAll(filepath.Join(temp, RepoConfDir))
-		assert.NoError(t, err)
+			err := filepath.Walk(temp, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if strings.HasSuffix(path, TMExt) {
+					tmId, _ := filepath.Rel(temp, path)
+					tmIds = append(tmIds, tmId)
+				}
+				return nil
+			})
+			assert.NoError(t, err)
+			// make sure there are at least 2 TM's in the repo
+			assert.GreaterOrEqual(t, len(tmIds), 2)
+		}
+		return tmIds
 	}
 
 	spec := model.NewDirSpec(temp)
@@ -693,23 +743,11 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		spec: spec,
 	}
 
-	// collect all TM Ids within the file repo
-	var tmIds []string
-	err := filepath.Walk(temp, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if strings.HasSuffix(path, TMExt) {
-			tmId, _ := filepath.Rel(temp, path)
-			tmIds = append(tmIds, tmId)
-		}
-		return nil
-	})
-
-	t.Run("with complete index file", func(t *testing.T) {
-		// given: complete index file
-		removeIndex()
-		err = r.Index(context.Background())
+	t.Run("with some TMs in the repo and complete index file", func(t *testing.T) {
+		// given: a repo with some TM's inside
+		initRepo(true)
+		// and given: complete index file in the repo
+		err := r.Index(context.Background())
 		assert.NoError(t, err)
 		// when: analyzing index
 		err = r.AnalyzeIndex(context.Background())
@@ -717,10 +755,11 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("with incomplete index file", func(t *testing.T) {
-		// given: incomplete index file (contains only one TM)
-		removeIndex()
-		err = r.Index(context.Background(), tmIds[0])
+	t.Run("with some TMs in the repo, but incomplete index file", func(t *testing.T) {
+		// given: a repo with some TM's inside
+		tmIds := initRepo(true)
+		// and given: incomplete index file in the repo (contains only one TM)
+		err := r.Index(context.Background(), tmIds[0])
 		assert.NoError(t, err)
 		// when: analyzing index
 		err = r.AnalyzeIndex(context.Background())
@@ -728,13 +767,36 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		assert.ErrorIs(t, err, ErrIndexMismatch)
 	})
 
-	t.Run("with missing index file", func(t *testing.T) {
-		// given: there is no index file
-		removeIndex()
+	t.Run("with some TMs in the repo, but missing index file", func(t *testing.T) {
+		// given: a repo with some TM's inside
+		initRepo(true)
+		// and given: there is no index file in the repo
 		// when: analyzing index
-		err = r.AnalyzeIndex(context.Background())
+		err := r.AnalyzeIndex(context.Background())
 		// then: there is an error for missing index
 		assert.ErrorIs(t, err, ErrNoIndex)
+	})
+
+	t.Run("with no TM's in the repo, but with index file", func(t *testing.T) {
+		// given: a repo with no TM's inside
+		initRepo(false)
+		// and given: a created index file in the repo
+		err := r.Index(context.Background())
+		assert.NoError(t, err)
+		// when: analyzing index
+		err = r.AnalyzeIndex(context.Background())
+		// then: there is no error, as an empty repo is a valid one
+		assert.NoError(t, err)
+	})
+
+	t.Run("with no TM's in the repo and missing index file", func(t *testing.T) {
+		// given: a repo with no TM's inside
+		initRepo(false)
+		// and given: there is no index file in the repo
+		// when: analyzing index
+		err := r.AnalyzeIndex(context.Background())
+		// then: there is no error, as an empty repo is a valid one
+		assert.NoError(t, err)
 	})
 }
 

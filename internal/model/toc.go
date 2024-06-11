@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -66,6 +67,36 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
+}
+
+func (idx *Index) IsEmpty() bool {
+	return len(idx.Data) == 0
+}
+
+func (idx *Index) Sort() {
+	if idx.IsEmpty() {
+		return
+	}
+	// sort versions of each entry descending
+	for _, entry := range idx.Data {
+		slices.SortFunc(entry.Versions, func(a IndexVersion, b IndexVersion) int {
+			av := semver.MustParse(a.Version.Model)
+			bv := semver.MustParse(b.Version.Model)
+			vc := bv.Compare(av)
+			if vc != 0 {
+				return vc
+			}
+			vc = strings.Compare(b.TimeStamp, a.TimeStamp) // our timestamps can be compared lexicographically
+			if vc != 0 {
+				return vc
+			}
+			return strings.Compare(b.TMID, a.TMID) // in case of semVer and timestamp equality, use complete ID to ensure stable order
+		})
+	}
+	// sort entries ascending
+	slices.SortFunc(idx.Data, func(a *IndexEntry, b *IndexEntry) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 }
 
 func (idx *Index) Filter(search *SearchParams) {
