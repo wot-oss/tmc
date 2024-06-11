@@ -90,7 +90,7 @@ func (idx *Index) Sort() {
 			if vc != 0 {
 				return vc
 			}
-			return strings.Compare(b.TMID, a.TMID) // in case of semVer and timestamp uniqueness, use complete ID to ensure stable order
+			return strings.Compare(b.TMID, a.TMID) // in case of semVer and timestamp equality, use complete ID to ensure stable order
 		})
 	}
 	// sort entries ascending
