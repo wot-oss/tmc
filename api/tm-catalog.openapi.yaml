@@ -410,6 +410,14 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
+      requestBody:
+        description: Add a new attachment or overwrite an existing one
+        content:
+          '*/*':
+            schema:
+              type: string
+              format: binary
+        required: true
       responses:
         '202':
           description: Successfully pushed
@@ -507,6 +515,14 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
+      requestBody:
+        description: Add a new attachment or overwrite an existing one
+        content:
+          '*/*':
+            schema:
+              type: string
+              format: binary
+        required: true
       responses:
         '202':
           description: Successfully pushed
@@ -1185,8 +1201,6 @@ components:
       schema:
         type: string
       examples:
-        id:
-          value: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
         fullVersion:
           value: 'siemens/siemens/poc1000:v1.2.3'
         major:
