@@ -419,7 +419,7 @@ paths:
               format: binary
         required: true
       responses:
-        '202':
+        '204':
           description: Successfully pushed
         '400':
           description: Invalid ID supplied
@@ -524,7 +524,7 @@ paths:
               format: binary
         required: true
       responses:
-        '202':
+        '204':
           description: Successfully pushed
         '400':
           description: Invalid TM name supplied
