@@ -9,6 +9,7 @@
 
 ### Changed
 
+- `push`: rename "push" to "import"
 - `push`: always reject pushing TMs with same TM name, semantic version and digest by default, but can be enforced by flag `--force`
 - `push`: shows a warning if there is a timestamp collision (retrying after a second has been removed)
 - `list, pull, versions`: return exit code 1 if at least one repo returns an error

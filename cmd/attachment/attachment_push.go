@@ -12,8 +12,8 @@ import (
 )
 
 var attachmentPushCmd = &cobra.Command{
-	Use:   "push <tmNameOrId> <attachmentFile>",
-	Short: "Push an attachment",
+	Use:   "import <tmNameOrId> <attachmentFile>",
+	Short: "Import an attachment",
 	Long:  `Add or replace an attachment`,
 	Args:  cobra.ExactArgs(2),
 	Run:   attachmentPush,

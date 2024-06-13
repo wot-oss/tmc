@@ -283,7 +283,7 @@ paths:
       description: >
         Deletes a Thing Model.
         Normally, the catalog is write-only and no TMs are ever deleted.
-        The delete operation is implemented for the rare cases when a TM has been pushed whilst containing major errors 
+        The delete operation is implemented for the rare cases when a TM has been imported whilst containing major errors 
         or by mistake. It is mandatory to provide the query parameter ?force=true to delete a TM.
       operationId: deleteThingModelById
       parameters:
@@ -420,7 +420,7 @@ paths:
         required: true
       responses:
         '204':
-          description: Successfully pushed
+          description: Successfully imported
         '400':
           description: Invalid ID supplied
           content:
@@ -525,7 +525,7 @@ paths:
         required: true
       responses:
         '204':
-          description: Successfully pushed
+          description: Successfully added
         '400':
           description: Invalid TM name supplied
           content:
@@ -576,13 +576,13 @@ paths:
     post:
       tags:
         - thing-models
-      summary: Push a new Thing Model
-      description: Push a new Thing Model
-      operationId: pushThingModel
+      summary: Import a Thing Model
+      description: Import a Thing Model
+      operationId: importThingModel
       parameters:
         - name: force
           in: query
-          description: flag to force the push, ignoring any conflicts with existing TMs
+          description: flag to force the import, ignoring any conflicts with existing TMs
           required: false
           schema:
             type: string
@@ -594,7 +594,7 @@ paths:
             type: string
       requestBody:
         description: |
-          Push a new Thing Model  
+          Import a Thing Model  
           
           **For the schema of a Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
         content:
@@ -603,15 +603,15 @@ paths:
               type: object
             examples:
               payload:
-                $ref: '#/components/examples/PushPayloadExample'
+                $ref: '#/components/examples/ImportTMPayloadExample'
         required: true
       responses:
         '201':
-          description: Successfully pushed
+          description: Successfully imported
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PushThingModelResponse'
+                $ref: '#/components/schemas/ImportThingModelResponse'
         '400':
           description: Invalid request
           content:
@@ -1065,13 +1065,13 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/InventoryEntry'
-    PushThingModelResponse:
+    ImportThingModelResponse:
       required:
         - data
       type: object
       properties:
         data:
-          $ref: '#/components/schemas/PushThingModelResult'
+          $ref: '#/components/schemas/ImportThingModelResult'
     AuthorsResponse:
       type: object
       required:
@@ -1157,7 +1157,7 @@ components:
         model:
           type: string
           example: '0.0.0'
-    PushThingModelResult:
+    ImportThingModelResult:
       required:
         - tmID
       type: object
@@ -1390,7 +1390,7 @@ components:
         data:
           - 'BazLamp'
           - 'POC1000'
-    PushPayloadExample:
+    ImportTMPayloadExample:
       value:
         '@context':
            -  'https://www.w3.org/2022/wot/td/v1.1'

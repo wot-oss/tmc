@@ -15,7 +15,7 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete <TMID>",
 	Short: "Delete a TM by id",
 	Long: `Delete a TM by id. Normally, the catalog is write-only and no TMs are ever deleted.
-The delete function is implemented for the rare cases when a TM has been pushed whilst containing major errors 
+The delete function is implemented for the rare cases when a TM has been imported whilst containing major errors 
 or by mistake. Therefore, it is mandatory to provide the flag --force=true to delete a TM.`,
 	Args:              cobra.ExactArgs(1),
 	Run:               executeDelete,

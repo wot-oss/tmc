@@ -167,6 +167,34 @@ func (_m *Repo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVer
 	return r0, r1
 }
 
+// Import provides a mock function with given fields: ctx, id, raw, opts
+func (_m *Repo) Import(ctx context.Context, id model.TMID, raw []byte, opts repos.ImportOptions) (repos.ImportResult, error) {
+	ret := _m.Called(ctx, id, raw, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Import")
+	}
+
+	var r0 repos.ImportResult
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, model.TMID, []byte, repos.ImportOptions) (repos.ImportResult, error)); ok {
+		return rf(ctx, id, raw, opts)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, model.TMID, []byte, repos.ImportOptions) repos.ImportResult); ok {
+		r0 = rf(ctx, id, raw, opts)
+	} else {
+		r0 = ret.Get(0).(repos.ImportResult)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, model.TMID, []byte, repos.ImportOptions) error); ok {
+		r1 = rf(ctx, id, raw, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Index provides a mock function with given fields: ctx, updatedIds
 func (_m *Repo) Index(ctx context.Context, updatedIds ...string) error {
 	_va := make([]interface{}, len(updatedIds))
@@ -243,34 +271,6 @@ func (_m *Repo) ListCompletions(ctx context.Context, kind string, args []string,
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, []string, string) error); ok {
 		r1 = rf(ctx, kind, args, toComplete)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// Push provides a mock function with given fields: ctx, id, raw, opts
-func (_m *Repo) Push(ctx context.Context, id model.TMID, raw []byte, opts repos.PushOptions) (repos.PushResult, error) {
-	ret := _m.Called(ctx, id, raw, opts)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Push")
-	}
-
-	var r0 repos.PushResult
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, model.TMID, []byte, repos.PushOptions) (repos.PushResult, error)); ok {
-		return rf(ctx, id, raw, opts)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, model.TMID, []byte, repos.PushOptions) repos.PushResult); ok {
-		r0 = rf(ctx, id, raw, opts)
-	} else {
-		r0 = ret.Get(0).(repos.PushResult)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, model.TMID, []byte, repos.PushOptions) error); ok {
-		r1 = rf(ctx, id, raw, opts)
 	} else {
 		r1 = ret.Error(1)
 	}

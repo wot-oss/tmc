@@ -145,7 +145,7 @@ func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request
 	_, _ = w.Write(nil)
 }
 
-func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request, p server.PushThingModelParams) {
+func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p server.ImportThingModelParams) {
 	contentType := r.Header.Get(HeaderContentType)
 
 	if contentType != MimeJSON {
@@ -162,7 +162,7 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request, p se
 		return
 	}
 
-	opts := repos.PushOptions{}
+	opts := repos.ImportOptions{}
 	if p.Force != nil {
 		parsedForce, err := strconv.ParseBool(*p.Force)
 		opts.Force = parsedForce && err == nil
@@ -171,13 +171,13 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request, p se
 		opts.OptPath = *p.OptPath
 	}
 
-	res, err := h.Service.PushThingModel(r.Context(), b, opts)
+	res, err := h.Service.ImportThingModel(r.Context(), b, opts)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
-	resp := toPushThingModelResponse(res)
+	resp := toImportThingModelResponse(res)
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
 }

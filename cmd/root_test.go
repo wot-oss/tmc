@@ -35,9 +35,9 @@ func TestLoggingOnSubCommands(t *testing.T) {
 
 	var listCmd = &cobra.Command{Use: "list", Run: runFunc}
 	var serveCmd = &cobra.Command{Use: "serve", Run: runFunc}
-	var pushCmd = &cobra.Command{Use: "push", Run: runFunc}
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
 
-	RootCmd.AddCommand(listCmd, serveCmd, pushCmd)
+	RootCmd.AddCommand(listCmd, serveCmd, importCmd)
 
 	// when: executing the list command
 	RootCmd.SetArgs([]string{"list"})
@@ -51,8 +51,8 @@ func TestLoggingOnSubCommands(t *testing.T) {
 	// then: logging is default ENABLED
 	assert.False(t, isDisabled)
 
-	// when: executing the push command
-	RootCmd.SetArgs([]string{"push"})
+	// when: executing the import command
+	RootCmd.SetArgs([]string{"import"})
 	_ = RootCmd.Execute()
 	// then: logging is default DISABLED
 	assert.True(t, isDisabled)
@@ -79,11 +79,11 @@ func TestLogFlagEnablesLogging(t *testing.T) {
 		_, isDisabled = hdl.(*internal.DiscardLogHandler)
 	}
 
-	var pushCmd = &cobra.Command{Use: "push", Run: runFunc}
-	RootCmd.AddCommand(pushCmd)
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
+	RootCmd.AddCommand(importCmd)
 
 	// when: executing the command with the --loglevel flag
-	RootCmd.SetArgs([]string{"push"})
+	RootCmd.SetArgs([]string{"import"})
 	_ = RootCmd.ParseFlags([]string{"--loglevel", "info"})
 	_ = RootCmd.Execute()
 	// then: logging is ENABLED

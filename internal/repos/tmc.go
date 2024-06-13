@@ -204,7 +204,7 @@ func (t TmcRepo) PushAttachment(ctx context.Context, container model.AttachmentC
 	}
 }
 
-func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error) {
+func (t TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models")
 	vals := url.Values{}
 	if opts.Force {
@@ -216,24 +216,24 @@ func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushO
 	reqUrl.RawQuery = vals.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl.String(), bytes.NewBuffer(raw))
 	if err != nil {
-		return PushResult{}, err
+		return ImportResult{}, err
 	}
 	req.Header.Add(headerContentType, mimeJSON)
 	resp, err := doHttp(req, t.auth)
 	if err != nil {
-		return PushResult{}, err
+		return ImportResult{}, err
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return PushResult{}, err
+		return ImportResult{}, err
 	}
 
 	switch resp.StatusCode {
 	case http.StatusCreated:
-		var res server.PushThingModelResponse
+		var res server.ImportThingModelResponse
 		err = json.Unmarshal(b, &res)
 		if err != nil {
-			return PushResult{}, err
+			return ImportResult{}, err
 		}
 		msg := ""
 		if res.Data.Message != nil {
@@ -242,16 +242,16 @@ func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushO
 		if res.Data.Code != nil && *res.Data.Code != "" {
 			cErr, err := ParseErrTMIDConflict(*res.Data.Code)
 			if err != nil {
-				return PushResult{}, err
+				return ImportResult{}, err
 			}
-			return PushResult{Type: PushResultWarning, TmID: res.Data.TmID, Message: msg, Err: cErr}, nil
+			return ImportResult{Type: ImportResultWarning, TmID: res.Data.TmID, Message: msg, Err: cErr}, nil
 		}
-		return PushResult{Type: PushResultOK, TmID: res.Data.TmID, Message: msg}, nil
+		return ImportResult{Type: ImportResultOK, TmID: res.Data.TmID, Message: msg}, nil
 	case http.StatusConflict, http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 		var e server.ErrorResponse
 		err = json.Unmarshal(b, &e)
 		if err != nil {
-			return PushResult{}, err
+			return ImportResult{}, err
 		}
 		detail := e.Title
 		if e.Detail != nil {
@@ -265,19 +265,19 @@ func (t TmcRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushO
 			}
 			cErr, err := ParseErrTMIDConflict(eCode)
 			if err != nil {
-				return PushResult{}, err
+				return ImportResult{}, err
 			}
-			return PushResult{}, cErr
+			return ImportResult{}, cErr
 		case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 			err := errors.New(detail)
-			return PushResult{}, err
+			return ImportResult{}, err
 		default:
 			err := errors.New("unexpected status not handled correctly")
-			return PushResult{}, err
+			return ImportResult{}, err
 		}
 	default:
 		err := errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
-		return PushResult{}, err
+		return ImportResult{}, err
 	}
 }
 func (t TmcRepo) Delete(ctx context.Context, id string) error {

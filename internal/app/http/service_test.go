@@ -384,7 +384,7 @@ func TestService_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with tmID found", func(t *testing.T) {
-		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
+		_, raw, err := utils.ReadRequiredFile("../../../test/data/import/omnilamp.json")
 		tmID := "b-corp/eagle/pm20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Fetch", mock.Anything, tmID).Return(tmID, raw, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
@@ -432,7 +432,7 @@ func TestService_FetchLatestThingModel(t *testing.T) {
 	})
 
 	t.Run("with fetch name found", func(t *testing.T) {
-		_, raw, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
+		_, raw, err := utils.ReadRequiredFile("../../../test/data/import/omnilamp.json")
 		fn := "b-corp/eagle/pm20"
 		tmID := fn + "/v1.0.0-20240107123001-234d1b462fff.tm.json"
 
@@ -525,30 +525,30 @@ func Test_DeleteThingModel(t *testing.T) {
 
 }
 
-func TestService_PushThingModel(t *testing.T) {
+func TestService_ImportThingModel(t *testing.T) {
 	r := mocks.NewRepo(t)
-	pushTarget := model.NewRepoSpec("pushRepo")
-	underTest, _ := NewDefaultHandlerService(repo, pushTarget)
+	importTarget := model.NewRepoSpec("importRepo")
+	underTest, _ := NewDefaultHandlerService(repo, importTarget)
 
 	t.Run("with validation error", func(t *testing.T) {
 		// given: some invalid content for a ThingModel
 		invalidContent := []byte("invalid content")
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
-		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, invalidContent, repos.PushOptions{})
-		// then: it returns an empty PushResult
-		assert.Equal(t, repos.PushResult{}, res)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, importTarget, r, nil))
+		// when: importing ThingModel
+		res, err := underTest.ImportThingModel(nil, invalidContent, repos.ImportOptions{})
+		// then: it returns an empty ImportResult
+		assert.Equal(t, repos.ImportResult{}, res)
 		// and then: there is an error
 		assert.ErrorContains(t, err, "invalid character 'i' looking for beginning of value")
 	})
 
-	t.Run("with push repo name that cannot be found", func(t *testing.T) {
-		// given: invalid pushTarget
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, nil, repos.ErrRepoNotFound))
-		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, []byte("some TM content"), repos.PushOptions{})
-		// then: it returns empty push result
-		assert.Equal(t, repos.PushResult{}, res)
+	t.Run("with import repo name that cannot be found", func(t *testing.T) {
+		// given: invalid importTarget
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, importTarget, nil, repos.ErrRepoNotFound))
+		// when: importing ThingModel
+		res, err := underTest.ImportThingModel(nil, []byte("some TM content"), repos.ImportOptions{})
+		// then: it returns empty import result
+		assert.Equal(t, repos.ImportResult{}, res)
 		// and then: there is an error
 		assert.ErrorContains(t, err, "repo not found")
 		// and then: the error says that the repo cannot be found
@@ -556,21 +556,21 @@ func TestService_PushThingModel(t *testing.T) {
 	})
 	t.Run("with content conflict", func(t *testing.T) {
 		// given: some valid content for a ThingModel
-		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
+		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/import/omnilamp.json")
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, importTarget, r, nil))
 		cErr := &repos.ErrTMIDConflict{
 			Type:       repos.IdConflictSameContent,
 			ExistingId: "existing-id",
 		}
-		expRes := repos.PushResult{
-			Type:    repos.PushResultTMExists,
+		expRes := repos.ImportResult{
+			Type:    repos.ImportResultTMExists,
 			TmID:    "",
 			Message: cErr.Error(),
 			Err:     cErr,
 		}
-		r.On("Push", mock.Anything, mock.Anything, mock.Anything, repos.PushOptions{}).Return(expRes, nil).Once()
-		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, tmContent, repos.PushOptions{})
+		r.On("Import", mock.Anything, mock.Anything, mock.Anything, repos.ImportOptions{}).Return(expRes, nil).Once()
+		// when: importing ThingModel
+		res, err := underTest.ImportThingModel(nil, tmContent, repos.ImportOptions{})
 		// then: it returns empty tmID
 		assert.Equal(t, expRes, res)
 		// and then: there is no error
@@ -578,23 +578,23 @@ func TestService_PushThingModel(t *testing.T) {
 	})
 	t.Run("with timestamp conflict", func(t *testing.T) {
 		// given: some valid content for a ThingModel
-		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/push/omnilamp.json")
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, pushTarget, r, nil))
+		_, tmContent, _ := utils.ReadRequiredFile("../../../test/data/import/omnilamp.json")
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, importTarget, r, nil))
 		cErr := &repos.ErrTMIDConflict{
 			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
-		expRes := repos.PushResult{
-			Type:    repos.PushResultWarning,
+		expRes := repos.ImportResult{
+			Type:    repos.ImportResultWarning,
 			TmID:    "new-id",
 			Message: cErr.Error(),
 			Err:     cErr,
 		}
 
-		r.On("Push", mock.Anything, mock.Anything, mock.Anything, repos.PushOptions{}).Return(expRes, nil).Once()
+		r.On("Import", mock.Anything, mock.Anything, mock.Anything, repos.ImportOptions{}).Return(expRes, nil).Once()
 		r.On("Index", mock.Anything, mock.Anything).Return(nil)
-		// when: pushing ThingModel
-		res, err := underTest.PushThingModel(nil, tmContent, repos.PushOptions{})
+		// when: importing ThingModel
+		res, err := underTest.ImportThingModel(nil, tmContent, repos.ImportOptions{})
 		// then: it returns expected warning result
 		assert.Equal(t, expRes, res)
 		// and then: there is no error

@@ -40,42 +40,42 @@ type Config map[string]map[string]any
 
 var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
 
-type PushResultType int
+type ImportResultType int
 
 const (
-	PushResultOK = PushResultType(iota + 1)
-	PushResultWarning
-	PushResultTMExists
+	ImportResultOK = ImportResultType(iota + 1)
+	ImportResultWarning
+	ImportResultTMExists
 )
 
-func (t PushResultType) String() string {
+func (t ImportResultType) String() string {
 	switch t {
-	case PushResultOK:
+	case ImportResultOK:
 		return "OK"
-	case PushResultWarning:
+	case ImportResultWarning:
 		return "warning"
-	case PushResultTMExists:
+	case ImportResultTMExists:
 		return "exists"
 	default:
 		return "unknown"
 	}
 }
 
-type PushResult struct {
-	Type PushResultType
+type ImportResult struct {
+	Type ImportResultType
 	// TmID is not empty when the result is successful, i.e. Type is OK or Warning
 	TmID    string
 	Message string
-	// Err is not nil when there was a conflict during push, i.e. Type is TMExists or Warning
+	// Err is not nil when there was a conflict during import, i.e. Type is TMExists or Warning
 	Err *ErrTMIDConflict
 }
 
-func (r PushResult) String() string {
+func (r ImportResult) String() string {
 	return fmt.Sprintf("%v\t %s", r.Type, r.Message)
 }
 
-func (t PushResult) IsSuccessful() bool {
-	return t.Type == PushResultOK || t.Type == PushResultWarning
+func (t ImportResult) IsSuccessful() bool {
+	return t.Type == ImportResultOK || t.Type == ImportResultWarning
 }
 
 //go:generate mockery --name Repo --outpkg mocks --output mocks
@@ -83,7 +83,7 @@ type Repo interface {
 	// Push writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
 	// there is a file with the same semantic version and timestamp but different content
-	Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error)
+	Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error)
 	// Fetch retrieves the Thing Model file from repo
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(ctx context.Context, id string) (string, []byte, error)
@@ -112,7 +112,7 @@ type Repo interface {
 	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
 }
 
-type PushOptions struct {
+type ImportOptions struct {
 	Force   bool
 	OptPath string
 }
