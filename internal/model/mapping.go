@@ -72,6 +72,9 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryE
 		Mpn:          e.SchemaMpn,
 		Author:       SchemaAuthor{Name: e.SchemaAuthor.SchemaName},
 		Versions:     m.ToFoundVersions(e.Versions),
+		AttachmentContainer: AttachmentContainer{
+			Attachments: m.ToFoundVersionAttachments(e.Attachments),
+		},
 	}
 }
 
