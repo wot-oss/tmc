@@ -103,12 +103,12 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	match, _ := f.getExistingID(id)
 	if match != idMatchFull {
-		return ErrNotFound
+		return ErrTMNotFound
 	}
 	fullFilename, dir, _ := f.filenames(id)
 	err = os.Remove(fullFilename)
 	if os.IsNotExist(err) {
-		return ErrNotFound
+		return ErrTMNotFound
 	}
 	attDir, _ := f.getAttachmentsDir(model.NewTMIDAttachmentContainerRef(id))
 	unlock, err := f.lockIndex(ctx)
@@ -257,7 +257,7 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 	}
 	match, actualId := f.getExistingID(id)
 	if match != idMatchFull && match != idMatchDigest {
-		return "", nil, ErrNotFound
+		return "", nil, ErrTMNotFound
 	}
 	actualFilename, _, _ := f.filenames(actualId)
 	b, err := os.ReadFile(actualFilename)
@@ -363,7 +363,7 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	}
 
 	if len(res.Entries) != 1 {
-		err := fmt.Errorf("%w: %s", ErrNotFound, name)
+		err := fmt.Errorf("%w: %s", ErrTMNameNotFound, name)
 		log.Error(err.Error())
 		return nil, err
 	}
@@ -378,7 +378,7 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.Found
 	}
 	match, actualId := f.getExistingID(tmID)
 	if match != idMatchFull && match != idMatchDigest {
-		return nil, ErrNotFound
+		return nil, ErrTMNotFound
 	}
 
 	versions, err := f.Versions(ctx, id.Name)
@@ -390,7 +390,7 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.Found
 			return &v, nil
 		}
 	}
-	return nil, ErrNotFound
+	return nil, ErrTMNotFound
 }
 
 func (f *FileRepo) PushAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentName string, content []byte) error {
@@ -469,7 +469,7 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, ref model.AttachmentCont
 
 	file, err := os.ReadFile(filepath.Join(attDir, attachmentName))
 	if os.IsNotExist(err) {
-		return nil, ErrNotFound
+		return nil, ErrAttachmentNotFound
 	}
 	return file, err
 }
@@ -483,7 +483,7 @@ func (f *FileRepo) verifyAttachmentExistsInIndex(ref model.AttachmentContainerRe
 	if !slices.ContainsFunc(atts.attachments, func(attachment model.Attachment) bool {
 		return attachment.Name == attachmentName
 	}) {
-		return ErrNotFound
+		return ErrAttachmentNotFound
 	}
 	return nil
 }
@@ -545,7 +545,7 @@ type attachmentsContainer struct {
 }
 
 // listAttachments returns the attachment list belonging to given tmNameOrId
-// Returns ErrNotFound if tmNameOrId is not present in this repository
+// Returns ErrTMNotFound or ErrTMNameNotFound if ref is not present in this repository
 // Must be called after the index lock has been acquired with lockIndex
 func (f *FileRepo) listAttachments(ref model.AttachmentContainerRef) (*attachmentsContainer, error) {
 	index, err := f.readIndex()
@@ -577,7 +577,11 @@ func findAttachmentContainer(index *model.Index, ref model.AttachmentContainerRe
 
 	indexEntry := index.FindByName(tmName)
 	if indexEntry == nil {
-		return nil, ErrNotFound
+		if ref.Kind() == model.AttachmentContainerKindTMID {
+			return nil, ErrTMNotFound
+		} else {
+			return nil, ErrTMNameNotFound
+		}
 	}
 	versions := indexEntry.Versions
 	if k == model.AttachmentContainerKindTMID {
@@ -589,7 +593,7 @@ func findAttachmentContainer(index *model.Index, ref model.AttachmentContainerRe
 				}, nil
 			}
 		}
-		return nil, ErrNotFound
+		return nil, ErrTMNotFound
 	}
 	// k==model.AttachmentContainerKindTMName -> return inventory entry's attachments
 	return &attachmentsContainer{

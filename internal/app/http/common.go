@@ -79,16 +79,13 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errStatus := http.StatusInternalServerError
 	errCode := ""
 
+	var nfErr *repos.ErrNotFound
 	var eErr *repos.ErrTMIDConflict
 	var aErr *repos.RepoAccessError
 	var bErr *BaseHttpError
 
 	switch true {
 	// handle sentinel errors with errors.Is()
-	case errors.Is(err, repos.ErrNotFound):
-		errTitle = Error404Title
-		errDetail = err.Error()
-		errStatus = http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidId),
 		errors.Is(err, model.ErrInvalidIdOrName),
 		errors.Is(err, model.ErrInvalidFetchName),
@@ -98,6 +95,11 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
 	// handle error values we want to access with errors.As()
+	case errors.As(err, &nfErr):
+		errTitle = Error404Title
+		errDetail = err.Error()
+		errStatus = http.StatusNotFound
+		errCode = nfErr.Code()
 	case errors.As(err, &bErr):
 		errTitle = bErr.Title
 		errDetail = bErr.Detail

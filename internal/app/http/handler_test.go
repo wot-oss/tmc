@@ -542,7 +542,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(nil, repos.ErrNotFound).Once()
+		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(nil, repos.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -579,11 +579,16 @@ func Test_FetchAttachment(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil, repos.ErrNotFound).Once()
+		hs.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil, repos.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
 		assertResponse404(t, rec, route)
+		var errResponse server.ErrorResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
+		if assert.NotNil(t, errResponse.Code) {
+			assert.Equal(t, repos.ErrTMNotFound.Subject, *errResponse.Code)
+		}
 	})
 }
 
@@ -782,8 +787,8 @@ func Test_PushAttachment(t *testing.T) {
 			WithBody(attContent).
 			RunOnHandler(httpHandler)
 
-		// then: it returns status 202
-		assert.Equal(t, http.StatusAccepted, rec.Code)
+		// then: it returns status 204
+		assert.Equal(t, http.StatusNoContent, rec.Code)
 	})
 
 	t.Run("with invalid id", func(t *testing.T) {
@@ -859,11 +864,17 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, tmID).Return(repos.ErrNotFound).Once()
+		hs.On("DeleteThingModel", mock.Anything, tmID).Return(repos.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
 		assertResponse404(t, rec, route)
+		var errResponse server.ErrorResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
+		if assert.NotNil(t, errResponse.Code) {
+			assert.Equal(t, repos.ErrTMNotFound.Subject, *errResponse.Code)
+		}
+
 	})
 
 }
@@ -895,11 +906,16 @@ func Test_DeleteAttachment(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("DeleteAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(repos.ErrNotFound).Once()
+		hs.On("DeleteAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(repos.ErrAttachmentNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
 		assertResponse404(t, rec, route)
+		var errResponse server.ErrorResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
+		if assert.NotNil(t, errResponse.Code) {
+			assert.Equal(t, repos.ErrAttachmentNotFound.Subject, *errResponse.Code)
+		}
 	})
 
 }

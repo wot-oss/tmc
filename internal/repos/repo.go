@@ -98,7 +98,7 @@ type Repo interface {
 	Versions(ctx context.Context, name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Repo has been created from
 	Spec() model.RepoSpec
-	// Delete deletes the TM with given id from repo. Returns ErrNotFound if TM does not exist
+	// Delete deletes the TM with given id from repo. Returns ErrTMNotFound if TM does not exist
 	Delete(ctx context.Context, id string) error
 	// RangeResources iterates over resources within this Repo.
 	// Iteration can be narrowed down by a ResourceFilter. Each iteration calls the visit function.

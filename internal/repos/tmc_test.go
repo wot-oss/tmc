@@ -156,18 +156,18 @@ func TestTmcRepo_List(t *testing.T) {
 				Query:        "some string",
 				Options:      model.SearchOptions{NameFilterType: model.FullMatch},
 			},
-			expUrl: "/inventory/author%2Fcorp%2Fmpn",
+			expUrl: "/inventory/.tmName/author%2Fcorp%2Fmpn",
 			expErr: "",
 			expRes: 1,
 		},
 		{
-			name:   "retrieves single TM by name",
+			name:   "retrieves single TM name entry",
 			body:   inventorySingle,
 			status: http.StatusOK,
 			search: &model.SearchParams{
 				Name: "author/omnicorp/senseall",
 			},
-			expUrl: "/inventory/author%2Fomnicorp%2Fsenseall",
+			expUrl: "/inventory/.tmName/author%2Fomnicorp%2Fsenseall",
 			expErr: "",
 			expRes: 1,
 		},
@@ -432,11 +432,11 @@ func TestTmcRepo_GetTMMetadata(t *testing.T) {
 		},
 		{
 			name:   "not found",
-			body:   []byte(`{"detail":"not found"}`),
+			body:   []byte(`{"detail":"TM not found", "code": "TM"}`),
 			status: http.StatusNotFound,
 			tmId:   "omniauthor/omnicorp/senseall/v8.0.0-20231230153548-243d1b462bbb.tm.json",
 			expUrl: "/inventory/omniauthor/omnicorp/senseall/v8.0.0-20231230153548-243d1b462bbb.tm.json",
-			expErr: "item not found",
+			expErr: "TM not found",
 			expRes: nil,
 		},
 		{
@@ -537,7 +537,7 @@ func TestTmcRepo_FetchAttachment(t *testing.T) {
 			status:     http.StatusNotFound,
 			tmNameOrId: "zzzzzz",
 			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
-			expErr:     "item not found",
+			expErr:     "not found",
 			expRes:     nil,
 		},
 		{
@@ -626,11 +626,11 @@ func TestTmcRepo_DeleteAttachment(t *testing.T) {
 		},
 		{
 			name:       "not found",
-			body:       []byte(`{"detail":"not found"}`),
+			body:       []byte(`{"detail":"TM not found", "code": "TM"}`),
 			status:     http.StatusNotFound,
 			tmNameOrId: "zzzzzz",
 			expUrl:     "/thing-models/zzzzzz/.attachments/README.md",
-			expErr:     "item not found",
+			expErr:     "TM not found",
 		},
 		{
 			name:       "internal server error",
@@ -731,11 +731,11 @@ func TestTmcRepo_PushAttachment(t *testing.T) {
 		},
 		{
 			name:    "not found",
-			body:    []byte(`{"detail":"not found"}`),
+			body:    []byte(`{"detail":"not found", "code": "TM name"}`),
 			status:  http.StatusNotFound,
 			tmName:  "zzzzzz",
 			expUrl:  "/thing-models/.tmName/zzzzzz/.attachments/README.md",
-			expErr:  "item not found",
+			expErr:  "TM name not found",
 			reqBody: []byte("# README"),
 		},
 		{
@@ -979,8 +979,8 @@ func TestTmcRepo_Delete(t *testing.T) {
 			name:     "non-existing id",
 			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
 			status:   http.StatusNotFound,
-			respBody: []byte(`{"detail":"TM not found"}`),
-			expErr:   ErrNotFound,
+			respBody: []byte(`{"detail":"TM not found", "code": "TM"}`),
+			expErr:   ErrTMNotFound,
 		},
 		{
 			name:     "existing id",

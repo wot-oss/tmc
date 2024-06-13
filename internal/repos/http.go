@@ -112,7 +112,7 @@ func fetchTM(ctx context.Context, tmUrl string, auth map[string]any) (string, []
 			return fmt.Sprintf("%v", value), b, fmt.Errorf("unexpected type of 'id': %v", value)
 		}
 	case http.StatusNotFound:
-		return "", nil, ErrNotFound
+		return "", nil, ErrTMNotFound
 	case http.StatusInternalServerError, http.StatusBadRequest:
 		return "", nil, errors.New(string(b))
 	default:
@@ -209,7 +209,7 @@ func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 
 	if len(idx.Entries) != 1 {
 		log.Error(fmt.Sprintf("No TM found with name: %s", name))
-		return nil, ErrNotFound
+		return nil, ErrTMNameNotFound
 	}
 
 	return idx.Entries[0].Versions, nil
@@ -226,7 +226,7 @@ func (h *HttpRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.Found
 	}
 	v := idx.FindByTMID(tmID)
 	if v == nil {
-		return nil, ErrNotFound
+		return nil, ErrTMNotFound
 	}
 	mapper := model.NewIndexToFoundMapper(h.Spec().ToFoundSource())
 	fv := mapper.ToFoundVersion(*v)

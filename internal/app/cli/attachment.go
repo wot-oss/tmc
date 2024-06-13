@@ -21,7 +21,9 @@ func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId string)
 	case model.AttachmentContainerKindTMID:
 		var meta *model.FoundVersion
 		meta, err = commands.GetTMMetadata(ctx, spec, tmNameOrId)
-		atts = meta.Attachments
+		if meta != nil {
+			atts = meta.Attachments
+		}
 	case model.AttachmentContainerKindTMName:
 		var res model.SearchResult
 		var errs []*repos.RepoAccessError

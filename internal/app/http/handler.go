@@ -369,7 +369,7 @@ func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, ref m
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
+	w.WriteHeader(http.StatusNoContent)
 	_, _ = w.Write(nil)
 }
 

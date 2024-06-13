@@ -67,7 +67,13 @@ func fetchAttachment(ctx context.Context, reqUrl string, auth map[string]any) ([
 	case http.StatusOK:
 		return b, nil
 	case http.StatusNotFound:
-		return nil, ErrNotFound
+		var e server.ErrorResponse
+		err := json.Unmarshal(b, &e)
+		code := ""
+		if err == nil && e.Code != nil {
+			code = *e.Code
+		}
+		return nil, NewErrNotFound(code)
 	case http.StatusBadRequest:
 		return nil, model.ErrInvalidIdOrName
 	case http.StatusInternalServerError, http.StatusUnauthorized:
@@ -111,7 +117,13 @@ func (t TmcRepo) DeleteAttachment(ctx context.Context, container model.Attachmen
 	case http.StatusBadRequest:
 		return model.ErrInvalidIdOrName
 	case http.StatusNotFound:
-		return ErrNotFound
+		var e server.ErrorResponse
+		err := json.Unmarshal(b, &e)
+		code := ""
+		if err == nil && e.Code != nil {
+			code = *e.Code
+		}
+		return NewErrNotFound(code)
 	case http.StatusUnauthorized, http.StatusInternalServerError:
 		return newErrorFromResponse(b)
 	default:
@@ -141,7 +153,13 @@ func (t TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVe
 		version := mapper.ToFoundVersion(r.Data)
 		return &version, nil
 	case http.StatusNotFound:
-		return nil, ErrNotFound
+		var e server.ErrorResponse
+		err := json.Unmarshal(b, &e)
+		code := ""
+		if err == nil && e.Code != nil {
+			code = *e.Code
+		}
+		return nil, NewErrNotFound(code)
 	case http.StatusBadRequest:
 		return nil, model.ErrInvalidIdOrName
 	case http.StatusInternalServerError, http.StatusUnauthorized:
@@ -170,7 +188,13 @@ func (t TmcRepo) PushAttachment(ctx context.Context, container model.AttachmentC
 	case http.StatusNoContent:
 		return nil
 	case http.StatusNotFound:
-		return ErrNotFound
+		var e server.ErrorResponse
+		err := json.Unmarshal(b, &e)
+		code := ""
+		if err == nil && e.Code != nil {
+			code = *e.Code
+		}
+		return NewErrNotFound(code)
 	case http.StatusBadRequest:
 		return model.ErrInvalidIdOrName
 	case http.StatusUnauthorized, http.StatusInternalServerError:
@@ -284,7 +308,7 @@ func (t TmcRepo) Delete(ctx context.Context, id string) error {
 		// we're sure that we've passed a valid 'force' flag, so it must be the id
 		return model.ErrInvalidId
 	case http.StatusNotFound:
-		return ErrNotFound
+		return ErrTMNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized:
 		return newErrorFromResponse(b)
 	default:
@@ -318,7 +342,7 @@ func (t TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.Se
 	single := false
 	if search != nil && search.Name != "" && search.Options.NameFilterType == model.FullMatch {
 		single = true
-		reqUrl = reqUrl.JoinPath(url.PathEscape(search.Name))
+		reqUrl = reqUrl.JoinPath(tmNamePath, url.PathEscape(search.Name))
 	} else {
 		addSearchParams(reqUrl, search)
 	}
@@ -431,14 +455,14 @@ func (t TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersio
 			return nil, err
 		}
 		if len(vResp.Data.Versions) != 1 {
-			log.Error(fmt.Sprintf("No thing model found for repoName: %s", name))
-			return nil, ErrNotFound
+			log.Error(fmt.Sprintf("No thing models found for TM name: %s", name))
+			return nil, ErrTMNameNotFound
 		}
 
 		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper).
 			ToFoundVersions(vResp.Data.Versions), nil
 	case http.StatusNotFound:
-		return nil, ErrNotFound
+		return nil, ErrTMNameNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 		return nil, newErrorFromResponse(data)
 	default:

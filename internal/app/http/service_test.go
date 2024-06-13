@@ -373,14 +373,14 @@ func TestService_FetchThingModel(t *testing.T) {
 
 	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/pm20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, repos.ErrNotFound).Once()
+		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, repos.ErrTMNotFound).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(context.Background(), tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrNotFound
-		assert.ErrorIs(t, err, repos.ErrNotFound)
+		assert.ErrorIs(t, err, repos.ErrTMNotFound)
 	})
 
 	t.Run("with tmID found", func(t *testing.T) {
@@ -427,8 +427,8 @@ func TestService_FetchLatestThingModel(t *testing.T) {
 		res, err := underTest.FetchLatestThingModel(context.Background(), fn, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is ErrNotFound
-		assert.ErrorIs(t, err, repos.ErrNotFound)
+		// and then: error is ErrTMNameNotFound
+		assert.ErrorIs(t, err, repos.ErrTMNameNotFound)
 	})
 
 	t.Run("with fetch name found", func(t *testing.T) {
@@ -479,8 +479,8 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 		res, err := underTest.GetLatestTMMetadata(context.Background(), fn)
 		// then: it returns nil result
 		assert.Nil(t, res)
-		// and then: error is ErrNotFound
-		assert.ErrorIs(t, err, repos.ErrNotFound)
+		// and then: error is ErrTMNameNotFound
+		assert.ErrorIs(t, err, repos.ErrTMNameNotFound)
 	})
 
 	t.Run("with fetch name found", func(t *testing.T) {
@@ -516,11 +516,11 @@ func Test_DeleteThingModel(t *testing.T) {
 
 	t.Run("with error when deleting", func(t *testing.T) {
 		tmid := "some-id2"
-		r.On("Delete", mock.Anything, tmid).Return(repos.ErrNotFound).Once()
+		r.On("Delete", mock.Anything, tmid).Return(repos.ErrTMNotFound).Once()
 		// when: deleting ThingModel
 		err := underTest.DeleteThingModel(context.Background(), tmid)
 		// then: it returns error result
-		assert.ErrorIs(t, err, repos.ErrNotFound)
+		assert.ErrorIs(t, err, repos.ErrTMNotFound)
 	})
 
 }
