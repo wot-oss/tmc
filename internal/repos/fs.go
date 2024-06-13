@@ -285,22 +285,21 @@ func (f *FileRepo) AnalyzeIndex(ctx context.Context) error {
 		return err
 	}
 
-	idxOld, err := f.readIndex()
-	if err != nil {
-		return err
-	}
-
+	idxOld, errIdxOld := f.readIndex()
 	idxNew, err := f.updateIndex(ctx, []string{}, false)
 	if err != nil {
 		return err
 	}
 
-	slices.SortFunc(idxOld.Data, func(a *model.IndexEntry, b *model.IndexEntry) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	slices.SortFunc(idxNew.Data, func(a *model.IndexEntry, b *model.IndexEntry) int {
-		return strings.Compare(a.Name, b.Name)
-	})
+	// if there are no TMs and there is an empty or missing index file, it's considered to be valid
+	if idxNew.IsEmpty() && (errIdxOld == ErrNoIndex || idxOld.IsEmpty()) {
+		return nil
+	} else if errIdxOld != nil {
+		return errIdxOld
+	}
+
+	idxNew.Sort()
+	idxOld.Sort()
 
 	idxOk := reflect.DeepEqual(idxOld.Data, idxNew.Data)
 	if !idxOk {
@@ -340,7 +339,10 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 func (f *FileRepo) readIndex() (*model.Index, error) {
 	data, err := os.ReadFile(f.indexFilename())
 	if err != nil {
-		return nil, ErrNoIndex
+		if os.IsNotExist(err) {
+			err = ErrNoIndex
+		}
+		return nil, err
 	}
 
 	var index model.Index
@@ -779,6 +781,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string, persist bool) 
 		newIndex.SetEntryAttachments(name, nameAttachments)
 	}
 
+	newIndex.Sort()
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
