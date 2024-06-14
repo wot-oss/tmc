@@ -638,6 +638,20 @@ func Test_PushThingModel(t *testing.T) {
 		}
 	})
 
+	t.Run("with empty request body", func(t *testing.T) {
+		// given: some empty ThingModel content
+		var emptyContent []byte
+
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody(emptyContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+	})
+
 	t.Run("with validation error", func(t *testing.T) {
 		// given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
@@ -800,6 +814,20 @@ func Test_PushAttachment(t *testing.T) {
 		rec := testutils.NewRequest(http.MethodPut, route).
 			WithHeader(HeaderContentType, MimeOctetStream).
 			WithBody(attContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 400
+		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with empty request body", func(t *testing.T) {
+		// given: some empty attachment content
+		var emptyContent []byte
+
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodPut, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody(emptyContent).
 			RunOnHandler(httpHandler)
 
 		// then: it returns status 400
