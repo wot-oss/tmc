@@ -176,7 +176,7 @@ func TestFileRepo_Fetch(t *testing.T) {
 	assert.Equal(t, fileA, content)
 
 	actId, content, err = r.Fetch(context.Background(), tmName+"/v1.0.0-20231212142856-e49617d2e4fc.tm.json")
-	assert.ErrorIs(t, err, ErrTmNotFound)
+	assert.ErrorIs(t, err, ErrTMNotFound)
 	assert.Equal(t, "", actId)
 
 }
@@ -254,10 +254,10 @@ func TestFileRepo_Versions(t *testing.T) {
 	assert.Len(t, vers, 1)
 
 	vers, err = r.Versions(context.Background(), "omnicorp-r-d-research/omnicorp-gmbh-co-kg/nothing-here")
-	assert.ErrorIs(t, err, ErrTmNotFound)
+	assert.ErrorIs(t, err, ErrTMNameNotFound)
 
 	vers, err = r.Versions(context.Background(), "")
-	assert.ErrorIs(t, err, ErrTmNotFound)
+	assert.ErrorIs(t, err, ErrTMNameNotFound)
 }
 
 func TestFileRepo_Delete(t *testing.T) {
@@ -299,17 +299,19 @@ func TestFileRepo_Delete(t *testing.T) {
 				root: test.root,
 				spec: spec,
 			}
+			assert.NoError(t, r.Index(context.Background()))
+
 			t.Run("invalid id", func(t *testing.T) {
 				err := r.Delete(context.Background(), "invalid-id")
 				assert.ErrorIs(t, err, model.ErrInvalidId)
 			})
 			t.Run("non-existent id", func(t *testing.T) {
 				err := r.Delete(context.Background(), "auth/man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
-				assert.ErrorIs(t, err, ErrTmNotFound)
+				assert.ErrorIs(t, err, ErrTMNotFound)
 			})
 			t.Run("hash matching id", func(t *testing.T) {
 				err := r.Delete(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20230101125023-be839ce9daf1.tm.json")
-				assert.ErrorIs(t, err, ErrTmNotFound)
+				assert.ErrorIs(t, err, ErrTMNotFound)
 			})
 			t.Run("existing id", func(t *testing.T) {
 				id := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json"
@@ -393,6 +395,12 @@ func TestFileRepo_Index(t *testing.T) {
 			"omnicorp-tm-department/omnicorp/omnilamp",
 			"omnicorp-tm-department/omnicorp/omnilamp/subfolder",
 		}, names)
+
+		entry := idx.FindByName("omnicorp-tm-department/omnicorp/omnilamp")
+		assert.NotNil(t, entry)
+		if assert.Len(t, entry.Versions, 3) {
+			assert.Equal(t, []model.Attachment{{Name: "manual.txt"}}, entry.Versions[2].Attachments)
+		}
 	})
 
 	t.Run("full update/no index file", func(t *testing.T) {
@@ -411,6 +419,22 @@ func TestFileRepo_Index(t *testing.T) {
 			"omnicorp-tm-department/omnicorp/omnilamp",
 			"omnicorp-tm-department/omnicorp/omnilamp/subfolder",
 		}, names)
+	})
+
+	t.Run("single tm name indexes attachments", func(t *testing.T) {
+		tmName := "omnicorp-tm-department/omnicorp/omnilamp/subfolder"
+		attDir := filepath.Join(temp, tmName, AttachmentsDir)
+		assert.NoError(t, os.MkdirAll(attDir, defaultDirPermissions))
+		assert.NoError(t, os.WriteFile(filepath.Join(attDir, "README.md"), []byte("# Read This, or Else"), defaultFilePermissions))
+
+		err := r.Index(context.Background(), tmName)
+		assert.NoError(t, err)
+
+		idx, err := r.readIndex()
+		assert.NoError(t, err)
+		entry := idx.FindByName(tmName)
+		assert.NotNil(t, entry)
+		assert.Equal(t, []model.Attachment{{Name: "README.md"}}, entry.Attachments)
 	})
 
 	t.Run("single id's/index must be sorted", func(t *testing.T) {
@@ -633,12 +657,12 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(temp, ".tmc"), defaultDirPermissions)
 
 	t.Run("invalid", func(t *testing.T) {
-		_, err := r.ListCompletions(context.Background(), "invalid", "")
+		_, err := r.ListCompletions(context.Background(), "invalid", nil, "")
 		assert.ErrorIs(t, err, ErrInvalidCompletionParams)
 	})
 
 	t.Run("no names file", func(t *testing.T) {
-		names, err := r.ListCompletions(context.Background(), CompletionKindNames, "")
+		names, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "")
 		assert.NoError(t, err)
 		var exp []string
 		assert.Equal(t, exp, names)
@@ -649,48 +673,48 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 			"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/b\n"+
 			"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath\n"), defaultFilePermissions)
 		t.Run("empty", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/"}, completions)
 		})
 		t.Run("some letters", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "om")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "om")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/"}, completions)
 		})
 		t.Run("some letters non existing", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "aaa")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "aaa")
 			assert.NoError(t, err)
 			var expRes []string
 			assert.Equal(t, expRes, completions)
 		})
 		t.Run("full first name part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/"}, completions)
 		})
 		t.Run("some letters second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/"}, completions)
 		})
 		t.Run("full second part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall", "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/"}, completions)
 		})
 		t.Run("full third part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/", "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath"}, completions)
 		})
 		t.Run("full fourth part", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/a/b"}, completions)
 		})
 		t.Run("full name", func(t *testing.T) {
-			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath")
+			completions, err := r.ListCompletions(context.Background(), CompletionKindNames, nil, "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath")
 			assert.NoError(t, err)
 			assert.Equal(t, []string{"omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/subpath"}, completions)
 		})
@@ -703,7 +727,7 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.0.0-20231207142856-b49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v1.2.1-20231209142856-c49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 		_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
-		fNames, err := r.ListCompletions(context.Background(), CompletionKindFetchNames, tmName)
+		fNames, err := r.ListCompletions(context.Background(), CompletionKindFetchNames, nil, tmName)
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp:v0.0.1", "omnicorp-tm-department/omnicorp/omnilamp:v1.0.0", "omnicorp-tm-department/omnicorp/omnilamp:v1.2.1"}, fNames)
 	})
@@ -797,6 +821,161 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		err := r.AnalyzeIndex(context.Background())
 		// then: there is no error, as an empty repo is a valid one
 		assert.NoError(t, err)
+	})
+}
+
+func TestFileRepo_GetTMMetadata(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.indexFilename())
+	tmID := "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json"
+	testutils.CopyFile("../../test/data/repos/file/attachments/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json", filepath.Join(temp, tmID))
+	meta, err := r.GetTMMetadata(context.Background(), tmID)
+	assert.NoError(t, err)
+	assert.Equal(t, []model.Attachment{{Name: "firmware update notes.md"}}, meta.Attachments)
+}
+
+func TestFileRepo_FetchAttachment(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	assert.NoError(t, testutils.CopyDir("../../test/data/repos/file/attachments", temp))
+	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
+	fileA, _ := os.ReadFile("../../test/data/repos/file/attachments/omnicorp-tm-department/omnicorp/omnilamp/.attachments/README.md")
+	fileB, _ := os.ReadFile("../../test/data/repos/file/attachments/omnicorp-tm-department/omnicorp/omnilamp/.attachments/v3.2.1-20240409155220-3f779458e453/cfg.json")
+	idA := tmName + "/v3.2.1-20240409155220-3f779458e453.tm.json"
+	baseNameA := "README.md"
+	baseNameB := "cfg.json"
+
+	t.Run("tm name attachment", func(t *testing.T) {
+		content, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), baseNameA)
+		assert.NoError(t, err)
+		assert.Equal(t, fileA, content)
+	})
+	t.Run("tm id attachment", func(t *testing.T) {
+		content, err := r.FetchAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(idA), baseNameB)
+		assert.NoError(t, err)
+		assert.Equal(t, fileB, content)
+	})
+	t.Run("non existent attachment", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), "nothing-here")
+		assert.ErrorIs(t, err, ErrAttachmentNotFound)
+	})
+	t.Run("non existent tm name", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), baseNameA)
+		assert.ErrorIs(t, err, ErrTMNameNotFound)
+	})
+	t.Run("non existent tm id", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), baseNameA)
+		assert.ErrorIs(t, err, ErrTMNotFound)
+	})
+	t.Run("invalid tm name", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), baseNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+	t.Run("invalid tm id", func(t *testing.T) {
+		_, err := r.FetchAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453"), baseNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidId)
+	})
+}
+
+func TestFileRepo_PushAttachment(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	assert.NoError(t, testutils.CopyDir("../../test/data/repos/file/attachments", temp))
+	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
+	ver := "v3.2.1-20240409155220-3f779458e453"
+	id := tmName + "/" + ver + TMExt
+	r2Name := "README2.md"
+	r2Content := []byte("# read this, too")
+	t.Run("tm name attachment", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), r2Name, r2Content)
+		assert.NoError(t, err)
+		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, r2Name))
+	})
+	t.Run("tm id attachment", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(id), r2Name, r2Content)
+		assert.NoError(t, err)
+		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, ver, r2Name))
+	})
+	t.Run("non existent tm name", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), r2Name, r2Content)
+		assert.ErrorIs(t, err, ErrTMNameNotFound)
+	})
+	t.Run("non existent tm id", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), r2Name, r2Content)
+		assert.ErrorIs(t, err, ErrTMNotFound)
+	})
+	t.Run("invalid tm name", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), r2Name, r2Content)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+	t.Run("invalid tm id", func(t *testing.T) {
+		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453"), r2Name, r2Content)
+		assert.ErrorIs(t, err, model.ErrInvalidId)
+	})
+}
+
+func TestFileRepo_DeleteAttachment(t *testing.T) {
+	temp, _ := os.MkdirTemp("", "fr")
+	defer os.RemoveAll(temp)
+	r := &FileRepo{
+		root: temp,
+		spec: model.NewRepoSpec("fr"),
+	}
+	assert.NoError(t, testutils.CopyDir("../../test/data/repos/file/attachments", temp))
+	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
+	ver := "v3.2.1-20240409155220-3f779458e453"
+	idA := tmName + "/" + ver + TMExt
+	attNameA := "README.md"
+	attNameB := "cfg.json"
+
+	t.Run("non existent attachment", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), "nothing-here")
+		assert.ErrorIs(t, err, ErrAttachmentNotFound)
+	})
+	t.Run("non existent tm name", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), attNameA)
+		assert.ErrorIs(t, err, ErrTMNameNotFound)
+	})
+	t.Run("non existent tm id", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), attNameA)
+		assert.ErrorIs(t, err, ErrTMNotFound)
+	})
+	t.Run("invalid tm name", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), attNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
+	})
+	t.Run("invalid tm id", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453"), attNameA)
+		assert.ErrorIs(t, err, model.ErrInvalidId)
+	})
+	t.Run("tm id attachment", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(idA), attNameB)
+		assert.NoError(t, err)
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver, attNameA))
+		assert.True(t, os.IsNotExist(err))
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver))
+		assert.True(t, os.IsNotExist(err))
+	})
+	t.Run("tm name attachment", func(t *testing.T) {
+		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), attNameA)
+		assert.NoError(t, err)
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, attNameA))
+		assert.True(t, os.IsNotExist(err))
+		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir))
+		assert.True(t, os.IsNotExist(err))
 	})
 }
 

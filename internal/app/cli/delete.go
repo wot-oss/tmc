@@ -8,7 +8,7 @@ import (
 )
 
 func Delete(ctx context.Context, repo model.RepoSpec, id string) error {
-	err := commands.NewDeleteCommand().Delete(ctx, repo, id)
+	err := commands.Delete(ctx, repo, id)
 	if err != nil {
 		Stderrf("Could not delete from repo: %v", err)
 		return err

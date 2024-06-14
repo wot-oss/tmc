@@ -12,40 +12,40 @@ func TestIndex_Filter(t *testing.T) {
 		idx := prepareIndex()
 		idx.Filter(&SearchParams{Name: "man/mpn"})
 		assert.Len(t, idx.Data, 1)
-		assert.NotNil(t, idx.findByName("man/mpn"))
-		assert.Nil(t, idx.findByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("man/mpn"))
+		assert.Nil(t, idx.FindByName("aut/man/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Name: "aut/man/mpn"})
 		assert.Len(t, idx.Data, 1)
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.Nil(t, idx.findByName("man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.Nil(t, idx.FindByName("man/mpn"))
 	})
 	t.Run("filter by name with prefix match", func(t *testing.T) {
 		idx := prepareIndex()
 		idx.Filter(&SearchParams{Name: "man", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 1)
-		assert.NotNil(t, idx.findByName("man/mpn"))
-		assert.Nil(t, idx.findByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("man/mpn"))
+		assert.Nil(t, idx.FindByName("aut/man/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Name: "aut/man/mpn", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 1)
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.Nil(t, idx.findByName("aut/man/mpn2"))
-		assert.Nil(t, idx.findByName("man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.Nil(t, idx.FindByName("aut/man/mpn2"))
+		assert.Nil(t, idx.FindByName("man/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Name: "aut/man", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 2)
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Name: "aut/man/", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 2)
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Name: "aut/man/mpn/sub", Options: SearchOptions{NameFilterType: PrefixMatch}})
@@ -55,56 +55,56 @@ func TestIndex_Filter(t *testing.T) {
 		idx := prepareIndex()
 		idx.Filter(&SearchParams{Mpn: []string{"mpn2"}})
 		assert.Len(t, idx.Data, 1)
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.Nil(t, idx.findByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.Nil(t, idx.FindByName("aut/man/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Mpn: []string{"mpn", "mpn2", "mpn45"}})
 		assert.Len(t, idx.Data, 4)
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("man/mpn"))
 	})
 	t.Run("filter by manufacturer", func(t *testing.T) {
 		idx := prepareIndex()
 		idx.Filter(&SearchParams{Manufacturer: []string{"man"}})
 		assert.Len(t, idx.Data, 3)
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.Nil(t, idx.findByName("aut/man2/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.Nil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Manufacturer: []string{"man", "man2", "mpn45"}})
 		assert.Len(t, idx.Data, 4)
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("aut/man2/mpn"))
-		assert.NotNil(t, idx.findByName("man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man2/mpn"))
+		assert.NotNil(t, idx.FindByName("man/mpn"))
 	})
 	t.Run("filter by author", func(t *testing.T) {
 		idx := prepareIndex()
 		idx.Filter(&SearchParams{Author: []string{"man"}})
 		assert.Len(t, idx.Data, 1)
-		assert.NotNil(t, idx.findByName("man/mpn"))
-		assert.Nil(t, idx.findByName("aut/man/mpn2"))
-		assert.Nil(t, idx.findByName("aut/man/mpn"))
-		assert.Nil(t, idx.findByName("aut/man2/mpn"))
+		assert.NotNil(t, idx.FindByName("man/mpn"))
+		assert.Nil(t, idx.FindByName("aut/man/mpn2"))
+		assert.Nil(t, idx.FindByName("aut/man/mpn"))
+		assert.Nil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Author: []string{"aut"}})
 		assert.Len(t, idx.Data, 3)
-		assert.Nil(t, idx.findByName("man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man2/mpn"))
+		assert.Nil(t, idx.FindByName("man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Author: []string{"man", "aut"}})
 		assert.Len(t, idx.Data, 4)
-		assert.NotNil(t, idx.findByName("man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man2/mpn"))
+		assert.NotNil(t, idx.FindByName("man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man2/mpn"))
 	})
 	t.Run("filter by query", func(t *testing.T) {
 		idx := prepareIndex()
@@ -127,23 +127,23 @@ func TestIndex_Filter(t *testing.T) {
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Query: "d5"})
 		assert.Len(t, idx.Data, 2)
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("aut/man2/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man2/mpn"))
 	})
 	t.Run("filter by author and manufacturer", func(t *testing.T) {
 		idx := prepareIndex()
 		idx.Filter(&SearchParams{Manufacturer: []string{"man"}, Author: []string{"aut"}})
 		assert.Len(t, idx.Data, 2)
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.Nil(t, idx.findByName("aut/man2/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.Nil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
 		idx.Filter(&SearchParams{Manufacturer: []string{"man"}, Author: []string{"man", "aut"}})
 		assert.Len(t, idx.Data, 3)
-		assert.NotNil(t, idx.findByName("aut/man/mpn"))
-		assert.NotNil(t, idx.findByName("aut/man/mpn2"))
-		assert.NotNil(t, idx.findByName("man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
+		assert.NotNil(t, idx.FindByName("man/mpn"))
 	})
 	t.Run("filter by sanitized key fields", func(t *testing.T) {
 		idx := &Index{
@@ -278,44 +278,19 @@ func prepareIndex() *Index {
 	}
 	return idx
 }
-func prepareTinyIndex() *Index {
-	idx := &Index{
-		Meta: IndexMeta{},
-		Data: []*IndexEntry{
-			{
-				Name:         "aut-hor/man-ufacturer/m-pn",
-				Manufacturer: SchemaManufacturer{"Man&ufacturer"},
-				Mpn:          "M/PN",
-				Author:       SchemaAuthor{"aut^hor"},
-				Versions: []IndexVersion{
-					{
-						Description: "d2",
-						Version:     Version{"1.0.0"},
-						TMID:        "aut/man/mpn/v1.0.0-20231023121314-abcd12345680.tm.json",
-						Digest:      "abcd12345680",
-						TimeStamp:   "20231023121314",
-					},
-				},
-			},
-		},
-	}
-	return idx
-}
-
 func TestIndex_Insert(t *testing.T) {
 	idx := &Index{}
 
-	id, err := idx.Insert(&ThingModel{
+	err := idx.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
 		Links:        []Link{{Rel: "original", HRef: "externalID"}},
 		ID:           "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
 		Description:  "descr",
-	})
+	}, []string{"README.md", "User Guide.pdf"})
 
 	assert.NoError(t, err)
-	assert.Equal(t, MustParseTMID("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"), id)
 	assert.Equal(t, 1, len(idx.Data))
 	assert.Equal(t, "aut/man/mpn", idx.Data[0].Name)
 	assert.Equal(t, 1, len(idx.Data[0].Versions))
@@ -324,33 +299,34 @@ func TestIndex_Insert(t *testing.T) {
 		Version: Version{
 			Model: "1.2.5",
 		},
-		Links:      map[string]string{"content": "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"},
-		TMID:       "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
-		Digest:     "abcd12345678",
-		TimeStamp:  "20231023121314",
-		ExternalID: "externalID",
+		Links:               map[string]string{"content": "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"},
+		TMID:                "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json",
+		Digest:              "abcd12345678",
+		TimeStamp:           "20231023121314",
+		ExternalID:          "externalID",
+		AttachmentContainer: AttachmentContainer{[]Attachment{{Name: "README.md"}, {Name: "User Guide.pdf"}}},
 	}, idx.Data[0].Versions[0])
 
-	_, err = idx.Insert(&ThingModel{
+	err = idx.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
 		Links:        nil,
 		ID:           "aut/man/mpn/v1.2.6-20231024121314-abcd12345690.tm.json",
 		Description:  "descr",
-	})
+	}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(idx.Data))
 	assert.Equal(t, 2, len(idx.Data[0].Versions))
 
-	_, err = idx.Insert(&ThingModel{
+	err = idx.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn",
 		Author:       SchemaAuthor{Name: "aut"},
 		Links:        nil,
 		ID:           "aut/man/mpn/opt/v1.2.6-20231024121314-abcd12345690.tm.json",
 		Description:  "descr",
-	})
+	}, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(idx.Data))
 	assert.Equal(t, "aut/man/mpn/opt", idx.Data[1].Name)

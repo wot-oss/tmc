@@ -19,13 +19,19 @@ type HandlerService interface {
 	ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error)
 	FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error)
+	FetchLatestThingModel(ctx context.Context, fetchName string, restoreId bool) ([]byte, error)
 	PushThingModel(ctx context.Context, file []byte, opts repos.PushOptions) (repos.PushResult, error)
 	DeleteThingModel(ctx context.Context, tmID string) error
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
 	CheckHealthReady(ctx context.Context) error
 	CheckHealthStartup(ctx context.Context) error
-	GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error)
+	GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
+	GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error)
+	GetLatestTMMetadata(ctx context.Context, fetchName string) (*model.FoundVersion, error)
+	FetchAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error)
+	PushAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error
+	DeleteAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string) error
 }
 
 type defaultHandlerService struct {
@@ -124,12 +130,28 @@ func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name s
 }
 
 func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error) {
-	_, _, err := commands.ParseAsTMIDOrFetchName(tmID)
+	_, err := model.ParseTMID(tmID)
 	if err != nil {
 		return nil, err
 	}
 
-	_, data, err, _ := commands.FetchByTMIDOrName(ctx, dhs.serveRepo, tmID, restoreId)
+	_, data, err, _ := commands.FetchByTMID(ctx, dhs.serveRepo, tmID, restoreId)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+func (dhs *defaultHandlerService) FetchLatestThingModel(ctx context.Context, fetchName string, restoreId bool) ([]byte, error) {
+	fn, err := model.ParseFetchName(fetchName)
+	if err != nil {
+		return nil, err
+	}
+	id, foundIn, err, _ := commands.ResolveFetchName(ctx, dhs.serveRepo, fn)
+	if err != nil {
+		return nil, err
+	}
+
+	_, data, err, _ := commands.FetchByTMID(ctx, foundIn, id, restoreId)
 	if err != nil {
 		return nil, err
 	}
@@ -160,16 +182,48 @@ func (dhs *defaultHandlerService) PushThingModel(ctx context.Context, file []byt
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, tmID string) error {
 	pushRepo := dhs.pushRepo
 
-	err := commands.NewDeleteCommand().Delete(ctx, pushRepo, tmID)
+	err := commands.Delete(ctx, pushRepo, tmID)
 	return err
 }
 
-func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind, toComplete string) ([]string, error) {
+func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
 	rs, err := repos.GetSpecdOrAll(dhs.serveRepo)
 	if err != nil {
 		return nil, err
 	}
-	return rs.ListCompletions(ctx, kind, toComplete), nil
+	return rs.ListCompletions(ctx, kind, args, toComplete), nil
+}
+
+func (dhs *defaultHandlerService) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+	// fixme: should it be pushRepo, or serveRepo? interesting implications
+	meta, err := commands.GetTMMetadata(ctx, dhs.pushRepo, tmID)
+	return meta, err
+}
+
+func (dhs *defaultHandlerService) GetLatestTMMetadata(ctx context.Context, fetchName string) (*model.FoundVersion, error) {
+	fn, err := model.ParseFetchName(fetchName)
+	if err != nil {
+		return nil, err
+	}
+	id, foundIn, err, _ := commands.ResolveFetchName(ctx, dhs.serveRepo, fn)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := commands.GetTMMetadata(ctx, foundIn, id)
+	return meta, err
+}
+
+func (dhs *defaultHandlerService) FetchAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error) {
+	content, err := commands.AttachmentFetch(ctx, dhs.pushRepo, ref, attachmentFileName)
+	return content, err
+}
+func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string) error {
+	err := commands.AttachmentDelete(ctx, dhs.pushRepo, ref, attachmentFileName)
+	return err
+}
+func (dhs *defaultHandlerService) PushAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error {
+	err := commands.AttachmentPush(ctx, dhs.pushRepo, ref, attachmentFileName, content)
+	return err
 }
 
 func (dhs *defaultHandlerService) CheckHealth(ctx context.Context) error {

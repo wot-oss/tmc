@@ -1,7 +1,5 @@
 package model
 
-type LinkType string
-
 type RelType string
 
 const (

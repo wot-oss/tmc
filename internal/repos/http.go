@@ -112,7 +112,7 @@ func fetchTM(ctx context.Context, tmUrl string, auth map[string]any) (string, []
 			return fmt.Sprintf("%v", value), b, fmt.Errorf("unexpected type of 'id': %v", value)
 		}
 	case http.StatusNotFound:
-		return "", nil, ErrTmNotFound
+		return "", nil, ErrTMNotFound
 	case http.StatusInternalServerError, http.StatusBadRequest:
 		return "", nil, errors.New(string(b))
 	default:
@@ -147,27 +147,32 @@ func (h *HttpRepo) Spec() model.RepoSpec {
 }
 
 func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
-	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", RepoConfDir, IndexFilename))
-	resp, err := doGet(ctx, reqUrl, h.auth)
+	idx, err := h.getIndex(ctx)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
+	idx.Filter(search)
+	return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx), nil
+}
+
+func (h *HttpRepo) getIndex(ctx context.Context) (*model.Index, error) {
+	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", RepoConfDir, IndexFilename))
+	resp, err := doGet(ctx, reqUrl, h.auth)
+	if err != nil {
+		return nil, err
+	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return model.SearchResult{}, err
+		return nil, err
 	}
 
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var idx model.Index
 		err = json.Unmarshal(data, &idx)
-		idx.Filter(search)
-		if err != nil {
-			return model.SearchResult{}, err
-		}
-		return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(idx), nil
+		return &idx, nil
 	default:
-		return model.SearchResult{}, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
+		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
 	}
 }
 
@@ -193,8 +198,8 @@ func doHttp(req *http.Request, auth map[string]any) (*http.Response, error) {
 func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	log := slog.Default()
 	if len(name) == 0 {
-		log.Error("Please specify a repoName to show the TM.")
-		return nil, errors.New("please specify a repoName to show the TM")
+		log.Error("Please specify a name to show the TM.")
+		return nil, errors.New("please specify a name to show the TM")
 	}
 	name = strings.TrimSpace(name)
 	idx, err := h.List(ctx, &model.SearchParams{Name: name})
@@ -203,14 +208,49 @@ func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	}
 
 	if len(idx.Entries) != 1 {
-		log.Error(fmt.Sprintf("No thing model found for repoName: %s", name))
-		return nil, ErrTmNotFound
+		log.Error(fmt.Sprintf("No TM found with name: %s", name))
+		return nil, ErrTMNameNotFound
 	}
 
 	return idx.Entries[0].Versions, nil
 }
 
-func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error) {
+func (h *HttpRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+	idx, err := h.getIndex(ctx)
+	if err != nil {
+		return nil, err
+	}
+	_, err = model.ParseTMID(tmID)
+	if err != nil {
+		return nil, err
+	}
+	v := idx.FindByTMID(tmID)
+	if v == nil {
+		return nil, ErrTMNotFound
+	}
+	mapper := model.NewIndexToFoundMapper(h.Spec().ToFoundSource())
+	fv := mapper.ToFoundVersion(*v)
+	return &fv, nil
+}
+
+func (h *HttpRepo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {
+	return ErrNotSupported
+}
+
+func (h *HttpRepo) DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error {
+	return ErrNotSupported
+}
+
+func (h *HttpRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
+	attDir, err := calculateAttachmentsDir(container)
+	if err != nil {
+		return nil, err
+	}
+	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", attDir, attachmentName))
+	return fetchAttachment(ctx, reqUrl, h.auth)
+}
+
+func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
 	switch kind {
 	case CompletionKindNames:
 		namePrefix, seg := longestPath(toComplete)
@@ -219,12 +259,12 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete 
 		if err != nil {
 			return nil, err
 		}
-		var ns []string
+		var names []string
 		for _, e := range sr.Entries {
-			ns = append(ns, e.Name)
+			names = append(names, e.Name)
 		}
-		names := namesToCompletions(ns, toComplete, seg+1)
-		return names, nil
+		comps := namesToCompletions(names, toComplete, seg+1)
+		return comps, nil
 	case CompletionKindFetchNames:
 		if strings.Contains(toComplete, "..") {
 			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
@@ -240,6 +280,26 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, toComplete 
 			vs = append(vs, fmt.Sprintf("%s:%s", name, fv.Version.Model))
 		}
 		return vs, nil
+	case CompletionKindNamesOrIds:
+		namePrefix, seg := longestPath(toComplete)
+		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, &namePrefix, nil,
+			&model.SearchOptions{NameFilterType: model.PrefixMatch}))
+		if err != nil {
+			return nil, err
+		}
+		var names, comps []string
+		for _, e := range sr.Entries {
+			names = append(names, e.Name)
+			if namePrefix == e.Name {
+				for _, v := range e.Versions {
+					comps = append(comps, v.TMID)
+				}
+			}
+		}
+		comps = append(comps, namesToCompletions(names, toComplete, seg+1)...)
+		return comps, nil
+	case CompletionKindAttachments:
+		return getAttachmentCompletions(ctx, args, h)
 	default:
 		return nil, ErrInvalidCompletionParams
 	}

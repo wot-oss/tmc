@@ -21,14 +21,17 @@ const (
 	KeyRepoAuth    = "auth"
 	KeyRepoEnabled = "enabled"
 
-	RepoTypeFile             = "file"
-	RepoTypeHttp             = "http"
-	RepoTypeTmc              = "tmc"
-	CompletionKindNames      = "names"
-	CompletionKindFetchNames = "fetchNames"
-	RepoConfDir              = ".tmc"
-	IndexFilename            = "tm-catalog.toc.json"
-	TmNamesFile              = "tmnames.txt"
+	RepoTypeFile              = "file"
+	RepoTypeHttp              = "http"
+	RepoTypeTmc               = "tmc"
+	CompletionKindNames       = "names"
+	CompletionKindFetchNames  = "fetchNames"
+	CompletionKindNamesOrIds  = "namesOrIds"
+	CompletionKindAttachments = "attachments"
+	RepoConfDir               = ".tmc"
+	IndexFilename             = "tm-catalog.toc.json"
+	TmNamesFile               = "tmnames.txt"
+	AttachmentsDir            = ".attachments"
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -95,13 +98,18 @@ type Repo interface {
 	Versions(ctx context.Context, name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Repo has been created from
 	Spec() model.RepoSpec
-	// Delete deletes the TM with given id from repo. Returns ErrTmNotFound if TM does not exist
+	// Delete deletes the TM with given id from repo. Returns ErrTMNotFound if TM does not exist
 	Delete(ctx context.Context, id string) error
 	// RangeResources iterates over resources within this Repo.
 	// Iteration can be narrowed down by a ResourceFilter. Each iteration calls the visit function.
 	RangeResources(ctx context.Context, filter model.ResourceFilter, visit func(res model.Resource, err error) bool) error
 
-	ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error)
+	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
+
+	GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error)
+	PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error
+	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
+	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
 }
 
 type PushOptions struct {

@@ -1,0 +1,19 @@
+{
+  "data": {
+    "attachments": [
+      {"name": "README.md"}, {"name": "User Guide.pdf"}
+    ],
+    "description": "",
+    "digest": "5a3840060b05",
+    "externalID": "",
+    "links": {
+      "content": "../../../../thing-models/omnicorp/omnicorp/lightall/v1.0.1-20240606105140-5a3840060b05.tm.json",
+      "self": ""
+    },
+    "timestamp": "20240606105140",
+    "tmID": "omnicorp/omnicorp/lightall/v1.0.1-20240606105140-5a3840060b05.tm.json",
+    "version": {
+      "model": "1.0.1"
+    }
+  }
+}

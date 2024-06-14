@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -12,7 +13,9 @@ var (
 	ErrRepoNotFound            = errors.New("repo not found")
 	ErrInvalidRepoName         = errors.New("invalid repo name")
 	ErrRepoExists              = errors.New("named repo already exists")
-	ErrTmNotFound              = errors.New("TM not found")
+	ErrTMNotFound              *ErrNotFound
+	ErrTMNameNotFound          *ErrNotFound
+	ErrAttachmentNotFound      *ErrNotFound
 	ErrInvalidErrorCode        = errors.New("invalid error code")
 	ErrInvalidCompletionParams = errors.New("invalid completion parameters")
 	ErrNotSupported            = errors.New("method not supported")
@@ -22,6 +25,12 @@ var (
 	ErrIndexMismatch           = errors.New("index does not reflect repository content, maybe needs rebuild")
 	ErrNoIndex                 = errors.New("no table of contents found. Run `index` for this repo")
 )
+
+func init() {
+	ErrTMNotFound = NewErrNotFound("TM")
+	ErrTMNameNotFound = NewErrNotFound("TM name")
+	ErrAttachmentNotFound = NewErrNotFound("attachment")
+}
 
 type ErrTMIDConflict struct {
 	Type       IdConflictType
@@ -73,4 +82,20 @@ func ParseErrTMIDConflict(errCode string) (*ErrTMIDConflict, error) {
 		Type:       stringToIdConflictType(matches[1]), // invalid conflict type would not match the regex
 		ExistingId: matches[2],
 	}, nil
+}
+
+type ErrNotFound struct {
+	Subject string
+}
+
+func (e *ErrNotFound) Error() string {
+	return strings.TrimSpace(fmt.Sprintf("%s not found", e.Subject))
+}
+
+func (e *ErrNotFound) Code() string {
+	return e.Subject
+}
+
+func NewErrNotFound(subject string) *ErrNotFound {
+	return &ErrNotFound{Subject: subject}
 }

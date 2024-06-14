@@ -12,12 +12,24 @@ import (
 )
 
 type Index struct {
-	Meta IndexMeta     `json:"meta"`
-	Data []*IndexEntry `json:"data"`
+	Meta       IndexMeta     `json:"meta"`
+	Data       []*IndexEntry `json:"data"`
+	dataByName map[string]*IndexEntry
+}
+
+func (i *Index) reindexData() {
+	i.dataByName = make(map[string]*IndexEntry)
+	for _, v := range i.Data {
+		i.dataByName[v.Name] = v
+	}
 }
 
 type IndexMeta struct {
 	Created time.Time `json:"created"`
+}
+
+type AttachmentContainer struct {
+	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
 type IndexEntry struct {
@@ -26,6 +38,55 @@ type IndexEntry struct {
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Versions     []IndexVersion     `json:"versions"`
+	AttachmentContainer
+}
+
+type Attachment struct {
+	Name string `json:"name"`
+}
+
+// AttachmentContainerRef contains a reference to an entity which can have file attachments
+// Either TMName field must be not empty, or TMID. Never both and never none.
+type AttachmentContainerRef struct {
+	TMName string
+	TMID   string
+}
+
+type AttachmentContainerKind byte
+
+const (
+	AttachmentContainerKindInvalid AttachmentContainerKind = iota
+	AttachmentContainerKindTMName
+	AttachmentContainerKindTMID
+)
+
+func NewTMIDAttachmentContainerRef(tmid string) AttachmentContainerRef {
+	return AttachmentContainerRef{TMID: tmid}
+}
+func NewTMNameAttachmentContainerRef(tmName string) AttachmentContainerRef {
+	return AttachmentContainerRef{TMName: tmName}
+}
+func (r AttachmentContainerRef) String() string {
+	switch r.Kind() {
+	case AttachmentContainerKindInvalid:
+		return fmt.Sprintf("invalid AttachmentContainerRef (TMID=%s, TMName=%s)", r.TMID, r.TMName)
+	case AttachmentContainerKindTMID:
+		return fmt.Sprintf("TMID=%s", r.TMID)
+	case AttachmentContainerKindTMName:
+		return fmt.Sprintf("TMName=%s", r.TMName)
+	default:
+		return fmt.Sprintf("unknown container ref kind:%v", r.Kind())
+	}
+}
+
+func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
+	if (r.TMID != "" && r.TMName != "") || (r.TMID == "" && r.TMName == "") {
+		return AttachmentContainerKindInvalid
+	}
+	if r.TMName != "" {
+		return AttachmentContainerKindTMName
+	}
+	return AttachmentContainerKindTMID
 }
 
 func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
@@ -67,6 +128,7 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
+	AttachmentContainer
 }
 
 func (idx *Index) IsEmpty() bool {
@@ -104,7 +166,7 @@ func (idx *Index) Filter(search *SearchParams) {
 		return
 	}
 	search.Sanitize()
-	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
+	exclude := func(entry *IndexEntry) bool {
 		if !entry.MatchesSearchText(search.Query) {
 			return true
 		}
@@ -126,6 +188,13 @@ func (idx *Index) Filter(search *SearchParams) {
 		}
 
 		return false
+	}
+	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
+		e := exclude(entry)
+		if e && idx.dataByName != nil {
+			delete(idx.dataByName, entry.Name)
+		}
+		return e
 	})
 
 }
@@ -158,25 +227,65 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-// findByName searches by name and returns a pointer to the IndexEntry if found
-func (idx *Index) findByName(name string) *IndexEntry {
-	for _, value := range idx.Data {
-		if value.Name == name {
-			return value
+// FindByName searches by TM name and returns a pointer to the IndexEntry if found
+func (idx *Index) FindByName(name string) *IndexEntry {
+	if idx.dataByName == nil {
+		idx.reindexData()
+	}
+	return idx.dataByName[name]
+}
+
+// FindByTMID searches by TM name and returns a pointer to the IndexVersion if found.
+// returns nil if tmID is not valid or not found in
+func (idx *Index) FindByTMID(tmID string) *IndexVersion {
+	id, err := ParseTMID(tmID)
+	if err != nil {
+		return nil
+	}
+	e := idx.FindByName(id.Name)
+	if e == nil {
+		return nil
+	}
+	for _, v := range e.Versions {
+		if v.TMID == tmID {
+			return &v
 		}
 	}
 	return nil
 }
 
-// Insert uses CatalogThingModel to add a version, either to an existing
-// entry or as a new entry. Returns the TMID of the inserted entry
-func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
+func mapAttachments(atts []string) []Attachment {
+	var res []Attachment
+	for _, a := range atts {
+		res = append(res, Attachment{Name: a})
+	}
+	return res
+}
+
+func (idx *Index) SetEntryAttachments(name string, attachmentNames []string) {
+	entry := idx.FindByName(name)
+	if entry != nil {
+		entry.Attachments = mapAttachments(attachmentNames)
+	}
+}
+
+// Insert uses ThingModel to add a version, either to an existing
+// entry or as a new entry.
+func (idx *Index) Insert(ctm *ThingModel, tmAttachments []string) error {
+	mapAttachments := func(atts []string) []Attachment {
+		var res []Attachment
+		for _, a := range atts {
+			res = append(res, Attachment{Name: a})
+		}
+		return res
+	}
+
 	tmid, err := ParseTMID(ctm.ID)
 	if err != nil {
-		return TMID{}, err
+		return err
 	}
 	// find the right entry, or create if it doesn't exist
-	idxEntry := idx.findByName(tmid.Name)
+	idxEntry := idx.FindByName(tmid.Name)
 	if idxEntry == nil {
 		idxEntry = &IndexEntry{
 			Name:         tmid.Name,
@@ -185,6 +294,7 @@ func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 			Author:       SchemaAuthor{Name: ctm.Author.Name},
 		}
 		idx.Data = append(idx.Data, idxEntry)
+		idx.dataByName[idxEntry.Name] = idxEntry
 	}
 	// TODO: check if id already exists?
 	// Append version information to entry
@@ -194,13 +304,14 @@ func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 		externalID = original.HRef
 	}
 	tv := IndexVersion{
-		Description: ctm.Description,
-		TimeStamp:   tmid.Version.Timestamp,
-		Version:     Version{Model: tmid.Version.Base.String()},
-		TMID:        ctm.ID,
-		ExternalID:  externalID,
-		Digest:      tmid.Version.Hash,
-		Links:       map[string]string{"content": tmid.String()},
+		Description:         ctm.Description,
+		TimeStamp:           tmid.Version.Timestamp,
+		Version:             Version{Model: tmid.Version.Base.String()},
+		TMID:                ctm.ID,
+		ExternalID:          externalID,
+		Digest:              tmid.Version.Hash,
+		Links:               map[string]string{"content": tmid.String()},
+		AttachmentContainer: AttachmentContainer{mapAttachments(tmAttachments)},
 	}
 	if idx := slices.IndexFunc(idxEntry.Versions, func(version IndexVersion) bool {
 		return version.TMID == ctm.ID
@@ -209,7 +320,7 @@ func (idx *Index) Insert(ctm *ThingModel) (TMID, error) {
 	} else {
 		idxEntry.Versions[idx] = tv
 	}
-	return tmid, nil
+	return nil
 }
 
 // Delete deletes the record for the given id. Returns TM name to be removed from names file if no more versions are left
@@ -220,7 +331,7 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 	if !found {
 		return false, "", ErrInvalidId
 	}
-	idxEntry = idx.findByName(name)
+	idxEntry = idx.FindByName(name)
 	if idxEntry != nil {
 		idxEntry.Versions = slices.DeleteFunc(idxEntry.Versions, func(version IndexVersion) bool {
 			fnd := version.TMID == id
@@ -233,6 +344,7 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 			idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
 				return entry.Name == name
 			})
+			delete(idx.dataByName, name)
 			return updated, name, nil
 		}
 	}

@@ -31,6 +31,7 @@ const (
 	HeaderXContentTypeOptions = "X-Content-Type-Options"
 	MimeText                  = "text/plain"
 	MimeJSON                  = "application/json"
+	MimeOctetStream           = "application/octet-stream"
 	MimeProblemJSON           = "application/problem+json"
 	NoSniff                   = "nosniff"
 	NoCache                   = "no-cache, no-store, max-age=0, must-revalidate"
@@ -78,24 +79,27 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errStatus := http.StatusInternalServerError
 	errCode := ""
 
+	var nfErr *repos.ErrNotFound
 	var eErr *repos.ErrTMIDConflict
 	var aErr *repos.RepoAccessError
 	var bErr *BaseHttpError
 
 	switch true {
 	// handle sentinel errors with errors.Is()
-	case errors.Is(err, repos.ErrTmNotFound):
-		errTitle = Error404Title
-		errDetail = err.Error()
-		errStatus = http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidId),
-		errors.Is(err, commands.ErrInvalidFetchName),
+		errors.Is(err, model.ErrInvalidIdOrName),
+		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
 	// handle error values we want to access with errors.As()
+	case errors.As(err, &nfErr):
+		errTitle = Error404Title
+		errDetail = err.Error()
+		errStatus = http.StatusNotFound
+		errCode = nfErr.Code()
 	case errors.As(err, &bErr):
 		errTitle = bErr.Title
 		errDetail = bErr.Detail
@@ -249,12 +253,12 @@ func toInventoryEntryResponse(ctx context.Context, e model.FoundEntry) server.In
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(ctx context.Context, versions []model.FoundVersion) server.InventoryEntryVersionsResponse {
+func toInventoryEntryVersionResponse(ctx context.Context, v model.FoundVersion) server.InventoryEntryVersionResponse {
 	mapper := NewMapper(ctx)
 
-	invEntryVersions := mapper.GetInventoryEntryVersions(versions)
-	resp := server.InventoryEntryVersionsResponse{
-		Data: invEntryVersions,
+	ev := mapper.GetInventoryEntryVersion(v)
+	resp := server.InventoryEntryVersionResponse{
+		Data: ev,
 	}
 	return resp
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
@@ -29,6 +30,8 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 	}
 }
 
+// Get the inventory of the catalog
+// (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 
 	searchParams := convertParams(params)
@@ -46,10 +49,9 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 }
 
 // GetInventoryByName Get an inventory entry by inventory name
-// (GET /inventory/{name})
-func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, name string) {
-
-	entry, err := h.Service.FindInventoryEntry(r.Context(), name)
+// (GET /inventory/.tmName/{tmName})
+func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string) {
+	entry, err := h.Service.FindInventoryEntry(r.Context(), tmName)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -61,11 +63,10 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetInventoryVersionsByName Get the versions of an inventory entry
-// (GET /inventory/{inventoryId}/.versions)
-func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.Request, name string) {
-
-	entry, err := h.Service.FindInventoryEntry(r.Context(), name)
+// GetInventoryByFetchName Get the metadata of the most recent TM version matching the name
+// (GET /inventory/.latest/{fetchName})
+func (h *TmcHandler) GetInventoryByFetchName(w http.ResponseWriter, r *http.Request, fetchName server.FetchName) {
+	entry, err := h.Service.GetLatestTMMetadata(r.Context(), fetchName)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -73,19 +74,51 @@ func (h *TmcHandler) GetInventoryVersionsByName(w http.ResponseWriter, r *http.R
 	}
 
 	ctx := h.createContext(r)
-	resp := toInventoryEntryVersionsResponse(ctx, entry.Versions)
+	resp := toInventoryEntryVersionResponse(ctx, *entry)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
-// GetThingModelById Get the content of a Thing Model by its ID or fetch name
-// (GET /thing-models/{tmIDOrName})
-func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params server.GetThingModelByIdParams) {
+// GetThingModelByFetchName Get the content of a Thing Model by fetch name
+// (GET /thing-models/.latest/{fetchName}
+func (h *TmcHandler) GetThingModelByFetchName(w http.ResponseWriter, r *http.Request, fetchName server.FetchName, params server.GetThingModelByFetchNameParams) {
 	restoreId := false
 	if params.RestoreId != nil {
 		restoreId = *params.RestoreId
 	}
 
-	data, err := h.Service.FetchThingModel(r.Context(), tmIDOrName, restoreId)
+	data, err := h.Service.FetchLatestThingModel(r.Context(), fetchName, restoreId)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	HandleByteResponse(w, r, http.StatusOK, MimeJSON, data)
+}
+
+// GetInventoryById Get the metadata of a single TM by ID
+// (GET /inventory/{tmID})
+func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID server.TMID) {
+	entry, err := h.Service.GetTMMetadata(r.Context(), tmID)
+
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	ctx := h.createContext(r)
+	resp := toInventoryEntryVersionResponse(ctx, *entry)
+	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+// GetThingModelById Get the content of a Thing Model by its ID
+// (GET /thing-models/{id})
+func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, id string, params server.GetThingModelByIdParams) {
+	restoreId := false
+	if params.RestoreId != nil {
+		restoreId = *params.RestoreId
+	}
+
+	data, err := h.Service.FetchThingModel(r.Context(), id, restoreId)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -95,14 +128,14 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, t
 }
 
 // DeleteThingModelById Delete a Thing Model by ID
-// (DELETE /thing-models/{tmIDOrName})
-func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmIDOrName string, params server.DeleteThingModelByIdParams) {
+// (DELETE /thing-models/{id})
+func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmID string, params server.DeleteThingModelByIdParams) {
 	if params.Force != "true" {
 		HandleErrorResponse(w, r, NewBadRequestError(nil, "invalid value of 'force' query parameter"))
 		return
 	}
 
-	err := h.Service.DeleteThingModel(r.Context(), tmIDOrName)
+	err := h.Service.DeleteThingModel(r.Context(), tmID)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -251,7 +284,11 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 	if params.ToComplete != nil {
 		toComplete = *params.ToComplete
 	}
-	vals, err := h.Service.GetCompletions(r.Context(), kind, toComplete)
+	var args []string
+	if params.Args != nil {
+		args = *params.Args
+	}
+	vals, err := h.Service.GetCompletions(r.Context(), kind, args, toComplete)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -266,6 +303,74 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 	}
 
 	HandleByteResponse(w, r, http.StatusOK, MimeText, buf.Bytes())
+}
+
+func (h *TmcHandler) GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmid, attachmentFileName string) {
+	ref := model.NewTMIDAttachmentContainerRef(tmid)
+	h.fetchAttachment(w, r, ref, attachmentFileName)
+}
+func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName) {
+	ref := model.NewTMNameAttachmentContainerRef(tmName)
+	h.fetchAttachment(w, r, ref, attachmentFileName)
+}
+
+func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, ref model.AttachmentContainerRef, attachmentFileName string) {
+	data, err := h.Service.FetchAttachment(r.Context(), ref, attachmentFileName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	HandleByteResponse(w, r, http.StatusOK, MimeOctetStream, data)
+}
+
+func (h *TmcHandler) deleteAttachment(w http.ResponseWriter, r *http.Request, ref model.AttachmentContainerRef, attachmentFileName string) {
+	err := h.Service.DeleteAttachment(r.Context(), ref, attachmentFileName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
+}
+
+func (h *TmcHandler) DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID server.TMID, attachmentFileName string) {
+	ref := model.NewTMIDAttachmentContainerRef(tmID)
+	h.deleteAttachment(w, r, ref, attachmentFileName)
+}
+
+func (h *TmcHandler) DeleteTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName) {
+	ref := model.NewTMNameAttachmentContainerRef(tmName)
+	h.deleteAttachment(w, r, ref, attachmentFileName)
+}
+
+func (h *TmcHandler) PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string) {
+	ref := model.NewTMIDAttachmentContainerRef(tmID)
+	h.putAttachment(w, r, ref, attachmentFileName)
+}
+
+func (h *TmcHandler) PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName) {
+	ref := model.NewTMNameAttachmentContainerRef(tmName)
+	h.putAttachment(w, r, ref, attachmentFileName)
+}
+
+func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, ref model.AttachmentContainerRef, attachmentFileName string) {
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
+	err = r.Body.Close()
+
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	err = h.Service.PushAttachment(r.Context(), ref, attachmentFileName, b)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
 }
 
 func (h *TmcHandler) createContext(r *http.Request) context.Context {
