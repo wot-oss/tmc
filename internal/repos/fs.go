@@ -127,7 +127,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	if h.soleVersion { // delete attachments belonging to TM name when deleting the last remaining version of a TM
 		_attDir := filepath.Dir(attDir)
 		// make sure there's no mistake, and we're about to delete the correct dir with attachments
-		if filepath.Base(_attDir) != AttachmentsDir {
+		if filepath.Base(_attDir) != model.AttachmentsDir {
 			return fmt.Errorf("internal error: not in .attachments directory: %s", attDir)
 		}
 		err = os.RemoveAll(_attDir)
@@ -522,7 +522,7 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentCon
 		return err
 	}
 
-	if filepath.Base(filepath.Dir(attDir)) == AttachmentsDir {
+	if filepath.Base(filepath.Dir(attDir)) == model.AttachmentsDir {
 		return removeDirIfEmpty(filepath.Dir(attDir))
 	}
 	return nil
@@ -618,29 +618,10 @@ func readFileNames(dir string) ([]string, error) {
 
 // getAttachmentsDir returns the directory where the attachments to the given tmNameOrId are stored
 func (f *FileRepo) getAttachmentsDir(ref model.AttachmentContainerRef) (string, error) {
-	relDir, err := calculateAttachmentsDir(ref)
+	relDir, err := model.RelAttachmentsDir(ref)
 	attDir := filepath.Join(f.root, relDir)
 	slog.Default().Debug("attachments dir calculated", "container", ref, "attDir", attDir)
 	return attDir, err
-}
-
-func calculateAttachmentsDir(ref model.AttachmentContainerRef) (string, error) {
-	var attDir string
-	switch ref.Kind() {
-	case model.AttachmentContainerKindInvalid:
-		return "", fmt.Errorf("%w: %v", model.ErrInvalidIdOrName, ref)
-	case model.AttachmentContainerKindTMID:
-		id, err := model.ParseTMID(ref.TMID)
-		if err != nil {
-			return "", err
-		}
-		attDir = fmt.Sprintf("%s/%s/%s", id.Name, AttachmentsDir, id.Version.String())
-	case model.AttachmentContainerKindTMName:
-		attDir = fmt.Sprintf("%s/%s", ref.TMName, AttachmentsDir)
-	}
-	slog.Default().Debug("attachments dir for tmNameOrId calculated", "container", ref, "attDir", attDir)
-	return attDir, nil
-
 }
 
 func (f *FileRepo) checkRootValid() error {

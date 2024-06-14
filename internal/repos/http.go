@@ -242,7 +242,7 @@ func (h *HttpRepo) DeleteAttachment(ctx context.Context, container model.Attachm
 }
 
 func (h *HttpRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
-	attDir, err := calculateAttachmentsDir(container)
+	attDir, err := model.RelAttachmentsDir(container)
 	if err != nil {
 		return nil, err
 	}

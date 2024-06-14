@@ -31,7 +31,6 @@ const (
 	RepoConfDir               = ".tmc"
 	IndexFilename             = "tm-catalog.toc.json"
 	TmNamesFile               = "tmnames.txt"
-	AttachmentsDir            = ".attachments"
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")

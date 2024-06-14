@@ -39,7 +39,7 @@ func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
 }
 
 func (t TmcRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), AttachmentsDir, attachmentName)
+	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
 	return fetchAttachment(ctx, reqUrl.String(), t.auth)
 }
 
@@ -97,7 +97,7 @@ func newErrorFromResponse(b []byte) error {
 }
 
 func (t TmcRepo) DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), AttachmentsDir, attachmentName)
+	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqUrl.String(), nil)
 	if err != nil {
 		return err
@@ -170,7 +170,7 @@ func (t TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVe
 }
 
 func (t TmcRepo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), AttachmentsDir, attachmentName)
+	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqUrl.String(), bytes.NewBuffer(content))
 	if err != nil {
 		return err

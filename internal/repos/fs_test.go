@@ -423,7 +423,7 @@ func TestFileRepo_Index(t *testing.T) {
 
 	t.Run("single tm name indexes attachments", func(t *testing.T) {
 		tmName := "omnicorp-tm-department/omnicorp/omnilamp/subfolder"
-		attDir := filepath.Join(temp, tmName, AttachmentsDir)
+		attDir := filepath.Join(temp, tmName, model.AttachmentsDir)
 		assert.NoError(t, os.MkdirAll(attDir, defaultDirPermissions))
 		assert.NoError(t, os.WriteFile(filepath.Join(attDir, "README.md"), []byte("# Read This, or Else"), defaultFilePermissions))
 
@@ -902,12 +902,12 @@ func TestFileRepo_PushAttachment(t *testing.T) {
 	t.Run("tm name attachment", func(t *testing.T) {
 		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), r2Name, r2Content)
 		assert.NoError(t, err)
-		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, r2Name))
+		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, r2Name))
 	})
 	t.Run("tm id attachment", func(t *testing.T) {
 		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(id), r2Name, r2Content)
 		assert.NoError(t, err)
-		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, ver, r2Name))
+		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, ver, r2Name))
 	})
 	t.Run("non existent tm name", func(t *testing.T) {
 		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), r2Name, r2Content)
@@ -964,17 +964,17 @@ func TestFileRepo_DeleteAttachment(t *testing.T) {
 	t.Run("tm id attachment", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(idA), attNameB)
 		assert.NoError(t, err)
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver, attNameA))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir, ver, attNameA))
 		assert.True(t, os.IsNotExist(err))
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir, ver))
 		assert.True(t, os.IsNotExist(err))
 	})
 	t.Run("tm name attachment", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), attNameA)
 		assert.NoError(t, err)
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, attNameA))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir, attNameA))
 		assert.True(t, os.IsNotExist(err))
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir))
 		assert.True(t, os.IsNotExist(err))
 	})
 }
