@@ -848,8 +848,8 @@ func TestFileRepo_FetchAttachment(t *testing.T) {
 	}
 	assert.NoError(t, testutils.CopyDir("../../test/data/repos/file/attachments", temp))
 	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
-	fileA := []byte("# readme\n")
-	fileB := []byte("{\"config\": 42}\n")
+	fileA, _ := os.ReadFile("../../test/data/repos/file/attachments/omnicorp-tm-department/omnicorp/omnilamp/.attachments/README.md")
+	fileB, _ := os.ReadFile("../../test/data/repos/file/attachments/omnicorp-tm-department/omnicorp/omnilamp/.attachments/v3.2.1-20240409155220-3f779458e453/cfg.json")
 	idA := tmName + "/v3.2.1-20240409155220-3f779458e453.tm.json"
 	baseNameA := "README.md"
 	baseNameB := "cfg.json"
