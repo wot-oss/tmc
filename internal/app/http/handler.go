@@ -161,6 +161,10 @@ func (h *TmcHandler) PushThingModel(w http.ResponseWriter, r *http.Request, p se
 		HandleErrorResponse(w, r, err)
 		return
 	}
+	if len(b) == 0 {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
+		return
+	}
 
 	opts := repos.PushOptions{}
 	if p.Force != nil {
@@ -360,6 +364,10 @@ func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, ref m
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
+		return
+	}
+	if len(b) == 0 {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
 		return
 	}
 
