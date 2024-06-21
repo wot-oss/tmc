@@ -54,7 +54,11 @@ func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model
 		res = []repos.ImportResult{singleRes}
 		err = impErr
 	}
-
+	defer func() {
+		for _, r := range res {
+			fmt.Println(r)
+		}
+	}()
 	successfulIds := getSuccessfulIds(res)
 	if len(successfulIds) > 0 {
 		indexErr := repo.Index(ctx, successfulIds...)

@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
-	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
@@ -44,24 +42,15 @@ func init() {
 }
 
 func executeImport(cmd *cobra.Command, args []string) {
-	repoName := cmd.Flag("repo").Value.String()
-	dirName := cmd.Flag("directory").Value.String()
 	optPath := cmd.Flag("opt-path").Value.String()
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
 	force, _ := cmd.Flags().GetBool("force")
-	spec, err := model.NewSpec(repoName, dirName)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
+	spec := RepoSpec(cmd)
 	opts := repos.ImportOptions{
 		Force:   force,
 		OptPath: optPath,
 	}
-	results, err := cli.NewImportExecutor(time.Now).Import(context.Background(), args[0], spec, optTree, opts)
-	for _, res := range results {
-		fmt.Println(res)
-	}
+	_, err := cli.NewImportExecutor(time.Now).Import(context.Background(), args[0], spec, optTree, opts)
 	if err != nil {
 		fmt.Println("import failed")
 		os.Exit(1)

@@ -324,8 +324,8 @@ func TestExport_exportThingModel(t *testing.T) {
 		res, err := exportThingModel(context.Background(), tempDir, exportListRes.Entries[0].Versions[0], false)
 		// then: there is no error
 		assert.NoError(t, err)
-		// and then: the result is ExportOK
-		assert.Equal(t, ExportOK, res.typ)
+		// and then: the result is opResultOK
+		assert.Equal(t, opResultOK, res.typ)
 		assert.Equal(t, tmID, res.resourceId)
 		assert.Equal(t, "", res.text)
 	})
@@ -337,8 +337,8 @@ func TestExport_exportThingModel(t *testing.T) {
 		res, err := exportThingModel(context.Background(), tempDir, exportListRes.Entries[0].Versions[0], false)
 		// then: there is an error
 		assert.Error(t, err)
-		// and then: the result is ExportErr
-		assert.Equal(t, ExportErr, res.typ)
+		// and then: the result is opResultErr
+		assert.Equal(t, opResultErr, res.typ)
 		assert.NotEmpty(t, res.text)
 		assert.Equal(t, tmID, res.resourceId)
 	})

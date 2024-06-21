@@ -2,13 +2,12 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/wot-oss/tmc/cmd"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
-	"github.com/wot-oss/tmc/internal/model"
 )
 
 var attachmentDeleteCmd = &cobra.Command{
@@ -31,16 +30,10 @@ var attachmentDeleteCmd = &cobra.Command{
 	},
 }
 
-func attachmentDelete(cmd *cobra.Command, args []string) {
-	repoName := cmd.Flag("repo").Value.String()
-	dirName := cmd.Flag("directory").Value.String()
-	spec, err := model.NewSpec(repoName, dirName)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
+func attachmentDelete(command *cobra.Command, args []string) {
+	spec := cmd.RepoSpec(command)
 
-	err = cli.AttachmentDelete(context.Background(), spec, args[0], args[1])
+	err := cli.AttachmentDelete(context.Background(), spec, args[0], args[1])
 	if err != nil {
 		os.Exit(1)
 	}

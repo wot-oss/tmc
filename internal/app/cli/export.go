@@ -12,34 +12,6 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-const (
-	ExportOK = ExportResultType(iota)
-	ExportErr
-)
-
-type ExportResultType int
-
-func (t ExportResultType) String() string {
-	switch t {
-	case ExportOK:
-		return "OK"
-	case ExportErr:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-type ExportResult struct {
-	typ        ExportResultType
-	resourceId string
-	text       string
-}
-
-func (r ExportResult) String() string {
-	return fmt.Sprintf("%v\t %s %s", r.typ, r.resourceId, r.text)
-}
-
 func Export(ctx context.Context, repo model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool, withAttachments bool) error {
 	if len(outputPath) == 0 {
 		Stderrf("requires output target folder --output")
@@ -74,7 +46,7 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.SearchParams
 		fmt.Printf("Exporting %d ThingModels with %d versions...\n", len(searchResult.Entries), vc)
 	}
 
-	var totalRes []ExportResult
+	var totalRes []operationResult
 	for _, entry := range searchResult.Entries {
 		if withAttachments {
 			spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
@@ -119,7 +91,7 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.SearchParams
 	return err
 }
 
-func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath string, ref model.AttachmentContainerRef, attachments []model.Attachment) ([]ExportResult, error) {
+func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath string, ref model.AttachmentContainerRef, attachments []model.Attachment) ([]operationResult, error) {
 	relDir, err := model.RelAttachmentsDir(ref)
 	if err != nil {
 		return nil, err
@@ -130,7 +102,7 @@ func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath stri
 		Stderrf("could not create output directory %s: %v", attDir, err)
 		return nil, err
 	}
-	var results []ExportResult
+	var results []operationResult
 	for _, att := range attachments {
 		var bytes []byte
 		var aErr error
@@ -141,8 +113,8 @@ func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath stri
 			if err == nil {
 				err = aErr
 			}
-			results = append(results, ExportResult{
-				typ:        ExportErr,
+			results = append(results, operationResult{
+				typ:        opResultErr,
 				resourceId: resName,
 				text:       fmt.Errorf("could not fetch attachment %s to %v: %w", att.Name, ref, err).Error(),
 			})
@@ -153,22 +125,22 @@ func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath stri
 			if err == nil {
 				err = wErr
 			}
-			results = append(results, ExportResult{
-				typ:        ExportErr,
+			results = append(results, operationResult{
+				typ:        opResultErr,
 				resourceId: resName,
 				text:       fmt.Errorf("could not write attachment %s to %v: %w", att.Name, ref, err).Error(),
 			})
 			continue
 		}
-		results = append(results, ExportResult{
-			typ:        ExportOK,
+		results = append(results, operationResult{
+			typ:        opResultOK,
 			resourceId: resName,
 		})
 	}
 	return results, err
 }
 
-func exportThingModel(ctx context.Context, outputPath string, version model.FoundVersion, restoreId bool) (ExportResult, error) {
+func exportThingModel(ctx context.Context, outputPath string, version model.FoundVersion, restoreId bool) (operationResult, error) {
 	spec := model.NewSpecFromFoundSource(version.FoundIn)
 	id, thing, err, errs := commands.FetchByTMID(ctx, spec, version.TMID, restoreId)
 	if err == nil && len(errs) > 0 { // spec cannot be empty, therefore, there can be at most one RepoAccessError
@@ -176,7 +148,7 @@ func exportThingModel(ctx context.Context, outputPath string, version model.Foun
 	}
 	if err != nil {
 		Stderrf("Error fetch %s: %v", version.TMID, err)
-		return ExportResult{ExportErr, version.TMID, fmt.Sprintf("(cannot fetch from repo %s)", version.FoundIn)}, err
+		return operationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot fetch from repo %s)", version.FoundIn)}, err
 	}
 	thing = utils.ConvertToNativeLineEndings(thing)
 
@@ -185,14 +157,14 @@ func exportThingModel(ctx context.Context, outputPath string, version model.Foun
 	err = os.MkdirAll(filepath.Dir(finalOutput), 0770)
 	if err != nil {
 		Stderrf("Could not write ThingModel to file %s: %v", finalOutput, err)
-		return ExportResult{ExportErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
+		return operationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
 	}
 
 	err = os.WriteFile(finalOutput, thing, 0660)
 	if err != nil {
 		Stderrf("Could not write ThingModel to file %s: %v", finalOutput, err)
-		return ExportResult{ExportErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
+		return operationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
 	}
 
-	return ExportResult{ExportOK, version.TMID, ""}, err
+	return operationResult{opResultOK, version.TMID, ""}, err
 }

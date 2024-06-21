@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
-	"github.com/wot-oss/tmc/internal/model"
 )
 
 var deleteCmd = &cobra.Command{
@@ -32,22 +30,16 @@ func init() {
 }
 
 func executeDelete(cmd *cobra.Command, args []string) {
-	repoName := cmd.Flag("repo").Value.String()
-	dirName := cmd.Flag("directory").Value.String()
 	force := cmd.Flag("force").Value.String()
 
-	spec, err := model.NewSpec(repoName, dirName)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
+	spec := RepoSpec(cmd)
 
 	if force != "true" {
 		cli.Stderrf("Cannot delete a TM unless --force is set to \"true\"")
 		os.Exit(1)
 	}
 
-	err = cli.Delete(context.Background(), spec, args[0])
+	err := cli.Delete(context.Background(), spec, args[0])
 	if err != nil {
 		cli.Stderrf("delete failed")
 		os.Exit(1)

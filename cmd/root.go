@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -9,7 +10,9 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/wot-oss/tmc/internal"
+	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/config"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -60,4 +63,15 @@ func preRunAll(cmd *cobra.Command, args []string) {
 	}
 
 	internal.InitLogging()
+}
+
+func RepoSpec(cmd *cobra.Command) model.RepoSpec {
+	repoName := cmd.Flag("repo").Value.String()
+	dir := cmd.Flag("directory").Value.String()
+	spec, err := model.NewSpec(repoName, dir)
+	if errors.Is(err, model.ErrInvalidSpec) {
+		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
+		os.Exit(1)
+	}
+	return spec
 }

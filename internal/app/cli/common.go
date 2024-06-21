@@ -42,3 +42,31 @@ func printErrs(hdr string, errs []*repos.RepoAccessError) {
 		Stderrf("%v", e)
 	}
 }
+
+const (
+	opResultOK = opResultType(iota)
+	opResultErr
+)
+
+type opResultType int
+
+func (t opResultType) String() string {
+	switch t {
+	case opResultOK:
+		return "OK"
+	case opResultErr:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
+type operationResult struct {
+	typ        opResultType
+	resourceId string
+	text       string
+}
+
+func (r operationResult) String() string {
+	return fmt.Sprintf("%v\t %s %s", r.typ, r.resourceId, r.text)
+}

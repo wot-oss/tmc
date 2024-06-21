@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"os"
 
 	"github.com/wot-oss/tmc/internal/app/http/cors"
@@ -64,19 +63,14 @@ func serve(cmd *cobra.Command, args []string) {
 	repo := cmd.Flag("repo").Value.String()
 	dir := cmd.Flag("directory").Value.String()
 	importTarget := cmd.Flag("importTarget").Value.String()
-	spec, err := model.NewSpec(repo, dir)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of repository to be served. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
-
+	spec := RepoSpec(cmd)
 	opts := getServeOptions()
 
 	importSpec := spec
 	if repo == "" && dir == "" && importTarget != "" {
 		importSpec = model.NewRepoSpec(importTarget)
 	}
-	err = cli.Serve(host, port, opts, spec, importSpec)
+	err := cli.Serve(host, port, opts, spec, importSpec)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)
