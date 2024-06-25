@@ -83,30 +83,32 @@ func TestNewFileRepo(t *testing.T) {
 func TestCreateFileRepoConfig(t *testing.T) {
 	wd, _ := os.Getwd()
 
+	descr := "test description"
 	tests := []struct {
 		strConf  string
 		fileConf string
 		expRoot  string
 		expErr   bool
+		expDescr string
 	}{
-		{"../dir/repoName", "", filepath.Join(filepath.Dir(wd), "/dir/repoName"), false},
-		{"./dir/repoName", "", filepath.Join(wd, "dir/repoName"), false},
-		{"dir/repoName", "", filepath.Join(wd, "dir/repoName"), false},
-		{"/dir/repoName", "", filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false},
-		{".", "", filepath.Join(wd), false},
-		{filepath.Join(wd, "dir/repoName"), "", filepath.Join(wd, "dir/repoName"), false},
-		{"~/dir/repoName", "", "~/dir/repoName", false},
-		{"", ``, "", true},
-		{"", `[]`, "", true},
-		{"", `{}`, "", true},
-		{"", `{"loc":{}}`, "", true},
-		{"", `{"loc":"dir/repoName"}`, filepath.Join(wd, "dir/repoName"), false},
-		{"", `{"loc":"/dir/repoName"}`, filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false},
-		{"", `{"loc":"dir/repoName", "type":"http"}`, "", true},
+		{"../dir/repoName", "", filepath.Join(filepath.Dir(wd), "/dir/repoName"), false, descr},
+		{"./dir/repoName", "", filepath.Join(wd, "dir/repoName"), false, descr},
+		{"dir/repoName", "", filepath.Join(wd, "dir/repoName"), false, descr},
+		{"/dir/repoName", "", filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false, descr},
+		{".", "", filepath.Join(wd), false, descr},
+		{filepath.Join(wd, "dir/repoName"), "", filepath.Join(wd, "dir/repoName"), false, descr},
+		{"~/dir/repoName", "", "~/dir/repoName", false, descr},
+		{"", ``, "", true, ""},
+		{"", `[]`, "", true, ""},
+		{"", `{}`, "", true, ""},
+		{"", `{"loc":{}}`, "", true, ""},
+		{"", `{"loc":"dir/repoName"}`, filepath.Join(wd, "dir/repoName"), false, ""},
+		{"", `{"loc":"/dir/repoName", "description": "some description"}`, filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false, "some description"},
+		{"", `{"loc":"dir/repoName", "type":"http"}`, "", true, ""},
 	}
 
 	for i, test := range tests {
-		cf, err := createFileRepoConfig(test.strConf, []byte(test.fileConf))
+		cf, err := createFileRepoConfig(test.strConf, []byte(test.fileConf), descr)
 		if test.expErr {
 			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 			continue
@@ -115,7 +117,11 @@ func TestCreateFileRepoConfig(t *testing.T) {
 		}
 		assert.Equalf(t, "file", cf[KeyRepoType], "in test %d for %s %s", i, test.strConf, test.fileConf)
 		assert.Equalf(t, test.expRoot, cf[KeyRepoLoc], "in test %d for %s %s", i, test.strConf, test.fileConf)
-
+		if test.expDescr != "" {
+			assert.Equal(t, test.expDescr, cf[KeyRepoDescription], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		} else {
+			assert.Nil(t, cf[KeyRepoDescription], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		}
 	}
 }
 

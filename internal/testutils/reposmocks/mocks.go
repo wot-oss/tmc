@@ -1,6 +1,7 @@
 package reposmocks
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"testing"
@@ -63,4 +64,14 @@ func CreateMockGetFunctionFromList(t *testing.T, specs []model.RepoSpec, r []rep
 		FailTest(t, err)
 		return nil, err
 	}
+}
+
+func MockReposGetDescriptions(t interface {
+	Cleanup(func())
+}, descrs []model.RepoDescription, err error) {
+	org := repos.GetDescriptions
+	repos.GetDescriptions = func(ctx context.Context, spec model.RepoSpec) ([]model.RepoDescription, error) {
+		return descrs, err
+	}
+	t.Cleanup(func() { repos.GetDescriptions = org })
 }
