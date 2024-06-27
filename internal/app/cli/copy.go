@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -52,30 +53,36 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 			}
 			res, cErr := copyThingModel(ctx, version, target, opts)
 			if cErr != nil {
+				var errExists *repos.ErrTMIDConflict
+				if errors.As(cErr, &errExists) {
+					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("already exists as %s", errExists.ExistingId)})
+				} else {
+					cErr = fmt.Errorf("error copying TM %s: %w", version.TMID, cErr)
+					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("%v", cErr)})
+				}
 				if err == nil {
 					err = cErr
 				}
-				totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("could not copy Thing Model: %v", cErr)})
 			} else {
-				switch res.Type {
-				case repos.ImportResultOK, repos.ImportResultWarning:
-					copiedIDs = append(copiedIDs, res.TmID)
-					iErr := target.Index(ctx, res.TmID) // need to index the TM to be able to push attachments to it
-					if iErr != nil {
-						totalRes = append(totalRes, operationResult{opResultErr, res.TmID, "could not update index"})
-						continue
-					} else {
-						tmCopied = true
-						totalRes = append(totalRes, operationResult{opResultOK, res.TmID, res.Message})
-						spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
-						aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
-						if err == nil && aErr != nil {
-							err = aErr
-						}
-						totalRes = append(totalRes, aRes...)
+				copiedIDs = append(copiedIDs, res.TmID)
+				iErr := target.Index(ctx, res.TmID) // need to index the TM to be able to push attachments to it
+				if iErr != nil {
+					totalRes = append(totalRes, operationResult{opResultErr, res.TmID, "could not update index"})
+					continue
+				} else {
+					tmCopied = true
+					switch res.Type {
+					case repos.ImportResultWarning:
+						totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, fmt.Sprintf("copied as %s. TM's version and timestamp clash with existing one %s", res.TmID, res.Err.ExistingId)})
+					case repos.ImportResultOK:
+						totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
 					}
-				case repos.ImportResultTMExists:
-					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, res.Message})
+					spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
+					aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
+					if err == nil && aErr != nil {
+						err = aErr
+					}
+					totalRes = append(totalRes, aRes...)
 				}
 			}
 		}

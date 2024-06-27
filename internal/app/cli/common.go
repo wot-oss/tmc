@@ -45,6 +45,7 @@ func printErrs(hdr string, errs []*repos.RepoAccessError) {
 
 const (
 	opResultOK = opResultType(iota)
+	opResultWarn
 	opResultErr
 )
 
@@ -54,6 +55,8 @@ func (t opResultType) String() string {
 	switch t {
 	case opResultOK:
 		return "OK"
+	case opResultWarn:
+		return "warning"
 	case opResultErr:
 		return "error"
 	default:
