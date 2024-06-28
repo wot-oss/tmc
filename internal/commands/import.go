@@ -24,34 +24,34 @@ const (
 var ErrTMNameTooLong = fmt.Errorf("TM name too long (max %d allowed)", maxNameLength)
 
 type Now func() time.Time
-type PushCommand struct {
+type ImportCommand struct {
 	now Now
 }
 
-func NewPushCommand(now Now) *PushCommand {
-	return &PushCommand{
+func NewImportCommand(now Now) *ImportCommand {
+	return &ImportCommand{
 		now: now,
 	}
 }
 
-// PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to repo.
-// Returns PushResult which includes the ID that the TM has been stored under, and error.
+// ImportFile prepares file contents for importing (generates id if necessary, etc.) and imports to repo.
+// Returns ImportResult which includes the ID that the TM has been stored under, and error.
 // If the repo already contains the same TM, the error will be an instance of repos.ErrTMIDConflict
-func (c *PushCommand) PushFile(ctx context.Context, raw []byte, repo repos.Repo, opts repos.PushOptions) (repos.PushResult, error) {
+func (c *ImportCommand) ImportFile(ctx context.Context, raw []byte, repo repos.Repo, opts repos.ImportOptions) (repos.ImportResult, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
 		log.Error("validation failed", "error", err)
-		return repos.PushResult{}, err
+		return repos.ImportResult{}, err
 	}
 	prepared, id, err := prepareToImport(c.now, tm, raw, opts.OptPath)
 	if err != nil {
-		return repos.PushResult{}, err
+		return repos.ImportResult{}, err
 	}
 
-	res, err := repo.Push(ctx, id, prepared, opts)
+	res, err := repo.Import(ctx, id, prepared, opts)
 	if err == nil {
-		log.Info("pushed execuded without error")
+		log.Info("import executed without error")
 	}
 	return res, err
 }

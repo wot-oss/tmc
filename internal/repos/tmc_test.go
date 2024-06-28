@@ -777,7 +777,7 @@ func TestTmcRepo_PushAttachment(t *testing.T) {
 	}
 }
 func TestTmcRepo_Push(t *testing.T) {
-	_, pushBody, _ := utils.ReadRequiredFile("../../test/data/push/omnilamp.json")
+	_, importBody, _ := utils.ReadRequiredFile("../../test/data/import/omnilamp.json")
 
 	type ht struct {
 		name     string
@@ -807,35 +807,35 @@ func TestTmcRepo_Push(t *testing.T) {
 	tests := []ht{
 		{
 			name:     "plain",
-			reqBody:  pushBody,
+			reqBody:  importBody,
 			respBody: []byte(`{"data": {"tmID": "tmid"}}`),
 			status:   http.StatusCreated,
 			expErr:   nil,
 		},
 		{
 			name:     "tm exists",
-			reqBody:  pushBody,
+			reqBody:  importBody,
 			respBody: []byte(`{"detail":"` + tmErr.Error() + `", "code": "` + tmErr.Code() + `"}`),
 			status:   http.StatusConflict,
 			expErr:   tmErr,
 		},
 		{
 			name:     "bad request",
-			reqBody:  pushBody,
+			reqBody:  importBody,
 			respBody: []byte(`{"detail":"bad request"}`),
 			status:   http.StatusBadRequest,
 			expErr:   errors.New("bad request"),
 		},
 		{
 			name:     "internal server error",
-			reqBody:  pushBody,
+			reqBody:  importBody,
 			respBody: []byte(`{"detail":"something bad happened"}`),
 			status:   http.StatusInternalServerError,
 			expErr:   errors.New("something bad happened"),
 		},
 		{
 			name:     "unexpected status",
-			reqBody:  pushBody,
+			reqBody:  importBody,
 			respBody: []byte(`{"detail":"no coffee for you"}`),
 			status:   http.StatusTeapot,
 			expErr:   errors.New("received unexpected HTTP response from remote TM catalog: 418 I'm a teapot"),
@@ -845,7 +845,7 @@ func TestTmcRepo_Push(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			htc <- test
-			_, err := r.Push(context.Background(), model.TMID{Name: "ignored in tmc repo"}, pushBody, PushOptions{})
+			_, err := r.Import(context.Background(), model.TMID{Name: "ignored in tmc repo"}, importBody, ImportOptions{})
 			if test.expErr == nil {
 				assert.NoError(t, err)
 			} else {

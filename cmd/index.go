@@ -2,14 +2,12 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/internal/app/cli"
-	"github.com/wot-oss/tmc/internal/model"
 )
 
 var indexCmd = &cobra.Command{
@@ -31,16 +29,10 @@ func init() {
 func executeCreateIndex(cmd *cobra.Command, args []string) {
 	var log = slog.Default()
 
-	repoName := cmd.Flag("repo").Value.String()
-	dir := cmd.Flag("directory").Value.String()
-	spec, err := model.NewSpec(repoName, dir)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
+	spec := RepoSpec(cmd)
 	log.Debug(fmt.Sprintf("creating table of contents for repository %s", spec))
 
-	err = cli.Index(context.Background(), spec, args)
+	err := cli.Index(context.Background(), spec, args)
 	if err != nil {
 		os.Exit(1)
 	}

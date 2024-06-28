@@ -335,6 +335,34 @@ func (_m *HandlerService) GetTMMetadata(ctx context.Context, tmID string) (*mode
 	return r0, r1
 }
 
+// ImportThingModel provides a mock function with given fields: ctx, file, opts
+func (_m *HandlerService) ImportThingModel(ctx context.Context, file []byte, opts repos.ImportOptions) (repos.ImportResult, error) {
+	ret := _m.Called(ctx, file, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImportThingModel")
+	}
+
+	var r0 repos.ImportResult
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, []byte, repos.ImportOptions) (repos.ImportResult, error)); ok {
+		return rf(ctx, file, opts)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, []byte, repos.ImportOptions) repos.ImportResult); ok {
+		r0 = rf(ctx, file, opts)
+	} else {
+		r0 = ret.Get(0).(repos.ImportResult)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, []byte, repos.ImportOptions) error); ok {
+		r1 = rf(ctx, file, opts)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListAuthors provides a mock function with given fields: ctx, search
 func (_m *HandlerService) ListAuthors(ctx context.Context, search *model.SearchParams) ([]string, error) {
 	ret := _m.Called(ctx, search)
@@ -471,34 +499,6 @@ func (_m *HandlerService) PushAttachment(ctx context.Context, ref model.Attachme
 	}
 
 	return r0
-}
-
-// PushThingModel provides a mock function with given fields: ctx, file, opts
-func (_m *HandlerService) PushThingModel(ctx context.Context, file []byte, opts repos.PushOptions) (repos.PushResult, error) {
-	ret := _m.Called(ctx, file, opts)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PushThingModel")
-	}
-
-	var r0 repos.PushResult
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, []byte, repos.PushOptions) (repos.PushResult, error)); ok {
-		return rf(ctx, file, opts)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, []byte, repos.PushOptions) repos.PushResult); ok {
-		r0 = rf(ctx, file, opts)
-	} else {
-		r0 = ret.Get(0).(repos.PushResult)
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, []byte, repos.PushOptions) error); ok {
-		r1 = rf(ctx, file, opts)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
 }
 
 // NewHandlerService creates a new instance of HandlerService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

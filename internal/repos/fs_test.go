@@ -190,9 +190,9 @@ func TestFileRepo_Push(t *testing.T) {
 	}
 	tmName := "omnicorp-tm-department/omnicorp/omnilamp"
 	id := tmName + "/v0.0.0-20231208142856-c49617d2e4fc.tm.json"
-	_, err := r.Push(context.Background(), model.MustParseTMID(id), []byte{}, PushOptions{})
+	_, err := r.Import(context.Background(), model.MustParseTMID(id), []byte{}, ImportOptions{})
 	assert.Error(t, err)
-	_, err = r.Push(context.Background(), model.MustParseTMID(id), []byte("{}"), PushOptions{})
+	_, err = r.Import(context.Background(), model.MustParseTMID(id), []byte("{}"), ImportOptions{})
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id))
 
@@ -202,21 +202,21 @@ func TestFileRepo_Push(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(temp, tmName, "v0.0.1-20231208142856-d49617d2e4fc.tm.json"), []byte("{}"), defaultFilePermissions)
 
 	id2 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-a49617d2e4fc.tm.json"
-	res, err := r.Push(context.Background(), model.MustParseTMID(id2), []byte("{}"), PushOptions{})
+	res, err := r.Import(context.Background(), model.MustParseTMID(id2), []byte("{}"), ImportOptions{})
 	expCErr := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231208142856-a49617d2e4fc.tm.json"}
 	assert.Equal(t, expCErr, err)
-	assert.Equal(t, PushResult{Type: PushResultTMExists, Message: expCErr.Error(), Err: expCErr}, res)
+	assert.Equal(t, ImportResult{Type: ImportResultTMExists, Message: expCErr.Error(), Err: expCErr}, res)
 
 	id3 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-f49617d2e4fc.tm.json"
-	_, err = r.Push(context.Background(), model.MustParseTMID(id3), []byte("{}"), PushOptions{})
+	_, err = r.Import(context.Background(), model.MustParseTMID(id3), []byte("{}"), ImportOptions{})
 	assert.NoError(t, err)
 	assert.FileExists(t, filepath.Join(temp, id3))
 
 	id4 := "omnicorp-tm-department/omnicorp/omnilamp/v1.0.0-20231219123456-049617d2e4fc.tm.json"
-	res, err = r.Push(context.Background(), model.MustParseTMID(id4), []byte("{\"val\":1}"), PushOptions{})
+	res, err = r.Import(context.Background(), model.MustParseTMID(id4), []byte("{\"val\":1}"), ImportOptions{})
 	assert.NoError(t, err)
 	expCErr = &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: id3}
-	assert.Equal(t, PushResult{Type: PushResultWarning, TmID: id4, Message: expCErr.Error(), Err: expCErr}, res)
+	assert.Equal(t, ImportResult{Type: ImportResultWarning, TmID: id4, Message: expCErr.Error(), Err: expCErr}, res)
 
 }
 
@@ -423,7 +423,7 @@ func TestFileRepo_Index(t *testing.T) {
 
 	t.Run("single tm name indexes attachments", func(t *testing.T) {
 		tmName := "omnicorp-tm-department/omnicorp/omnilamp/subfolder"
-		attDir := filepath.Join(temp, tmName, AttachmentsDir)
+		attDir := filepath.Join(temp, tmName, model.AttachmentsDir)
 		assert.NoError(t, os.MkdirAll(attDir, defaultDirPermissions))
 		assert.NoError(t, os.WriteFile(filepath.Join(attDir, "README.md"), []byte("# Read This, or Else"), defaultFilePermissions))
 
@@ -902,12 +902,12 @@ func TestFileRepo_PushAttachment(t *testing.T) {
 	t.Run("tm name attachment", func(t *testing.T) {
 		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), r2Name, r2Content)
 		assert.NoError(t, err)
-		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, r2Name))
+		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, r2Name))
 	})
 	t.Run("tm id attachment", func(t *testing.T) {
 		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(id), r2Name, r2Content)
 		assert.NoError(t, err)
-		assert.FileExists(t, filepath.Join(temp, tmName, AttachmentsDir, ver, r2Name))
+		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, ver, r2Name))
 	})
 	t.Run("non existent tm name", func(t *testing.T) {
 		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), r2Name, r2Content)
@@ -964,17 +964,17 @@ func TestFileRepo_DeleteAttachment(t *testing.T) {
 	t.Run("tm id attachment", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(idA), attNameB)
 		assert.NoError(t, err)
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver, attNameA))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir, ver, attNameA))
 		assert.True(t, os.IsNotExist(err))
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, ver))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir, ver))
 		assert.True(t, os.IsNotExist(err))
 	})
 	t.Run("tm name attachment", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), attNameA)
 		assert.NoError(t, err)
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir, attNameA))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir, attNameA))
 		assert.True(t, os.IsNotExist(err))
-		_, err = os.Stat(filepath.Join(temp, tmName, AttachmentsDir))
+		_, err = os.Stat(filepath.Join(temp, tmName, model.AttachmentsDir))
 		assert.True(t, os.IsNotExist(err))
 	})
 }

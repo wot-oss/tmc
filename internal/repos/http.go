@@ -78,8 +78,8 @@ func newBaseHttpRepo(config map[string]any, spec model.RepoSpec) (baseHttpRepo, 
 	return base, nil
 }
 
-func (h *HttpRepo) Push(ctx context.Context, id model.TMID, raw []byte, opts PushOptions) (PushResult, error) {
-	return PushResult{}, ErrNotSupported
+func (h *HttpRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
+	return ImportResult{}, ErrNotSupported
 }
 func (h *HttpRepo) Delete(ctx context.Context, id string) error {
 	return ErrNotSupported
@@ -242,7 +242,7 @@ func (h *HttpRepo) DeleteAttachment(ctx context.Context, container model.Attachm
 }
 
 func (h *HttpRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
-	attDir, err := calculateAttachmentsDir(container)
+	attDir, err := model.RelAttachmentsDir(container)
 	if err != nil {
 		return nil, err
 	}

@@ -2,18 +2,17 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/wot-oss/tmc/cmd"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
-	"github.com/wot-oss/tmc/internal/model"
 )
 
 var attachmentPushCmd = &cobra.Command{
-	Use:   "push <tmNameOrId> <attachmentFile>",
-	Short: "Push an attachment",
+	Use:   "import <tmNameOrId> <attachmentFile>",
+	Short: "Import an attachment",
 	Long:  `Add or replace an attachment`,
 	Args:  cobra.ExactArgs(2),
 	Run:   attachmentPush,
@@ -31,16 +30,10 @@ var attachmentPushCmd = &cobra.Command{
 	},
 }
 
-func attachmentPush(cmd *cobra.Command, args []string) {
-	repoName := cmd.Flag("repo").Value.String()
-	dirName := cmd.Flag("directory").Value.String()
-	spec, err := model.NewSpec(repoName, dirName)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
+func attachmentPush(command *cobra.Command, args []string) {
+	spec := cmd.RepoSpec(command)
 
-	err = cli.AttachmentPush(context.Background(), spec, args[0], args[1])
+	err := cli.AttachmentPush(context.Background(), spec, args[0], args[1])
 	if err != nil {
 		os.Exit(1)
 	}

@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -349,4 +350,28 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 		}
 	}
 	return updated, "", nil
+}
+
+const AttachmentsDir = ".attachments"
+
+// RelAttachmentsDir is a helper function which calculates the relative path of the attachments directory for
+// given attachment container. That is, e.g. 'author/manufacturer/mpn/.attachments' for a TMName ref and
+// 'author/manufacturer/mpn/.attachments/v1.0.0-20240108112117-2cd14601ef09' for a TMID ref
+func RelAttachmentsDir(ref AttachmentContainerRef) (string, error) {
+	var attDir string
+	switch ref.Kind() {
+	case AttachmentContainerKindInvalid:
+		return "", fmt.Errorf("%w: %v", ErrInvalidIdOrName, ref)
+	case AttachmentContainerKindTMID:
+		id, err := ParseTMID(ref.TMID)
+		if err != nil {
+			return "", err
+		}
+		attDir = fmt.Sprintf("%s/%s/%s", id.Name, AttachmentsDir, id.Version.String())
+	case AttachmentContainerKindTMName:
+		attDir = fmt.Sprintf("%s/%s", ref.TMName, AttachmentsDir)
+	}
+	slog.Default().Debug("attachments dir for ref calculated", "container", ref, "attDir", attDir)
+	return attDir, nil
+
 }

@@ -42,6 +42,18 @@ type ErrorResponse struct {
 	Type     *string `json:"type,omitempty"`
 }
 
+// ImportThingModelResponse defines model for ImportThingModelResponse.
+type ImportThingModelResponse struct {
+	Data ImportThingModelResult `json:"data"`
+}
+
+// ImportThingModelResult defines model for ImportThingModelResult.
+type ImportThingModelResult struct {
+	Code    *string `json:"code,omitempty"`
+	Message *string `json:"message,omitempty"`
+	TmID    string  `json:"tmID"`
+}
+
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
 	Attachments        *AttachmentsList        `json:"attachments,omitempty"`
@@ -115,18 +127,6 @@ type ModelVersion struct {
 // MpnsResponse defines model for MpnsResponse.
 type MpnsResponse struct {
 	Data []string `json:"data"`
-}
-
-// PushThingModelResponse defines model for PushThingModelResponse.
-type PushThingModelResponse struct {
-	Data PushThingModelResult `json:"data"`
-}
-
-// PushThingModelResult defines model for PushThingModelResult.
-type PushThingModelResult struct {
-	Code    *string `json:"code,omitempty"`
-	Message *string `json:"message,omitempty"`
-	TmID    string  `json:"tmID"`
 }
 
 // SchemaAuthor defines model for SchemaAuthor.
@@ -242,12 +242,12 @@ type GetMpnsParams struct {
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
-// PushThingModelJSONBody defines parameters for PushThingModel.
-type PushThingModelJSONBody = map[string]interface{}
+// ImportThingModelJSONBody defines parameters for ImportThingModel.
+type ImportThingModelJSONBody = map[string]interface{}
 
-// PushThingModelParams defines parameters for PushThingModel.
-type PushThingModelParams struct {
-	// Force flag to force the push, ignoring any conflicts with existing TMs
+// ImportThingModelParams defines parameters for ImportThingModel.
+type ImportThingModelParams struct {
+	// Force flag to force the import, ignoring any conflicts with existing TMs
 	Force *string `form:"force,omitempty" json:"force,omitempty"`
 
 	// OptPath optional path parts to append to the target path (and id) of imported TM, after the mandatory path structure
@@ -272,5 +272,5 @@ type GetThingModelByIdParams struct {
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
 }
 
-// PushThingModelJSONRequestBody defines body for PushThingModel for application/json ContentType.
-type PushThingModelJSONRequestBody = PushThingModelJSONBody
+// ImportThingModelJSONRequestBody defines body for ImportThingModel for application/json ContentType.
+type ImportThingModelJSONRequestBody = ImportThingModelJSONBody

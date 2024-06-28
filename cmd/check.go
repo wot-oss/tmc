@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
-	"github.com/wot-oss/tmc/internal/model"
 )
 
 var checkCmd = &cobra.Command{
@@ -51,7 +49,7 @@ func init() {
 }
 
 func checkResources(cmd *cobra.Command, args []string) {
-	spec := repoSpec(cmd)
+	spec := RepoSpec(cmd)
 	err := cli.CheckResources(context.Background(), spec, args)
 
 	if err != nil {
@@ -61,22 +59,11 @@ func checkResources(cmd *cobra.Command, args []string) {
 }
 
 func checkIndex(cmd *cobra.Command, args []string) {
-	spec := repoSpec(cmd)
+	spec := RepoSpec(cmd)
 	err := cli.CheckIndex(context.Background(), spec)
 
 	if err != nil {
 		cli.Stderrf("check index failed")
 		os.Exit(1)
 	}
-}
-
-func repoSpec(cmd *cobra.Command) model.RepoSpec {
-	repoName := cmd.Flag("repo").Value.String()
-	dir := cmd.Flag("directory").Value.String()
-	spec, err := model.NewSpec(repoName, dir)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
-	return spec
 }

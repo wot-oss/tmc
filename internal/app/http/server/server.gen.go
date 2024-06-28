@@ -50,9 +50,9 @@ type ServerInterface interface {
 	// Get the contained mpns (manufacturer part numbers) of the inventory
 	// (GET /mpns)
 	GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams)
-	// Push a new Thing Model
+	// Import a Thing Model
 	// (POST /thing-models)
-	PushThingModel(w http.ResponseWriter, r *http.Request, params PushThingModelParams)
+	ImportThingModel(w http.ResponseWriter, r *http.Request, params ImportThingModelParams)
 	// Get the content of a Thing Model by fetch name
 	// (GET /thing-models/.latest/{fetchName})
 	GetThingModelByFetchName(w http.ResponseWriter, r *http.Request, fetchName FetchName, params GetThingModelByFetchNameParams)
@@ -481,8 +481,8 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// PushThingModel operation middleware
-func (siw *ServerInterfaceWrapper) PushThingModel(w http.ResponseWriter, r *http.Request) {
+// ImportThingModel operation middleware
+func (siw *ServerInterfaceWrapper) ImportThingModel(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -490,7 +490,7 @@ func (siw *ServerInterfaceWrapper) PushThingModel(w http.ResponseWriter, r *http
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params PushThingModelParams
+	var params ImportThingModelParams
 
 	// ------------- Optional query parameter "force" -------------
 
@@ -509,7 +509,7 @@ func (siw *ServerInterfaceWrapper) PushThingModel(w http.ResponseWriter, r *http
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PushThingModel(w, r, params)
+		siw.Handler.ImportThingModel(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1008,7 +1008,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/healthz/live", wrapper.GetHealthLive).Methods("GET")
 
-	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.PushThingModel).Methods("POST")
+	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.ImportThingModel).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/mpns", wrapper.GetMpns).Methods("GET")
 

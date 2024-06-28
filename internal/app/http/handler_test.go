@@ -592,10 +592,10 @@ func Test_FetchAttachment(t *testing.T) {
 	})
 }
 
-func Test_PushThingModel(t *testing.T) {
+func Test_ImportThingModel(t *testing.T) {
 
 	tmID := "a generated TM ID"
-	_, tmContent, err := utils.ReadRequiredFile("../../../test/data/push/omnilamp-versioned.json")
+	_, tmContent, err := utils.ReadRequiredFile("../../../test/data/import/omnilamp-versioned.json")
 	assert.NoError(t, err)
 
 	route := "/thing-models"
@@ -604,7 +604,7 @@ func Test_PushThingModel(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(repos.PushResult{Type: repos.PushResultOK, TmID: tmID}, nil).Once()
+		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID}, nil).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -615,7 +615,7 @@ func Test_PushThingModel(t *testing.T) {
 		// then: it returns status 201
 		assertResponse201(t, rec)
 		// and then: the body is of correct type
-		var response server.PushThingModelResponse
+		var response server.ImportThingModelResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: tmID is set in response
 		assert.NotNil(t, response.Data.TmID)
@@ -656,8 +656,8 @@ func Test_PushThingModel(t *testing.T) {
 		// given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
 		var err2 error = &jsonschema.ValidationError{}
-		pr, err := repos.PushResult{}, err2
-		hs.On("PushThingModel", mock.Anything, invalidContent, repos.PushOptions{}).Return(pr, err).Once()
+		pr, err := repos.ImportResult{}, err2
+		hs.On("ImportThingModel", mock.Anything, invalidContent, repos.ImportOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -671,8 +671,8 @@ func Test_PushThingModel(t *testing.T) {
 
 	t.Run("with too long name", func(t *testing.T) {
 		// given: a thing model with too long name
-		pr, err := repos.PushResult{}, fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long")
-		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(pr, err).Once()
+		pr, err := repos.ImportResult{}, fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long")
+		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -690,8 +690,8 @@ func Test_PushThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
-		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(repos.PushResult{
-			Type:    repos.PushResultWarning,
+		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(repos.ImportResult{
+			Type:    repos.ImportResultWarning,
 			TmID:    tmID,
 			Message: cErr.Error(),
 			Err:     cErr,
@@ -705,7 +705,7 @@ func Test_PushThingModel(t *testing.T) {
 		// then: it returns status 201
 		assertResponse201(t, rec)
 		// and then: the body is of correct type
-		var response server.PushThingModelResponse
+		var response server.ImportThingModelResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: tmID is set in response
 		assert.NotNil(t, response.Data.TmID)
@@ -719,13 +719,13 @@ func Test_PushThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameContent,
 			ExistingId: "existing-id",
 		}
-		result := repos.PushResult{
-			Type:    repos.PushResultTMExists,
+		result := repos.ImportResult{
+			Type:    repos.ImportResultTMExists,
 			TmID:    "",
 			Message: cErr.Error(),
 			Err:     cErr,
 		}
-		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(result, cErr).Once()
+		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(result, cErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
@@ -742,13 +742,13 @@ func Test_PushThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
-		result := repos.PushResult{
-			Type:    repos.PushResultWarning,
+		result := repos.ImportResult{
+			Type:    repos.ImportResultWarning,
 			TmID:    tmID,
 			Message: cErr.Error(),
 			Err:     cErr,
 		}
-		hs.On("PushThingModel", mock.Anything, tmContent, repos.PushOptions{}).Return(result, nil).Once()
+		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(result, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
@@ -758,7 +758,7 @@ func Test_PushThingModel(t *testing.T) {
 		// then: it returns status 201
 		assertResponse201(t, rec)
 		// and then: the body is of correct type
-		var response server.PushThingModelResponse
+		var response server.ImportThingModelResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: tmID is set in response
 		assert.NotNil(t, response.Data.TmID)
@@ -770,8 +770,8 @@ func Test_PushThingModel(t *testing.T) {
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
-		result, _ := repos.PushResult{}, unknownErr
-		hs.On("PushThingModel", mock.Anything, invalidContent, repos.PushOptions{}).Return(result, unknownErr).Once()
+		result, _ := repos.ImportResult{}, unknownErr
+		hs.On("ImportThingModel", mock.Anything, invalidContent, repos.ImportOptions{}).Return(result, unknownErr).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).

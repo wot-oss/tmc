@@ -2,13 +2,11 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
-	"github.com/wot-oss/tmc/internal/model"
 )
 
 var filterFlags = cli.FilterFlags{}
@@ -39,21 +37,14 @@ func init() {
 }
 
 func executeList(cmd *cobra.Command, args []string) {
-	repoName := cmd.Flag("repo").Value.String()
-	dirName := cmd.Flag("directory").Value.String()
-
 	name := ""
 	if len(args) > 0 {
 		name = args[0]
 	}
-	spec, err := model.NewSpec(repoName, dirName)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
+	spec := RepoSpec(cmd)
 
 	search := cli.CreateSearchParamsFromCLI(filterFlags, name)
-	err = cli.List(context.Background(), spec, search)
+	err := cli.List(context.Background(), spec, search)
 	if err != nil {
 		cli.Stderrf("list failed")
 		os.Exit(1)

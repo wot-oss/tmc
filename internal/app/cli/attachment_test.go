@@ -36,7 +36,7 @@ func TestAttachmentList(t *testing.T) {
 		stdout := getOutput()
 		assert.Equal(t, "README.md\nUser Guide.pdf\n", stdout)
 	})
-	t.Run("with tmid", func(t *testing.T) {
+	t.Run("with resourceId", func(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmId := "author/manufacturer/mpn/v0.0.0-20240521143452-d662e089b3eb.tm.json"

@@ -284,16 +284,16 @@ func toMpnsResponse(mpns []string) server.MpnsResponse {
 	return resp
 }
 
-func toPushThingModelResponse(res repos.PushResult) server.PushThingModelResponse {
-	data := server.PushThingModelResult{
+func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelResponse {
+	data := server.ImportThingModelResult{
 		TmID: res.TmID,
 	}
 	data.Message = &res.Message
-	if res.Type == repos.PushResultWarning {
+	if res.Type == repos.ImportResultWarning {
 		code := res.Err.Code()
 		data.Code = &code
 	}
-	return server.PushThingModelResponse{
+	return server.ImportThingModelResponse{
 		Data: data,
 	}
 }

@@ -86,7 +86,7 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 
 	t.Run("tm name attachment", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, fmt.Sprintf("/%s/%s/%s", tmName, AttachmentsDir, fName), r.URL.Path)
+			assert.Equal(t, fmt.Sprintf("/%s/%s/%s", tmName, model.AttachmentsDir, fName), r.URL.Path)
 			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 			_, _ = w.Write([]byte(attContent))
 		}))
@@ -103,7 +103,7 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 	})
 	t.Run("tm id attachment", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, fmt.Sprintf("/%s/%s/%s/%s", tmName, AttachmentsDir, ver, fName), r.URL.Path)
+			assert.Equal(t, fmt.Sprintf("/%s/%s/%s/%s", tmName, model.AttachmentsDir, ver, fName), r.URL.Path)
 			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 			_, _ = w.Write([]byte(attContent))
 		}))
