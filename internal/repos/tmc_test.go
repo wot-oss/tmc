@@ -45,7 +45,7 @@ func TestCreateTmcRepoConfig(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		cf, err := createTmcRepoConfig(test.strConf, []byte(test.fileConf))
+		cf, err := createTmcRepoConfig(test.strConf, []byte(test.fileConf), "")
 		if test.expErr {
 			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
 			continue
@@ -69,7 +69,7 @@ func TestTmcRepo_Fetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"tmc", "auth":{"bearer":"token123"}}`))
+	config, err := createTmcRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"tmc", "auth":{"bearer":"token123"}}`), "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -80,7 +80,7 @@ func TestTmcRepo_Fetch(t *testing.T) {
 }
 
 func TestTmcRepo_UpdateIndex(t *testing.T) {
-	config, _ := createTmcRepoConfig("http://example.com", nil)
+	config, _ := createTmcRepoConfig("http://example.com", nil, "")
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 	err = r.Index(context.Background())
@@ -113,7 +113,7 @@ func TestTmcRepo_List(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -323,7 +323,7 @@ func TestTmcRepo_Versions(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -406,7 +406,7 @@ func TestTmcRepo_GetTMMetadata(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -498,7 +498,7 @@ func TestTmcRepo_FetchAttachment(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -594,7 +594,7 @@ func TestTmcRepo_DeleteAttachment(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -687,7 +687,7 @@ func TestTmcRepo_PushAttachment(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -798,7 +798,7 @@ func TestTmcRepo_Push(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -879,7 +879,7 @@ func TestTmcRepo_ListCompletions(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -962,7 +962,7 @@ func TestTmcRepo_Delete(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createTmcRepoConfig(srv.URL, nil)
+	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -1021,7 +1021,7 @@ func TestTmcRepo_Delete(t *testing.T) {
 
 func TestTmcRepo_AnalyzeIndex(t *testing.T) {
 	// given: a TMC Repo
-	config, err := createTmcRepoConfig("http://example.com", nil)
+	config, err := createTmcRepoConfig("http://example.com", nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -1033,7 +1033,7 @@ func TestTmcRepo_AnalyzeIndex(t *testing.T) {
 
 func TestTmcRepo_RangeResources(t *testing.T) {
 	// given: a TMC Repo
-	config, err := createTmcRepoConfig("http://example.com", nil)
+	config, err := createTmcRepoConfig("http://example.com", nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)

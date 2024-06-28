@@ -22,7 +22,7 @@ func RepoList() error {
 	}
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tENBL\tLOCATION\n")
+	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tENBL\tLOCATION\tDESCRIPTION\n")
 	for name, value := range config {
 		typ := fmt.Sprintf("%v", value[repos.KeyRepoType])
 		e := utils.JsGetBool(value, repos.KeyRepoEnabled)
@@ -34,20 +34,22 @@ func RepoList() error {
 			enblS = "N"
 		}
 		u := fmt.Sprintf("%v", value[repos.KeyRepoLoc])
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n", elideString(name, colWidth), typ, enblS, u)
+		descr, _ := value[repos.KeyRepoDescription].(string)
+
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", elideString(name, colWidth), typ, enblS, u, descr)
 	}
 	_ = table.Flush()
 	return nil
 }
 
-func RepoAdd(name, typ, confStr, confFile string) error {
-	return repoSaveConfig(name, typ, confStr, confFile, repos.Add)
+func RepoAdd(name, typ, confStr, confFile, descr string) error {
+	return repoSaveConfig(name, typ, confStr, confFile, descr, repos.Add)
 }
-func RepoSetConfig(name, typ, confStr, confFile string) error {
-	return repoSaveConfig(name, typ, confStr, confFile, repos.SetConfig)
+func RepoSetConfig(name, typ, confStr, confFile string, descr string) error {
+	return repoSaveConfig(name, typ, confStr, confFile, descr, repos.SetConfig)
 }
 
-func repoSaveConfig(name, typ, confStr, confFile string, saver func(name, typ, confStr string, confFile []byte) error) error {
+func repoSaveConfig(name, typ, confStr, confFile, descr string, saver func(name string, typ string, confStr string, confFile []byte, descr string) error) error {
 	if !repos.ValidRepoNameRegex.MatchString(name) {
 		Stderrf("invalid name: %v", name)
 		return ErrInvalidArgs
@@ -77,7 +79,7 @@ func repoSaveConfig(name, typ, confStr, confFile string, saver func(name, typ, c
 		Stderrf("must specify either <config> or --file=<configFileName>")
 		return ErrInvalidArgs
 	}
-	err := saver(name, typ, confStr, bytes)
+	err := saver(name, typ, confStr, bytes, descr)
 	if err != nil {
 		Stderrf("error saving repo config: %v", err)
 	}
@@ -177,7 +179,7 @@ func RepoSetAuth(name, kind, data string) error {
 	}
 	rb, _ := json.Marshal(rc)
 
-	err = repos.SetConfig(name, fmt.Sprint(rc[repos.KeyRepoType]), "", rb)
+	err = repos.SetConfig(name, fmt.Sprint(rc[repos.KeyRepoType]), "", rb, fmt.Sprint(rc[repos.KeyRepoDescription]))
 	if err != nil {
 		Stderrf("error saving repo config: %v", err)
 		return err

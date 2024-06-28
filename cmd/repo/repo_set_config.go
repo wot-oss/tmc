@@ -34,7 +34,9 @@ the config may be a simple string, like a URL, or a json file.
 			os.Exit(1)
 		}
 
-		err = cli.RepoSetConfig(name, typ, confStr, confFile)
+		descr, _ := cmd.Flags().GetString("description")
+
+		err = cli.RepoSetConfig(name, typ, confStr, confFile, descr)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -53,4 +55,5 @@ func init() {
 	repoSetConfigCmd.Flags().StringP("type", "t", "", "type of repo to add")
 	_ = repoSetConfigCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
 	repoSetConfigCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
+	repoSetConfigCmd.Flags().StringP("description", "d", "", "description of the repo")
 }

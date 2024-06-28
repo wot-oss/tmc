@@ -445,6 +445,71 @@ func Test_Mpns(t *testing.T) {
 		assertResponse500(t, rec, route)
 	})
 }
+func Test_GetRepos(t *testing.T) {
+
+	route := "/repos"
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("with ok", func(t *testing.T) {
+		r1d := "r1 description"
+		ds := []model.RepoDescription{
+			{
+				Name:        "r1",
+				Type:        "file",
+				Description: r1d,
+			},
+			{
+				Name: "r2",
+				Type: "file",
+			},
+		}
+		hs.On("ListRepos", mock.Anything).Return(ds, nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		// and then: the body is of correct type
+		var response server.ReposResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// and then result contains all data
+		assert.Equal(t, []server.RepoDescription{
+			{
+				Description: &r1d,
+				Name:        "r1",
+			},
+			{
+				Name: "r2",
+			},
+		}, response.Data)
+	})
+
+	t.Run("with nil result", func(t *testing.T) {
+		hs.On("ListRepos", mock.Anything).Return(nil, nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		// and then: the body is of correct type
+		var response server.ReposResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// and then result contains all data
+		assert.Equal(t, []server.RepoDescription{}, response.Data)
+	})
+
+	t.Run("with unknown error", func(t *testing.T) {
+		// given: service returns an error
+		hs.On("ListRepos", mock.Anything).Return(nil, errors.New("unexpected")).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: the body is of correct type
+		var response server.ReposResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// then: it returns status 500 and json error as body
+		assertResponse500(t, rec, route)
+	})
+}
 func Test_GetInventoryByID(t *testing.T) {
 	ver := listResult2.Entries[0].Versions[0]
 	tmID := ver.TMID

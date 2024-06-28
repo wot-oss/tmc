@@ -334,11 +334,12 @@ func cutToNSegments(s string, n int) string {
 	return strings.Join(segments[0:n], "/")
 }
 
-func createHttpRepoConfig(loc string, bytes []byte) (map[string]any, error) {
+func createHttpRepoConfig(loc string, bytes []byte, descr string) (map[string]any, error) {
 	if loc != "" {
 		return map[string]any{
-			KeyRepoType: RepoTypeHttp,
-			KeyRepoLoc:  loc,
+			KeyRepoType:        RepoTypeHttp,
+			KeyRepoLoc:         loc,
+			KeyRepoDescription: descr,
 		}, nil
 	} else {
 		rc, err := AsRepoConfig(bytes)

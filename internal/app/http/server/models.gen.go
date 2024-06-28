@@ -129,6 +129,17 @@ type MpnsResponse struct {
 	Data []string `json:"data"`
 }
 
+// RepoDescription defines model for RepoDescription.
+type RepoDescription struct {
+	Description *string `json:"description,omitempty"`
+	Name        string  `json:"name"`
+}
+
+// ReposResponse defines model for ReposResponse.
+type ReposResponse struct {
+	Data []RepoDescription `json:"data"`
+}
+
 // SchemaAuthor defines model for SchemaAuthor.
 type SchemaAuthor struct {
 	SchemaName string `json:"schema:name"`

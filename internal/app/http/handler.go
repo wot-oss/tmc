@@ -231,6 +231,18 @@ func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params serv
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
+func (h *TmcHandler) GetRepos(w http.ResponseWriter, r *http.Request) {
+	repos, err := h.Service.ListRepos(r.Context())
+
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	resp := toReposResponse(repos)
+	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
 // GetHealth Get the overall health of the service
 // (GET /healthz)
 func (h *TmcHandler) GetHealth(w http.ResponseWriter, r *http.Request) {
