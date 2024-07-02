@@ -27,6 +27,7 @@ func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 		Mpn:                 e.Mpn,
 		Author:              e.Author,
 		Versions:            m.ToFoundVersions(e.Versions),
+		FoundIn:             m.foundIn,
 		AttachmentContainer: e.AttachmentContainer,
 	}
 }

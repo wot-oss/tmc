@@ -35,8 +35,9 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 
 	searchParams := convertParams(params)
+	repo := convertToRepoName(params.Repo)
 
-	inv, err := h.Service.ListInventory(r.Context(), searchParams)
+	inv, err := h.Service.ListInventory(r.Context(), repo, searchParams)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -50,8 +51,9 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 
 // GetInventoryByName Get an inventory entry by inventory name
 // (GET /inventory/.tmName/{tmName})
-func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string) {
-	entry, err := h.Service.FindInventoryEntry(r.Context(), tmName)
+func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string, params server.GetInventoryByNameParams) {
+	repo := convertToRepoName(params.Repo)
+	entry, err := h.Service.FindInventoryEntry(r.Context(), repo, tmName)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -97,8 +99,10 @@ func (h *TmcHandler) GetThingModelByFetchName(w http.ResponseWriter, r *http.Req
 
 // GetInventoryById Get the metadata of a single TM by ID
 // (GET /inventory/{tmID})
-func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID server.TMID) {
-	entry, err := h.Service.GetTMMetadata(r.Context(), tmID)
+func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID server.TMID, params server.GetInventoryByIDParams) {
+	repo := convertToRepoName(params.Repo)
+
+	entry, err := h.Service.GetTMMetadata(r.Context(), repo, tmID)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -401,6 +405,13 @@ func (h *TmcHandler) createContext(r *http.Request) context.Context {
 	ctx = context.WithValue(ctx, ctxUrlRoot, h.Options.UrlContextRoot)
 
 	return ctx
+}
+
+func convertToRepoName(repo *server.Repo) string {
+	if repo != nil {
+		return *repo
+	}
+	return ""
 }
 
 func getRelativeDepth(path, siblingPath string) int {

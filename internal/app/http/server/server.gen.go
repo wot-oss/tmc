@@ -40,10 +40,10 @@ type ServerInterface interface {
 	GetInventoryByFetchName(w http.ResponseWriter, r *http.Request, fetchName FetchName)
 	// Get an inventory entry by TM name
 	// (GET /inventory/.tmName/{tmName})
-	GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string)
+	GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string, params GetInventoryByNameParams)
 	// Get the metadata of a single TM by ID
 	// (GET /inventory/{tmID})
-	GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID TMID)
+	GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID TMID, params GetInventoryByIDParams)
 	// Get the contained manufacturers of the inventory
 	// (GET /manufacturers)
 	GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams)
@@ -257,6 +257,14 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 	// Parameter object where we will unmarshal all parameters from the context
 	var params GetInventoryParams
 
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "filter.author" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "filter.author", r.URL.Query(), &params.FilterAuthor)
@@ -353,8 +361,19 @@ func (siw *ServerInterfaceWrapper) GetInventoryByName(w http.ResponseWriter, r *
 
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetInventoryByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetInventoryByName(w, r, tmName)
+		siw.Handler.GetInventoryByName(w, r, tmName, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -381,8 +400,19 @@ func (siw *ServerInterfaceWrapper) GetInventoryByID(w http.ResponseWriter, r *ht
 
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetInventoryByIDParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.GetInventoryByID(w, r, tmID)
+		siw.Handler.GetInventoryByID(w, r, tmID, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {

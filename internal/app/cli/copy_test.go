@@ -23,6 +23,7 @@ var copyListRes = model.SearchResult{
 			Author:       model.SchemaAuthor{Name: "omnicorp-tm-department"},
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "omnilamp",
+			FoundIn:      model.FoundSource{RepoName: "r1"},
 			Versions: []model.FoundVersion{
 				{
 					IndexVersion: model.IndexVersion{
@@ -79,6 +80,7 @@ var copySingleListRes model.SearchResult = model.SearchResult{
 			Author:       model.SchemaAuthor{Name: "omnicorp-tm-department"},
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "omnilamp",
+			FoundIn:      model.FoundSource{RepoName: "r1"},
 			Versions: []model.FoundVersion{
 				{
 					IndexVersion: model.IndexVersion{

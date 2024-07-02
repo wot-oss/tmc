@@ -358,7 +358,7 @@ func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.S
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
+		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper) // fixme: should use a different mapper of spec to found source
 		if single {
 			var tm server.InventoryEntryResponse
 			err = json.Unmarshal(data, &tm)

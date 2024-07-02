@@ -56,13 +56,18 @@ type ImportThingModelResult struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
-	Attachments        *AttachmentsList        `json:"attachments,omitempty"`
-	Links              *InventoryEntryLinks    `json:"links,omitempty"`
-	SchemaAuthor       SchemaAuthor            `json:"schema:author"`
-	SchemaManufacturer SchemaManufacturer      `json:"schema:manufacturer"`
-	SchemaMpn          string                  `json:"schema:mpn"`
-	TmName             string                  `json:"tmName"`
-	Versions           []InventoryEntryVersion `json:"versions"`
+	Attachments        *AttachmentsList     `json:"attachments,omitempty"`
+	Links              *InventoryEntryLinks `json:"links,omitempty"`
+	SchemaAuthor       SchemaAuthor         `json:"schema:author"`
+	SchemaManufacturer SchemaManufacturer   `json:"schema:manufacturer"`
+	SchemaMpn          string               `json:"schema:mpn"`
+
+	// Source The name of the source repository where the inventory entry or version resides.
+	// The may be left empty when there is only a single repository served by the backend and thus there is not need for
+	// disambiguation. See also '/repos'
+	Source   *SourceRepository       `json:"source,omitempty"`
+	TmName   string                  `json:"tmName"`
+	Versions []InventoryEntryVersion `json:"versions"`
 }
 
 // InventoryEntryLinks defines model for InventoryEntryLinks.
@@ -82,9 +87,14 @@ type InventoryEntryVersion struct {
 	Digest      string                      `json:"digest"`
 	ExternalID  string                      `json:"externalID"`
 	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
-	Timestamp   string                      `json:"timestamp"`
-	TmID        string                      `json:"tmID"`
-	Version     ModelVersion                `json:"version"`
+
+	// Source The name of the source repository where the inventory entry or version resides.
+	// The may be left empty when there is only a single repository served by the backend and thus there is not need for
+	// disambiguation. See also '/repos'
+	Source    *SourceRepository `json:"source,omitempty"`
+	Timestamp string            `json:"timestamp"`
+	TmID      string            `json:"tmID"`
+	Version   ModelVersion      `json:"version"`
 }
 
 // InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.
@@ -150,11 +160,19 @@ type SchemaManufacturer struct {
 	SchemaName string `json:"schema:name"`
 }
 
+// SourceRepository The name of the source repository where the inventory entry or version resides.
+// The may be left empty when there is only a single repository served by the backend and thus there is not need for
+// disambiguation. See also '/repos'
+type SourceRepository = string
+
 // AttachmentFileName defines model for AttachmentFileName.
 type AttachmentFileName = string
 
 // FetchName defines model for FetchName.
 type FetchName = string
+
+// Repo defines model for Repo.
+type Repo = string
 
 // TMID defines model for TMID.
 type TMID = string
@@ -200,6 +218,9 @@ type GetAuthorsParams struct {
 
 // GetInventoryParams defines parameters for GetInventory.
 type GetInventoryParams struct {
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *string `form:"repo,omitempty" json:"repo,omitempty"`
+
 	// FilterAuthor Filters the inventory by one or more authors having exact match.
 	// The filter works additive to other filters.
 	FilterAuthor *string `form:"filter.author,omitempty" json:"filter.author,omitempty"`
@@ -219,6 +240,18 @@ type GetInventoryParams struct {
 	// Search Filters the inventory according to whether the content of the inventory entries matches the given search.
 	// The search works additive to other filters.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
+}
+
+// GetInventoryByNameParams defines parameters for GetInventoryByName.
+type GetInventoryByNameParams struct {
+	// Repo Source/target repository name. Required when repository is ambiguous. See '/repos'
+	Repo *Repo `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// GetInventoryByIDParams defines parameters for GetInventoryByID.
+type GetInventoryByIDParams struct {
+	// Repo Source/target repository name. Required when repository is ambiguous. See '/repos'
+	Repo *Repo `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // GetManufacturersParams defines parameters for GetManufacturers.

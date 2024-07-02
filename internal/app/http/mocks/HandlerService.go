@@ -215,9 +215,9 @@ func (_m *HandlerService) FetchThingModel(ctx context.Context, tmID string, rest
 	return r0, r1
 }
 
-// FindInventoryEntry provides a mock function with given fields: ctx, name
-func (_m *HandlerService) FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error) {
-	ret := _m.Called(ctx, name)
+// FindInventoryEntry provides a mock function with given fields: ctx, repo, name
+func (_m *HandlerService) FindInventoryEntry(ctx context.Context, repo string, name string) (*model.FoundEntry, error) {
+	ret := _m.Called(ctx, repo, name)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindInventoryEntry")
@@ -225,19 +225,19 @@ func (_m *HandlerService) FindInventoryEntry(ctx context.Context, name string) (
 
 	var r0 *model.FoundEntry
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*model.FoundEntry, error)); ok {
-		return rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*model.FoundEntry, error)); ok {
+		return rf(ctx, repo, name)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.FoundEntry); ok {
-		r0 = rf(ctx, name)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.FoundEntry); ok {
+		r0 = rf(ctx, repo, name)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.FoundEntry)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, name)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, repo, name)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -305,9 +305,9 @@ func (_m *HandlerService) GetLatestTMMetadata(ctx context.Context, fetchName str
 	return r0, r1
 }
 
-// GetTMMetadata provides a mock function with given fields: ctx, tmID
-func (_m *HandlerService) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
-	ret := _m.Called(ctx, tmID)
+// GetTMMetadata provides a mock function with given fields: ctx, repo, tmID
+func (_m *HandlerService) GetTMMetadata(ctx context.Context, repo string, tmID string) (*model.FoundVersion, error) {
+	ret := _m.Called(ctx, repo, tmID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetTMMetadata")
@@ -315,19 +315,19 @@ func (_m *HandlerService) GetTMMetadata(ctx context.Context, tmID string) (*mode
 
 	var r0 *model.FoundVersion
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*model.FoundVersion, error)); ok {
-		return rf(ctx, tmID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*model.FoundVersion, error)); ok {
+		return rf(ctx, repo, tmID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.FoundVersion); ok {
-		r0 = rf(ctx, tmID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.FoundVersion); ok {
+		r0 = rf(ctx, repo, tmID)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.FoundVersion)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, tmID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, repo, tmID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -393,9 +393,9 @@ func (_m *HandlerService) ListAuthors(ctx context.Context, search *model.SearchP
 	return r0, r1
 }
 
-// ListInventory provides a mock function with given fields: ctx, search
-func (_m *HandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
-	ret := _m.Called(ctx, search)
+// ListInventory provides a mock function with given fields: ctx, repo, search
+func (_m *HandlerService) ListInventory(ctx context.Context, repo string, search *model.SearchParams) (*model.SearchResult, error) {
+	ret := _m.Called(ctx, repo, search)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListInventory")
@@ -403,19 +403,19 @@ func (_m *HandlerService) ListInventory(ctx context.Context, search *model.Searc
 
 	var r0 *model.SearchResult
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *model.SearchParams) (*model.SearchResult, error)); ok {
-		return rf(ctx, search)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.SearchParams) (*model.SearchResult, error)); ok {
+		return rf(ctx, repo, search)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *model.SearchParams) *model.SearchResult); ok {
-		r0 = rf(ctx, search)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.SearchParams) *model.SearchResult); ok {
+		r0 = rf(ctx, repo, search)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.SearchResult)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *model.SearchParams) error); ok {
-		r1 = rf(ctx, search)
+	if rf, ok := ret.Get(1).(func(context.Context, string, *model.SearchParams) error); ok {
+		r1 = rf(ctx, repo, search)
 	} else {
 		r1 = ret.Error(1)
 	}

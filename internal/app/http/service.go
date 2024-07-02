@@ -13,11 +13,11 @@ import (
 
 //go:generate mockery --name HandlerService --outpkg mocks --output mocks
 type HandlerService interface {
-	ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error)
+	ListInventory(ctx context.Context, repo string, search *model.SearchParams) (*model.SearchResult, error)
 	ListAuthors(ctx context.Context, search *model.SearchParams) ([]string, error)
 	ListManufacturers(ctx context.Context, search *model.SearchParams) ([]string, error)
 	ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error)
-	FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error)
+	FindInventoryEntry(ctx context.Context, repo string, name string) (*model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, tmID string, restoreId bool) ([]byte, error)
 	FetchLatestThingModel(ctx context.Context, fetchName string, restoreId bool) ([]byte, error)
 	ImportThingModel(ctx context.Context, file []byte, opts repos.ImportOptions) (repos.ImportResult, error)
@@ -27,7 +27,7 @@ type HandlerService interface {
 	CheckHealthReady(ctx context.Context) error
 	CheckHealthStartup(ctx context.Context) error
 	GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
-	GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error)
+	GetTMMetadata(ctx context.Context, repo string, tmID string) (*model.FoundVersion, error)
 	GetLatestTMMetadata(ctx context.Context, fetchName string) (*model.FoundVersion, error)
 	FetchAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error)
 	PushAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error
@@ -48,8 +48,12 @@ func NewDefaultHandlerService(servedRepo model.RepoSpec, importRepo model.RepoSp
 	return dhs, nil
 }
 
-func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *model.SearchParams) (*model.SearchResult, error) {
-	res, err, errs := commands.List(ctx, dhs.serveRepo, search)
+func (dhs *defaultHandlerService) ListInventory(ctx context.Context, repo string, search *model.SearchParams) (*model.SearchResult, error) {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	res, err, errs := commands.List(ctx, spec, search)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +68,7 @@ func (dhs *defaultHandlerService) ListInventory(ctx context.Context, search *mod
 func (dhs *defaultHandlerService) ListAuthors(ctx context.Context, search *model.SearchParams) ([]string, error) {
 	authors := []string{}
 
-	res, err := dhs.ListInventory(ctx, search)
+	res, err := dhs.ListInventory(ctx, "", search) // fixme: replace empty repo
 	if err != nil {
 		return authors, err
 	}
@@ -83,7 +87,7 @@ func (dhs *defaultHandlerService) ListAuthors(ctx context.Context, search *model
 func (dhs *defaultHandlerService) ListManufacturers(ctx context.Context, search *model.SearchParams) ([]string, error) {
 	mans := []string{}
 
-	res, err := dhs.ListInventory(ctx, search)
+	res, err := dhs.ListInventory(ctx, "", search) // fixme: replace empty repo
 	if err != nil {
 		return mans, err
 	}
@@ -102,7 +106,7 @@ func (dhs *defaultHandlerService) ListManufacturers(ctx context.Context, search 
 func (dhs *defaultHandlerService) ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error) {
 	mpns := []string{}
 
-	res, err := dhs.ListInventory(ctx, search)
+	res, err := dhs.ListInventory(ctx, "", search) // fixme: replace empty repo
 	if err != nil {
 		return mpns, err
 	}
@@ -120,23 +124,20 @@ func (dhs *defaultHandlerService) ListMpns(ctx context.Context, search *model.Se
 
 func (dhs *defaultHandlerService) ListRepos(ctx context.Context) ([]model.RepoDescription, error) {
 	ds, err := repos.GetDescriptions(ctx, dhs.serveRepo)
-	if err != nil {
-		return nil, err
-	}
-	if len(ds) < 2 { // no need to return a single description as it is unambiguous
-		return nil, nil
-	}
 	return ds, err
 }
 
-func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error) {
+func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, repo string, name string) (*model.FoundEntry, error) {
 	//todo: check if name is valid format
-	res, err := dhs.ListInventory(ctx, &model.SearchParams{Name: name, Options: model.SearchOptions{NameFilterType: model.FullMatch}})
+	res, err := dhs.ListInventory(ctx, repo, &model.SearchParams{Name: name, Options: model.SearchOptions{NameFilterType: model.FullMatch}})
 	if err != nil {
 		return nil, err
 	}
-	if len(res.Entries) != 1 {
+	if len(res.Entries) == 0 {
 		return nil, NewNotFoundError(nil, "Inventory item with name %s not found", name)
+	}
+	if len(res.Entries) > 1 {
+		return nil, NewBadRequestError(nil, ErrorRepoAmbiguousDetail)
 	}
 	return &res.Entries[0], nil
 }
@@ -206,10 +207,17 @@ func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind strin
 	return rs.ListCompletions(ctx, kind, args, toComplete), nil
 }
 
-func (dhs *defaultHandlerService) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
-	// fixme: should it be importRepo, or serveRepo? interesting implications
-	meta, err := commands.GetTMMetadata(ctx, dhs.importRepo, tmID)
-	return meta, err
+func (dhs *defaultHandlerService) GetTMMetadata(ctx context.Context, repo string, tmID string) (*model.FoundVersion, error) {
+	tgt, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	meta, err := commands.GetTMMetadata(ctx, tgt, tmID)
+	if err != nil {
+		return nil, err
+	}
+
+	return meta, nil
 }
 
 func (dhs *defaultHandlerService) GetLatestTMMetadata(ctx context.Context, fetchName string) (*model.FoundVersion, error) {
@@ -266,4 +274,30 @@ func (dhs *defaultHandlerService) CheckHealthReady(ctx context.Context) error {
 func (dhs *defaultHandlerService) CheckHealthStartup(ctx context.Context) error {
 	err := dhs.CheckHealthReady(ctx)
 	return err
+}
+
+func (dhs *defaultHandlerService) inferTargetRepo(ctx context.Context, repo string) (model.RepoSpec, error) {
+	if repo == "" {
+		return dhs.serveRepo, nil
+	}
+	if dhs.serveRepo.Dir() != "" { // never override an ad-hoc repo
+		return model.RepoSpec{}, repos.ErrInvalidRepoName
+	}
+	if servedRepo := dhs.serveRepo.RepoName(); servedRepo != "" { // if single repo is served, `repo` must be the same or empty [covered above]
+		if repo != servedRepo {
+			return model.RepoSpec{}, repos.ErrInvalidRepoName
+		}
+		return dhs.serveRepo, nil
+	}
+	// if serveRepo is EmptySpec, ensure that repo is in the list of allowed repos
+	rds, err := dhs.ListRepos(ctx)
+	if err != nil {
+		return model.RepoSpec{}, err
+	}
+	for _, rd := range rds {
+		if rd.Name == repo {
+			return model.NewRepoSpec(repo), nil
+		}
+	}
+	return model.RepoSpec{}, repos.ErrInvalidRepoName
 }

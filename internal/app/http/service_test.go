@@ -166,8 +166,9 @@ func Test_ListInventory(t *testing.T) {
 		searchParams := &model.SearchParams{Author: []string{"a-corp", "b-corp"}}
 		r.On("List", mock.Anything, searchParams).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 		// when: list all
-		res, err := underTest.ListInventory(context.Background(), searchParams)
+		res, err := underTest.ListInventory(context.Background(), "", searchParams)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned
@@ -183,7 +184,7 @@ func Test_ListInventory(t *testing.T) {
 		r2.On("Spec").Return(model.NewRepoSpec("r2")).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r, r2))
 		// when: list all
-		res, err := underTest.ListInventory(context.Background(), sp)
+		res, err := underTest.ListInventory(context.Background(), "", sp)
 		// then: there is an error of type repos.RepoAccessError
 		var aErr *repos.RepoAccessError
 		assert.ErrorAs(t, err, &aErr)
@@ -220,14 +221,16 @@ func Test_FindInventoryEntry(t *testing.T) {
 		r := mocks.NewRepo(t)
 		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{}, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 		// when: finding entry
-		res, err := underTest.FindInventoryEntry(context.Background(), inventoryName)
+		res, err := underTest.FindInventoryEntry(context.Background(), "", inventoryName)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is status code 404
-		sErr, ok := err.(*BaseHttpError)
-		assert.True(t, ok)
-		assert.Equal(t, http.StatusNotFound, sErr.Status)
+		var aErr *BaseHttpError
+		if assert.ErrorAs(t, err, &aErr) {
+			assert.Equal(t, http.StatusNotFound, aErr.Status)
+		}
 	})
 }
 
@@ -258,6 +261,7 @@ func Test_ListAuthors(t *testing.T) {
 		r := mocks.NewRepo(t)
 		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 
 		// when: list all authors
 		res, err := underTest.ListAuthors(context.Background(), &model.SearchParams{})
@@ -300,6 +304,7 @@ func Test_ListManufacturers(t *testing.T) {
 		r := mocks.NewRepo(t)
 		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 
 		// when: list all manufacturers
 		res, err := underTest.ListManufacturers(context.Background(), &model.SearchParams{})
@@ -342,6 +347,7 @@ func Test_ListMpns(t *testing.T) {
 		r := mocks.NewRepo(t)
 		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 
 		// when: list all
 		res, err := underTest.ListMpns(context.Background(), &model.SearchParams{})
@@ -439,7 +445,7 @@ func TestService_FetchLatestThingModel(t *testing.T) {
 		r.On("Versions", mock.Anything, fn).Return([]model.FoundVersion{singleFoundVersion}, nil).Once()
 		r.On("Fetch", mock.Anything, tmID).Return(tmID, raw, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r2"), r, nil))
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("someRepo"), r, nil))
 		// when: fetching ThingModel
 		res, err := underTest.FetchLatestThingModel(context.Background(), fn, false)
 		// then: it returns the unchanged ThingModel content
@@ -489,7 +495,7 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 		r.On("Versions", mock.Anything, fn).Return([]model.FoundVersion{singleFoundVersion}, nil).Once()
 		r.On("GetTMMetadata", mock.Anything, tmID).Return(&singleFoundVersion, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r2"), r, nil))
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("someRepo"), r, nil))
 		// when: fetching ThingModel
 		res, err := underTest.GetLatestTMMetadata(context.Background(), fn)
 		// then: it returns the unchanged ThingModel content
@@ -609,8 +615,9 @@ func TestService_GetTMMetadata(t *testing.T) {
 	r := mocks.NewRepo(t)
 	r.On("GetTMMetadata", mock.Anything, tmID).Return(&singleFoundVersion, nil).Once()
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+	rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "someRepo"}}, nil)
 	// when: listing attachments
-	res, err := underTest.GetTMMetadata(context.Background(), tmID)
+	res, err := underTest.GetTMMetadata(context.Background(), "someRepo", tmID)
 	// then: service returns the attachment names
 	assert.NoError(t, err)
 	assert.Equal(t, &singleFoundVersion, res)
@@ -682,8 +689,8 @@ func TestService_ListRepos(t *testing.T) {
 		rs, err := underTest.ListRepos(context.Background())
 		// then: service returns no error
 		assert.NoError(t, err)
-		// and then: results contain no descriptions
-		assert.Empty(t, rs)
+		// and then: results contain one description
+		assert.Equal(t, []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 descr"}}, rs)
 	})
 	t.Run("with no descriptions", func(t *testing.T) {
 		// given: repos.GetDescriptions returns a list with 0 descriptions
@@ -724,5 +731,5 @@ var singleFoundVersion = model.FoundVersion{
 			},
 		},
 	},
-	FoundIn: model.FoundSource{RepoName: "r2"},
+	FoundIn: model.FoundSource{RepoName: "someRepo"},
 }

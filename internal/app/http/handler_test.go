@@ -169,7 +169,7 @@ func Test_Inventory(t *testing.T) {
 
 	t.Run("list all", func(t *testing.T) {
 		var search *model.SearchParams
-		hs.On("ListInventory", mock.Anything, search).Return(&listResult1, nil).Once()
+		hs.On("ListInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -188,6 +188,37 @@ func Test_Inventory(t *testing.T) {
 		})
 		assert.True(t, isSorted)
 	})
+	t.Run("list all from single repo", func(t *testing.T) {
+		var search *model.SearchParams
+		hs.On("ListInventory", mock.Anything, "r1", search).Return(&listResult1, nil).Once()
+
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route+"?repo=r1").RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		// and then: the body is of correct type
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// and then: the result contains all data
+		assert.Equal(t, 2, len(response.Data))
+		assertInventoryEntry(t, listResult1.Entries[0], response.Data[0])
+		assertInventoryEntry(t, listResult1.Entries[1], response.Data[1])
+		// and then result is ordered ascending by name
+		isSorted := sort.SliceIsSorted(response.Data, func(i, j int) bool {
+			return response.Data[i].TmName < response.Data[j].TmName
+		})
+		assert.True(t, isSorted)
+	})
+	t.Run("list all from invalid repo", func(t *testing.T) {
+		var search *model.SearchParams
+		hs.On("ListInventory", mock.Anything, "invalid", search).Return(nil, repos.ErrInvalidRepoName).Once()
+
+		// when: calling the route
+		rt := route + "?repo=invalid"
+		rec := testutils.NewRequest(http.MethodGet, rt).RunOnHandler(httpHandler)
+		// then: it returns status 400
+		assertResponse400(t, rec, rt)
+	})
 
 	t.Run("list with filter and search parameter", func(t *testing.T) {
 		// given: the route with filter and search parameters
@@ -201,7 +232,7 @@ func Test_Inventory(t *testing.T) {
 		// and given: searchParams, expected to be converted from request query parameters
 		expectedSearchParams := model.ToSearchParams(&fAuthors, &fMan, &fMpn, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
 
-		hs.On("ListInventory", mock.Anything, expectedSearchParams).Return(&listResult1, nil).Once()
+		hs.On("ListInventory", mock.Anything, "", expectedSearchParams).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -211,7 +242,7 @@ func Test_Inventory(t *testing.T) {
 
 	t.Run("with unknown error", func(t *testing.T) {
 		var sp *model.SearchParams
-		hs.On("ListInventory", mock.Anything, sp).Return(nil, unknownErr).Once()
+		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -220,7 +251,7 @@ func Test_Inventory(t *testing.T) {
 
 	t.Run("with repository access error", func(t *testing.T) {
 		var sp *model.SearchParams
-		hs.On("ListInventory", mock.Anything, sp).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
+		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 502 and json error as body
@@ -240,7 +271,7 @@ func Test_InventoryByName(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("FindInventoryEntry", mock.Anything, inventoryName).Return(&mockInventoryEntry, nil).Once()
+		hs.On("FindInventoryEntry", mock.Anything, "", inventoryName).Return(&mockInventoryEntry, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -253,7 +284,7 @@ func Test_InventoryByName(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("FindInventoryEntry", mock.Anything, inventoryName).Return(nil, unknownErr).Once()
+		hs.On("FindInventoryEntry", mock.Anything, "", inventoryName).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -485,6 +516,19 @@ func Test_GetRepos(t *testing.T) {
 		}, response.Data)
 	})
 
+	t.Run("with one repo", func(t *testing.T) {
+		hs.On("ListRepos", mock.Anything).Return([]model.RepoDescription{{Name: "r1"}}, nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		// and then: the body is of correct type
+		var response server.ReposResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// and then result contains a single repo description
+		assert.Equal(t, []server.RepoDescription{{Name: "r1"}}, response.Data)
+	})
+
 	t.Run("with nil result", func(t *testing.T) {
 		hs.On("ListRepos", mock.Anything).Return(nil, nil).Once()
 		// when: calling the route
@@ -518,7 +562,7 @@ func Test_GetInventoryByID(t *testing.T) {
 	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 	t.Run("get inventory by tm id", func(t *testing.T) {
-		hs.On("GetTMMetadata", mock.Anything, tmID).Return(&ver, nil).Once()
+		hs.On("GetTMMetadata", mock.Anything, "", tmID).Return(&ver, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -537,7 +581,7 @@ func Test_GetInventoryByID(t *testing.T) {
 		// given: the route with invalid tm id
 		route := "/inventory/invalid-id"
 
-		hs.On("GetTMMetadata", mock.Anything, "invalid-id").Return(nil, model.ErrInvalidIdOrName).Once()
+		hs.On("GetTMMetadata", mock.Anything, "", "invalid-id").Return(nil, model.ErrInvalidIdOrName).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -547,7 +591,7 @@ func Test_GetInventoryByID(t *testing.T) {
 
 	t.Run("with unknown error", func(t *testing.T) {
 		// given: unknown error calling GetTMMetadata
-		hs.On("GetTMMetadata", mock.Anything, tmID).Return(nil, unknownErr).Once()
+		hs.On("GetTMMetadata", mock.Anything, "", tmID).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -1174,6 +1218,9 @@ func assertInventoryEntry(t *testing.T, ref model.FoundEntry, entry server.Inven
 	assert.Equal(t, ref.Manufacturer.Name, entry.SchemaManufacturer.SchemaName)
 	assert.Equal(t, ref.Mpn, entry.SchemaMpn)
 	expSuffix := "/inventory/.tmName/" + ref.Name
+	if ref.FoundIn.RepoName != "" {
+		expSuffix += "?repo=" + ref.FoundIn.RepoName
+	}
 	assert.Truef(t, strings.HasSuffix(entry.Links.Self, expSuffix), "%s does not end with %s", entry.Links.Self, expSuffix)
 	assertAttachments(t, path.Join(".tmName", ref.Name), ref.Attachments, entry.Attachments)
 	assert.Equal(t, len(ref.Versions), len(entry.Versions))
@@ -1228,6 +1275,7 @@ var (
 						},
 					},
 				},
+				FoundIn: model.FoundSource{RepoName: "r1"},
 				Versions: []model.FoundVersion{
 					{
 						IndexVersion: model.IndexVersion{
@@ -1265,6 +1313,7 @@ var (
 				Author:       model.SchemaAuthor{Name: "b-corp"},
 				Manufacturer: model.SchemaManufacturer{Name: "frog"},
 				Mpn:          "bt3000",
+				FoundIn:      model.FoundSource{RepoName: "r1"},
 				Versions: []model.FoundVersion{
 					{
 						IndexVersion: model.IndexVersion{
@@ -1289,6 +1338,7 @@ var (
 				Author:       model.SchemaAuthor{Name: "b-corp"},
 				Manufacturer: model.SchemaManufacturer{Name: "eagle"},
 				Mpn:          "PM20",
+				FoundIn:      model.FoundSource{RepoName: "r2"},
 				Versions: []model.FoundVersion{
 					{
 						IndexVersion: model.IndexVersion{

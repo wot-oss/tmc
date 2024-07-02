@@ -10,6 +10,7 @@
 - `export`: added flag to export attachments together with TMs
 - REST API: added GET endpoint `/repos` to list available repositories
 - `repo`: added flag for setting a repository description when adding/changing repo config
+- REST API: added source repository name to inventory responses 
 
 ### Changed
 

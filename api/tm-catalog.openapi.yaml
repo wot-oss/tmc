@@ -39,6 +39,13 @@ paths:
       description: Returns the catalogs inventory
       operationId: getInventory
       parameters:
+        - name: 'repo'
+          in: query
+          description: Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+          required: false
+          schema:
+            type: string
+          example: 'global'
         - name: 'filter.author'
           in: query
           description: |
@@ -118,6 +125,7 @@ paths:
       operationId: getInventoryByID
       parameters:
         - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/Repo'
       responses:
         '200':
           description: Successful operation
@@ -202,6 +210,7 @@ paths:
           schema:
             type: string
           example: 'siemens/siemens/poc1000'
+        - $ref: '#/components/parameters/Repo'
       responses:
         '200':
           description: Successful operation
@@ -814,8 +823,7 @@ paths:
       summary: Get the list of repositories
       description: |
         Get the list of repositories available for storing TMs. 
-        Returns empty list if there is only one repository configured and hence there is no need to
-        specify a target repository for write operations.
+        When the list contains only one element, specifying the target repository for read and write operations is optional.
       operationId: getRepos
       responses:
         '200':
@@ -1008,6 +1016,8 @@ components:
         schema:mpn:
           type: string
           example: 'POC1000'
+        source:
+          $ref: '#/components/schemas/SourceRepository'
         versions:
           type: array
           items:
@@ -1050,6 +1060,8 @@ components:
         timestamp:
           type: string
           example: '20231201133246'
+        source:
+          $ref: '#/components/schemas/SourceRepository'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
         attachments:
@@ -1133,6 +1145,13 @@ components:
           type: string
           format: uri-reference
           example: './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json/.attachments/README.md'
+    SourceRepository:
+      type: string
+      example: 'global'
+      description: |
+        The name of the source repository where the inventory entry or version resides. 
+        The may be left empty when there is only a single repository served by the backend and thus there is not need for
+        disambiguation. See also '/repos'
     ManufacturersResponse:
       type: object
       required:
@@ -1284,6 +1303,14 @@ components:
       schema:
         type: string
       example: 'README.md'
+    Repo:
+      name: repo
+      in: query
+      description: Source/target repository name. Required when repository is ambiguous. See '/repos'
+      required: false
+      schema:
+        type: string
+      example: 'global'
 
   responses:
     UnauthorizedError:

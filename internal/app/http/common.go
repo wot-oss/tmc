@@ -15,15 +15,16 @@ import (
 )
 
 const (
-	Error400Title  = "Bad Request"
-	Error401Title  = "Unauthorized"
-	Error404Title  = "Not Found"
-	Error409Title  = "Conflict"
-	Error503Title  = "Service Unavailable"
-	Error500Title  = "Internal Server Error"
-	Error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
-	Error502Title  = "Bad Gateway"
-	Error502Detail = "An upstream Thing Model repository returned an error"
+	Error400Title            = "Bad Request"
+	Error401Title            = "Unauthorized"
+	Error404Title            = "Not Found"
+	Error409Title            = "Conflict"
+	Error503Title            = "Service Unavailable"
+	Error500Title            = "Internal Server Error"
+	Error500Detail           = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
+	Error502Title            = "Bad Gateway"
+	Error502Detail           = "An upstream Thing Model repository returned an error"
+	ErrorRepoAmbiguousDetail = "Repository ambiguous. Repeat the request with the 'repo' query parameter"
 
 	HeaderAuthorization       = "Authorization"
 	HeaderContentType         = "Content-Type"
@@ -90,9 +91,15 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errors.Is(err, model.ErrInvalidIdOrName),
 		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
+		errors.Is(err, repos.ErrInvalidRepoName),
+		errors.Is(err, repos.ErrRepoNotFound),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
+	case errors.Is(err, repos.ErrAmbiguous):
+		errTitle = Error400Title
+		errDetail = ErrorRepoAmbiguousDetail
 		errStatus = http.StatusBadRequest
 	// handle error values we want to access with errors.As()
 	case errors.As(err, &nfErr):
