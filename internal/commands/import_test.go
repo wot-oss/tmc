@@ -224,7 +224,7 @@ func TestImportToRepoUnversioned(t *testing.T) {
 		if assert.NotNil(t, res.Err) {
 			assert.Equal(t, err, res.Err)
 			assert.Equal(t, repos.ImportResultTMExists, res.Type)
-			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
+			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.IDConflictError().Type)
 		}
 		entries, _ := os.ReadDir(testTMDir)
 		assert.Len(t, entries, 1)
@@ -247,7 +247,7 @@ func TestImportToRepoUnversioned(t *testing.T) {
 		res, err := c.ImportFile(context.Background(), raw, repo, repos.ImportOptions{})
 		assert.Error(t, err)
 		if assert.NotNil(t, res.Err) {
-			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
+			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.IDConflictError().Type)
 			assert.Equal(t, err, res.Err)
 		}
 		assert.False(t, res.IsSuccessful())

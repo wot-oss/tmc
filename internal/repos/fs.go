@@ -57,14 +57,14 @@ func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) 
 func (f *FileRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
 	if len(raw) == 0 {
 		err := errors.New("nothing to write")
-		return ImportResult{}, err
+		return ImportResultFromError(err)
 	}
 	idS := id.String()
 	fullPath, dir, _ := f.filenames(idS)
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
 		err := fmt.Errorf("could not create directory %s: %w", dir, err)
-		return ImportResult{}, err
+		return ImportResultFromError(err)
 	}
 
 	match, existingId := f.getExistingID(idS)
@@ -79,7 +79,7 @@ func (f *FileRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts I
 	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)
 	if err != nil {
 		err := fmt.Errorf("could not write TM to catalog: %v", err)
-		return ImportResult{}, err
+		return ImportResultFromError(err)
 	}
 	log.Info("saved Thing Model file", "filename", fullPath)
 

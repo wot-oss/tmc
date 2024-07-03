@@ -72,11 +72,13 @@ func TestImportExecutor_Import(t *testing.T) {
 			return time.Date(2023, time.August, 11, 12, 32, 43, 0, time.UTC)
 		}
 		e := NewImportExecutor(now)
-		r.On("Import", mock.Anything, tmid3, mock.Anything, repos.ImportOptions{}).Return(repos.ImportResult{}, errors.New("unexpected"))
+		ret, resErr := repos.ImportResultFromError(errors.New("unexpected"))
+		r.On("Import", mock.Anything, tmid3, mock.Anything, repos.ImportOptions{}).Return(ret, resErr)
 		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{})
 		assert.Error(t, err)
+		assert.ErrorIs(t, err, resErr)
 		assert.Len(t, res, 1)
-		assert.Equal(t, repos.ImportResult{}, res[0])
+		assert.ErrorIs(t, res[0].Err, resErr)
 	})
 
 	t.Run("import with optPath", func(t *testing.T) {

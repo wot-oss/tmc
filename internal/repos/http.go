@@ -79,7 +79,7 @@ func newBaseHttpRepo(config map[string]any, spec model.RepoSpec) (baseHttpRepo, 
 }
 
 func (h *HttpRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
-	return ImportResult{}, ErrNotSupported
+	return ImportResultFromError(ErrNotSupported)
 }
 func (h *HttpRepo) Delete(ctx context.Context, id string) error {
 	return ErrNotSupported

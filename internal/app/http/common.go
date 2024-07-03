@@ -290,7 +290,7 @@ func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelR
 	}
 	data.Message = &res.Message
 	if res.Type == repos.ImportResultWarning {
-		code := res.Err.Code()
+		code := res.IDConflictError().Code()
 		data.Code = &code
 	}
 	return server.ImportThingModelResponse{

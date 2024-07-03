@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- `import`: restore the printout of error to stdout when import was not successful
+
 ### Added
 
 - REST API: added query parameter `force` to POST endpoint `/thing-models` to enforce pushing TMs with same TM name, semantic version and digest

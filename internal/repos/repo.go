@@ -42,9 +42,10 @@ var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
 type ImportResultType int
 
 const (
-	ImportResultOK = ImportResultType(iota + 1)
-	ImportResultWarning
-	ImportResultTMExists
+	ImportResultOK       = ImportResultType(iota + 1)
+	ImportResultWarning  // imported but with warning
+	ImportResultTMExists // not imported because of conflict
+	ImportResultError    // not imported because of other error
 )
 
 func (t ImportResultType) String() string {
@@ -55,8 +56,10 @@ func (t ImportResultType) String() string {
 		return "warning"
 	case ImportResultTMExists:
 		return "exists"
+	case ImportResultError:
+		return "error"
 	default:
-		return "unknown"
+		return "internal error: unknown import result type"
 	}
 }
 
@@ -65,16 +68,37 @@ type ImportResult struct {
 	// TmID is not empty when the result is successful, i.e. Type is OK or Warning
 	TmID    string
 	Message string
-	// Err is not nil when there was a conflict during import, i.e. Type is TMExists or Warning
-	Err *ErrTMIDConflict
+	// Err is not nil when there was an ID conflict or another error during import, i.e. Type is TMExists or Warning or Error
+	Err error
+}
+
+func ImportResultFromError(err error) (ImportResult, error) {
+	return ImportResult{
+		Type:    ImportResultError,
+		Message: err.Error(),
+		Err:     err,
+	}, err
+}
+
+func (r ImportResult) IDConflictError() *ErrTMIDConflict {
+	switch r.Type {
+	case ImportResultTMExists, ImportResultWarning:
+		var cErr *ErrTMIDConflict
+		if errors.As(r.Err, &cErr) {
+			return cErr
+		}
+		return nil
+	default:
+		return nil
+	}
 }
 
 func (r ImportResult) String() string {
 	return fmt.Sprintf("%v\t %s", r.Type, r.Message)
 }
 
-func (t ImportResult) IsSuccessful() bool {
-	return t.Type == ImportResultOK || t.Type == ImportResultWarning
+func (r ImportResult) IsSuccessful() bool {
+	return r.Type == ImportResultOK || r.Type == ImportResultWarning
 }
 
 //go:generate mockery --name Repo --outpkg mocks --output mocks

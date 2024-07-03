@@ -108,7 +108,7 @@ func (p *ImportExecutor) importFile(ctx context.Context, filename string, repo r
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
-		return repos.ImportResult{}, fmt.Errorf("error importing file %s: %w", filename, err)
+		return repos.ImportResultFromError(fmt.Errorf("error importing file %s: %w", filename, err))
 	}
 	res, err := commands.NewImportCommand(p.now).ImportFile(ctx, raw, repo, opts)
 	if err != nil {
@@ -117,15 +117,15 @@ func (p *ImportExecutor) importFile(ctx context.Context, filename string, repo r
 			return repos.ImportResult{Type: repos.ImportResultTMExists, Message: fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId), Err: errExists}, nil
 		}
 		err := fmt.Errorf("error importing file %s: %w", filename, err)
-		return res, err
+		return repos.ImportResultFromError(err)
 	}
 	switch res.Type {
 	case repos.ImportResultWarning:
-		res.Message = fmt.Sprintf("file %s imported as %s. TM's version and timestamp clash with existing one %s", filename, res.TmID, res.Err.ExistingId)
+		res.Message = fmt.Sprintf("file %s imported as %s. TM's version and timestamp clash with existing one %s", filename, res.TmID, res.IDConflictError().ExistingId)
 	case repos.ImportResultOK:
 		res.Message = fmt.Sprintf("file %s imported as %s", filename, res.TmID)
 	default:
-		return res, fmt.Errorf("unexpected ImportResult type: %v", res.Type)
+		return repos.ImportResultFromError(fmt.Errorf("unexpected ImportResult type %v when importing file %s", res.Type, filename))
 	}
 	return res, err
 }
