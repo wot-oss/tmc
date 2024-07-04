@@ -91,7 +91,6 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errors.Is(err, model.ErrInvalidIdOrName),
 		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
-		errors.Is(err, repos.ErrInvalidRepoName),
 		errors.Is(err, repos.ErrRepoNotFound),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title

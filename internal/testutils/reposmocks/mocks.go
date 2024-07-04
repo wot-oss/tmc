@@ -48,7 +48,7 @@ func MockReposGet(t interface {
 }
 
 func CreateMockGetFunction(t *testing.T, spec model.RepoSpec, r repos.Repo, err error) func(s model.RepoSpec) (repos.Repo, error) {
-	return CreateMockGetFunctionFromList(t, []model.RepoSpec{spec}, []repos.Repo{r}, []error{err})
+	return CreateMockGetFunctionFromList(t, []model.RepoSpec{model.EmptySpec, spec}, []repos.Repo{r, r}, []error{err, err})
 }
 
 func CreateMockGetFunctionFromList(t *testing.T, specs []model.RepoSpec, r []repos.Repo, errs []error) func(s model.RepoSpec) (repos.Repo, error) {

@@ -171,8 +171,11 @@ type AttachmentFileName = string
 // FetchName defines model for FetchName.
 type FetchName = string
 
-// Repo defines model for Repo.
-type Repo = string
+// RepoConstraint defines model for RepoConstraint.
+type RepoConstraint = string
+
+// RepoDisambiguator defines model for RepoDisambiguator.
+type RepoDisambiguator = string
 
 // TMID defines model for TMID.
 type TMID = string
@@ -219,7 +222,7 @@ type GetAuthorsParams struct {
 // GetInventoryParams defines parameters for GetInventory.
 type GetInventoryParams struct {
 	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
-	Repo *string `form:"repo,omitempty" json:"repo,omitempty"`
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
 
 	// FilterAuthor Filters the inventory by one or more authors having exact match.
 	// The filter works additive to other filters.
@@ -242,16 +245,22 @@ type GetInventoryParams struct {
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
+// GetInventoryByFetchNameParams defines parameters for GetInventoryByFetchName.
+type GetInventoryByFetchNameParams struct {
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
 // GetInventoryByNameParams defines parameters for GetInventoryByName.
 type GetInventoryByNameParams struct {
-	// Repo Source/target repository name. Required when repository is ambiguous. See '/repos'
-	Repo *Repo `form:"repo,omitempty" json:"repo,omitempty"`
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // GetInventoryByIDParams defines parameters for GetInventoryByID.
 type GetInventoryByIDParams struct {
-	// Repo Source/target repository name. Required when repository is ambiguous. See '/repos'
-	Repo *Repo `form:"repo,omitempty" json:"repo,omitempty"`
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // GetManufacturersParams defines parameters for GetManufacturers.
@@ -291,6 +300,9 @@ type ImportThingModelJSONBody = map[string]interface{}
 
 // ImportThingModelParams defines parameters for ImportThingModel.
 type ImportThingModelParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
 	// Force flag to force the import, ignoring any conflicts with existing TMs
 	Force *string `form:"force,omitempty" json:"force,omitempty"`
 
@@ -300,20 +312,65 @@ type ImportThingModelParams struct {
 
 // GetThingModelByFetchNameParams defines parameters for GetThingModelByFetchName.
 type GetThingModelByFetchNameParams struct {
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
+
 	// RestoreId restore the TM's original external id, if it had one
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
 }
 
+// DeleteTMNameAttachmentParams defines parameters for DeleteTMNameAttachment.
+type DeleteTMNameAttachmentParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// GetTMNameAttachmentParams defines parameters for GetTMNameAttachment.
+type GetTMNameAttachmentParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// PutTMNameAttachmentParams defines parameters for PutTMNameAttachment.
+type PutTMNameAttachmentParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
 // DeleteThingModelByIdParams defines parameters for DeleteThingModelById.
 type DeleteThingModelByIdParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
 	// Force flag to force the deletion. must be set to "true"
 	Force string `form:"force" json:"force"`
 }
 
 // GetThingModelByIdParams defines parameters for GetThingModelById.
 type GetThingModelByIdParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
 	// RestoreId restore the TM's original external id, if it had one
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
+}
+
+// DeleteThingModelAttachmentByNameParams defines parameters for DeleteThingModelAttachmentByName.
+type DeleteThingModelAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// GetThingModelAttachmentByNameParams defines parameters for GetThingModelAttachmentByName.
+type GetThingModelAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// PutThingModelAttachmentByNameParams defines parameters for PutThingModelAttachmentByName.
+type PutThingModelAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // ImportThingModelJSONRequestBody defines body for ImportThingModel for application/json ContentType.

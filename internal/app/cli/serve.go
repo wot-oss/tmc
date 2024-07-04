@@ -2,7 +2,6 @@ package cli
 
 import (
 	_ "embed"
-	"errors"
 	"fmt"
 	"net"
 	nethttp "net/http"
@@ -15,7 +14,6 @@ import (
 	"github.com/wot-oss/tmc/internal/app/http/server"
 
 	"github.com/wot-oss/tmc/internal/app/http"
-	"github.com/wot-oss/tmc/internal/repos"
 )
 
 //go:embed banner.txt
@@ -28,7 +26,7 @@ type ServeOptions struct {
 	JWTValidation bool
 }
 
-func Serve(host, port string, opts ServeOptions, repo, importTarget model.RepoSpec) error {
+func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 	defer func() {
 		if r := recover(); r != nil {
 			Stderrf("could not start server:")
@@ -40,20 +38,9 @@ func Serve(host, port string, opts ServeOptions, repo, importTarget model.RepoSp
 		Stderrf(err.Error())
 		return err
 	}
-	_, err = repos.Get(importTarget)
-	if err != nil {
-		if errors.Is(err, repos.ErrAmbiguous) {
-			Stderrf("must specify target for import with --importTarget when there are multiple repos configured")
-		} else if errors.Is(err, repos.ErrRepoNotFound) {
-			Stderrf("invalid --importTarget: %v", err)
-		} else {
-			Stderrf(err.Error())
-		}
-		return err
-	}
 
 	// create an instance of our handler (server interface)
-	handlerService, err := http.NewDefaultHandlerService(repo, importTarget)
+	handlerService, err := http.NewDefaultHandlerService(repo)
 	if err != nil {
 		Stderrf("Could not start tm-catalog server on %s:%s, %v\n", host, port, err)
 		return err

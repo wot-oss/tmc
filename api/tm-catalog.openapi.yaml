@@ -39,13 +39,7 @@ paths:
       description: Returns the catalogs inventory
       operationId: getInventory
       parameters:
-        - name: 'repo'
-          in: query
-          description: Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
-          required: false
-          schema:
-            type: string
-          example: 'global'
+        - $ref: '#/components/parameters/RepoConstraint'
         - name: 'filter.author'
           in: query
           description: |
@@ -125,7 +119,7 @@ paths:
       operationId: getInventoryByID
       parameters:
         - $ref: '#/components/parameters/TMID'
-        - $ref: '#/components/parameters/Repo'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -164,6 +158,7 @@ paths:
       description: Returns the metadata of the most recent TM version matching the fetch name
       operationId: getInventoryByFetchName
       parameters:
+        - $ref: '#/components/parameters/RepoConstraint'
         - $ref: '#/components/parameters/FetchName'
       responses:
         '200':
@@ -210,7 +205,7 @@ paths:
           schema:
             type: string
           example: 'siemens/siemens/poc1000'
-        - $ref: '#/components/parameters/Repo'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -251,6 +246,7 @@ paths:
       operationId: getThingModelById
       parameters:
         - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/RepoDisambiguator'
         - name: restoreId
           in: query
           description: restore the TM's original external id, if it had one
@@ -299,6 +295,7 @@ paths:
       operationId: deleteThingModelById
       parameters:
         - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/RepoDisambiguator'
         - name: force
           in: query
           description: flag to force the deletion. must be set to "true"
@@ -335,6 +332,7 @@ paths:
         Returns the actual content of the Thing Model selected by given fetch name.
       operationId: getThingModelByFetchName
       parameters:
+        - $ref: '#/components/parameters/RepoConstraint'
         - $ref: '#/components/parameters/FetchName'
         - name: restoreId
           in: query
@@ -384,6 +382,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -421,6 +420,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       requestBody:
         description: Add a new attachment or overwrite an existing one
         content:
@@ -455,6 +455,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '204':
           description: Successful operation
@@ -489,6 +490,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -526,6 +528,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       requestBody:
         description: Add a new attachment or overwrite an existing one
         content:
@@ -560,6 +563,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '204':
           description: Successful operation
@@ -591,6 +595,7 @@ paths:
       description: Import a Thing Model
       operationId: importThingModel
       parameters:
+        - $ref: '#/components/parameters/RepoDisambiguator'
         - name: force
           in: query
           description: flag to force the import, ignoring any conflicts with existing TMs
@@ -1303,10 +1308,18 @@ components:
       schema:
         type: string
       example: 'README.md'
-    Repo:
+    RepoDisambiguator:
       name: repo
       in: query
-      description: Source/target repository name. Required when repository is ambiguous. See '/repos'
+      description: Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+      required: false
+      schema:
+        type: string
+      example: 'global'
+    RepoConstraint:
+      name: 'repo'
+      in: query
+      description: Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
       required: false
       schema:
         type: string

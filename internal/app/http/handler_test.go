@@ -211,7 +211,7 @@ func Test_Inventory(t *testing.T) {
 	})
 	t.Run("list all from invalid repo", func(t *testing.T) {
 		var search *model.SearchParams
-		hs.On("ListInventory", mock.Anything, "invalid", search).Return(nil, repos.ErrInvalidRepoName).Once()
+		hs.On("ListInventory", mock.Anything, "invalid", search).Return(nil, repos.ErrRepoNotFound).Once()
 
 		// when: calling the route
 		rt := route + "?repo=invalid"
@@ -609,7 +609,7 @@ func Test_FetchThingModel(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with valid repo", func(t *testing.T) {
-		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(tmContent, nil).Once()
+		hs.On("FetchThingModel", mock.Anything, "", tmID, false).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -618,7 +618,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with false restoreId", func(t *testing.T) {
-		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(tmContent, nil).Once()
+		hs.On("FetchThingModel", mock.Anything, "", tmID, false).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=false").RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -626,7 +626,7 @@ func Test_FetchThingModel(t *testing.T) {
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 	t.Run("with true restoreId", func(t *testing.T) {
-		hs.On("FetchThingModel", mock.Anything, tmID, true).Return(tmContent, nil).Once()
+		hs.On("FetchThingModel", mock.Anything, "", tmID, true).Return(tmContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=true").RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -643,7 +643,7 @@ func Test_FetchThingModel(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		invalidRoute := "/thing-models/some-invalid-tm-id"
-		hs.On("FetchThingModel", mock.Anything, "some-invalid-tm-id", false).Return(nil, model.ErrInvalidId).Once()
+		hs.On("FetchThingModel", mock.Anything, "", "some-invalid-tm-id", false).Return(nil, model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, invalidRoute).RunOnHandler(httpHandler)
 		// then: it returns status 400 and json error as body
@@ -651,7 +651,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", mock.Anything, tmID, false).Return(nil, repos.ErrTMNotFound).Once()
+		hs.On("FetchThingModel", mock.Anything, "", tmID, false).Return(nil, repos.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -668,7 +668,7 @@ func Test_FetchAttachment(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with valid repo", func(t *testing.T) {
-		hs.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(attContent, nil).Once()
+		hs.On("FetchAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(attContent, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -680,7 +680,7 @@ func Test_FetchAttachment(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		invalidRoute := "/thing-models/some-invalid-tm-id/.attachments/README.txt"
-		hs.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef("some-invalid-tm-id"), "README.txt").Return(nil, model.ErrInvalidId).Once()
+		hs.On("FetchAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef("some-invalid-tm-id"), "README.txt").Return(nil, model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, invalidRoute).RunOnHandler(httpHandler)
 		// then: it returns status 400 and json error as body
@@ -688,7 +688,7 @@ func Test_FetchAttachment(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil, repos.ErrTMNotFound).Once()
+		hs.On("FetchAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil, repos.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -713,7 +713,7 @@ func Test_ImportThingModel(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID}, nil).Once()
+		hs.On("ImportThingModel", mock.Anything, "", tmContent, repos.ImportOptions{}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID}, nil).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -766,7 +766,7 @@ func Test_ImportThingModel(t *testing.T) {
 		invalidContent := []byte("some invalid ThingModel")
 		var err2 error = &jsonschema.ValidationError{}
 		pr, err := repos.ImportResult{}, err2
-		hs.On("ImportThingModel", mock.Anything, invalidContent, repos.ImportOptions{}).Return(pr, err).Once()
+		hs.On("ImportThingModel", mock.Anything, "", invalidContent, repos.ImportOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -781,7 +781,7 @@ func Test_ImportThingModel(t *testing.T) {
 	t.Run("with too long name", func(t *testing.T) {
 		// given: a thing model with too long name
 		pr, err := repos.ImportResult{}, fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long")
-		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(pr, err).Once()
+		hs.On("ImportThingModel", mock.Anything, "", tmContent, repos.ImportOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -799,7 +799,7 @@ func Test_ImportThingModel(t *testing.T) {
 			Type:       repos.IdConflictSameTimestamp,
 			ExistingId: "existing-id",
 		}
-		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(repos.ImportResult{
+		hs.On("ImportThingModel", mock.Anything, "", tmContent, repos.ImportOptions{}).Return(repos.ImportResult{
 			Type:    repos.ImportResultWarning,
 			TmID:    tmID,
 			Message: cErr.Error(),
@@ -834,7 +834,7 @@ func Test_ImportThingModel(t *testing.T) {
 			Message: cErr.Error(),
 			Err:     cErr,
 		}
-		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(result, cErr).Once()
+		hs.On("ImportThingModel", mock.Anything, "", tmContent, repos.ImportOptions{}).Return(result, cErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
@@ -857,7 +857,7 @@ func Test_ImportThingModel(t *testing.T) {
 			Message: cErr.Error(),
 			Err:     cErr,
 		}
-		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(result, nil).Once()
+		hs.On("ImportThingModel", mock.Anything, "", tmContent, repos.ImportOptions{}).Return(result, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
@@ -880,7 +880,7 @@ func Test_ImportThingModel(t *testing.T) {
 		// and given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
 		result, _ := repos.ImportResult{}, unknownErr
-		hs.On("ImportThingModel", mock.Anything, invalidContent, repos.ImportOptions{}).Return(result, unknownErr).Once()
+		hs.On("ImportThingModel", mock.Anything, "", invalidContent, repos.ImportOptions{}).Return(result, unknownErr).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPost, route).
@@ -903,7 +903,7 @@ func Test_PushAttachment(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("PushAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent).Return(nil).Once()
+		hs.On("PushAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPut, route).
 			WithHeader(HeaderContentType, MimeOctetStream).
@@ -917,7 +917,7 @@ func Test_PushAttachment(t *testing.T) {
 	t.Run("with invalid id", func(t *testing.T) {
 		// given: some route with invalid tmID
 		route := "/thing-models/not-an-id/.attachments/README.md"
-		hs.On("PushAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef("not-an-id"), "README.md", attContent).Return(model.ErrInvalidIdOrName).Once()
+		hs.On("PushAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef("not-an-id"), "README.md", attContent).Return(model.ErrInvalidIdOrName).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPut, route).
@@ -945,7 +945,7 @@ func Test_PushAttachment(t *testing.T) {
 
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some unknown error
-		hs.On("PushAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent).Return(unknownErr).Once()
+		hs.On("PushAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPut, route).
 			WithHeader(HeaderContentType, MimeOctetStream).
@@ -981,7 +981,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with valid tmID", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, tmID).Return(nil).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 204
@@ -992,7 +992,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		route := "/thing-models/some-invalid-tm-id?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "some-invalid-tm-id").Return(model.ErrInvalidId).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", "some-invalid-tm-id").Return(model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 400 and json error as body
@@ -1001,7 +1001,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, tmID).Return(repos.ErrTMNotFound).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(repos.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -1024,7 +1024,7 @@ func Test_DeleteAttachment(t *testing.T) {
 	route := "/thing-models/" + tmID + "/.attachments/README.txt"
 
 	t.Run("with valid tmID", func(t *testing.T) {
-		hs.On("DeleteAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil).Once()
+		hs.On("DeleteAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 204
@@ -1035,7 +1035,7 @@ func Test_DeleteAttachment(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		route := "/thing-models/some-invalid-tm-id/.attachments/README.txt"
-		hs.On("DeleteAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef("some-invalid-tm-id"), "README.txt").Return(model.ErrInvalidId).Once()
+		hs.On("DeleteAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef("some-invalid-tm-id"), "README.txt").Return(model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 400 and json error as body
@@ -1043,7 +1043,7 @@ func Test_DeleteAttachment(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("DeleteAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(repos.ErrAttachmentNotFound).Once()
+		hs.On("DeleteAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(repos.ErrAttachmentNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body

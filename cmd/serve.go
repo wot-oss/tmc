@@ -4,8 +4,6 @@ import (
 	"os"
 
 	"github.com/wot-oss/tmc/internal/app/http/cors"
-	"github.com/wot-oss/tmc/internal/model"
-
 	"github.com/wot-oss/tmc/internal/app/http/jwt"
 
 	"github.com/spf13/viper"
@@ -20,11 +18,9 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start a REST API server",
-	Long: `Start a REST API server for accessing and manipulating the catalog.
-A target repository for import operations must be specified with --importTarget in case neither --repo nor --directory is given.
-This may be omitted if there's exactly one repository configured`,
-	Args: cobra.MaximumNArgs(0),
-	Run:  serve,
+	Long:  `Start a REST API server for accessing and manipulating the catalog.`,
+	Args:  cobra.MaximumNArgs(0),
+	Run:   serve,
 }
 
 func init() {
@@ -35,8 +31,6 @@ func init() {
 	_ = serveCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
 	serveCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = serveCmd.MarkFlagDirname("directory")
-	serveCmd.Flags().StringP("importTarget", "t", "", "Name of the repo to use as target for import operations")
-	_ = serveCmd.RegisterFlagCompletionFunc("importTarget", completion.CompleteRepoNames)
 	serveCmd.Flags().String(config.KeyUrlContextRoot, "",
 		"Define additional URL context root path to be considered in hypermedia links (env var TMC_URLCONTEXTROOT)")
 	serveCmd.Flags().String(config.KeyCorsAllowedOrigins, "", "Set comma-separated list for CORS allowed origins (env var TMC_CORSALLOWEDORIGINS)")
@@ -60,17 +54,10 @@ func init() {
 func serve(cmd *cobra.Command, args []string) {
 	host := cmd.Flag("host").Value.String()
 	port := cmd.Flag("port").Value.String()
-	repo := cmd.Flag("repo").Value.String()
-	dir := cmd.Flag("directory").Value.String()
-	importTarget := cmd.Flag("importTarget").Value.String()
 	spec := RepoSpec(cmd)
 	opts := getServeOptions()
 
-	importSpec := spec
-	if repo == "" && dir == "" && importTarget != "" {
-		importSpec = model.NewRepoSpec(importTarget)
-	}
-	err := cli.Serve(host, port, opts, spec, importSpec)
+	err := cli.Serve(host, port, opts, spec)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)
