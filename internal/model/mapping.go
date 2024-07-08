@@ -1,6 +1,10 @@
 package model
 
-import "github.com/wot-oss/tmc/internal/app/http/server"
+import (
+	"fmt"
+
+	"github.com/wot-oss/tmc/internal/app/http/server"
+)
 
 type IndexToSearchResultMapper struct {
 	foundIn FoundSource
@@ -76,6 +80,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryE
 		AttachmentContainer: AttachmentContainer{
 			Attachments: m.ToFoundVersionAttachments(e.Attachments),
 		},
+		FoundIn: m.subRepoFoundSource(e.Source),
 	}
 }
 
@@ -101,7 +106,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersion(v server.Inventor
 				Attachments: m.ToFoundVersionAttachments(v.Attachments),
 			},
 		},
-		FoundIn: m.foundIn,
+		FoundIn: m.subRepoFoundSource(v.Source),
 	}
 	return version
 }
@@ -130,4 +135,12 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersionLinks(v server.Inv
 	return map[string]string{
 		"content": v.Links.Content,
 	}
+}
+
+func (m *InventoryResponseToSearchResultMapper) subRepoFoundSource(source *server.SourceRepository) FoundSource {
+	fi := m.foundIn
+	if fi.RepoName != "" && source != nil && *source != "" {
+		fi = FoundSource{RepoName: fmt.Sprintf("%s/%s", fi.RepoName, *source)}
+	}
+	return fi
 }

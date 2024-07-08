@@ -115,6 +115,7 @@ func TestTmcRepo_List(t *testing.T) {
 
 	config, err := createTmcRepoConfig(srv.URL, nil, "")
 	assert.NoError(t, err)
+	config[keySubRepo] = "child"
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
@@ -124,7 +125,7 @@ func TestTmcRepo_List(t *testing.T) {
 			body:   inventory,
 			status: http.StatusOK,
 			search: nil,
-			expUrl: "/inventory",
+			expUrl: "/inventory?repo=child",
 			expErr: "",
 			expRes: 3,
 		},
@@ -140,7 +141,7 @@ func TestTmcRepo_List(t *testing.T) {
 				Query:        "some string",
 				Options:      model.SearchOptions{NameFilterType: model.PrefixMatch},
 			},
-			expUrl: "/inventory?filter.name=autho&filter.author=author1%2Cauthor2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&search=some+string",
+			expUrl: "/inventory?filter.name=autho&filter.author=author1%2Cauthor2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&search=some+string&repo=child",
 			expErr: "",
 			expRes: 3,
 		},
@@ -156,7 +157,7 @@ func TestTmcRepo_List(t *testing.T) {
 				Query:        "some string",
 				Options:      model.SearchOptions{NameFilterType: model.FullMatch},
 			},
-			expUrl: "/inventory/.tmName/author%2Fcorp%2Fmpn",
+			expUrl: "/inventory/.tmName/author%2Fcorp%2Fmpn?repo=child",
 			expErr: "",
 			expRes: 1,
 		},
@@ -167,7 +168,7 @@ func TestTmcRepo_List(t *testing.T) {
 			search: &model.SearchParams{
 				Name: "author/omnicorp/senseall",
 			},
-			expUrl: "/inventory/.tmName/author%2Fomnicorp%2Fsenseall",
+			expUrl: "/inventory/.tmName/author%2Fomnicorp%2Fsenseall?repo=child",
 			expErr: "",
 			expRes: 1,
 		},
@@ -176,7 +177,7 @@ func TestTmcRepo_List(t *testing.T) {
 			body:   []byte(`{"detail":"invalid search parameter"}`),
 			status: http.StatusBadRequest,
 			search: nil,
-			expUrl: "/inventory",
+			expUrl: "/inventory?repo=child",
 			expErr: "invalid search parameter",
 			expRes: 0,
 		},
@@ -185,7 +186,7 @@ func TestTmcRepo_List(t *testing.T) {
 			body:   []byte(`{"detail":"something bad happened"}`),
 			status: http.StatusInternalServerError,
 			search: nil,
-			expUrl: "/inventory",
+			expUrl: "/inventory?repo=child",
 			expErr: "something bad happened",
 			expRes: 0,
 		},
@@ -194,7 +195,7 @@ func TestTmcRepo_List(t *testing.T) {
 			body:   []byte(`{"detail":"no coffee for you"}`),
 			status: http.StatusTeapot,
 			search: nil,
-			expUrl: "/inventory",
+			expUrl: "/inventory?repo=child",
 			expErr: "received unexpected HTTP response",
 			expRes: 0,
 		},
@@ -219,87 +220,6 @@ func TestTmcRepo_List(t *testing.T) {
 	}
 }
 
-//	func TestTmcRepo_Versions(t *testing.T) {
-//		_, versionsResp, _ := utils.ReadRequiredFile("../../test/data/repos/inventory_entry_metadata.json")
-//
-//		type ht struct {
-//			name    string
-//			body    []byte
-//			status  int
-//			reqName string
-//			expUrl  string
-//			expErr  string
-//			expRes  int
-//		}
-//		htc := make(chan ht, 1)
-//		defer close(htc)
-//		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			h := <-htc
-//			eu, _ := url.Parse(h.expUrl)
-//			assert.Equal(t, eu.RawPath, r.URL.RawPath)
-//			w.WriteHeader(h.status)
-//			_, _ = w.Write(h.body)
-//		}))
-//		defer srv.Close()
-//
-//		config, err := createTmcRepoConfig(srv.URL, nil)
-//		assert.NoError(t, err)
-//		r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
-//		assert.NoError(t, err)
-//
-//		tests := []ht{
-//			{
-//				name:    "plain",
-//				body:    versionsResp,
-//				status:  http.StatusOK,
-//				reqName: "author/manufacturer/mpn/folder",
-//				expUrl:  "/inventory/.tmName/author%2Fmanufacturer%2Fmpn%2Ffolder",
-//				expErr:  "",
-//				expRes:  1,
-//			},
-//			{
-//				name:    "bad request",
-//				body:    []byte(`{"detail":"invalid name"}`),
-//				status:  http.StatusBadRequest,
-//				reqName: "zzzzzz",
-//				expUrl:  "/inventory/.tmName/zzzzzz",
-//				expErr:  "invalid name",
-//				expRes:  0,
-//			},
-//			{
-//				name:    "internal server error",
-//				body:    []byte(`{"detail":"something bad happened"}`),
-//				status:  http.StatusInternalServerError,
-//				reqName: "author/manufacturer/mpn",
-//				expUrl:  "/inventory/.tmName/author%2Fmanufacturer%2Fmpn",
-//				expErr:  "something bad happened",
-//				expRes:  0,
-//			},
-//			{
-//				name:    "unexpected status",
-//				body:    []byte(`{"detail":"no coffee for you"}`),
-//				status:  http.StatusTeapot,
-//				reqName: "author/manufacturer/mpn",
-//				expUrl:  "/inventory/.tmName/author%2Fmanufacturer%2Fmpn",
-//				expErr:  "received unexpected HTTP response",
-//				expRes:  0,
-//			},
-//		}
-//
-//		for _, test := range tests {
-//			t.Run(test.name, func(t *testing.T) {
-//				htc <- test
-//				vs, err := r.Versions(context.Background(), test.reqName)
-//				if test.expErr == "" {
-//					assert.NoError(t, err)
-//					assert.Equal(t, test.expRes, len(vs))
-//					assert.Equal(t, "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json", vs[0].Links["content"])
-//				} else {
-//					assert.ErrorContains(t, err, test.expErr)
-//				}
-//			})
-//		}
-//	}
 func TestTmcRepo_Versions(t *testing.T) {
 	_, versionsResp, _ := utils.ReadRequiredFile("../../test/data/repos/inventory_entry_metadata.json")
 

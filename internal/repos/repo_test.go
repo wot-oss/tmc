@@ -356,6 +356,52 @@ func TestGetSpecdOrAll(t *testing.T) {
 
 }
 
+func TestGet_SplitsSubRepoName(t *testing.T) {
+	viper.Set(KeyRepos, map[string]any{
+		"r1": map[string]any{
+			"type": "tmc",
+			"loc":  "http://example.com/tmc",
+		},
+	})
+
+	t.Run("with empty repo name", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec(""))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "", tmcRepo.subRepo)
+	})
+
+	t.Run("with simple repo name", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec("r1"))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "", tmcRepo.subRepo)
+	})
+
+	t.Run("with subrepo", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec("r1/child"))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "child", tmcRepo.subRepo)
+	})
+
+	t.Run("with chained subrepo", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec("r1/child/grandchild"))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "child/grandchild", tmcRepo.subRepo)
+	})
+
+}
+
 func TestGetDescriptions(t *testing.T) {
 	rdComparer := func(a, b model.RepoDescription) int {
 		return strings.Compare(a.Name, b.Name)
