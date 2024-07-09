@@ -562,19 +562,19 @@ func Test_GetInventoryByID(t *testing.T) {
 	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 	t.Run("get inventory by tm id", func(t *testing.T) {
-		hs.On("GetTMMetadata", mock.Anything, "", tmID).Return(&ver, nil).Once()
+		hs.On("GetTMMetadata", mock.Anything, "", tmID).Return([]model.FoundVersion{ver}, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
-		var response server.InventoryEntryVersionResponse
+		var response server.InventoryEntryVersionsResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: result contains all data
 		ctx := context.Background()
 		ctx = context.WithValue(ctx, ctxRelPathDepth, 4)
 		ctx = context.WithValue(ctx, ctxUrlRoot, "")
-		assertInventoryEntryVersion(t, ver, response.Data)
+		assertInventoryEntryVersion(t, ver, response.Data[0])
 	})
 
 	t.Run("list with invalid tm id", func(t *testing.T) {
@@ -1255,8 +1255,8 @@ func assertAttachments(t *testing.T, linkPrefix string, expAtts []model.Attachme
 	for i, a := range *atts {
 		expAtt := expAtts[i]
 		assert.Equal(t, expAtt.Name, a.Name)
-		expSuffix := path.Join(linkPrefix, ".attachments", url.PathEscape(expAtt.Name))
-		assert.Truef(t, strings.HasSuffix(a.Links.Content, expSuffix), "%s does not end with %s", a.Links.Content, expSuffix)
+		expPath := path.Join(linkPrefix, ".attachments", url.PathEscape(expAtt.Name))
+		assert.Truef(t, strings.Contains(a.Links.Content, expPath), "%s does not contain %s", a.Links.Content, expPath)
 	}
 }
 

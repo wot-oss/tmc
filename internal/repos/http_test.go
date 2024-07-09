@@ -136,8 +136,10 @@ func TestHttpRepo_GetTMMetadata(t *testing.T) {
 
 	res, err := r.GetTMMetadata(context.Background(), tmID)
 	assert.NoError(t, err)
-	if assert.Len(t, res.Attachments, 1) {
-		assert.Equal(t, "cfg.json", res.Attachments[0].Name)
+	if assert.Len(t, res, 1) {
+		if assert.Len(t, res[0].Attachments, 1) {
+			assert.Equal(t, "cfg.json", res[0].Attachments[0].Name)
+		}
 	}
 }
 func TestHttpRepo_ListByName(t *testing.T) {

@@ -276,24 +276,22 @@ func (_m *HandlerService) GetCompletions(ctx context.Context, kind string, args 
 }
 
 // GetLatestTMMetadata provides a mock function with given fields: ctx, repo, fetchName
-func (_m *HandlerService) GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (*model.FoundVersion, error) {
+func (_m *HandlerService) GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (model.FoundVersion, error) {
 	ret := _m.Called(ctx, repo, fetchName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetLatestTMMetadata")
 	}
 
-	var r0 *model.FoundVersion
+	var r0 model.FoundVersion
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*model.FoundVersion, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (model.FoundVersion, error)); ok {
 		return rf(ctx, repo, fetchName)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.FoundVersion); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) model.FoundVersion); ok {
 		r0 = rf(ctx, repo, fetchName)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.FoundVersion)
-		}
+		r0 = ret.Get(0).(model.FoundVersion)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
@@ -306,23 +304,23 @@ func (_m *HandlerService) GetLatestTMMetadata(ctx context.Context, repo string, 
 }
 
 // GetTMMetadata provides a mock function with given fields: ctx, repo, tmID
-func (_m *HandlerService) GetTMMetadata(ctx context.Context, repo string, tmID string) (*model.FoundVersion, error) {
+func (_m *HandlerService) GetTMMetadata(ctx context.Context, repo string, tmID string) ([]model.FoundVersion, error) {
 	ret := _m.Called(ctx, repo, tmID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetTMMetadata")
 	}
 
-	var r0 *model.FoundVersion
+	var r0 []model.FoundVersion
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*model.FoundVersion, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]model.FoundVersion, error)); ok {
 		return rf(ctx, repo, tmID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.FoundVersion); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.FoundVersion); ok {
 		r0 = rf(ctx, repo, tmID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.FoundVersion)
+			r0 = ret.Get(0).([]model.FoundVersion)
 		}
 	}
 

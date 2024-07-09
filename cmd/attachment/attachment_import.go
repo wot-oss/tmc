@@ -10,12 +10,12 @@ import (
 	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
-var attachmentPushCmd = &cobra.Command{
+var attachmentImportCmd = &cobra.Command{
 	Use:   "import <tmNameOrId> <attachmentFile>",
 	Short: "Import an attachment",
 	Long:  `Add or replace an attachment`,
 	Args:  cobra.ExactArgs(2),
-	Run:   attachmentPush,
+	Run:   attachmentImport,
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		var comps []string
 		switch len(args) {
@@ -30,7 +30,7 @@ var attachmentPushCmd = &cobra.Command{
 	},
 }
 
-func attachmentPush(command *cobra.Command, args []string) {
+func attachmentImport(command *cobra.Command, args []string) {
 	spec := cmd.RepoSpec(command)
 
 	err := cli.AttachmentPush(context.Background(), spec, args[0], args[1])
@@ -40,5 +40,5 @@ func attachmentPush(command *cobra.Command, args []string) {
 }
 
 func init() {
-	attachmentCmd.AddCommand(attachmentPushCmd)
+	attachmentCmd.AddCommand(attachmentImportCmd)
 }

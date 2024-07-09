@@ -76,7 +76,7 @@ func (h *TmcHandler) GetInventoryByFetchName(w http.ResponseWriter, r *http.Requ
 	}
 
 	ctx := h.createContext(r)
-	resp := toInventoryEntryVersionResponse(ctx, *entry)
+	resp := toInventoryEntryVersionResponse(ctx, entry)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
@@ -102,7 +102,7 @@ func (h *TmcHandler) GetThingModelByFetchName(w http.ResponseWriter, r *http.Req
 func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID server.TMID, params server.GetInventoryByIDParams) {
 	repo := convertToRepoName(params.Repo)
 
-	entry, err := h.Service.GetTMMetadata(r.Context(), repo, tmID)
+	versions, err := h.Service.GetTMMetadata(r.Context(), repo, tmID)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -110,7 +110,7 @@ func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tm
 	}
 
 	ctx := h.createContext(r)
-	resp := toInventoryEntryVersionResponse(ctx, *entry)
+	resp := toInventoryEntryVersionsResponse(ctx, versions)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 

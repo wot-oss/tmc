@@ -145,7 +145,7 @@ func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.Attachme
 
 }
 
-func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory", tmID)
 	t.addRepoParam(reqUrl)
 	resp, err := doGet(ctx, reqUrl.String(), t.auth)
@@ -158,14 +158,14 @@ func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundV
 	}
 	switch resp.StatusCode {
 	case http.StatusOK:
-		var r server.InventoryEntryVersionResponse
+		var r server.InventoryEntryVersionsResponse
 		err = json.Unmarshal(b, &r)
 		if err != nil {
 			return nil, err
 		}
 		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
-		version := mapper.ToFoundVersion(r.Data)
-		return &version, nil
+		versions := mapper.ToFoundVersions(r.Data)
+		return versions, nil
 	case http.StatusNotFound:
 		var e server.ErrorResponse
 		err := json.Unmarshal(b, &e)

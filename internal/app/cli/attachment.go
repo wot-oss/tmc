@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"text/tabwriter"
 
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
@@ -15,32 +16,57 @@ import (
 func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId string) error {
 	ref := toAttachmentContainerRef(tmNameOrId)
 
-	var atts []model.Attachment
+	var atts []model.FoundAttachment
 	var err error
 	switch ref.Kind() {
 	case model.AttachmentContainerKindTMID:
-		var meta *model.FoundVersion
-		meta, err = commands.GetTMMetadata(ctx, spec, tmNameOrId)
-		if meta != nil {
-			atts = meta.Attachments
+		var fvs []model.FoundVersion
+		var errs []*repos.RepoAccessError
+		fvs, err, errs = commands.GetTMMetadata(ctx, spec, tmNameOrId)
+		defer printErrs("Errors occurred while getting TM metadata:", errs)
+		for _, m := range fvs {
+			for _, a := range m.Attachments {
+				atts = append(atts, model.FoundAttachment{
+					Attachment: a,
+					FoundIn:    m.FoundIn,
+				})
+			}
 		}
 	case model.AttachmentContainerKindTMName:
 		var res model.SearchResult
 		var errs []*repos.RepoAccessError
 		res, err, errs = commands.List(ctx, spec, &model.SearchParams{Name: tmNameOrId})
 		defer printErrs("Errors occurred while listing:", errs)
-		if len(res.Entries) != 0 {
-			atts = res.Entries[0].Attachments
+		for _, m := range res.Entries {
+			for _, a := range m.Attachments {
+				atts = append(atts, model.FoundAttachment{
+					Attachment: a,
+					FoundIn:    m.FoundIn,
+				})
+			}
 		}
 	}
 	if err != nil {
 		Stderrf("Could not list attachments for %s: %v", tmNameOrId, err)
 		return err
 	}
-	for _, v := range atts {
-		fmt.Println(v.Name)
-	}
+
+	printAttachments(atts)
 	return nil
+}
+
+func printAttachments(atts []model.FoundAttachment) {
+	colWidth := columnWidth()
+	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+
+	_, _ = fmt.Fprintf(table, "NAME\tREPO\n")
+	for _, value := range atts {
+		name := value.Name
+		repo := elideString(fmt.Sprintf("%v", value.FoundIn), colWidth)
+		_, _ = fmt.Fprintf(table, "%s\t%s\n", name, repo)
+	}
+	_ = table.Flush()
+
 }
 
 func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string) error {

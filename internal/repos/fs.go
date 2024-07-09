@@ -371,7 +371,7 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	return res.Entries[0].Versions, nil
 }
 
-func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error) {
 	id, err := model.ParseTMID(tmID)
 	if err != nil {
 		return nil, err
@@ -387,7 +387,7 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.Found
 	}
 	for _, v := range versions {
 		if v.TMID == actualId {
-			return &v, nil
+			return []model.FoundVersion{v}, nil
 		}
 	}
 	return nil, ErrTMNotFound
@@ -998,13 +998,15 @@ func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]str
 	if len(args) > 0 {
 		_, err := model.ParseTMID(args[0])
 		if err == nil {
-			metadata, err := f.GetTMMetadata(ctx, args[0])
+			metas, err := f.GetTMMetadata(ctx, args[0])
 			if err != nil {
 				return nil, err
 			}
 			var attNames []string
-			for _, a := range metadata.Attachments {
-				attNames = append(attNames, a.Name)
+			for _, m := range metas {
+				for _, a := range m.Attachments {
+					attNames = append(attNames, a.Name)
+				}
 			}
 			return attNames, nil
 		}

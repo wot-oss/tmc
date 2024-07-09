@@ -30,6 +30,11 @@ type FoundVersion struct {
 	FoundIn FoundSource
 }
 
+type FoundAttachment struct {
+	Attachment
+	FoundIn FoundSource
+}
+
 type FoundSource struct {
 	Directory string
 	RepoName  string

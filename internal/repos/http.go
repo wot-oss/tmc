@@ -215,7 +215,7 @@ func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	return idx.Entries[0].Versions, nil
 }
 
-func (h *HttpRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+func (h *HttpRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error) {
 	idx, err := h.getIndex(ctx)
 	if err != nil {
 		return nil, err
@@ -230,7 +230,7 @@ func (h *HttpRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.Found
 	}
 	mapper := model.NewIndexToFoundMapper(h.Spec().ToFoundSource())
 	fv := mapper.ToFoundVersion(*v)
-	return &fv, nil
+	return []model.FoundVersion{fv}, nil
 }
 
 func (h *HttpRepo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {

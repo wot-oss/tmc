@@ -842,7 +842,7 @@ func TestFileRepo_GetTMMetadata(t *testing.T) {
 	testutils.CopyFile("../../test/data/repos/file/attachments/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json", filepath.Join(temp, tmID))
 	meta, err := r.GetTMMetadata(context.Background(), tmID)
 	assert.NoError(t, err)
-	assert.Equal(t, []model.Attachment{{Name: "firmware update notes.md"}}, meta.Attachments)
+	assert.Equal(t, []model.Attachment{{Name: "firmware update notes.md"}}, meta[0].Attachments)
 }
 
 func TestFileRepo_FetchAttachment(t *testing.T) {

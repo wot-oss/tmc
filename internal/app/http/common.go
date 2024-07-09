@@ -269,6 +269,16 @@ func toInventoryEntryVersionResponse(ctx context.Context, v model.FoundVersion) 
 	return resp
 }
 
+func toInventoryEntryVersionsResponse(ctx context.Context, v []model.FoundVersion) server.InventoryEntryVersionsResponse {
+	mapper := NewMapper(ctx)
+
+	ev := mapper.GetInventoryEntryVersions(v)
+	resp := server.InventoryEntryVersionsResponse{
+		Data: ev,
+	}
+	return resp
+}
+
 func toAuthorsResponse(authors []string) server.AuthorsResponse {
 	resp := server.AuthorsResponse{
 		Data: authors,

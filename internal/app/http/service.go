@@ -27,8 +27,8 @@ type HandlerService interface {
 	CheckHealthReady(ctx context.Context) error
 	CheckHealthStartup(ctx context.Context) error
 	GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
-	GetTMMetadata(ctx context.Context, repo string, tmID string) (*model.FoundVersion, error)
-	GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (*model.FoundVersion, error)
+	GetTMMetadata(ctx context.Context, repo string, tmID string) ([]model.FoundVersion, error)
+	GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (model.FoundVersion, error)
 	FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error)
 	PushAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error
 	DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error
@@ -218,34 +218,48 @@ func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind strin
 	return rs.ListCompletions(ctx, kind, args, toComplete), nil
 }
 
-func (dhs *defaultHandlerService) GetTMMetadata(ctx context.Context, repo string, tmID string) (*model.FoundVersion, error) {
+func (dhs *defaultHandlerService) GetTMMetadata(ctx context.Context, repo string, tmID string) ([]model.FoundVersion, error) {
 	tgt, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
-	meta, err := commands.GetTMMetadata(ctx, tgt, tmID)
+	meta, err, errs := commands.GetTMMetadata(ctx, tgt, tmID)
 	if err != nil {
 		return nil, err
+	}
+	if len(errs) > 0 {
+		return nil, errs[0]
 	}
 
 	return meta, nil
 }
 
-func (dhs *defaultHandlerService) GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (*model.FoundVersion, error) {
+func (dhs *defaultHandlerService) GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (model.FoundVersion, error) {
 	fn, err := model.ParseFetchName(fetchName)
 	if err != nil {
-		return nil, err
+		return model.FoundVersion{}, err
 	}
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
-		return nil, err
+		return model.FoundVersion{}, err
 	}
-	id, foundIn, err, _ := commands.ResolveFetchName(ctx, spec, fn)
+	id, foundIn, err, errs := commands.ResolveFetchName(ctx, spec, fn)
 	if err != nil {
-		return nil, err
+		return model.FoundVersion{}, err
 	}
-	meta, err := commands.GetTMMetadata(ctx, foundIn, id)
-	return meta, err
+	if len(errs) > 0 {
+		return model.FoundVersion{}, errs[0]
+	}
+	metas, err, _ := commands.GetTMMetadata(ctx, foundIn, id)
+	if err != nil {
+		return model.FoundVersion{}, err
+	}
+	// because the metadata has been requested from exactly one repo and there was no error,
+	// metas length must be exactly one, but it does not hurt to check
+	if len(metas) != 1 {
+		return model.FoundVersion{}, repos.ErrTMNotFound
+	}
+	return metas[0], err
 }
 
 func (dhs *defaultHandlerService) FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error) {

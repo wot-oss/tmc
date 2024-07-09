@@ -463,7 +463,7 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 		// when: fetching ThingModel
 		res, err := underTest.GetLatestTMMetadata(nil, "", "b-corp\\eagle/PM20")
 		// then: it returns nil result
-		assert.Nil(t, res)
+		assert.Equal(t, model.FoundVersion{}, res)
 		// and then: error is ErrInvalidFetchName
 		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
 	})
@@ -471,8 +471,8 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 	t.Run("with invalid semantic version", func(t *testing.T) {
 		// when: fetching ThingModel
 		res, err := underTest.GetLatestTMMetadata(nil, "", "b-corp/eagle/PM20:v1.")
-		// then: it returns nil result
-		assert.Nil(t, res)
+		// then: it returns empty result
+		assert.Equal(t, model.FoundVersion{}, res)
 		// and then: error is ErrInvalidFetchName
 		assert.ErrorIs(t, err, model.ErrInvalidFetchName)
 	})
@@ -483,8 +483,8 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.GetLatestTMMetadata(context.Background(), "", fn)
-		// then: it returns nil result
-		assert.Nil(t, res)
+		// then: it returns empty result
+		assert.Equal(t, model.FoundVersion{}, res)
 		// and then: error is ErrTMNameNotFound
 		assert.ErrorIs(t, err, repos.ErrTMNameNotFound)
 	})
@@ -493,14 +493,14 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 		fn := "b-corp/eagle/pm20"
 		tmID := fn + "/v1.0.0-20240107123001-234d1b462fff.tm.json"
 		r.On("Versions", mock.Anything, fn).Return([]model.FoundVersion{singleFoundVersion}, nil).Once()
-		r.On("GetTMMetadata", mock.Anything, tmID).Return(&singleFoundVersion, nil).Once()
+		r.On("GetTMMetadata", mock.Anything, tmID).Return([]model.FoundVersion{singleFoundVersion}, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("someRepo"), r, nil))
 		// when: fetching ThingModel
 		res, err := underTest.GetLatestTMMetadata(context.Background(), "", fn)
 		// then: it returns the unchanged ThingModel content
 		assert.NotNil(t, res)
-		assert.Equal(t, &singleFoundVersion, res)
+		assert.Equal(t, singleFoundVersion, res)
 		// and then: there is no error
 		assert.NoError(t, err)
 	})
@@ -611,14 +611,14 @@ func TestService_GetTMMetadata(t *testing.T) {
 	tmID := "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json"
 	// given: repo returns some attachments
 	r := mocks.NewRepo(t)
-	r.On("GetTMMetadata", mock.Anything, tmID).Return(&singleFoundVersion, nil).Once()
+	r.On("GetTMMetadata", mock.Anything, tmID).Return([]model.FoundVersion{singleFoundVersion}, nil).Once()
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 	rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "someRepo"}}, nil)
 	// when: listing attachments
 	res, err := underTest.GetTMMetadata(context.Background(), "someRepo", tmID)
 	// then: service returns the attachment names
 	assert.NoError(t, err)
-	assert.Equal(t, &singleFoundVersion, res)
+	assert.Equal(t, []model.FoundVersion{singleFoundVersion}, res)
 }
 
 func TestService_FetchAttachment(t *testing.T) {

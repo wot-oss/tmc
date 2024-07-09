@@ -115,21 +115,21 @@ paths:
       tags:
         - inventory
       summary: Get the metadata of a single TM by ID
-      description: Returns the metadata of a single TM
+      description: Returns the metadata of a single TM as a list which contains at most one inventory entry per repository
       operationId: getInventoryByID
       parameters:
         - $ref: '#/components/parameters/TMID'
-        - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/RepoConstraint'
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InventoryEntryVersionResponse'
+                $ref: '#/components/schemas/InventoryEntryVersionsResponse'
               examples:
                 inventoryEntryVersion:
-                  $ref: '#/components/examples/InventoryEntryVersionResponseExample'
+                  $ref: '#/components/examples/InventoryEntryVersionsResponseExample'
         '400':
           description: Invalid ID supplied
           content:
@@ -246,7 +246,7 @@ paths:
       operationId: getThingModelById
       parameters:
         - $ref: '#/components/parameters/TMID'
-        - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/RepoConstraint'
         - name: restoreId
           in: query
           description: restore the TM's original external id, if it had one
@@ -1038,6 +1038,15 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/InventoryEntryVersion'
+    InventoryEntryVersionsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntryVersion'
     InventoryEntryVersion:
       required:
         - tmID
@@ -1399,6 +1408,19 @@ components:
           'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
           'version':
             'model': '1.0.0'
+    InventoryEntryVersionsResponseExample:
+      value:
+        'data':
+          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+            'digest': '2cd14601ef09'
+            'externalID': '{{ID}}'
+            'links':
+              'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+              'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'timestamp': '20240108112117'
+            'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'version':
+              'model': '1.0.0'
     InventoryResponseExample:
       value:
         meta:

@@ -108,6 +108,11 @@ type InventoryEntryVersionResponse struct {
 	Data InventoryEntryVersion `json:"data"`
 }
 
+// InventoryEntryVersionsResponse defines model for InventoryEntryVersionsResponse.
+type InventoryEntryVersionsResponse struct {
+	Data []InventoryEntryVersion `json:"data"`
+}
+
 // InventoryResponse defines model for InventoryResponse.
 type InventoryResponse struct {
 	Data []InventoryEntry `json:"data"`
@@ -259,8 +264,8 @@ type GetInventoryByNameParams struct {
 
 // GetInventoryByIDParams defines parameters for GetInventoryByID.
 type GetInventoryByIDParams struct {
-	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
-	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // GetManufacturersParams defines parameters for GetManufacturers.
@@ -348,8 +353,8 @@ type DeleteThingModelByIdParams struct {
 
 // GetThingModelByIdParams defines parameters for GetThingModelById.
 type GetThingModelByIdParams struct {
-	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
-	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
 
 	// RestoreId restore the TM's original external id, if it had one
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`

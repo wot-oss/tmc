@@ -386,8 +386,10 @@ func TestTmcRepo_GetTMMetadata(t *testing.T) {
 			if test.expErr == "" {
 				assert.NoError(t, err)
 				var attNames []string
-				for _, a := range res.Attachments {
-					attNames = append(attNames, a.Name)
+				for _, v := range res {
+					for _, a := range v.Attachments {
+						attNames = append(attNames, a.Name)
+					}
 				}
 				assert.Equal(t, test.expRes, attNames)
 			} else {

@@ -138,23 +138,23 @@ func (_m *Repo) FetchAttachment(ctx context.Context, container model.AttachmentC
 }
 
 // GetTMMetadata provides a mock function with given fields: ctx, tmID
-func (_m *Repo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+func (_m *Repo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error) {
 	ret := _m.Called(ctx, tmID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetTMMetadata")
 	}
 
-	var r0 *model.FoundVersion
+	var r0 []model.FoundVersion
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*model.FoundVersion, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]model.FoundVersion, error)); ok {
 		return rf(ctx, tmID)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *model.FoundVersion); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string) []model.FoundVersion); ok {
 		r0 = rf(ctx, tmID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.FoundVersion)
+			r0 = ret.Get(0).([]model.FoundVersion)
 		}
 	}
 
