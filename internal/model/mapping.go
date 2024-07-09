@@ -77,13 +77,13 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntries(entries []server.
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryEntry) FoundEntry {
 	return FoundEntry{
-		Name:         e.TmName,
-		Manufacturer: SchemaManufacturer{Name: e.SchemaManufacturer.SchemaName},
-		Mpn:          e.SchemaMpn,
-		Author:       SchemaAuthor{Name: e.SchemaAuthor.SchemaName},
-		Versions:     m.ToFoundVersions(e.Versions),
+		Name:                e.TmName,
+		Manufacturer:        SchemaManufacturer{Name: e.SchemaManufacturer.SchemaName},
+		Mpn:                 e.SchemaMpn,
+		Author:              SchemaAuthor{Name: e.SchemaAuthor.SchemaName},
+		Versions:            m.ToFoundVersions(e.Versions),
 		AttachmentContainer: AttachmentContainer{
-			Attachments: m.ToFoundVersionAttachments(e.Attachments),
+			//Attachments: m.ToFoundVersionAttachments(e.Attachments),
 		},
 		FoundIn: m.subRepoFoundSource(e.Repo),
 	}
@@ -100,15 +100,15 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersions(versions []serve
 func (m *InventoryResponseToSearchResultMapper) ToFoundVersion(v server.InventoryEntryVersion) FoundVersion {
 	version := FoundVersion{
 		IndexVersion: &IndexVersion{
-			Description: v.Description,
-			Version:     Version{Model: v.Version.Model},
-			Links:       m.ToFoundVersionLinks(v),
-			TMID:        v.TmID,
-			Digest:      v.Digest,
-			TimeStamp:   v.Timestamp,
-			ExternalID:  v.ExternalID,
+			Description:         v.Description,
+			Version:             Version{Model: v.Version.Model},
+			Links:               m.ToFoundVersionLinks(v),
+			TMID:                v.TmID,
+			Digest:              v.Digest,
+			TimeStamp:           v.Timestamp,
+			ExternalID:          v.ExternalID,
 			AttachmentContainer: AttachmentContainer{
-				Attachments: m.ToFoundVersionAttachments(v.Attachments),
+				//Attachments: m.ToFoundVersionAttachments(v.Attachments),
 			},
 		},
 		FoundIn: m.subRepoFoundSource(v.Repo),
@@ -116,19 +116,19 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersion(v server.Inventor
 	return version
 }
 
-func (m *InventoryResponseToSearchResultMapper) ToFoundVersionAttachments(al *server.AttachmentsList) []Attachment {
-	if al == nil {
-		return nil
-	}
-	var atts []Attachment
-	for _, a := range *al {
-		att := Attachment{
-			Name: a.Name,
-		}
-		atts = append(atts, att)
-	}
-	return atts
-}
+//func (m *InventoryResponseToSearchResultMapper) ToFoundVersionAttachments(al *server.AttachmentsList) []Attachment {
+//	if al == nil {
+//		return nil
+//	}
+//	var atts []Attachment
+//	for _, a := range *al {
+//		att := Attachment{
+//			Name: a.Name,
+//		}
+//		atts = append(atts, att)
+//	}
+//	return atts
+//}
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundVersionLinks(v server.InventoryEntryVersion) map[string]string {
 	if m.linksMapper != nil {

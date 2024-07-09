@@ -12,8 +12,8 @@ servers:
 security:
   - BearerAuth: []
 tags:
-  - name: attachments
-    description: Access to TM and TM name attachments
+#  - name: attachments
+#    description: Access to TM and TM name attachments
   - name: inventory
     description: Access to the inventory of the catalog
   - name: thing-models
@@ -370,237 +370,237 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /thing-models/{tmID}/.attachments/{attachmentFileName}:
-    get:
-      tags:
-        - attachments
-      summary: Get the actual content of an attachment to a Thing Model
-      description:
-        Returns the content of an attachment to a Thing Model.
-        Use '/thing-models/.tmName/{tmName}/.attachments/{attachmentFileName}' endpoint to get TM name's attachments
-      operationId: getThingModelAttachmentByName
-      parameters:
-        - $ref: '#/components/parameters/TMID'
-        - $ref: '#/components/parameters/AttachmentFileName'
-        - $ref: '#/components/parameters/RepoDisambiguator'
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        '400':
-          description: Invalid ID requested
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          description: TM or attachment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    put:
-      tags:
-        - attachments
-      summary: Upload an attachment to a Thing Model
-      description: Upload an attachment to a Thing Model
-      operationId: putTMIDAttachment
-      parameters:
-        - $ref: '#/components/parameters/TMID'
-        - $ref: '#/components/parameters/AttachmentFileName'
-        - $ref: '#/components/parameters/RepoDisambiguator'
-        - $ref: '#/components/parameters/ForceImport'
-      requestBody:
-        description: Add a new attachment or overwrite an existing one
-        content:
-          '*/*':
-            schema:
-              type: string
-              format: binary
-        required: true
-      responses:
-        '204':
-          description: Successfully imported
-        '400':
-          description: Invalid ID supplied
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '409':
-          description: Conflict, attachment already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    delete:
-      tags:
-        - attachments
-      summary: Delete an attachment to a Thing Model
-      description: Delete an attachment to a Thing Model
-      operationId: deleteThingModelAttachmentByName
-      parameters:
-        - $ref: '#/components/parameters/TMID'
-        - $ref: '#/components/parameters/AttachmentFileName'
-        - $ref: '#/components/parameters/RepoDisambiguator'
-      responses:
-        '204':
-          description: Successful operation
-        '400':
-          description: Invalid ID or inventory name supplied
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          description: Thing Model or inventory name or attachment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName}:
-    get:
-      tags:
-        - attachments
-      summary: Get the actual content of an attachment to a TM name
-      description:
-        Returns the content of an attachment to a TM name
-      operationId: getTMNameAttachment
-      parameters:
-        - $ref: '#/components/parameters/TMName'
-        - $ref: '#/components/parameters/AttachmentFileName'
-        - $ref: '#/components/parameters/RepoDisambiguator'
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/octet-stream:
-              schema:
-                type: string
-                format: binary
-        '400':
-          description: Invalid TM name requested
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          description: TM name or attachment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    put:
-      tags:
-        - attachments
-      summary: Upload an attachment to a TM name
-      description: Upload an attachment to a TM name
-      operationId: putTMNameAttachment
-      parameters:
-        - $ref: '#/components/parameters/TMName'
-        - $ref: '#/components/parameters/AttachmentFileName'
-        - $ref: '#/components/parameters/RepoDisambiguator'
-        - $ref: '#/components/parameters/ForceImport'
-      requestBody:
-        description: Add a new attachment or overwrite an existing one
-        content:
-          '*/*':
-            schema:
-              type: string
-              format: binary
-        required: true
-      responses:
-        '204':
-          description: Successfully added
-        '400':
-          description: Invalid TM name supplied
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '409':
-          description: Conflict, attachment already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    delete:
-      tags:
-        - attachments
-      summary: Delete an attachment to a TM name
-      description: Delete an attachment to a TM name
-      operationId: deleteTMNameAttachment
-      parameters:
-        - $ref: '#/components/parameters/TMName'
-        - $ref: '#/components/parameters/AttachmentFileName'
-        - $ref: '#/components/parameters/RepoDisambiguator'
-      responses:
-        '204':
-          description: Successful operation
-        '400':
-          description: Invalid TM name supplied
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '404':
-          description: TM name or attachment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+#  /thing-models/{tmID}/.attachments/{attachmentFileName}:
+#    get:
+#      tags:
+#        - attachments
+#      summary: Get the actual content of an attachment to a Thing Model
+#      description:
+#        Returns the content of an attachment to a Thing Model.
+#        Use '/thing-models/.tmName/{tmName}/.attachments/{attachmentFileName}' endpoint to get TM name's attachments
+#      operationId: getThingModelAttachmentByName
+#      parameters:
+#        - $ref: '#/components/parameters/TMID'
+#        - $ref: '#/components/parameters/AttachmentFileName'
+#        - $ref: '#/components/parameters/RepoDisambiguator'
+#      responses:
+#        '200':
+#          description: Successful operation
+#          content:
+#            application/octet-stream:
+#              schema:
+#                type: string
+#                format: binary
+#        '400':
+#          description: Invalid ID requested
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '401':
+#          $ref: '#/components/responses/UnauthorizedError'
+#        '404':
+#          description: TM or attachment not found
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '500':
+#          description: Internal error
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#    put:
+#      tags:
+#        - attachments
+#      summary: Upload an attachment to a Thing Model
+#      description: Upload an attachment to a Thing Model
+#      operationId: putTMIDAttachment
+#      parameters:
+#        - $ref: '#/components/parameters/TMID'
+#        - $ref: '#/components/parameters/AttachmentFileName'
+#        - $ref: '#/components/parameters/RepoDisambiguator'
+#        - $ref: '#/components/parameters/ForceImport'
+#      requestBody:
+#        description: Add a new attachment or overwrite an existing one
+#        content:
+#          '*/*':
+#            schema:
+#              type: string
+#              format: binary
+#        required: true
+#      responses:
+#        '204':
+#          description: Successfully imported
+#        '400':
+#          description: Invalid ID supplied
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '401':
+#          $ref: '#/components/responses/UnauthorizedError'
+#        '409':
+#          description: Conflict, attachment already exists
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '500':
+#          description: Internal error
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#    delete:
+#      tags:
+#        - attachments
+#      summary: Delete an attachment to a Thing Model
+#      description: Delete an attachment to a Thing Model
+#      operationId: deleteThingModelAttachmentByName
+#      parameters:
+#        - $ref: '#/components/parameters/TMID'
+#        - $ref: '#/components/parameters/AttachmentFileName'
+#        - $ref: '#/components/parameters/RepoDisambiguator'
+#      responses:
+#        '204':
+#          description: Successful operation
+#        '400':
+#          description: Invalid ID or inventory name supplied
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '401':
+#          $ref: '#/components/responses/UnauthorizedError'
+#        '404':
+#          description: Thing Model or inventory name or attachment not found
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '500':
+#          description: Internal error
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#  /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName}:
+#    get:
+#      tags:
+#        - attachments
+#      summary: Get the actual content of an attachment to a TM name
+#      description:
+#        Returns the content of an attachment to a TM name
+#      operationId: getTMNameAttachment
+#      parameters:
+#        - $ref: '#/components/parameters/TMName'
+#        - $ref: '#/components/parameters/AttachmentFileName'
+#        - $ref: '#/components/parameters/RepoDisambiguator'
+#      responses:
+#        '200':
+#          description: Successful operation
+#          content:
+#            application/octet-stream:
+#              schema:
+#                type: string
+#                format: binary
+#        '400':
+#          description: Invalid TM name requested
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '401':
+#          $ref: '#/components/responses/UnauthorizedError'
+#        '404':
+#          description: TM name or attachment not found
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '500':
+#          description: Internal error
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#    put:
+#      tags:
+#        - attachments
+#      summary: Upload an attachment to a TM name
+#      description: Upload an attachment to a TM name
+#      operationId: putTMNameAttachment
+#      parameters:
+#        - $ref: '#/components/parameters/TMName'
+#        - $ref: '#/components/parameters/AttachmentFileName'
+#        - $ref: '#/components/parameters/RepoDisambiguator'
+#        - $ref: '#/components/parameters/ForceImport'
+#      requestBody:
+#        description: Add a new attachment or overwrite an existing one
+#        content:
+#          '*/*':
+#            schema:
+#              type: string
+#              format: binary
+#        required: true
+#      responses:
+#        '204':
+#          description: Successfully added
+#        '400':
+#          description: Invalid TM name supplied
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '401':
+#          $ref: '#/components/responses/UnauthorizedError'
+#        '409':
+#          description: Conflict, attachment already exists
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '500':
+#          description: Internal error
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#    delete:
+#      tags:
+#        - attachments
+#      summary: Delete an attachment to a TM name
+#      description: Delete an attachment to a TM name
+#      operationId: deleteTMNameAttachment
+#      parameters:
+#        - $ref: '#/components/parameters/TMName'
+#        - $ref: '#/components/parameters/AttachmentFileName'
+#        - $ref: '#/components/parameters/RepoDisambiguator'
+#      responses:
+#        '204':
+#          description: Successful operation
+#        '400':
+#          description: Invalid TM name supplied
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '401':
+#          $ref: '#/components/responses/UnauthorizedError'
+#        '404':
+#          description: TM name or attachment not found
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
+#        '500':
+#          description: Internal error
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/ErrorResponse'
   /thing-models:
     post:
       tags:
@@ -1045,8 +1045,8 @@ components:
             $ref: '#/components/schemas/InventoryEntryVersion'
         links:
           $ref: '#/components/schemas/InventoryEntryLinks'
-        attachments:
-          $ref: "#/components/schemas/AttachmentsList"
+#        attachments:
+#          $ref: "#/components/schemas/AttachmentsList"
     InventoryEntryVersionResponse:
       type: object
       required:
@@ -1094,8 +1094,8 @@ components:
           $ref: '#/components/schemas/SourceRepository'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
-        attachments:
-          $ref: "#/components/schemas/AttachmentsList"
+#        attachments:
+#          $ref: "#/components/schemas/AttachmentsList"
     InventoryEntryLinks:
       type: object
       required:
@@ -1155,31 +1155,31 @@ components:
           type: array
           items:
             type: string
-    AttachmentsList:
-      type: array
-      items:
-        $ref: '#/components/schemas/AttachmentsListEntry'
-    AttachmentsListEntry:
-      type: object
-      required:
-        - name
-        - mediaType
-      properties:
-        name:
-          type: string
-        mediaType:
-          type: string
-        links:
-          $ref: '#/components/schemas/AttachmentLinks'
-    AttachmentLinks:
-      type: object
-      required:
-        - content
-      properties:
-        content:
-          type: string
-          format: uri-reference
-          example: './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json/.attachments/README.md'
+#    AttachmentsList:
+#      type: array
+#      items:
+#        $ref: '#/components/schemas/AttachmentsListEntry'
+#    AttachmentsListEntry:
+#      type: object
+#      required:
+#        - name
+#        - mediaType
+#      properties:
+#        name:
+#          type: string
+#        mediaType:
+#          type: string
+#        links:
+#          $ref: '#/components/schemas/AttachmentLinks'
+#    AttachmentLinks:
+#      type: object
+#      required:
+#        - content
+#      properties:
+#        content:
+#          type: string
+#          format: uri-reference
+#          example: './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json/.attachments/README.md'
     SourceRepository:
       type: string
       example: 'global'
@@ -1337,14 +1337,14 @@ components:
       required: false
       schema:
         type: boolean
-    AttachmentFileName:
-      name: attachmentFileName
-      in: path
-      description: File name of the attachment
-      required: true
-      schema:
-        type: string
-      example: 'README.md'
+#    AttachmentFileName:
+#      name: attachmentFileName
+#      in: path
+#      description: File name of the attachment
+#      required: true
+#      schema:
+#        type: string
+#      example: 'README.md'
     RepoDisambiguator:
       name: repo
       in: query
@@ -1416,15 +1416,15 @@ components:
                 'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'version':
                   'model': '0.0.0'
-            attachments:
-              - name: 'README.md'
-                mediaType: 'text/markdown'
-                links:
-                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
-              - name: 'User Manual.pdf'
-                mediaType: 'application/pdf'
-                links:
-                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
+#            attachments:
+#              - name: 'README.md'
+#                mediaType: 'text/markdown'
+#                links:
+#                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
+#              - name: 'User Manual.pdf'
+#                mediaType: 'application/pdf'
+#                links:
+#                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
     InventoryEntryVersionResponseExample:
       value:
         'data':

@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
-	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
@@ -321,76 +320,76 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 	HandleByteResponse(w, r, http.StatusOK, MimeText, buf.Bytes())
 }
 
-func (h *TmcHandler) GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmid, attachmentFileName string, params server.GetThingModelAttachmentByNameParams) {
-	ref := model.NewTMIDAttachmentContainerRef(tmid)
-	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
-}
-func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.GetTMNameAttachmentParams) {
-	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
-}
-
-func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
-	data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName)
-	if err != nil {
-		HandleErrorResponse(w, r, err)
-		return
-	}
-	HandleByteResponse(w, r, http.StatusOK, MimeOctetStream, data)
-}
-
-func (h *TmcHandler) deleteAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
-	err := h.Service.DeleteAttachment(r.Context(), repo, ref, attachmentFileName)
-	if err != nil {
-		HandleErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-	_, _ = w.Write(nil)
-}
-
-func (h *TmcHandler) DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID server.TMID, attachmentFileName string, params server.DeleteThingModelAttachmentByNameParams) {
-	ref := model.NewTMIDAttachmentContainerRef(tmID)
-	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
-}
-
-func (h *TmcHandler) DeleteTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.DeleteTMNameAttachmentParams) {
-	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
-}
-
-func (h *TmcHandler) PutTMIDAttachment(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string, params server.PutTMIDAttachmentParams) {
-	ref := model.NewTMIDAttachmentContainerRef(tmID)
-	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
-}
-
-func (h *TmcHandler) PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.PutTMNameAttachmentParams) {
-	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
-}
-
-func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, contentType string, force bool) {
-	defer r.Body.Close()
-	b, err := io.ReadAll(r.Body)
-	if err != nil {
-		HandleErrorResponse(w, r, err)
-		return
-	}
-	if len(b) == 0 {
-		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
-		return
-	}
-
-	err = h.Service.ImportAttachment(r.Context(), repo, ref, attachmentFileName, b, contentType, force)
-	if err != nil {
-		HandleErrorResponse(w, r, err)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
-	_, _ = w.Write(nil)
-}
-
+//	func (h *TmcHandler) GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmid, attachmentFileName string, params server.GetThingModelAttachmentByNameParams) {
+//		ref := model.NewTMIDAttachmentContainerRef(tmid)
+//		h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+//	}
+//
+//	func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.GetTMNameAttachmentParams) {
+//		ref := model.NewTMNameAttachmentContainerRef(tmName)
+//		h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+//	}
+//
+//	func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
+//		data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName)
+//		if err != nil {
+//			HandleErrorResponse(w, r, err)
+//			return
+//		}
+//		HandleByteResponse(w, r, http.StatusOK, MimeOctetStream, data)
+//	}
+//
+//	func (h *TmcHandler) deleteAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
+//		err := h.Service.DeleteAttachment(r.Context(), repo, ref, attachmentFileName)
+//		if err != nil {
+//			HandleErrorResponse(w, r, err)
+//			return
+//		}
+//		w.WriteHeader(http.StatusNoContent)
+//		_, _ = w.Write(nil)
+//	}
+//
+//	func (h *TmcHandler) DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID server.TMID, attachmentFileName string, params server.DeleteThingModelAttachmentByNameParams) {
+//		ref := model.NewTMIDAttachmentContainerRef(tmID)
+//		h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+//	}
+//
+//	func (h *TmcHandler) DeleteTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.DeleteTMNameAttachmentParams) {
+//		ref := model.NewTMNameAttachmentContainerRef(tmName)
+//		h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+//	}
+//
+//	func (h *TmcHandler) PutTMIDAttachment(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string, params server.PutTMIDAttachmentParams) {
+//		ref := model.NewTMIDAttachmentContainerRef(tmID)
+//		h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
+//	}
+//
+//	func (h *TmcHandler) PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.PutTMNameAttachmentParams) {
+//		ref := model.NewTMNameAttachmentContainerRef(tmName)
+//		h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
+//	}
+//
+//	func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, contentType string, force bool) {
+//		defer r.Body.Close()
+//		b, err := io.ReadAll(r.Body)
+//		if err != nil {
+//			HandleErrorResponse(w, r, err)
+//			return
+//		}
+//		if len(b) == 0 {
+//			HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
+//			return
+//		}
+//
+//		err = h.Service.ImportAttachment(r.Context(), repo, ref, attachmentFileName, b, contentType, force)
+//		if err != nil {
+//			HandleErrorResponse(w, r, err)
+//			return
+//		}
+//
+//		w.WriteHeader(http.StatusNoContent)
+//		_, _ = w.Write(nil)
+//	}
 func (h *TmcHandler) createContext(r *http.Request) context.Context {
 	relPathDepth := getRelativeDepth(r.URL.Path, basePathInventory)
 
