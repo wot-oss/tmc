@@ -433,8 +433,8 @@ func TestGetDescriptions(t *testing.T) {
 			{
 				name:      "with empty spec and error expanding",
 				spec:      model.EmptySpec,
-				status:    http.StatusInternalServerError,
-				expErr:    errors.New("oops"),
+				status:    http.StatusBadGateway,
+				expErr:    &RepoAccessError{model.NewRepoSpec("r2"), errors.New("oops")},
 				expDescrs: nil,
 				respBody:  []byte(`{"detail":"oops"}`),
 			},

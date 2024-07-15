@@ -507,7 +507,7 @@ func (t *TmcRepo) ListCompletions(ctx context.Context, kind string, args []strin
 	}
 }
 
-func (t *TmcRepo) GetSourceRepos(ctx context.Context) ([]model.RepoDescription, error) {
+func (t *TmcRepo) GetSubRepos(ctx context.Context) ([]model.RepoDescription, error) {
 	u := t.parsedRoot.JoinPath("repos")
 	resp, err := doGet(ctx, u.String(), t.auth)
 	if err != nil {
@@ -537,7 +537,7 @@ func (t *TmcRepo) GetSourceRepos(ctx context.Context) ([]model.RepoDescription, 
 			})
 		}
 		return ds, nil
-	case http.StatusInternalServerError, http.StatusUnauthorized:
+	case http.StatusInternalServerError, http.StatusBadGateway, http.StatusUnauthorized:
 		return nil, newErrorFromResponse(data)
 	default:
 		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))

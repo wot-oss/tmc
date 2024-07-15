@@ -233,14 +233,15 @@ func expandTmcRepos(ctx context.Context, descriptions []model.RepoDescription) (
 			ds = append(ds, d)
 			continue
 		}
-		repo, err := Get(model.NewRepoSpec(d.Name))
+		spec := model.NewRepoSpec(d.Name)
+		repo, err := Get(spec)
 		if err != nil {
 			return nil, err
 		}
 		tmc, _ := repo.(*TmcRepo)
-		repos, err := tmc.GetSourceRepos(ctx)
+		repos, err := tmc.GetSubRepos(ctx)
 		if err != nil {
-			return nil, err
+			return nil, &RepoAccessError{spec, err}
 		}
 		if len(repos) < 2 {
 			ds = append(ds, d)
