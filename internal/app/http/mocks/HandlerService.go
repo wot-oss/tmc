@@ -333,6 +333,24 @@ func (_m *HandlerService) GetTMMetadata(ctx context.Context, repo string, tmID s
 	return r0, r1
 }
 
+// ImportAttachment provides a mock function with given fields: ctx, repo, ref, attachmentFileName, content, contentType
+func (_m *HandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string) error {
+	ret := _m.Called(ctx, repo, ref, attachmentFileName, content, contentType)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImportAttachment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string, []byte, string) error); ok {
+		r0 = rf(ctx, repo, ref, attachmentFileName, content, contentType)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // ImportThingModel provides a mock function with given fields: ctx, repo, file, opts
 func (_m *HandlerService) ImportThingModel(ctx context.Context, repo string, file []byte, opts repos.ImportOptions) (repos.ImportResult, error) {
 	ret := _m.Called(ctx, repo, file, opts)
@@ -509,24 +527,6 @@ func (_m *HandlerService) ListRepos(ctx context.Context) ([]model.RepoDescriptio
 	}
 
 	return r0, r1
-}
-
-// PushAttachment provides a mock function with given fields: ctx, repo, ref, attachmentFileName, content
-func (_m *HandlerService) PushAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error {
-	ret := _m.Called(ctx, repo, ref, attachmentFileName, content)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PushAttachment")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string, []byte) error); ok {
-		r0 = rf(ctx, repo, ref, attachmentFileName, content)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // NewHandlerService creates a new instance of HandlerService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

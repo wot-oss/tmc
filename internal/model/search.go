@@ -26,7 +26,7 @@ type FoundEntry struct {
 	AttachmentContainer
 }
 type FoundVersion struct {
-	IndexVersion
+	*IndexVersion
 	FoundIn FoundSource
 }
 

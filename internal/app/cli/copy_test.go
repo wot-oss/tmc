@@ -26,7 +26,7 @@ var copyListRes = model.SearchResult{
 			FoundIn:      model.FoundSource{RepoName: "r1"},
 			Versions: []model.FoundVersion{
 				{
-					IndexVersion: model.IndexVersion{
+					IndexVersion: &model.IndexVersion{
 						TMID:        "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json",
 						Description: "desc version v0.0.0",
 						Version:     model.Version{Model: "0.0.0"},
@@ -37,7 +37,7 @@ var copyListRes = model.SearchResult{
 					FoundIn: model.FoundSource{RepoName: "r1"},
 				},
 				{
-					IndexVersion: model.IndexVersion{
+					IndexVersion: &model.IndexVersion{
 						TMID:        "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json",
 						Description: "desc version v3.2.1",
 						Version:     model.Version{Model: "3.2.1"},
@@ -48,7 +48,7 @@ var copyListRes = model.SearchResult{
 					FoundIn: model.FoundSource{RepoName: "r1"},
 				},
 				{
-					IndexVersion: model.IndexVersion{
+					IndexVersion: &model.IndexVersion{
 						TMID:        "omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json",
 						Description: "desc version v3.11.1",
 						Version:     model.Version{Model: "3.11.1"},
@@ -83,7 +83,7 @@ var copySingleListRes model.SearchResult = model.SearchResult{
 			FoundIn:      model.FoundSource{RepoName: "r1"},
 			Versions: []model.FoundVersion{
 				{
-					IndexVersion: model.IndexVersion{
+					IndexVersion: &model.IndexVersion{
 						TMID:        "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json",
 						Description: "desc version v0.0.0",
 						Version:     model.Version{Model: "0.0.0"},
@@ -92,7 +92,8 @@ var copySingleListRes model.SearchResult = model.SearchResult{
 						ExternalID:  "ext-2",
 						AttachmentContainer: model.AttachmentContainer{
 							Attachments: []model.Attachment{{
-								Name: "README.md",
+								Name:      "README.md",
+								MediaType: "text/markdown",
 							}},
 						},
 					},
@@ -134,8 +135,8 @@ func TestCopy(t *testing.T) {
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID_2, Message: "", Err: nil}, nil).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmID_3), utils.NormalizeLineEndings(tmContent3), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID_3, Message: "", Err: nil}, nil).Once()
-		target.On("PushAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), "README.md", readmeContent).Return(nil).Once()
-		target.On("PushAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), "CHANGELOG.md", changelogContent).Return(nil).Once()
+		target.On("ImportAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), model.Attachment{Name: "README.md"}, readmeContent).Return(nil).Once()
+		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), model.Attachment{Name: "CHANGELOG.md"}, changelogContent).Return(nil).Once()
 		target.On("Index", mock.Anything, tmID_1, tmID_2, tmID_3).Return(nil)
 		target.On("Index", mock.Anything, tmID_1).Return(nil)
 		target.On("Index", mock.Anything, tmID_2).Return(nil)
@@ -172,13 +173,13 @@ func TestCopy(t *testing.T) {
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
 		var sp *model.SearchParams
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
-		source.On("Fetch", mock.Anything, tmid).Return(tmid, nil, repos.ErrTMNotFound).Once()
+		source.On("Fetch", mock.Anything, tmid).Return(tmid, nil, model.ErrTMNotFound).Once()
 
 		// when: copying from repo
 		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})
 
 		// then: there is a total error
-		assert.ErrorIs(t, err, repos.ErrTMNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
 		// and then: all expectations on target mock are met
 	})
 
@@ -195,7 +196,7 @@ func TestCopy(t *testing.T) {
 		var sp *model.SearchParams
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
-		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(nil, repos.ErrAttachmentNotFound).Once()
+		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(nil, model.ErrAttachmentNotFound).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid, Message: "", Err: nil}, nil).Once()
 		target.On("Index", mock.Anything, tmid).Return(nil).Twice()
@@ -204,7 +205,7 @@ func TestCopy(t *testing.T) {
 		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})
 
 		// then: there is a total error
-		assert.ErrorIs(t, err, repos.ErrAttachmentNotFound)
+		assert.ErrorIs(t, err, model.ErrAttachmentNotFound)
 		// and then: all expectations on target mock are met
 	})
 
@@ -250,7 +251,7 @@ func TestCopy(t *testing.T) {
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(readmeContent, nil).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid, Message: "", Err: nil}, nil).Once()
-		target.On("PushAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md", readmeContent).Return(os.ErrPermission).Once()
+		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), model.Attachment{Name: "README.md", MediaType: "text/markdown"}, readmeContent).Return(os.ErrPermission).Once()
 		target.On("Index", mock.Anything, tmid).Return(nil).Twice()
 
 		// when: copying from repo

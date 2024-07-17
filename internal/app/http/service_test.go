@@ -115,7 +115,7 @@ func Test_ListInventory(t *testing.T) {
 				Mpn:          "bt2000",
 				Versions: []model.FoundVersion{
 					{
-						IndexVersion: model.IndexVersion{
+						IndexVersion: &model.IndexVersion{
 							TMID:        "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccc.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -126,7 +126,7 @@ func Test_ListInventory(t *testing.T) {
 						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 					{
-						IndexVersion: model.IndexVersion{
+						IndexVersion: &model.IndexVersion{
 							TMID:        "a-corp/eagle/bt2000/v1.0.0-20231231153548-243d1b462ddd.tm.json",
 							Description: "desc version v0.0.0",
 							Version:     model.Version{Model: "0.0.0"},
@@ -145,7 +145,7 @@ func Test_ListInventory(t *testing.T) {
 				Mpn:          "bt3000",
 				Versions: []model.FoundVersion{
 					{
-						IndexVersion: model.IndexVersion{
+						IndexVersion: &model.IndexVersion{
 							TMID:        "b-corp/frog/bt3000/v1.0.0-20240108140117-743d1b462uuu.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -379,14 +379,14 @@ func TestService_FetchThingModel(t *testing.T) {
 
 	t.Run("with tmID not found", func(t *testing.T) {
 		tmID := "b-corp/eagle/pm20/v1.0.0-20240107123001-234d1b462fff.tm.json"
-		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, repos.ErrTMNotFound).Once()
+		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, model.ErrTMNotFound).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		// when: fetching ThingModel
 		res, err := underTest.FetchThingModel(context.Background(), "", tmID, false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrNotFound
-		assert.ErrorIs(t, err, repos.ErrTMNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
 	})
 
 	t.Run("with tmID found", func(t *testing.T) {
@@ -434,7 +434,7 @@ func TestService_FetchLatestThingModel(t *testing.T) {
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrTMNameNotFound
-		assert.ErrorIs(t, err, repos.ErrTMNameNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 	})
 
 	t.Run("with fetch name found", func(t *testing.T) {
@@ -486,7 +486,7 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 		// then: it returns empty result
 		assert.Equal(t, model.FoundVersion{}, res)
 		// and then: error is ErrTMNameNotFound
-		assert.ErrorIs(t, err, repos.ErrTMNameNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 	})
 
 	t.Run("with fetch name found", func(t *testing.T) {
@@ -523,11 +523,11 @@ func Test_DeleteThingModel(t *testing.T) {
 
 	t.Run("with error when deleting", func(t *testing.T) {
 		tmid := "some-id2"
-		r.On("Delete", mock.Anything, tmid).Return(repos.ErrTMNotFound).Once()
+		r.On("Delete", mock.Anything, tmid).Return(model.ErrTMNotFound).Once()
 		// when: deleting ThingModel
 		err := underTest.DeleteThingModel(context.Background(), "someRepo", tmid)
 		// then: it returns error result
-		assert.ErrorIs(t, err, repos.ErrTMNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
 	})
 
 }
@@ -598,7 +598,7 @@ func TestService_ImportThingModel(t *testing.T) {
 		}
 
 		r.On("Import", mock.Anything, mock.Anything, mock.Anything, repos.ImportOptions{}).Return(expRes, nil).Once()
-		r.On("Index", mock.Anything, mock.Anything).Return(nil)
+		r.On("Index", mock.Anything, "new-id").Return(nil)
 		// when: importing ThingModel
 		res, err := underTest.ImportThingModel(nil, "", tmContent, repos.ImportOptions{})
 		// then: it returns expected warning result
@@ -639,19 +639,21 @@ func TestService_FetchAttachment(t *testing.T) {
 	assert.Equal(t, attContent, res)
 }
 
-func TestService_PushAttachment(t *testing.T) {
+func TestService_ImportAttachment(t *testing.T) {
 	underTest, _ := NewDefaultHandlerService(model.EmptySpec)
 	inventoryName := "a/b/c"
 	attContent := []byte("# readme file")
 	attName := "README.md"
 	// given: a repo
 	r := mocks.NewRepo(t)
-	r.On("PushAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName, attContent).Return(nil).Once()
-	r.On("Index", mock.Anything, inventoryName).Return(nil).Once()
+	r.On("ImportAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), model.Attachment{
+		Name:      attName,
+		MediaType: "text/plain; charset=utf-8",
+	}, attContent).Return(nil).Once()
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 	rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "someRepo"}}, nil)
 	// when: pushing an attachment
-	err := underTest.PushAttachment(context.Background(), "someRepo", model.NewTMNameAttachmentContainerRef(inventoryName), attName, attContent)
+	err := underTest.ImportAttachment(context.Background(), "someRepo", model.NewTMNameAttachmentContainerRef(inventoryName), attName, attContent, "")
 	// then: service returns no error
 	assert.NoError(t, err)
 }
@@ -663,7 +665,6 @@ func TestService_DeleteAttachment(t *testing.T) {
 	// given: repo returns an attachment
 	r := mocks.NewRepo(t)
 	r.On("DeleteAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil).Once()
-	r.On("Index", mock.Anything, inventoryName).Return(nil).Once()
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 	// when: deleting an attachment
 	err := underTest.DeleteAttachment(context.Background(), "", model.NewTMNameAttachmentContainerRef(inventoryName), attName)
@@ -714,7 +715,7 @@ func TestService_ListRepos(t *testing.T) {
 }
 
 var singleFoundVersion = model.FoundVersion{
-	IndexVersion: model.IndexVersion{
+	IndexVersion: &model.IndexVersion{
 		Description: "desc version v1.0.0",
 		Version:     model.Version{Model: "1.0.0"},
 		TMID:        "b-corp/eagle/pm20/v1.0.0-20240107123001-234d1b462fff.tm.json",

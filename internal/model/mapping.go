@@ -36,7 +36,7 @@ func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 	}
 }
 
-func (m *IndexToSearchResultMapper) ToFoundVersions(versions []IndexVersion) []FoundVersion {
+func (m *IndexToSearchResultMapper) ToFoundVersions(versions []*IndexVersion) []FoundVersion {
 	var r []FoundVersion
 	for _, v := range versions {
 		r = append(r, m.ToFoundVersion(v))
@@ -44,7 +44,7 @@ func (m *IndexToSearchResultMapper) ToFoundVersions(versions []IndexVersion) []F
 	return r
 }
 
-func (m *IndexToSearchResultMapper) ToFoundVersion(v IndexVersion) FoundVersion {
+func (m *IndexToSearchResultMapper) ToFoundVersion(v *IndexVersion) FoundVersion {
 	return FoundVersion{
 		IndexVersion: v,
 		FoundIn:      m.foundIn,
@@ -99,7 +99,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersions(versions []serve
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundVersion(v server.InventoryEntryVersion) FoundVersion {
 	version := FoundVersion{
-		IndexVersion: IndexVersion{
+		IndexVersion: &IndexVersion{
 			Description: v.Description,
 			Version:     Version{Model: v.Version.Model},
 			Links:       m.ToFoundVersionLinks(v),

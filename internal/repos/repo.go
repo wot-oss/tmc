@@ -90,7 +90,7 @@ func (r ImportResult) IsSuccessful() bool {
 
 //go:generate mockery --name Repo --outpkg mocks --output mocks
 type Repo interface {
-	// Push writes the Thing Model file into the path under root that corresponds to id.
+	// Import writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
 	// there is a file with the same semantic version and timestamp but different content
 	Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error)
@@ -117,7 +117,7 @@ type Repo interface {
 	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 
 	GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error)
-	PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error
+	ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte) error
 	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
 	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
 }

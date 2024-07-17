@@ -1,10 +1,12 @@
 package repos
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -111,12 +113,12 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 		return err
 	}
 	if index.FindByTMID(id) == nil {
-		return ErrTMNotFound
+		return model.ErrTMNotFound
 	}
 	fullFilename, dir, _ := f.filenames(id)
 	err = os.Remove(fullFilename)
 	if os.IsNotExist(err) {
-		return ErrTMNotFound
+		return model.ErrTMNotFound
 	}
 	attDir, _ := f.getAttachmentsDir(model.NewTMIDAttachmentContainerRef(id))
 	h, err := f.listAttachments(model.NewTMIDAttachmentContainerRef(id))
@@ -140,7 +142,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	_ = rmEmptyDirs(dir, f.root)
 
-	_, err = f.updateIndex(ctx, []string{id}, true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, id), true)
 	return err
 }
 
@@ -260,7 +262,7 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 	}
 	match, actualId := f.getExistingID(id)
 	if match != idMatchFull && match != idMatchDigest {
-		return "", nil, ErrTMNotFound
+		return "", nil, model.ErrTMNotFound
 	}
 	actualFilename, _, _ := f.filenames(actualId)
 	b, err := os.ReadFile(actualFilename)
@@ -278,7 +280,11 @@ func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, ids, true)
+	if len(ids) == 0 {
+		_, err = f.updateIndex(ctx, f.fullIndexRebuild, true)
+		return err
+	}
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, ids...), true)
 	return err
 }
 
@@ -289,7 +295,7 @@ func (f *FileRepo) AnalyzeIndex(ctx context.Context) error {
 	}
 
 	idxOld, errIdxOld := f.readIndex()
-	idxNew, err := f.updateIndex(ctx, []string{}, false)
+	idxNew, err := f.updateIndex(ctx, f.fullIndexRebuild, false)
 	if err != nil {
 		return err
 	}
@@ -366,7 +372,7 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 	}
 
 	if len(res.Entries) != 1 {
-		err := fmt.Errorf("%w: %s", ErrTMNameNotFound, name)
+		err := fmt.Errorf("%w: %s", model.ErrTMNameNotFound, name)
 		log.Error(err.Error())
 		return nil, err
 	}
@@ -388,12 +394,12 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 			return []model.FoundVersion{v}, nil
 		}
 	}
-	return nil, ErrTMNotFound
+	return nil, model.ErrTMNotFound
 }
 
-func (f *FileRepo) PushAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentName string, content []byte) error {
+func (f *FileRepo) ImportAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachment model.Attachment, content []byte) error {
 	log := slog.Default()
-	log.Debug(fmt.Sprintf("Pushing attachment %s for '%v'", attachmentName, ref))
+	log.Debug(fmt.Sprintf("Importing attachment %s for '%v'", attachment, ref))
 
 	err := f.checkRootValid()
 	if err != nil {
@@ -418,10 +424,16 @@ func (f *FileRepo) PushAttachment(ctx context.Context, ref model.AttachmentConta
 		return err
 	}
 
-	err = os.WriteFile(filepath.Join(attDir, attachmentName), content, defaultFilePermissions)
+	err = os.WriteFile(filepath.Join(attDir, attachment.Name), content, defaultFilePermissions)
 	if err != nil {
 		return err
 	}
+
+	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, ref, attachment, content), true)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -467,7 +479,7 @@ func (f *FileRepo) FetchAttachment(ctx context.Context, ref model.AttachmentCont
 
 	file, err := os.ReadFile(filepath.Join(attDir, attachmentName))
 	if os.IsNotExist(err) {
-		return nil, ErrAttachmentNotFound
+		return nil, model.ErrAttachmentNotFound
 	}
 	return file, err
 }
@@ -481,7 +493,7 @@ func (f *FileRepo) verifyAttachmentExistsInIndex(ref model.AttachmentContainerRe
 	if !slices.ContainsFunc(atts.attachments, func(attachment model.Attachment) bool {
 		return attachment.Name == attachmentName
 	}) {
-		return ErrAttachmentNotFound
+		return model.ErrAttachmentNotFound
 	}
 	return nil
 }
@@ -511,6 +523,11 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentCon
 	}
 
 	err = os.Remove(filepath.Join(attDir, attachmentName))
+	if err != nil {
+		return err
+	}
+
+	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ctx, ref, attachmentName), true)
 	if err != nil {
 		return err
 	}
@@ -554,61 +571,62 @@ func (f *FileRepo) listAttachments(ref model.AttachmentContainerRef) (*attachmen
 }
 
 func findAttachmentContainer(index *model.Index, ref model.AttachmentContainerRef) (*attachmentsContainer, error) {
-	k := ref.Kind()
-	var tmName string
-	switch k {
-	case model.AttachmentContainerKindInvalid:
-		return nil, model.ErrInvalidIdOrName
-	case model.AttachmentContainerKindTMID:
-		id, err := model.ParseTMID(ref.TMID)
-		if err != nil {
-			return nil, err
-		}
-		tmName = id.Name
-	case model.AttachmentContainerKindTMName:
-		fn, err := model.ParseFetchName(ref.TMName)
-		if err != nil || fn.Semver != "" {
-			return nil, model.ErrInvalidIdOrName
-		}
-		tmName = ref.TMName
+	c, e, err := index.FindAttachmentContainer(ref)
+	if err != nil {
+		return nil, err
 	}
 
-	indexEntry := index.FindByName(tmName)
-	if indexEntry == nil {
-		if ref.Kind() == model.AttachmentContainerKindTMID {
-			return nil, ErrTMNotFound
-		} else {
-			return nil, ErrTMNameNotFound
-		}
-	}
-	versions := indexEntry.Versions
+	k := ref.Kind()
 	if k == model.AttachmentContainerKindTMID {
-		for _, v := range versions {
-			if v.TMID == ref.TMID {
-				return &attachmentsContainer{
-					attachments: v.Attachments,
-					soleVersion: len(versions) == 1,
-				}, nil
-			}
-		}
-		return nil, ErrTMNotFound
+		return &attachmentsContainer{
+			attachments: c.Attachments,
+			soleVersion: len(e.Versions) == 1,
+		}, nil
 	}
 	// k==model.AttachmentContainerKindTMName -> return inventory entry's attachments
 	return &attachmentsContainer{
-		attachments: indexEntry.Attachments,
+		attachments: e.Attachments,
 		soleVersion: false,
 	}, nil
 }
-func readFileNames(dir string) ([]string, error) {
+
+type readableAttachment struct {
+	name string
+	rc   io.ReadCloser
+}
+
+type lazyFileReadCloser struct {
+	fName string
+	file  *os.File
+}
+
+func (rc *lazyFileReadCloser) Read(p []byte) (int, error) {
+	if rc.file == nil {
+		var err error
+		rc.file, err = os.Open(rc.fName)
+		if err != nil {
+			return 0, err
+		}
+	}
+	return rc.file.Read(p)
+}
+func (rc *lazyFileReadCloser) Close() error {
+	if rc.file != nil {
+		return rc.file.Close()
+	}
+	return nil
+}
+
+func getReadableAttachments(dir string) ([]readableAttachment, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
-	var attachments []string
+	var attachments []readableAttachment
 	for _, e := range entries {
 		if !e.IsDir() {
-			attachments = append(attachments, e.Name())
+			attachments = append(attachments, readableAttachment{e.Name(), &lazyFileReadCloser{fName: e.Name()}})
 		}
 	}
 	return attachments, nil
@@ -683,94 +701,31 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRepo) updateIndex(ctx context.Context, ids []string, persist bool) (*model.Index, error) {
+func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater, persist bool) (*model.Index, error) {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
-	fileCount := 0
 	start := time.Now()
 
-	var newIndex *model.Index
-	names := f.readNamesFile()
-
-	namesToReindexAttachments := map[string]struct{}{}
-	if len(ids) == 0 { // full rebuild
-		newIndex = &model.Index{
+	oldNames := f.readNamesFile()
+	oldIndex, err := f.readIndex()
+	if err != nil {
+		oldIndex = &model.Index{
 			Meta: model.IndexMeta{Created: time.Now()},
 			Data: []*model.IndexEntry{},
 		}
-		names = nil
-		err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-			}
-			upd, name, _, err := f.updateIndexWithFile(newIndex, path, info, log, err)
-			if err != nil {
-				return err
-			}
-			if upd {
-				fileCount++
-				names = append(names, name)
-				namesToReindexAttachments[name] = struct{}{}
-			}
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
-
-	} else { // partial update
-		index, err := f.readIndex()
-		if err != nil {
-			newIndex = &model.Index{
-				Meta: model.IndexMeta{Created: time.Now()},
-				Data: []*model.IndexEntry{},
-			}
-		} else {
-			newIndex = index
-		}
-		for _, id := range ids {
-			select {
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			default:
-			}
-			path := filepath.Join(f.root, id)
-			info, statErr := osStat(path)
-			upd, name, nameDeleted, err := f.updateIndexWithFile(newIndex, path, info, log, statErr)
-			if err != nil {
-				return nil, err
-			}
-			if upd {
-				fileCount++
-				if nameDeleted != "" {
-					names = slices.DeleteFunc(names, func(s string) bool {
-						return s == nameDeleted
-					})
-				} else if name != "" {
-					namesToReindexAttachments[name] = struct{}{}
-					names = append(names, name)
-				}
-			}
-		}
 	}
 
-	for name, _ := range namesToReindexAttachments {
-		dir, _ := f.getAttachmentsDir(model.NewTMNameAttachmentContainerRef(name)) // name is sure to be valid
-		nameAttachments, err := readFileNames(dir)
-		if err != nil {
-			return nil, err
-		}
-		newIndex.SetEntryAttachments(name, nameAttachments)
+	newIndex, names, fileCount, err := updater(ctx, oldIndex, oldNames)
+	if err != nil {
+		return nil, err
 	}
 
 	newIndex.Sort()
 	duration := time.Now().Sub(start)
-	// Ignore error as we are sure our struct does not contain channel,
-	// complex or function values that would throw an error.
-	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
 	if persist {
+		// Ignore error as we are sure our struct does not contain channel,
+		// complex or function values that would throw an error.
+		newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
 		err := utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
 		if err != nil {
 			return nil, err
@@ -781,49 +736,196 @@ func (f *FileRepo) updateIndex(ctx context.Context, ids []string, persist bool) 
 		}
 	}
 
-	msg := "Updated index with %d entries in %s "
+	msg := "Updated index with %d records in %s "
 	msg = fmt.Sprintf(msg, fileCount, duration.String())
 	log.Info(msg)
 	return newIndex, nil
 }
 
-func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.FileInfo, log *slog.Logger, err error) (updated bool, addedName string, deletedName string, errr error) {
-	idOrName, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
-	idOrName, _ = strings.CutPrefix(idOrName, "/")
-	if os.IsNotExist(err) {
-		upd, name, err := idx.Delete(idOrName)
-		if err != nil {
-			return false, "", "", err
+type indexUpdater func(ctx context.Context, oldIndex *model.Index, oldNames []string) (newIndex *model.Index, newNames []string, updatedFileCount int, err error)
+
+func (f *FileRepo) indexUpdaterForIds(ctx context.Context, ids ...string) indexUpdater {
+	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
+		fileCount := 0
+		newNames := oldNames
+		newIndex := oldIndex
+		updatedAttContainers := make(map[model.AttachmentContainerRef]struct{})
+		for _, id := range ids {
+			select {
+			case <-ctx.Done():
+				return nil, nil, 0, ctx.Err()
+			default:
+			}
+			path := filepath.Join(f.root, id)
+			info, statErr := osStat(path)
+			upd, id, nameDeleted, err := f.updateIndexWithFile(newIndex, path, info, statErr)
+			if err != nil {
+				return nil, nil, 0, err
+			}
+			if upd {
+				fileCount++
+				if nameDeleted != "" {
+					newNames = slices.DeleteFunc(newNames, func(s string) bool {
+						return s == nameDeleted
+					})
+				} else if id.Name != "" {
+					newNames = append(newNames, id.Name)
+					updatedAttContainers[model.NewTMIDAttachmentContainerRef(id.String())] = struct{}{}
+					updatedAttContainers[model.NewTMNameAttachmentContainerRef(id.Name)] = struct{}{}
+				}
+			}
 		}
-		return upd, "", name, nil
+		err := f.reindexAttachments(updatedAttContainers, oldIndex, newIndex)
+		if err != nil {
+			return nil, nil, 0, err
+		}
+
+		return newIndex, newNames, fileCount, nil
+	}
+
+}
+func (f *FileRepo) indexUpdaterForDeleteAttachment(ctx context.Context, ref model.AttachmentContainerRef, attName string) indexUpdater {
+	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
+		select {
+		case <-ctx.Done():
+			return nil, nil, 0, ctx.Err()
+		default:
+		}
+		itemCount := 0
+		cont, _, _ := oldIndex.FindAttachmentContainer(ref)
+		if cont != nil {
+			oldCnt := len(cont.Attachments)
+			cont.Attachments = slices.DeleteFunc(cont.Attachments, func(attachment model.Attachment) bool {
+				return attachment.Name == attName
+			})
+			if len(cont.Attachments) != oldCnt {
+				itemCount = 1
+			}
+		}
+		return oldIndex, oldNames, itemCount, nil
+
+	}
+}
+func (f *FileRepo) indexUpdaterForImportAttachment(ctx context.Context, ref model.AttachmentContainerRef, att model.Attachment, content []byte) indexUpdater {
+	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
+		select {
+		case <-ctx.Done():
+			return nil, nil, 0, ctx.Err()
+		default:
+		}
+		cont, _, _ := oldIndex.FindAttachmentContainer(ref)
+		var mt string
+		if cont != nil {
+			oldAtt, _ := cont.FindAttachment(att.Name)
+			mt = oldAtt.MediaType
+		}
+		if mt == "" {
+			mt = att.MediaType
+		}
+		mediaType := utils.DetectMediaType(mt, att.Name, bytes.NewBuffer(content))
+		a := model.Attachment{Name: att.Name, MediaType: mediaType}
+		err := oldIndex.InsertAttachments(ref, a)
+		return oldIndex, oldNames, 1, err
+	}
+}
+
+func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ []string) (*model.Index, []string, int, error) {
+	fileCount := 0
+	updatedAttContainers := make(map[model.AttachmentContainerRef]struct{})
+	newIndex := &model.Index{
+		Meta: model.IndexMeta{Created: time.Now()},
+		Data: []*model.IndexEntry{},
+	}
+	var names []string
+	err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		upd, id, _, err := f.updateIndexWithFile(newIndex, path, info, err)
+		if err != nil {
+			return err
+		}
+		if upd {
+			fileCount++
+			names = append(names, id.Name)
+			updatedAttContainers[model.NewTMIDAttachmentContainerRef(id.String())] = struct{}{}
+			updatedAttContainers[model.NewTMNameAttachmentContainerRef(id.Name)] = struct{}{}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	err = f.reindexAttachments(updatedAttContainers, oldIndex, newIndex)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	return newIndex, names, fileCount, nil
+}
+
+func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRef]struct{}, oldIndex *model.Index, newIndex *model.Index) error {
+	for ref, _ := range containers {
+		dir, _ := f.getAttachmentsDir(ref) // ref is sure to be valid
+		nameAttachments, err := getReadableAttachments(dir)
+		if err != nil {
+			return err
+		}
+		container, _, _ := oldIndex.FindAttachmentContainer(ref)
+		var atts []model.Attachment
+		for _, na := range nameAttachments {
+			att, _ := container.FindAttachment(na.name)
+			oldMt := att.MediaType
+			mediaType := utils.DetectMediaType(oldMt, na.name, na.rc)
+			_ = na.rc.Close()
+			a := model.Attachment{Name: na.name, MediaType: mediaType}
+			atts = append(atts, a)
+		}
+		err = newIndex.InsertAttachments(ref, atts...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.FileInfo, err error) (updated bool, indexedId model.TMID, deletedName string, errr error) {
+	log := slog.Default()
+	idS, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
+	idS, _ = strings.CutPrefix(idS, "/")
+	if os.IsNotExist(err) {
+		upd, name, err := idx.Delete(idS)
+		if err != nil {
+			return false, model.TMID{}, "", err
+		}
+		return upd, model.TMID{}, name, nil
 	}
 	if err != nil {
-		return false, "", "", err
+		return false, model.TMID{}, "", err
 	}
 	if info.IsDir() {
-		if idx.FindByName(idOrName) != nil { // is a valid TM name
-			return true, idOrName, "", nil // force reindexing attachments for idOrName
-		}
-		return false, "", "", nil
+		return false, model.TMID{}, "", nil
 	}
 	if !strings.HasSuffix(info.Name(), TMExt) {
-		return false, "", "", nil
+		return false, model.TMID{}, "", nil
 	}
 	thingMeta, err := f.getThingMetadata(path)
 	if err != nil {
 		err = fmt.Errorf("failed to extract metadata from file %s with error: %w", path, err)
 		log.Error(err.Error())
 		log.Error("The file will be excluded from the table of contents.")
-		return false, "", "", nil
+		return false, model.TMID{}, "", nil
 	}
-	err = idx.Insert(&thingMeta.tm, thingMeta.tmAttachments)
+	err = idx.Insert(&thingMeta.tm)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to insert %s into index:", path))
 		log.Error(err.Error())
 		log.Error("The file will be excluded from index")
-		return false, "", "", nil
+		return false, model.TMID{}, "", nil
 	}
-	return true, thingMeta.id.Name, "", nil
+	return true, thingMeta.id, "", nil
 }
 
 type unlockFunc func()
@@ -887,9 +989,8 @@ func (f *FileRepo) writeNamesFile(names []string) error {
 }
 
 type thingMetadata struct {
-	tm            model.ThingModel
-	id            model.TMID
-	tmAttachments []string
+	tm model.ThingModel
+	id model.TMID
 }
 
 func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
@@ -909,16 +1010,9 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 		return nil, err
 	}
 
-	tmAttDir, _ := f.getAttachmentsDir(model.NewTMIDAttachmentContainerRef(ctm.ID)) // there cannot be any error parsing the id we just parsed
-	tmAttachments, err := readFileNames(tmAttDir)
-	if err != nil {
-		return nil, err
-	}
-
 	return &thingMetadata{
-		tm:            ctm,
-		id:            tmid,
-		tmAttachments: tmAttachments,
+		tm: ctm,
+		id: tmid,
 	}, nil
 }
 

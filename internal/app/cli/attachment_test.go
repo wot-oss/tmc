@@ -25,8 +25,8 @@ func TestAttachmentList(t *testing.T) {
 				Entries: []model.FoundEntry{
 					{
 						AttachmentContainer: model.AttachmentContainer{[]model.Attachment{
-							{Name: "README.md"},
-							{Name: "User Guide.pdf"},
+							{Name: "README.md", MediaType: "text/markdown"},
+							{Name: "User Guide.pdf", MediaType: "application/pdf"},
 						}},
 					},
 				},
@@ -34,17 +34,17 @@ func TestAttachmentList(t *testing.T) {
 		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmName)
 		assert.NoError(t, err)
 		stdout := getOutput()
-		assert.Equal(t, "NAME            REPO\nREADME.md       \nUser Guide.pdf  \n", stdout)
+		assert.Equal(t, "NAME            MIME             REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
 	})
 	t.Run("with resourceId", func(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmId := "author/manufacturer/mpn/v0.0.0-20240521143452-d662e089b3eb.tm.json"
 		r.On("GetTMMetadata", ctx, tmId).Return([]model.FoundVersion{{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				AttachmentContainer: model.AttachmentContainer{[]model.Attachment{
-					{Name: "README.md"},
-					{Name: "User Guide.pdf"},
+					{Name: "README.md", MediaType: "text/markdown"},
+					{Name: "User Guide.pdf", MediaType: "application/pdf"},
 				}},
 			},
 			FoundIn: model.FoundSource{},
@@ -52,11 +52,11 @@ func TestAttachmentList(t *testing.T) {
 		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmId)
 		assert.NoError(t, err)
 		stdout := getOutput()
-		assert.Equal(t, "NAME            REPO\nREADME.md       \nUser Guide.pdf  \n", stdout)
+		assert.Equal(t, "NAME            MIME             REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
 	})
 }
 
-func TestAttachmentPush(t *testing.T) {
+func TestAttachmentImport(t *testing.T) {
 	r := mocks.NewRepo(t)
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
 	ctx := context.Background()
@@ -65,9 +65,8 @@ func TestAttachmentPush(t *testing.T) {
 	attFile := "../../../test/data/attachments/" + attName
 	attContent, err := os.ReadFile(attFile)
 	assert.NoError(t, err)
-	r.On("PushAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), attName, attContent).Return(nil).Once()
-	r.On("Index", ctx, tmNameOrId).Return(nil).Once()
-	err = AttachmentPush(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile)
+	r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: "text/plain; charset=utf-8"}, attContent).Return(nil).Once()
+	err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "")
 	assert.NoError(t, err)
 }
 
@@ -96,7 +95,6 @@ func TestAttachmentDelete(t *testing.T) {
 	tmNameOrId := "author/manufacturer/mpn"
 	attName := "README.md"
 	r.On("DeleteAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), attName).Return(nil).Once()
-	r.On("Index", ctx, tmNameOrId).Return(nil).Once()
 	err := AttachmentDelete(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attName)
 	assert.NoError(t, err)
 }

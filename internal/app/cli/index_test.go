@@ -19,7 +19,7 @@ func TestIndex(t *testing.T) {
 	t.Run("no repo", func(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("repoName"), nil, repos.ErrRepoNotFound))
 
-		err := Index(context.Background(), model.NewRepoSpec("repoName"), nil)
+		err := Index(context.Background(), model.NewRepoSpec("repoName"))
 		assert.Error(t, err)
 	})
 
@@ -27,21 +27,14 @@ func TestIndex(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
 
 		r.On("Index", mock.Anything).Return(errors.New("something failed")).Once()
-		err := Index(context.Background(), model.NewDirSpec("somewhere"), nil)
+		err := Index(context.Background(), model.NewDirSpec("somewhere"))
 		assert.ErrorContains(t, err, "something failed")
 	})
 
 	t.Run("ok", func(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
 		r.On("Index", mock.Anything).Return(nil).Once()
-		err := Index(context.Background(), model.NewDirSpec("somewhere"), nil)
-		assert.NoError(t, err)
-	})
-
-	t.Run("ok with ids", func(t *testing.T) {
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
-		r.On("Index", mock.Anything, "id1", "id2").Return(nil).Once()
-		err := Index(context.Background(), model.NewDirSpec("somewhere"), []string{"id1", "id2"})
+		err := Index(context.Background(), model.NewDirSpec("somewhere"))
 		assert.NoError(t, err)
 	})
 }

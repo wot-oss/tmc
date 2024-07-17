@@ -51,10 +51,10 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 		{"author/manufacturer/mpn:1.0.0", nil, "", "v1.0.0"},
 		{"author/manufacturer/mpn:1.a.0", model.ErrInvalidFetchName, "invalid semantic version", ""},
 		{"author/manufacturer/mpn:v1.0", nil, "", "v1.0.4"},
-		{"author/manufacturer/mpn:1.3", repos.ErrTMNotFound, "no version 1.3 found", ""},
-		{"author/manufacturer/mpn:1.1", repos.ErrTMNotFound, "no version 1.1 found", ""},
+		{"author/manufacturer/mpn:1.3", model.ErrTMNotFound, "no version 1.3 found", ""},
+		{"author/manufacturer/mpn:1.1", model.ErrTMNotFound, "no version 1.1 found", ""},
 		{"author/manufacturer/mpn:1.2", nil, "", "v1.2.3"},
-		{"author/manufacturer/mpn:3", repos.ErrTMNotFound, "no version 3 found", ""},
+		{"author/manufacturer/mpn:3", model.ErrTMNotFound, "no version 3 found", ""},
 		{"author/manufacturer/mpn:v1", nil, "", "v1.2.3"},
 		{"author/manufacturer/mpn/folder/sub", nil, "", "v1.0.0"},
 		{"author/manufacturer/mpn/folder/sub:v1.0.0", nil, "", "v1.0.0"},
@@ -76,7 +76,7 @@ func TestFetchCommand_FetchByTMIDOrName(t *testing.T) {
 func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 	r.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
 				TMID:      "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
 				Digest:    "c49617d2e4fc",
@@ -85,7 +85,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.4"},
 				TMID:      "author/manufacturer/mpn/v1.0.4-20231206123243-d49617d2e4fc.tm.json",
 				Digest:    "d49617d2e4fc",
@@ -94,7 +94,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.2.0"},
 				TMID:      "author/manufacturer/mpn/v1.2.0-20231207163243-e49617d2e4fc.tm.json",
 				Digest:    "e49617d2e4fc",
@@ -103,7 +103,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.2.1"},
 				TMID:      "author/manufacturer/mpn/v1.2.1-20231207133243-e49617d2e4fd.tm.json",
 				Digest:    "e49617d2e4fd",
@@ -112,7 +112,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.2.2"},
 				TMID:      "author/manufacturer/mpn/v1.2.2-20231207143243-e49617d2e4fe.tm.json",
 				Digest:    "e49617d2e4fe",
@@ -121,7 +121,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.2.3"},
 				TMID:      "author/manufacturer/mpn/v1.2.3-20231207153243-e49617d2e4ff.tm.json",
 				Digest:    "e49617d2e4ff",
@@ -130,7 +130,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 			FoundIn: model.FoundSource{RepoName: "r1"},
 		},
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v2.0.0"},
 				TMID:      "author/manufacturer/mpn/v2.0.0-20231208123243-f49617d2e4fc.tm.json",
 				Digest:    "f49617d2e4fc",
@@ -141,7 +141,7 @@ func setUpVersionsForFetchByTMIDOrName(r *mocks.Repo) {
 	}, nil)
 	r.On("Versions", mock.Anything, "author/manufacturer/mpn/folder/sub").Return([]model.FoundVersion{
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
 				TMID:      "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
 				Digest:    "c49617d2e4fc",
@@ -169,12 +169,12 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRepos(t *testing.T) {
 	})
 
 	r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
-	r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, repos.ErrTMNotFound)
-	r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, repos.ErrTMNotFound)
+	r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("", []byte{}, model.ErrTMNotFound)
+	r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", []byte{}, model.ErrTMNotFound)
 	r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{\"src\": \"r2\"}"), nil)
 	r1.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
 				TMID:      "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json",
 				Digest:    "a49617d2e4fc",
@@ -185,7 +185,7 @@ func TestFetchCommand_FetchByTMIDOrName_MultipleRepos(t *testing.T) {
 	}, nil)
 	r2.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 		{
-			IndexVersion: model.IndexVersion{
+			IndexVersion: &model.IndexVersion{
 				Version:   model.Version{Model: "v1.0.0"},
 				TMID:      "author/manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json",
 				Digest:    "c49617d2e4fc",
@@ -266,9 +266,9 @@ func TestFetchCommand_FetchByTMID(t *testing.T) {
 
 	t.Run("not found with unexpected error", func(t *testing.T) {
 		r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, errors.New("unexpected")).Once()
-		r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, repos.ErrTMNotFound).Once()
+		r2.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("", nil, model.ErrTMNotFound).Once()
 		_, _, err, errs := FetchByTMID(context.Background(), model.EmptySpec, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", false)
-		assert.ErrorIs(t, err, repos.ErrTMNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
 		if assert.Len(t, errs, 1) {
 			assert.ErrorContains(t, errs[0], "unexpected")
 		}
@@ -291,7 +291,7 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 		r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").Return("author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json", []byte("{\"src\": \"r1\"}"), nil)
 		r1.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 			{
-				IndexVersion: model.IndexVersion{
+				IndexVersion: &model.IndexVersion{
 					Version:   model.Version{Model: "v1.0.0"},
 					TMID:      "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json",
 					Digest:    "a49617d2e4fc",
@@ -320,7 +320,7 @@ func TestFetchCommand_FetchByName(t *testing.T) {
 
 		t.Run("fetch from unspecified by name", func(t *testing.T) {
 			_, _, err, errs := FetchByName(context.Background(), model.EmptySpec, model.FetchName{Name: "author/manufacturer/mpn2"}, false)
-			assert.ErrorIs(t, err, repos.ErrTMNameNotFound)
+			assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 			if assert.Len(t, errs, 2) {
 				slices.SortStableFunc(errs, func(a, b *repos.RepoAccessError) int { return strings.Compare(a.Error(), b.Error()) })
 				assert.ErrorContains(t, errs[0], "unexpected1")
@@ -393,7 +393,7 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 			r1 := mocks.NewRepo(t)
 			r1.On("Versions", mock.Anything, "author/manufacturer/mpn").Return([]model.FoundVersion{
 				{
-					IndexVersion: model.IndexVersion{
+					IndexVersion: &model.IndexVersion{
 						Version:   model.Version{Model: "v1.0.0"},
 						TMID:      "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json",
 						Digest:    "a49617d2e4fc",

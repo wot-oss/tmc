@@ -182,7 +182,7 @@ func TestFileRepo_Fetch(t *testing.T) {
 	assert.Equal(t, fileA, content)
 
 	actId, content, err = r.Fetch(context.Background(), tmName+"/v1.0.0-20231212142856-e49617d2e4fc.tm.json")
-	assert.ErrorIs(t, err, ErrTMNotFound)
+	assert.ErrorIs(t, err, model.ErrTMNotFound)
 	assert.Equal(t, "", actId)
 
 }
@@ -260,10 +260,10 @@ func TestFileRepo_Versions(t *testing.T) {
 	assert.Len(t, vers, 1)
 
 	vers, err = r.Versions(context.Background(), "omnicorp-r-d-research/omnicorp-gmbh-co-kg/nothing-here")
-	assert.ErrorIs(t, err, ErrTMNameNotFound)
+	assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 
 	vers, err = r.Versions(context.Background(), "")
-	assert.ErrorIs(t, err, ErrTMNameNotFound)
+	assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 }
 
 func TestFileRepo_Delete(t *testing.T) {
@@ -313,11 +313,11 @@ func TestFileRepo_Delete(t *testing.T) {
 			})
 			t.Run("non-existent id", func(t *testing.T) {
 				err := r.Delete(context.Background(), "auth/man/mpn/v1.0.1-20231024121314-abcd12345679.tm.json")
-				assert.ErrorIs(t, err, ErrTMNotFound)
+				assert.ErrorIs(t, err, model.ErrTMNotFound)
 			})
 			t.Run("hash matching id", func(t *testing.T) {
 				err := r.Delete(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20230101125023-be839ce9daf1.tm.json")
-				assert.ErrorIs(t, err, ErrTMNotFound)
+				assert.ErrorIs(t, err, model.ErrTMNotFound)
 			})
 			t.Run("existing id", func(t *testing.T) {
 				id := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json"
@@ -405,7 +405,7 @@ func TestFileRepo_Index(t *testing.T) {
 		entry := idx.FindByName("omnicorp-tm-department/omnicorp/omnilamp")
 		assert.NotNil(t, entry)
 		if assert.Len(t, entry.Versions, 3) {
-			assert.Equal(t, []model.Attachment{{Name: "manual.txt"}}, entry.Versions[2].Attachments)
+			assert.Equal(t, []model.Attachment{{Name: "manual.txt", MediaType: "text/plain; charset=utf-8"}}, entry.Versions[2].Attachments)
 		}
 	})
 
@@ -427,20 +427,20 @@ func TestFileRepo_Index(t *testing.T) {
 		}, names)
 	})
 
-	t.Run("single tm name indexes attachments", func(t *testing.T) {
+	t.Run("single tm id indexes tm name attachments", func(t *testing.T) {
 		tmName := "omnicorp-tm-department/omnicorp/omnilamp/subfolder"
 		attDir := filepath.Join(temp, tmName, model.AttachmentsDir)
 		assert.NoError(t, os.MkdirAll(attDir, defaultDirPermissions))
-		assert.NoError(t, os.WriteFile(filepath.Join(attDir, "README.md"), []byte("# Read This, or Else"), defaultFilePermissions))
+		assert.NoError(t, os.WriteFile(filepath.Join(attDir, "README.txt"), []byte("Read This, or Else"), defaultFilePermissions))
 
-		err := r.Index(context.Background(), tmName)
+		err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
 		entry := idx.FindByName(tmName)
 		assert.NotNil(t, entry)
-		assert.Equal(t, []model.Attachment{{Name: "README.md"}}, entry.Attachments)
+		assert.Equal(t, []model.Attachment{{Name: "README.txt", MediaType: "text/plain; charset=utf-8"}}, entry.Attachments)
 	})
 
 	t.Run("single id's/index must be sorted", func(t *testing.T) {
@@ -521,7 +521,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 
 			t.Run("non-existing id", func(t *testing.T) {
 				// when: deleting a non-existing id from index
-				err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/v9.9.9-20240109125023-be839ce9daf1.tm.json")
+				err := r.Index(context.Background())
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
@@ -537,7 +537,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 			})
 			t.Run("existing id and file", func(t *testing.T) {
 				// when: updating index for TM that has not been removed from disk
-				err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+				err := r.Index(context.Background())
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -556,7 +556,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				// given: a deleted TM file
 				_ = os.Remove(filepath.Join(r.root, "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json"))
 				// when: updating index for the TM
-				err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+				err := r.Index(context.Background())
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -576,7 +576,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				id := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json"
 				assert.NoError(t, os.Remove(filepath.Join(r.root, id)))
 				// when: updating index for the id
-				err = r.Index(context.Background(), id)
+				err = r.Index(context.Background())
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -872,15 +872,15 @@ func TestFileRepo_FetchAttachment(t *testing.T) {
 	})
 	t.Run("non existent attachment", func(t *testing.T) {
 		_, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), "nothing-here")
-		assert.ErrorIs(t, err, ErrAttachmentNotFound)
+		assert.ErrorIs(t, err, model.ErrAttachmentNotFound)
 	})
 	t.Run("non existent tm name", func(t *testing.T) {
 		_, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), baseNameA)
-		assert.ErrorIs(t, err, ErrTMNameNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 	})
 	t.Run("non existent tm id", func(t *testing.T) {
 		_, err := r.FetchAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), baseNameA)
-		assert.ErrorIs(t, err, ErrTMNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
 	})
 	t.Run("invalid tm name", func(t *testing.T) {
 		_, err := r.FetchAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), baseNameA)
@@ -906,29 +906,29 @@ func TestFileRepo_PushAttachment(t *testing.T) {
 	r2Name := "README2.md"
 	r2Content := []byte("# read this, too")
 	t.Run("tm name attachment", func(t *testing.T) {
-		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), r2Name, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), model.Attachment{Name: r2Name}, r2Content)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, r2Name))
 	})
 	t.Run("tm id attachment", func(t *testing.T) {
-		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(id), r2Name, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(id), model.Attachment{Name: r2Name}, r2Content)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, ver, r2Name))
 	})
 	t.Run("non existent tm name", func(t *testing.T) {
-		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), r2Name, r2Content)
-		assert.ErrorIs(t, err, ErrTMNameNotFound)
+		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), model.Attachment{Name: r2Name}, r2Content)
+		assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 	})
 	t.Run("non existent tm id", func(t *testing.T) {
-		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), r2Name, r2Content)
-		assert.ErrorIs(t, err, ErrTMNotFound)
+		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), model.Attachment{Name: r2Name}, r2Content)
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
 	})
 	t.Run("invalid tm name", func(t *testing.T) {
-		err := r.PushAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), r2Name, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), model.Attachment{Name: r2Name}, r2Content)
 		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
 	})
 	t.Run("invalid tm id", func(t *testing.T) {
-		err := r.PushAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453"), r2Name, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453"), model.Attachment{Name: r2Name}, r2Content)
 		assert.ErrorIs(t, err, model.ErrInvalidId)
 	})
 }
@@ -949,15 +949,15 @@ func TestFileRepo_DeleteAttachment(t *testing.T) {
 
 	t.Run("non existent attachment", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), "nothing-here")
-		assert.ErrorIs(t, err, ErrAttachmentNotFound)
+		assert.ErrorIs(t, err, model.ErrAttachmentNotFound)
 	})
 	t.Run("non existent tm name", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), attNameA)
-		assert.ErrorIs(t, err, ErrTMNameNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 	})
 	t.Run("non existent tm id", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), attNameA)
-		assert.ErrorIs(t, err, ErrTMNotFound)
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
 	})
 	t.Run("invalid tm name", func(t *testing.T) {
 		err := r.DeleteAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), attNameA)

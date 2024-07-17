@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -59,17 +60,18 @@ func printAttachments(atts []model.FoundAttachment) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tREPO\n")
+	_, _ = fmt.Fprintf(table, "NAME\tMIME\tREPO\n")
 	for _, value := range atts {
 		name := value.Name
+		ct := elideString(fmt.Sprintf("%v", value.MediaType), colWidth)
 		repo := elideString(fmt.Sprintf("%v", value.FoundIn), colWidth)
-		_, _ = fmt.Fprintf(table, "%s\t%s\n", name, repo)
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\n", name, ct, repo)
 	}
 	_ = table.Flush()
 
 }
 
-func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string) error {
+func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string, mediaType string) error {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		Stderrf("Error expanding file name %s: %v", filename, err)
@@ -85,7 +87,10 @@ func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId, filena
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 	}
-	err = commands.AttachmentPush(ctx, spec, toAttachmentContainerRef(tmNameOrId), filepath.Base(filename), raw)
+	err = commands.ImportAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), model.Attachment{
+		Name:      filepath.Base(filename),
+		MediaType: utils.DetectMediaType(mediaType, filename, bytes.NewBuffer(raw)),
+	}, raw)
 	if err != nil {
 		Stderrf("Failed to put attachment %s to %s: %v", filename, tmNameOrId, err)
 	}
@@ -93,7 +98,7 @@ func AttachmentPush(ctx context.Context, spec model.RepoSpec, tmNameOrId, filena
 	return err
 }
 func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	err := commands.AttachmentDelete(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName)
+	err := commands.DeleteAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName)
 	if err != nil {
 		Stderrf("Failed to delete attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}

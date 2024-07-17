@@ -5,7 +5,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
+	"mime"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -254,4 +257,29 @@ func sanitizeAccents(s string) string {
 		}
 	}
 	return bs.String()
+}
+
+// DetectMediaType detects the media type of the file. The type provided by the user always takes precedence over
+// automatic detection, unless it is empty. The type is detected by http.DetectContenType. If that returns the
+// generic 'application/octet-stream', then the type is guessed from the filename extension.
+// If all of the above fails, it returns 'application/octet-stream'
+func DetectMediaType(userGivenType string, filename string, reader io.Reader) string {
+	const mediaOctetStream = "application/octet-stream"
+	if userGivenType != "" {
+		return userGivenType
+	}
+
+	truncatedContent, err := io.ReadAll(io.LimitReader(reader, 512))
+	if err == nil {
+		ct := http.DetectContentType(truncatedContent)
+		if ct != mediaOctetStream {
+			return ct
+		}
+	}
+
+	ct := mime.TypeByExtension(filepath.Ext(filename))
+	if ct != "" {
+		return ct
+	}
+	return mediaOctetStream
 }
