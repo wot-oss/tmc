@@ -267,11 +267,7 @@ func (t TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Imp
 			if err != nil {
 				return ImportResultFromError(err)
 			}
-			return ImportResult{
-				Type:    ImportResultTMExists,
-				Message: cErr.Error(),
-				Err:     cErr,
-			}, cErr
+			return ImportResultFromError(cErr)
 		case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 			err := errors.New(detail)
 			return ImportResultFromError(err)
