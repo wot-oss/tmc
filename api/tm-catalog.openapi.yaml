@@ -827,8 +827,9 @@ paths:
         - repos
       summary: Get the list of repositories
       description: |
-        Get the list of repositories available for storing TMs. 
-        When the list contains only one element, specifying the target repository for read and write operations is optional.
+        Get the list of available TM repositories. 
+        May return empty list when there is only one repository configured and hence there is no need to
+        specify a target repository for write operations.
       operationId: getRepos
       responses:
         '200':
@@ -838,12 +839,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/ReposResponse'
               examples:
-                mpns:
+                repos:
                   $ref: '#/components/examples/ReposResponseExample'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
           description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream repository error
           content:
             application/json:
               schema:

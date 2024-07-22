@@ -3,7 +3,9 @@ package http
 import (
 	"context"
 	"errors"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/wot-oss/tmc/internal/commands"
@@ -122,6 +124,9 @@ func (dhs *defaultHandlerService) ListMpns(ctx context.Context, search *model.Se
 
 func (dhs *defaultHandlerService) ListRepos(ctx context.Context) ([]model.RepoDescription, error) {
 	ds, err := repos.GetDescriptions(ctx, dhs.serveRepo)
+	slices.SortFunc(ds, func(a, b model.RepoDescription) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 	return ds, err
 }
 
