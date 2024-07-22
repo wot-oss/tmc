@@ -3,7 +3,9 @@ package http
 import (
 	"context"
 	"errors"
+	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/wot-oss/tmc/internal/commands"
@@ -32,6 +34,7 @@ type HandlerService interface {
 	FetchAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error)
 	PushAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error
 	DeleteAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentFileName string) error
+	ListRepos(ctx context.Context) ([]model.RepoDescription, error)
 }
 
 type defaultHandlerService struct {
@@ -115,6 +118,20 @@ func (dhs *defaultHandlerService) ListMpns(ctx context.Context, search *model.Se
 	}
 	sort.Strings(mpns)
 	return mpns, nil
+}
+
+func (dhs *defaultHandlerService) ListRepos(ctx context.Context) ([]model.RepoDescription, error) {
+	ds, err := repos.GetDescriptions(ctx, dhs.serveRepo)
+	if err != nil {
+		return nil, err
+	}
+	if len(ds) < 2 { // no need to return a single description as it is unambiguous
+		return nil, nil
+	}
+	slices.SortFunc(ds, func(a, b model.RepoDescription) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+	return ds, err
 }
 
 func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, name string) (*model.FoundEntry, error) {

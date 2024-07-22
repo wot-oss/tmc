@@ -14,12 +14,13 @@ import (
 )
 
 const (
-	KeyRepos       = "repos"
-	keyRemotes     = "remotes" // left for compatibility
-	KeyRepoType    = "type"
-	KeyRepoLoc     = "loc"
-	KeyRepoAuth    = "auth"
-	KeyRepoEnabled = "enabled"
+	KeyRepos           = "repos"
+	keyRemotes         = "remotes" // left for compatibility
+	KeyRepoType        = "type"
+	KeyRepoLoc         = "loc"
+	KeyRepoAuth        = "auth"
+	KeyRepoEnabled     = "enabled"
+	KeyRepoDescription = "description"
 
 	RepoTypeFile              = "file"
 	RepoTypeHttp              = "http"
@@ -195,6 +196,67 @@ var All = func() ([]Repo, error) {
 	return rs, err
 }
 
+// GetDescriptions returns the list of descriptions of repositories that could be used as targets for write operations
+// or be returned as "found-in" sources when reading from catalog
+var GetDescriptions = func(ctx context.Context, spec model.RepoSpec) ([]model.RepoDescription, error) {
+	if spec.Dir() != "" {
+		return nil, nil
+	}
+	conf, err := ReadConfig()
+	if err != nil {
+		return nil, err
+	}
+	var rs []model.RepoDescription
+	for n, rc := range conf {
+		en := utils.JsGetBool(rc, KeyRepoEnabled)
+		if en != nil && !*en {
+			continue
+		}
+		if spec.RepoName() == "" || n == spec.RepoName() {
+			ds, _ := rc[KeyRepoDescription].(string)
+			r := model.RepoDescription{
+				Name:        n,
+				Type:        fmt.Sprintf("%v", rc[KeyRepoType]),
+				Description: ds,
+			}
+			rs = append(rs, r)
+		}
+	}
+	rs, err = expandTmcRepos(ctx, rs)
+	return rs, err
+}
+
+func expandTmcRepos(ctx context.Context, descriptions []model.RepoDescription) ([]model.RepoDescription, error) {
+	var ds []model.RepoDescription
+	for _, d := range descriptions {
+		if d.Type != RepoTypeTmc {
+			ds = append(ds, d)
+			continue
+		}
+		spec := model.NewRepoSpec(d.Name)
+		repo, err := Get(spec)
+		if err != nil {
+			return nil, err
+		}
+		tmc, _ := repo.(*TmcRepo)
+		repos, err := tmc.GetSubRepos(ctx)
+		if err != nil {
+			return nil, &RepoAccessError{spec, err}
+		}
+		if len(repos) < 2 {
+			ds = append(ds, d)
+		} else {
+			for _, rd := range repos {
+				ds = append(ds, model.RepoDescription{
+					Name:        fmt.Sprintf("%s/%s", d.Name, rd.Name),
+					Description: rd.Description,
+				})
+			}
+		}
+	}
+	return ds, nil
+}
+
 func ReadConfig() (Config, error) {
 	reposConfig := viper.Get(KeyRepos)
 	if reposConfig == nil {
@@ -264,39 +326,39 @@ func Remove(name string) error {
 	return saveConfig(conf)
 }
 
-func Add(name, typ, confStr string, confFile []byte) error {
+func Add(name, typ, confStr string, confFile []byte, descr string) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err == nil || !errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoExists
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err)
+	return setRepoConfig(name, typ, confStr, confFile, err, descr)
 }
 
-func SetConfig(name, typ, confStr string, confFile []byte) error {
+func SetConfig(name, typ, confStr string, confFile []byte, descr string) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err != nil && errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoNotFound
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err)
+	return setRepoConfig(name, typ, confStr, confFile, err, descr)
 }
 
-func setRepoConfig(name string, typ string, confStr string, confFile []byte, err error) error {
+func setRepoConfig(name string, typ string, confStr string, confFile []byte, err error, descr string) error {
 	var rc map[string]any
 	switch typ {
 	case RepoTypeFile:
-		rc, err = createFileRepoConfig(confStr, confFile)
+		rc, err = createFileRepoConfig(confStr, confFile, descr)
 		if err != nil {
 			return err
 		}
 	case RepoTypeHttp:
-		rc, err = createHttpRepoConfig(confStr, confFile)
+		rc, err = createHttpRepoConfig(confStr, confFile, descr)
 		if err != nil {
 			return err
 		}
 	case RepoTypeTmc:
-		rc, err = createTmcRepoConfig(confStr, confFile)
+		rc, err = createTmcRepoConfig(confStr, confFile, descr)
 		if err != nil {
 			return err
 		}

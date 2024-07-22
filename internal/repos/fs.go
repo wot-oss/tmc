@@ -635,15 +635,16 @@ func (f *FileRepo) checkRootValid() error {
 	return nil
 }
 
-func createFileRepoConfig(dirName string, bytes []byte) (map[string]any, error) {
+func createFileRepoConfig(dirName string, bytes []byte, descr string) (map[string]any, error) {
 	if dirName != "" {
 		absDir, err := makeAbs(dirName)
 		if err != nil {
 			return nil, err
 		}
 		return map[string]any{
-			KeyRepoType: RepoTypeFile,
-			KeyRepoLoc:  absDir,
+			KeyRepoType:        RepoTypeFile,
+			KeyRepoLoc:         absDir,
+			KeyRepoDescription: descr,
 		}, nil
 	} else {
 		rc, err := AsRepoConfig(bytes)
