@@ -65,8 +65,8 @@ func TestAttachmentImport(t *testing.T) {
 	attFile := "../../../test/data/attachments/" + attName
 	attContent, err := os.ReadFile(attFile)
 	assert.NoError(t, err)
-	r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: ""}, attContent).Return(nil).Once()
-	err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "")
+	r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: ""}, attContent, true).Return(nil).Once()
+	err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "", true)
 	assert.NoError(t, err)
 }
 

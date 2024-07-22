@@ -11,7 +11,6 @@ import (
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
-	"github.com/wot-oss/tmc/internal/utils"
 )
 
 //go:generate mockery --name HandlerService --outpkg mocks --output mocks
@@ -33,7 +32,7 @@ type HandlerService interface {
 	GetTMMetadata(ctx context.Context, repo string, tmID string) ([]model.FoundVersion, error)
 	GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (model.FoundVersion, error)
 	FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error)
-	ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string) error
+	ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string, force bool) error
 	DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error
 	ListRepos(ctx context.Context) ([]model.RepoDescription, error)
 }
@@ -281,15 +280,15 @@ func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, repo str
 	err = commands.DeleteAttachment(ctx, spec, ref, attachmentFileName)
 	return err
 }
-func (dhs *defaultHandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string) error {
+func (dhs *defaultHandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string, force bool) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		return err
 	}
 	err = commands.ImportAttachment(ctx, spec, ref, model.Attachment{
 		Name:      attachmentFileName,
-		MediaType: utils.DetectMediaType(contentType, attachmentFileName, utils.ReadCloserGetterFromBytes(content)),
-	}, content)
+		MediaType: contentType,
+	}, content, force)
 	return err
 }
 

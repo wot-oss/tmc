@@ -84,7 +84,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 						totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
 					}
 					spec := model.NewSpecFromFoundSource(entry.FoundIn)
-					aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
+					aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments, opts.Force)
 					if err == nil && aErr != nil {
 						err = aErr
 					}
@@ -94,7 +94,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 		}
 		if tmCopied { // copy tm name attachments if at least one tm has been copied successfully
 			spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
-			aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments)
+			aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments, opts.Force)
 			if err == nil && aErr != nil {
 				err = aErr
 			}
@@ -123,7 +123,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 	return err
 }
 
-func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment) ([]operationResult, error) {
+func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment, force bool) ([]operationResult, error) {
 	relDir, err := model.RelAttachmentsDir(ref)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 			})
 			continue
 		}
-		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes)
+		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes, force)
 		if wErr != nil {
 			if err == nil {
 				err = wErr

@@ -233,7 +233,7 @@ func (h *HttpRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 	return []model.FoundVersion{fv}, nil
 }
 
-func (h *HttpRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte) error {
+func (h *HttpRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
 	return ErrNotSupported
 }
 

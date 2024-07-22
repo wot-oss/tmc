@@ -907,7 +907,7 @@ func TestFileRepo_ImportAttachment(t *testing.T) {
 	r2Content := []byte("# read this, too")
 	t.Run("tm name attachment without media type provided", func(t *testing.T) {
 		ref := model.NewTMNameAttachmentContainerRef(tmName)
-		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name}, r2Content)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name}, r2Content, false)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, r2Name))
 		index, err := r.readIndex()
@@ -920,7 +920,7 @@ func TestFileRepo_ImportAttachment(t *testing.T) {
 	})
 	t.Run("tm name attachment with media type", func(t *testing.T) {
 		ref := model.NewTMNameAttachmentContainerRef(tmName)
-		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/html"}, r2Content)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/html"}, r2Content, true)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, r2Name))
 		index, err := r.readIndex()
@@ -933,7 +933,7 @@ func TestFileRepo_ImportAttachment(t *testing.T) {
 	})
 	t.Run("tm id attachment with media type provided by user", func(t *testing.T) {
 		ref := model.NewTMIDAttachmentContainerRef(id)
-		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/markdown"}, r2Content)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/markdown"}, r2Content, false)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, ver, r2Name))
 		index, err := r.readIndex()
@@ -946,7 +946,7 @@ func TestFileRepo_ImportAttachment(t *testing.T) {
 	})
 	t.Run("tm id attachment without media type", func(t *testing.T) {
 		ref := model.NewTMIDAttachmentContainerRef(id)
-		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/markdown"}, r2Content)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/markdown"}, r2Content, true)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, ver, r2Name))
 		index, err := r.readIndex()
@@ -957,20 +957,24 @@ func TestFileRepo_ImportAttachment(t *testing.T) {
 			assert.Equal(t, "text/markdown", att.MediaType)
 		}
 	})
+	t.Run("tm id attachment conflict", func(t *testing.T) {
+		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(id), model.Attachment{Name: r2Name}, r2Content, false)
+		assert.ErrorIs(t, err, ErrAttachmentExists)
+	})
 	t.Run("non existent tm name", func(t *testing.T) {
-		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), model.Attachment{Name: r2Name}, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), model.Attachment{Name: r2Name}, r2Content, false)
 		assert.ErrorIs(t, err, model.ErrTMNameNotFound)
 	})
 	t.Run("non existent tm id", func(t *testing.T) {
-		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), model.Attachment{Name: r2Name}, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453.tm.json"), model.Attachment{Name: r2Name}, r2Content, false)
 		assert.ErrorIs(t, err, model.ErrTMNotFound)
 	})
 	t.Run("invalid tm name", func(t *testing.T) {
-		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), model.Attachment{Name: r2Name}, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-departmentomnicorp/omnilamp"), model.Attachment{Name: r2Name}, r2Content, false)
 		assert.ErrorIs(t, err, model.ErrInvalidIdOrName)
 	})
 	t.Run("invalid tm id", func(t *testing.T) {
-		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453"), model.Attachment{Name: r2Name}, r2Content)
+		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(tmName+"/v1.2.3-20240409155220-3f779458e453"), model.Attachment{Name: r2Name}, r2Content, false)
 		assert.ErrorIs(t, err, model.ErrInvalidId)
 	})
 }

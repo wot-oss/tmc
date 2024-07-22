@@ -421,6 +421,7 @@ paths:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
         - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/ForceImport'
       requestBody:
         description: Add a new attachment or overwrite an existing one
         content:
@@ -440,6 +441,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Conflict, attachment already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal error
           content:
@@ -529,6 +536,7 @@ paths:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
         - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/ForceImport'
       requestBody:
         description: Add a new attachment or overwrite an existing one
         content:
@@ -548,6 +556,12 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Conflict, attachment already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal error
           content:
@@ -596,12 +610,7 @@ paths:
       operationId: importThingModel
       parameters:
         - $ref: '#/components/parameters/RepoDisambiguator'
-        - name: force
-          in: query
-          description: flag to force the import, ignoring any conflicts with existing TMs
-          required: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/ForceImport'
         - name: optPath
           in: query
           description: optional path parts to append to the target path (and id) of imported TM, after the mandatory path structure
@@ -1321,6 +1330,13 @@ components:
           value: 'siemens/siemens/poc1000'
         withOptionalPath:
           value: 'siemens/siemens/poc1000/variants/with-bluetooth'
+    ForceImport:
+      name: force
+      in: query
+      description: flag to force the import, ignoring any conflicts with existing data
+      required: false
+      schema:
+        type: boolean
     AttachmentFileName:
       name: attachmentFileName
       in: path

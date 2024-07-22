@@ -129,21 +129,21 @@ func TestCopy(t *testing.T) {
 		source.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), "README.md").Return(readmeContent, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), "CHANGELOG.md").Return(changelogContent, nil).Once()
-		target.On("Import", mock.Anything, model.MustParseTMID(tmID_1), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
+		target.On("Import", mock.Anything, model.MustParseTMID(tmID_1), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{Force: true}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID_1, Message: "", Err: nil}, nil).Once()
-		target.On("Import", mock.Anything, model.MustParseTMID(tmID_2), utils.NormalizeLineEndings(tmContent2), repos.ImportOptions{}).
+		target.On("Import", mock.Anything, model.MustParseTMID(tmID_2), utils.NormalizeLineEndings(tmContent2), repos.ImportOptions{Force: true}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID_2, Message: "", Err: nil}, nil).Once()
-		target.On("Import", mock.Anything, model.MustParseTMID(tmID_3), utils.NormalizeLineEndings(tmContent3), repos.ImportOptions{}).
+		target.On("Import", mock.Anything, model.MustParseTMID(tmID_3), utils.NormalizeLineEndings(tmContent3), repos.ImportOptions{Force: true}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID_3, Message: "", Err: nil}, nil).Once()
-		target.On("ImportAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), model.Attachment{Name: "README.md"}, readmeContent).Return(nil).Once()
-		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), model.Attachment{Name: "CHANGELOG.md"}, changelogContent).Return(nil).Once()
+		target.On("ImportAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), model.Attachment{Name: "README.md"}, readmeContent, true).Return(nil).Once()
+		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), model.Attachment{Name: "CHANGELOG.md"}, changelogContent, true).Return(nil).Once()
 		target.On("Index", mock.Anything, tmID_1, tmID_2, tmID_3).Return(nil)
 		target.On("Index", mock.Anything, tmID_1).Return(nil)
 		target.On("Index", mock.Anything, tmID_2).Return(nil)
 		target.On("Index", mock.Anything, tmID_3).Return(nil)
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{Force: true})
 
 		// then: there is no error
 		assert.NoError(t, err)
@@ -234,7 +234,7 @@ func TestCopy(t *testing.T) {
 		// and then: all expectations on target mock are met
 	})
 
-	t.Run("with error pushing an attachment", func(t *testing.T) {
+	t.Run("with error importing an attachment", func(t *testing.T) {
 		// given: a repo having 1 ThingModel and 1 attachments and a target repo
 		sourceSpec := model.NewRepoSpec("r1")
 		targetSpec := model.NewRepoSpec("target")
@@ -251,7 +251,7 @@ func TestCopy(t *testing.T) {
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(readmeContent, nil).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid, Message: "", Err: nil}, nil).Once()
-		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), model.Attachment{Name: "README.md", MediaType: "text/markdown"}, readmeContent).Return(os.ErrPermission).Once()
+		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), model.Attachment{Name: "README.md", MediaType: "text/markdown"}, readmeContent, false).Return(os.ErrPermission).Once()
 		target.On("Index", mock.Anything, tmid).Return(nil).Twice()
 
 		// when: copying from repo

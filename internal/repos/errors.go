@@ -12,6 +12,7 @@ var (
 	ErrRepoNotFound            = errors.New("repo not found")
 	ErrInvalidRepoName         = errors.New("invalid repo name")
 	ErrRepoExists              = errors.New("named repo already exists")
+	ErrAttachmentExists        = errors.New("attachment already exists")
 	ErrInvalidErrorCode        = errors.New("invalid error code")
 	ErrInvalidCompletionParams = errors.New("invalid completion parameters")
 	ErrNotSupported            = errors.New("method not supported")

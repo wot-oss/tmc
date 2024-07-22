@@ -844,7 +844,7 @@ func Test_ImportThingModel(t *testing.T) {
 			RunOnHandler(httpHandler)
 
 		// then: it returns status 409 with appropriate error
-		assertResponse409(t, rec, route, cErr)
+		assertResponse409TMIDConflict(t, rec, route, cErr)
 	})
 
 	t.Run("with conflicting id with same timestamp", func(t *testing.T) {
@@ -905,9 +905,9 @@ func Test_ImportAttachment(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent, "text/markdown").Return(nil).Once()
+		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent, "text/markdown", true).Return(nil).Once()
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodPut, route).
+		rec := testutils.NewRequest(http.MethodPut, route+"?force=true").
 			WithHeader(HeaderContentType, "text/markdown").
 			WithBody(attContent).
 			RunOnHandler(httpHandler)
@@ -916,10 +916,21 @@ func Test_ImportAttachment(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 	})
 
+	t.Run("with invalid force parameter", func(t *testing.T) {
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodPut, route+"?force=42").
+			WithHeader(HeaderContentType, "text/markdown").
+			WithBody(attContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 400
+		assertResponse400(t, rec, route+"?force=42")
+	})
+
 	t.Run("with invalid id", func(t *testing.T) {
 		// given: some route with invalid tmID
 		route := "/thing-models/not-an-id/.attachments/README.md"
-		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef("not-an-id"), "README.md", attContent, "text/markdown").Return(model.ErrInvalidIdOrName).Once()
+		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef("not-an-id"), "README.md", attContent, "text/markdown", false).Return(model.ErrInvalidIdOrName).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPut, route).
@@ -929,6 +940,20 @@ func Test_ImportAttachment(t *testing.T) {
 
 		// then: it returns status 400
 		assertResponse400(t, rec, route)
+	})
+
+	t.Run("with attachment conflict", func(t *testing.T) {
+		// given: some route with invalid tmID
+		route := "/thing-models/" + tmID + "/.attachments/DONTREADME.md"
+		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "DONTREADME.md", attContent, "text/markdown", false).Return(repos.ErrAttachmentExists).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodPut, route).
+			WithHeader(HeaderContentType, "text/markdown").
+			WithBody(attContent).
+			RunOnHandler(httpHandler)
+
+		// then: it returns status 409
+		assertResponse409(t, rec, route)
 	})
 
 	t.Run("with empty request body", func(t *testing.T) {
@@ -947,7 +972,7 @@ func Test_ImportAttachment(t *testing.T) {
 
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some unknown error
-		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent, MimeOctetStream).Return(unknownErr).Once()
+		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent, MimeOctetStream, false).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPut, route).
 			WithHeader(HeaderContentType, MimeOctetStream).
@@ -1142,7 +1167,7 @@ func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route strin
 	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
 }
 
-func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *repos.ErrTMIDConflict) {
+func assertResponse409TMIDConflict(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *repos.ErrTMIDConflict) {
 	assert.Equal(t, http.StatusConflict, rec.Code)
 	var errResponse server.ErrorResponse
 	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
@@ -1154,6 +1179,17 @@ func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route strin
 		assert.NoError(t, err)
 		assert.Equal(t, idErr, cErr)
 	}
+
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
+}
+func assertResponse409(t *testing.T, rec *httptest.ResponseRecorder, route string) {
+	assert.Equal(t, http.StatusConflict, rec.Code)
+	var errResponse server.ErrorResponse
+	assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
+	assert.Equal(t, http.StatusConflict, errResponse.Status)
+	assert.Equal(t, route, *errResponse.Instance)
+	assert.Equal(t, Error409Title, errResponse.Title)
 
 	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
 	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))

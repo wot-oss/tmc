@@ -584,7 +584,7 @@ func TestTmcRepo_DeleteAttachment(t *testing.T) {
 		})
 	}
 }
-func TestTmcRepo_PushAttachment(t *testing.T) {
+func TestTmcRepo_ImportAttachment(t *testing.T) {
 	type ht struct {
 		name    string
 		body    []byte
@@ -670,6 +670,15 @@ func TestTmcRepo_PushAttachment(t *testing.T) {
 			reqBody: []byte("# README"),
 		},
 		{
+			name:    "attachment exists",
+			body:    []byte(`{"detail":"attachment already exists"}`),
+			status:  http.StatusConflict,
+			tmName:  "author/manufacturer/mpn",
+			expUrl:  "/thing-models/.tmName/author/manufacturer/mpn/.attachments/README.md",
+			expErr:  "attachment already exists",
+			reqBody: []byte("# README"),
+		},
+		{
 			name:    "unexpected status",
 			body:    []byte(`{"detail":"no coffee for you"}`),
 			status:  http.StatusTeapot,
@@ -689,7 +698,7 @@ func TestTmcRepo_PushAttachment(t *testing.T) {
 			} else {
 				ref = model.NewTMNameAttachmentContainerRef(test.tmName)
 			}
-			err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: "README.md"}, test.reqBody)
+			err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: "README.md"}, test.reqBody, false)
 			if test.expErr == "" {
 				assert.NoError(t, err)
 			} else {
