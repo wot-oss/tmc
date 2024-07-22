@@ -142,3 +142,9 @@ func (r RepoSpec) String() string {
 var EmptySpec, _ = NewSpec("", "")
 
 var ErrInvalidSpec = errors.New("illegal repo spec: both local directory and repo name given")
+
+type RepoDescription struct {
+	Name        string
+	Type        string
+	Description string
+}

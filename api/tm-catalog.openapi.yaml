@@ -24,6 +24,8 @@ tags:
     description: Access to manufacturers information
   - name: mpns
     description: Access to mpns (manufacturer part numbers) information
+  - name: repos
+    description: Access to backend storage repositories list
   - name: health
     description: Access to health information
   - name: internal
@@ -805,6 +807,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /repos:
+    get:
+      tags:
+        - repos
+      summary: Get the list of repositories
+      description: |
+        Get the list of available TM repositories. 
+        May return empty list when there is only one repository configured and hence there is no need to
+        specify a target repository for write operations.
+      operationId: getRepos
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReposResponse'
+              examples:
+                repos:
+                  $ref: '#/components/examples/ReposResponseExample'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream repository error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /healthz:
     get:
       tags:
@@ -1121,6 +1157,24 @@ components:
           type: array
           items:
             type: string
+    ReposResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoDescription'
+    RepoDescription:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
     SchemaAuthor:
       required:
         - schema:name
@@ -1390,6 +1444,13 @@ components:
         data:
           - 'BazLamp'
           - 'POC1000'
+    ReposResponseExample:
+      value:
+        data:
+          - name: 'global'
+            description: 'Global TM catalog (read-only)'
+          - name: 'private'
+            description: 'Our private TMs'
     ImportTMPayloadExample:
       value:
         '@context':
