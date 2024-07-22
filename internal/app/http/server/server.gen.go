@@ -50,6 +50,9 @@ type ServerInterface interface {
 	// Get the contained mpns (manufacturer part numbers) of the inventory
 	// (GET /mpns)
 	GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams)
+	// Get the list of repositories
+	// (GET /repos)
+	GetRepos(w http.ResponseWriter, r *http.Request)
 	// Import a Thing Model
 	// (POST /thing-models)
 	ImportThingModel(w http.ResponseWriter, r *http.Request, params ImportThingModelParams)
@@ -472,6 +475,23 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetMpns(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetRepos operation middleware
+func (siw *ServerInterfaceWrapper) GetRepos(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetRepos(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1009,6 +1029,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/healthz/live", wrapper.GetHealthLive).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.ImportThingModel).Methods("POST")
+
+	r.HandleFunc(options.BaseURL+"/repos", wrapper.GetRepos).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/mpns", wrapper.GetMpns).Methods("GET")
 

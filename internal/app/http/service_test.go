@@ -665,6 +665,48 @@ func TestService_DeleteAttachment(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestService_ListRepos(t *testing.T) {
+	underTest, _ := NewDefaultHandlerService(model.EmptySpec, repo)
+	t.Run("with two descriptions", func(t *testing.T) {
+		// given: repos.GetDescriptions returns a list with 2 descriptions
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 descr"}, {Name: "r2", Type: "file", Description: ""}}, nil)
+		// when: listing repos
+		rs, err := underTest.ListRepos(context.Background())
+		// then: service returns no error
+		assert.NoError(t, err)
+		// and then: results contain all descriptions
+		assert.Equal(t, []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 descr"}, {Name: "r2", Type: "file", Description: ""}}, rs)
+	})
+	t.Run("with one description", func(t *testing.T) {
+		// given: repos.GetDescriptions returns a list with 1 description
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 descr"}}, nil)
+		// when: listing repos
+		rs, err := underTest.ListRepos(context.Background())
+		// then: service returns no error
+		assert.NoError(t, err)
+		// and then: results contain no descriptions
+		assert.Empty(t, rs)
+	})
+	t.Run("with no descriptions", func(t *testing.T) {
+		// given: repos.GetDescriptions returns a list with 0 descriptions
+		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{}, nil)
+		// when: listing repos
+		rs, err := underTest.ListRepos(context.Background())
+		// then: service returns no error
+		assert.NoError(t, err)
+		// and then: results contain no descriptions
+		assert.Empty(t, rs)
+	})
+	t.Run("with error", func(t *testing.T) {
+		// given: repos.GetDescriptions returns a list with 0 descriptions
+		rMocks.MockReposGetDescriptions(t, nil, errors.New("unexpected"))
+		// when: listing repos
+		_, err := underTest.ListRepos(context.Background())
+		// then: service returns an error
+		assert.Error(t, err)
+	})
+}
+
 var singleFoundVersion = model.FoundVersion{
 	IndexVersion: model.IndexVersion{
 		Description: "desc version v1.0.0",

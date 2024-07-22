@@ -284,6 +284,26 @@ func toMpnsResponse(mpns []string) server.MpnsResponse {
 	return resp
 }
 
+func toReposResponse(repos []model.RepoDescription) server.ReposResponse {
+	rds := []server.RepoDescription{}
+	for _, r := range repos {
+		r := r
+		rds = append(rds, server.RepoDescription{
+			Description: func(s string) *string {
+				if s == "" {
+					return nil
+				}
+				return &s
+			}(r.Description),
+			Name: r.Name,
+		})
+	}
+	resp := server.ReposResponse{
+		Data: rds,
+	}
+	return resp
+}
+
 func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelResponse {
 	data := server.ImportThingModelResult{
 		TmID: res.TmID,
