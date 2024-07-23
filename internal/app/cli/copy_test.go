@@ -221,8 +221,9 @@ func TestCopy(t *testing.T) {
 		var sp *model.SearchParams
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
+		res, resErr := repos.ImportResultFromError(repos.ErrNotSupported)
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
-			Return(repos.ImportResult{}, repos.ErrNotSupported).Once()
+			Return(res, resErr).Once()
 
 		// when: copying from repo
 		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})

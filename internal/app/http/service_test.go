@@ -542,8 +542,9 @@ func TestService_ImportThingModel(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 		// when: importing ThingModel
 		res, err := underTest.ImportThingModel(nil, "someRepo", invalidContent, repos.ImportOptions{})
-		// then: it returns an empty ImportResult
-		assert.Equal(t, repos.ImportResult{}, res)
+		// then: it returns an error ImportResult
+		assert.Equal(t, repos.ImportResultError, res.Type)
+		assert.Equal(t, err, res.Err)
 		// and then: there is an error
 		assert.ErrorContains(t, err, "invalid character 'i' looking for beginning of value")
 	})
@@ -553,8 +554,9 @@ func TestService_ImportThingModel(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, repos.ErrRepoNotFound))
 		// when: importing ThingModel
 		res, err := underTest.ImportThingModel(nil, "someRepo", []byte("some TM content"), repos.ImportOptions{})
-		// then: it returns empty import result
-		assert.Equal(t, repos.ImportResult{}, res)
+		// then: it returns an error import result
+		assert.Equal(t, repos.ImportResultError, res.Type)
+		assert.Equal(t, err, res.Err)
 		// and then: there is an error
 		assert.ErrorIs(t, err, repos.ErrRepoNotFound)
 	})
@@ -567,7 +569,7 @@ func TestService_ImportThingModel(t *testing.T) {
 			ExistingId: "existing-id",
 		}
 		expRes := repos.ImportResult{
-			Type:    repos.ImportResultTMExists,
+			Type:    repos.ImportResultError,
 			TmID:    "",
 			Message: cErr.Error(),
 			Err:     cErr,

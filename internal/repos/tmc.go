@@ -232,16 +232,16 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 	reqUrl.RawQuery = vals.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl.String(), bytes.NewBuffer(raw))
 	if err != nil {
-		return ImportResult{}, err
+		return ImportResultFromError(err)
 	}
 	req.Header.Add(headerContentType, mimeJSON)
 	resp, err := doHttp(req, t.auth)
 	if err != nil {
-		return ImportResult{}, err
+		return ImportResultFromError(err)
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return ImportResult{}, err
+		return ImportResultFromError(err)
 	}
 
 	switch resp.StatusCode {
@@ -249,7 +249,7 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 		var res server.ImportThingModelResponse
 		err = json.Unmarshal(b, &res)
 		if err != nil {
-			return ImportResult{}, err
+			return ImportResultFromError(err)
 		}
 		msg := ""
 		if res.Data.Message != nil {
@@ -258,7 +258,7 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 		if res.Data.Code != nil && *res.Data.Code != "" {
 			cErr, err := ParseErrTMIDConflict(*res.Data.Code)
 			if err != nil {
-				return ImportResult{}, err
+				return ImportResultFromError(err)
 			}
 			return ImportResult{Type: ImportResultWarning, TmID: res.Data.TmID, Message: msg, Err: cErr}, nil
 		}
@@ -267,7 +267,7 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 		var e server.ErrorResponse
 		err = json.Unmarshal(b, &e)
 		if err != nil {
-			return ImportResult{}, err
+			return ImportResultFromError(err)
 		}
 		detail := e.Title
 		if e.Detail != nil {
@@ -281,19 +281,19 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 			}
 			cErr, err := ParseErrTMIDConflict(eCode)
 			if err != nil {
-				return ImportResult{}, err
+				return ImportResultFromError(err)
 			}
-			return ImportResult{}, cErr
+			return ImportResultFromError(cErr)
 		case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 			err := errors.New(detail)
-			return ImportResult{}, err
+			return ImportResultFromError(err)
 		default:
 			err := errors.New("unexpected status not handled correctly")
-			return ImportResult{}, err
+			return ImportResultFromError(err)
 		}
 	default:
 		err := errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
-		return ImportResult{}, err
+		return ImportResultFromError(err)
 	}
 }
 func (t *TmcRepo) Delete(ctx context.Context, id string) error {

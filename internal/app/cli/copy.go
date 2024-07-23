@@ -73,7 +73,13 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 					tmCopied = true
 					switch res.Type {
 					case repos.ImportResultWarning:
-						totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, fmt.Sprintf("copied as %s. TM's version and timestamp clash with existing one %s", res.TmID, res.Err.ExistingId)})
+						warn := res.Message
+						var cErr *repos.ErrTMIDConflict
+						if errors.As(res.Err, &cErr) {
+							warn = fmt.Sprintf("TM's version and timestamp clash with existing one %s", cErr.ExistingId)
+						}
+						msg := fmt.Sprintf("copied as %s with warning: %s", res.TmID, warn)
+						totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, msg})
 					case repos.ImportResultOK:
 						totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
 					}
@@ -168,7 +174,7 @@ func copyThingModel(ctx context.Context, version model.FoundVersion, target repo
 	if err != nil {
 		Stderrf("Error fetching %s: %v", version.TMID, err)
 		e := fmt.Errorf("cannot fetch %s from repo %s: %w", version.TMID, version.FoundIn, err)
-		return repos.ImportResult{}, e
+		return repos.ImportResultFromError(e)
 	}
 
 	res, err := commands.NewImportCommand(time.Now).ImportFile(ctx, thing, target, opts)

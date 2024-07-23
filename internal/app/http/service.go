@@ -190,7 +190,7 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 
 	repo, err := repos.Get(spec)
 	if err != nil {
-		return repos.ImportResult{}, err
+		return repos.ImportResultFromError(err)
 	}
 	res, err := commands.NewImportCommand(time.Now).ImportFile(ctx, file, repo, opts)
 	if err != nil {
@@ -199,7 +199,7 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 	if res.IsSuccessful() {
 		err = repo.Index(ctx, res.TmID)
 		if err != nil {
-			return repos.ImportResult{}, err
+			return repos.ImportResultFromError(err)
 		}
 	}
 
