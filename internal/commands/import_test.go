@@ -223,8 +223,11 @@ func TestImportToRepoUnversioned(t *testing.T) {
 		assert.False(t, res.IsSuccessful())
 		if assert.NotNil(t, res.Err) {
 			assert.Equal(t, err, res.Err)
-			assert.Equal(t, repos.ImportResultTMExists, res.Type)
-			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
+			assert.Equal(t, repos.ImportResultError, res.Type)
+			var cErr *repos.ErrTMIDConflict
+			if assert.ErrorAs(t, res.Err, &cErr) {
+				assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), cErr.Type)
+			}
 		}
 		entries, _ := os.ReadDir(testTMDir)
 		assert.Len(t, entries, 1)
@@ -247,13 +250,17 @@ func TestImportToRepoUnversioned(t *testing.T) {
 		res, err := c.ImportFile(context.Background(), raw, repo, repos.ImportOptions{})
 		assert.Error(t, err)
 		if assert.NotNil(t, res.Err) {
-			assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), res.Err.Type)
+			var cErr *repos.ErrTMIDConflict
+			if assert.ErrorAs(t, res.Err, &cErr) {
+				assert.Equal(t, repos.IdConflictType(repos.IdConflictSameContent), cErr.Type)
+			}
 			assert.Equal(t, err, res.Err)
 		}
 		assert.False(t, res.IsSuccessful())
 		entries, _ := os.ReadDir(testTMDir)
-		assert.Len(t, entries, 2)
-		assert.Equal(t, firstSaved, entries[0].Name())
+		if assert.Len(t, entries, 2) {
+			assert.Equal(t, firstSaved, entries[0].Name())
+		}
 	})
 	t.Run("force writing the changed back file", func(t *testing.T) {
 		// force writing the changed back file with option Force - saves as new version

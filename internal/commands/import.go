@@ -42,11 +42,11 @@ func (c *ImportCommand) ImportFile(ctx context.Context, raw []byte, repo repos.R
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
 		log.Error("validation failed", "error", err)
-		return repos.ImportResult{}, err
+		return repos.ImportResultFromError(err)
 	}
 	prepared, id, err := prepareToImport(c.now, tm, raw, opts.OptPath)
 	if err != nil {
-		return repos.ImportResult{}, err
+		return repos.ImportResultFromError(err)
 	}
 
 	res, err := repo.Import(ctx, id, prepared, opts)

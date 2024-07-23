@@ -721,7 +721,7 @@ func Test_ImportThingModel(t *testing.T) {
 		// given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
 		var err2 error = &jsonschema.ValidationError{}
-		pr, err := repos.ImportResult{}, err2
+		pr, err := repos.ImportResultFromError(err2)
 		hs.On("ImportThingModel", mock.Anything, invalidContent, repos.ImportOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
@@ -736,7 +736,7 @@ func Test_ImportThingModel(t *testing.T) {
 
 	t.Run("with too long name", func(t *testing.T) {
 		// given: a thing model with too long name
-		pr, err := repos.ImportResult{}, fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long")
+		pr, err := repos.ImportResultFromError(fmt.Errorf("%w: %s", commands.ErrTMNameTooLong, "this-name-is-too-long"))
 		hs.On("ImportThingModel", mock.Anything, tmContent, repos.ImportOptions{}).Return(pr, err).Once()
 		// when: calling the route
 
@@ -785,7 +785,7 @@ func Test_ImportThingModel(t *testing.T) {
 			ExistingId: "existing-id",
 		}
 		result := repos.ImportResult{
-			Type:    repos.ImportResultTMExists,
+			Type:    repos.ImportResultError,
 			TmID:    "",
 			Message: cErr.Error(),
 			Err:     cErr,
@@ -835,7 +835,7 @@ func Test_ImportThingModel(t *testing.T) {
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some invalid ThingModel
 		invalidContent := []byte("some invalid ThingModel")
-		result, _ := repos.ImportResult{}, unknownErr
+		result, _ := repos.ImportResultFromError(unknownErr)
 		hs.On("ImportThingModel", mock.Anything, invalidContent, repos.ImportOptions{}).Return(result, unknownErr).Once()
 		// when: calling the route
 

@@ -82,6 +82,7 @@ func getSuccessfulIds(res []repos.ImportResult) []string {
 
 func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string, repo repos.Repo, optTree bool, opts repos.ImportOptions) ([]repos.ImportResult, error) {
 	var results []repos.ImportResult
+	var tErr error
 	err := filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
 			return nil
@@ -97,10 +98,15 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 
 		res, err := p.importFile(ctx, path, repo, fileOpts)
 		results = append(results, res)
-		return err
+		if tErr == nil {
+			tErr = err
+		}
+		return nil
 	})
-
-	return results, err
+	if err != nil {
+		return results, err
+	}
+	return results, tErr
 
 }
 
@@ -108,24 +114,31 @@ func (p *ImportExecutor) importFile(ctx context.Context, filename string, repo r
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
-		return repos.ImportResult{}, fmt.Errorf("error importing file %s: %w", filename, err)
+		return repos.ImportResultFromError(fmt.Errorf("error importing file %s: %w", filename, err))
 	}
 	res, err := commands.NewImportCommand(p.now).ImportFile(ctx, raw, repo, opts)
 	if err != nil {
 		var errExists *repos.ErrTMIDConflict
 		if errors.As(err, &errExists) {
-			return repos.ImportResult{Type: repos.ImportResultTMExists, Message: fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId), Err: errExists}, nil
+			res.Message = fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId)
+			return res, err
 		}
 		err := fmt.Errorf("error importing file %s: %w", filename, err)
-		return res, err
+		return repos.ImportResultFromError(err)
 	}
 	switch res.Type {
 	case repos.ImportResultWarning:
-		res.Message = fmt.Sprintf("file %s imported as %s. TM's version and timestamp clash with existing one %s", filename, res.TmID, res.Err.ExistingId)
+		warn := res.Message
+		var cErr *repos.ErrTMIDConflict
+		if errors.As(res.Err, &cErr) {
+			warn = fmt.Sprintf("TM's version and timestamp clash with existing one %s", cErr.ExistingId)
+		}
+		msg := fmt.Sprintf("file %s imported as %s with warning: %s", filename, res.TmID, warn)
+		res.Message = msg
 	case repos.ImportResultOK:
 		res.Message = fmt.Sprintf("file %s imported as %s", filename, res.TmID)
 	default:
-		return res, fmt.Errorf("unexpected ImportResult type: %v", res.Type)
+		return repos.ImportResultFromError(fmt.Errorf("unexpected ImportResult type %v when importing file %s", res.Type, filename))
 	}
 	return res, err
 }
