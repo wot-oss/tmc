@@ -73,7 +73,7 @@ func (f *FileRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts I
 	if (match == idMatchDigest || match == idMatchFull) && !opts.Force {
 		log.Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
 		err := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
-		return ImportResult{Type: ImportResultTMExists, Message: err.Error(), Err: err}, err
+		return ImportResult{Type: ImportResultError, Message: err.Error(), Err: err}, err
 	}
 
 	err = utils.AtomicWriteFile(fullPath, raw, defaultFilePermissions)

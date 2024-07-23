@@ -785,7 +785,7 @@ func Test_ImportThingModel(t *testing.T) {
 			ExistingId: "existing-id",
 		}
 		result := repos.ImportResult{
-			Type:    repos.ImportResultTMExists,
+			Type:    repos.ImportResultError,
 			TmID:    "",
 			Message: cErr.Error(),
 			Err:     cErr,

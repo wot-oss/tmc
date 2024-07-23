@@ -309,8 +309,9 @@ func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelR
 		TmID: res.TmID,
 	}
 	data.Message = &res.Message
-	if res.Type == repos.ImportResultWarning {
-		code := res.IDConflictError().Code()
+	var ce repos.CodedError
+	if errors.As(res.Err, &ce) {
+		code := ce.Code()
 		data.Code = &code
 	}
 	return server.ImportThingModelResponse{

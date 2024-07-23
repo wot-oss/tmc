@@ -73,7 +73,13 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 					tmCopied = true
 					switch res.Type {
 					case repos.ImportResultWarning:
-						totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, fmt.Sprintf("copied as %s. TM's version and timestamp clash with existing one %s", res.TmID, res.IDConflictError().ExistingId)})
+						warn := res.Message
+						var cErr *repos.ErrTMIDConflict
+						if errors.As(res.Err, &cErr) {
+							warn = fmt.Sprintf("TM's version and timestamp clash with existing one %s", cErr.ExistingId)
+						}
+						msg := fmt.Sprintf("copied as %s with warning: %s", res.TmID, warn)
+						totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, msg})
 					case repos.ImportResultOK:
 						totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
 					}

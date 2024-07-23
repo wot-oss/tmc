@@ -32,6 +32,10 @@ func init() {
 	ErrAttachmentNotFound = NewErrNotFound("attachment")
 }
 
+type CodedError interface {
+	Code() string
+}
+
 type ErrTMIDConflict struct {
 	Type       IdConflictType
 	ExistingId string

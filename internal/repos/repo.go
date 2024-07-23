@@ -43,10 +43,9 @@ var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
 type ImportResultType int
 
 const (
-	ImportResultOK       = ImportResultType(iota + 1)
-	ImportResultWarning  // imported but with warning
-	ImportResultTMExists // not imported because of conflict
-	ImportResultError    // not imported because of other error
+	ImportResultOK      = ImportResultType(iota + 1)
+	ImportResultWarning // imported but with warning
+	ImportResultError   // not imported because of error
 )
 
 func (t ImportResultType) String() string {
@@ -55,8 +54,6 @@ func (t ImportResultType) String() string {
 		return "OK"
 	case ImportResultWarning:
 		return "warning"
-	case ImportResultTMExists:
-		return "exists"
 	case ImportResultError:
 		return "error"
 	default:
@@ -79,19 +76,6 @@ func ImportResultFromError(err error) (ImportResult, error) {
 		Message: err.Error(),
 		Err:     err,
 	}, err
-}
-
-func (r ImportResult) IDConflictError() *ErrTMIDConflict {
-	switch r.Type {
-	case ImportResultTMExists, ImportResultWarning:
-		var cErr *ErrTMIDConflict
-		if errors.As(r.Err, &cErr) {
-			return cErr
-		}
-		return nil
-	default:
-		return nil
-	}
 }
 
 func (r ImportResult) String() string {
