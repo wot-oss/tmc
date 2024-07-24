@@ -215,24 +215,24 @@ func (_m *HandlerService) FetchThingModel(ctx context.Context, repo string, tmID
 	return r0, r1
 }
 
-// FindInventoryEntry provides a mock function with given fields: ctx, repo, name
-func (_m *HandlerService) FindInventoryEntry(ctx context.Context, repo string, name string) (*model.FoundEntry, error) {
+// FindInventoryEntries provides a mock function with given fields: ctx, repo, name
+func (_m *HandlerService) FindInventoryEntries(ctx context.Context, repo string, name string) ([]model.FoundEntry, error) {
 	ret := _m.Called(ctx, repo, name)
 
 	if len(ret) == 0 {
-		panic("no return value specified for FindInventoryEntry")
+		panic("no return value specified for FindInventoryEntries")
 	}
 
-	var r0 *model.FoundEntry
+	var r0 []model.FoundEntry
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*model.FoundEntry, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]model.FoundEntry, error)); ok {
 		return rf(ctx, repo, name)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.FoundEntry); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.FoundEntry); ok {
 		r0 = rf(ctx, repo, name)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.FoundEntry)
+			r0 = ret.Get(0).([]model.FoundEntry)
 		}
 	}
 

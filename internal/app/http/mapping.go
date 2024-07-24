@@ -47,7 +47,7 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 	invEntry.SchemaMpn = entry.Mpn
 	invEntry.Versions = m.GetInventoryEntryVersions(entry.Versions)
 	if entry.FoundIn.RepoName != "" {
-		invEntry.Source = &entry.FoundIn.RepoName
+		invEntry.Repo = &entry.FoundIn.RepoName
 	}
 	hrefSelf, _ := url.JoinPath(basePathInventory, tmNamePath, entry.Name)
 	hrefSelf = m.appendSourceRepo(hrefSelf, entry.FoundIn.RepoName)
@@ -90,7 +90,7 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
 
 	if version.FoundIn.RepoName != "" {
-		invVersion.Source = &version.FoundIn.RepoName
+		invVersion.Repo = &version.FoundIn.RepoName
 	}
 	hrefSelf, _ := url.JoinPath(basePathInventory, version.TMID)
 	hrefSelf = m.appendSourceRepo(hrefSelf, version.FoundIn.RepoName)

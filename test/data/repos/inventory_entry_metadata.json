@@ -1,33 +1,35 @@
 {
-  "data": {
-    "attachments": null,
-    "links": {
-      "self": "../../../../inventory/omnicorp/omnicorp/lightall"
-    },
-    "schema:author": {
-      "schema:name": "omnicorp"
-    },
-    "schema:manufacturer": {
-      "schema:name": "omnicorp"
-    },
-    "schema:mpn": "lightall",
-    "tmName": "omnicorp/omnicorp/lightall",
-    "versions": [
-      {
-        "attachments": null,
-        "description": "",
-        "digest": "5a3840060b05",
-        "externalID": "",
-        "links": {
-          "content": "../../../../thing-models/omnicorp/omnicorp/lightall/v1.0.1-20240606105140-5a3840060b05.tm.json",
-          "self": ""
-        },
-        "timestamp": "20240606105140",
-        "tmID": "omnicorp/omnicorp/lightall/v1.0.1-20240606105140-5a3840060b05.tm.json",
-        "version": {
-          "model": "1.0.1"
+  "data": [
+    {
+      "attachments": null,
+      "links": {
+        "self": "../../../../inventory/omnicorp/omnicorp/lightall"
+      },
+      "schema:author": {
+        "schema:name": "omnicorp"
+      },
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "lightall",
+      "tmName": "omnicorp/omnicorp/lightall",
+      "versions": [
+        {
+          "attachments": null,
+          "description": "",
+          "digest": "5a3840060b05",
+          "externalID": "",
+          "links": {
+            "content": "../../../../thing-models/omnicorp/omnicorp/lightall/v1.0.1-20240606105140-5a3840060b05.tm.json",
+            "self": ""
+          },
+          "timestamp": "20240606105140",
+          "tmID": "omnicorp/omnicorp/lightall/v1.0.1-20240606105140-5a3840060b05.tm.json",
+          "version": {
+            "model": "1.0.1"
+          }
         }
-      }
-    ]
-  }
+      ]
+    }
+  ]
 }

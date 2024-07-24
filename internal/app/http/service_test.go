@@ -223,7 +223,7 @@ func Test_FindInventoryEntry(t *testing.T) {
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 		// when: finding entry
-		res, err := underTest.FindInventoryEntry(context.Background(), "", inventoryName)
+		res, err := underTest.FindInventoryEntries(context.Background(), "", inventoryName)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is status code 404

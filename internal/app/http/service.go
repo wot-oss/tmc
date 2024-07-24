@@ -19,7 +19,7 @@ type HandlerService interface {
 	ListAuthors(ctx context.Context, search *model.SearchParams) ([]string, error)
 	ListManufacturers(ctx context.Context, search *model.SearchParams) ([]string, error)
 	ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error)
-	FindInventoryEntry(ctx context.Context, repo string, name string) (*model.FoundEntry, error)
+	FindInventoryEntries(ctx context.Context, repo string, name string) ([]model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, repo, tmID string, restoreId bool) ([]byte, error)
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
 	ImportThingModel(ctx context.Context, repo string, file []byte, opts repos.ImportOptions) (repos.ImportResult, error)
@@ -130,7 +130,7 @@ func (dhs *defaultHandlerService) ListRepos(ctx context.Context) ([]model.RepoDe
 	return ds, err
 }
 
-func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, repo string, name string) (*model.FoundEntry, error) {
+func (dhs *defaultHandlerService) FindInventoryEntries(ctx context.Context, repo string, name string) ([]model.FoundEntry, error) {
 	//todo: check if name is valid format
 	res, err := dhs.ListInventory(ctx, repo, &model.SearchParams{Name: name, Options: model.SearchOptions{NameFilterType: model.FullMatch}})
 	if err != nil {
@@ -139,10 +139,7 @@ func (dhs *defaultHandlerService) FindInventoryEntry(ctx context.Context, repo s
 	if len(res.Entries) == 0 {
 		return nil, NewNotFoundError(nil, "Inventory item with name %s not found", name)
 	}
-	if len(res.Entries) > 1 {
-		return nil, NewBadRequestError(nil, ErrorRepoAmbiguousDetail)
-	}
-	return &res.Entries[0], nil
+	return res.Entries, nil
 }
 
 func (dhs *defaultHandlerService) FetchThingModel(ctx context.Context, repo string, tmID string, restoreId bool) ([]byte, error) {

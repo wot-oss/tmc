@@ -53,7 +53,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 // (GET /inventory/.tmName/{tmName})
 func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string, params server.GetInventoryByNameParams) {
 	repo := convertToRepoName(params.Repo)
-	entry, err := h.Service.FindInventoryEntry(r.Context(), repo, tmName)
+	entries, err := h.Service.FindInventoryEntries(r.Context(), repo, tmName)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -61,7 +61,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 	}
 
 	ctx := h.createContext(r)
-	resp := toInventoryEntryResponse(ctx, *entry)
+	resp := toInventoryEntryResponse(ctx, entries)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 

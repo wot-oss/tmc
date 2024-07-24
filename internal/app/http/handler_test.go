@@ -271,7 +271,7 @@ func Test_InventoryByName(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("FindInventoryEntry", mock.Anything, "", inventoryName).Return(&mockInventoryEntry, nil).Once()
+		hs.On("FindInventoryEntries", mock.Anything, "", inventoryName).Return([]model.FoundEntry{mockInventoryEntry}, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -280,11 +280,13 @@ func Test_InventoryByName(t *testing.T) {
 		var response server.InventoryEntryResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
 		// and then: result has all data set
-		assertInventoryEntry(t, mockInventoryEntry, response.Data)
+		if assert.Len(t, response.Data, 1) {
+			assertInventoryEntry(t, mockInventoryEntry, response.Data[0])
+		}
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		hs.On("FindInventoryEntry", mock.Anything, "", inventoryName).Return(nil, unknownErr).Once()
+		hs.On("FindInventoryEntries", mock.Anything, "", inventoryName).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body

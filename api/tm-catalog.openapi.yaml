@@ -194,18 +194,18 @@ paths:
     get:
       tags:
         - inventory
-      summary: Get an inventory entry by TM name
-      description: Returns a single inventory entry
+      summary: Get inventory entries by TM name
+      description: Returns a list of inventory entries with the given TM name from all repositories
       operationId: getInventoryByName
       parameters:
         - name: tmName
           in: path
-          description: Name of the inventory entry
+          description: Name of inventory entry
           required: true
           schema:
             type: string
           example: 'siemens/siemens/poc1000'
-        - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/RepoConstraint'
       responses:
         '200':
           description: Successful operation
@@ -1028,7 +1028,7 @@ components:
         schema:mpn:
           type: string
           example: 'POC1000'
-        source:
+        repo:
           $ref: '#/components/schemas/SourceRepository'
         versions:
           type: array
@@ -1081,7 +1081,7 @@ components:
         timestamp:
           type: string
           example: '20231201133246'
-        source:
+        repo:
           $ref: '#/components/schemas/SourceRepository'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
@@ -1127,7 +1127,9 @@ components:
         - data
       properties:
         data:
-          $ref: '#/components/schemas/InventoryEntry'
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntry'
     ImportThingModelResponse:
       required:
         - data
@@ -1171,7 +1173,7 @@ components:
       example: 'global'
       description: |
         The name of the source repository where the inventory entry or version resides. 
-        The may be left empty when there is only a single repository served by the backend and thus there is not need for
+        May be left empty when there is only a single repository served by the backend and thus there is not need for
         disambiguation. See also '/repos'
     ManufacturersResponse:
       type: object
@@ -1356,52 +1358,52 @@ components:
     InventoryEntryResponseExample:
       value:
         data:
-          'links':
-            'self': './inventory/.tmName/siemens/siemens/poc1000'
-          'tmName': 'siemens/siemens/poc1000'
-          'schema:author':
-            'schema:name': 'siemens'
-          'schema:manufacturer':
-            'schema:name': 'siemens'
-          'schema:mpn': 'POC1000'
-          'versions':
-            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
-              'digest': '2cd14601ef09'
-              'externalID': '{{ID}}'
-              'links':
-                'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-                'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-              'timestamp': '20240108112117'
-              'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-              'version':
-                'model': '1.0.0'
-            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
-              'digest': 'f4184d08a02c'
-              'externalID': '{{ID}}'
-              'links':
-                'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-                'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-              'timestamp': '20231217140234'
-              'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-              'version':
-                'model': '0.0.0'
-            - 'description': ''
-              'digest': 'e1594d08a01b'
-              'externalID': '{{ID}}'
-              'links':
-                'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-                'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-              'timestamp': '20231201133246'
-              'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-              'version':
-                'model': '0.0.0'
-          attachments:
-            - name: 'README.md'
-              links:
-                content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
-            - name: 'User Manual.pdf'
-              links:
-                content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
+          - 'links':
+              'self': './inventory/.tmName/siemens/siemens/poc1000'
+            'tmName': 'siemens/siemens/poc1000'
+            'schema:author':
+              'schema:name': 'siemens'
+            'schema:manufacturer':
+              'schema:name': 'siemens'
+            'schema:mpn': 'POC1000'
+            'versions':
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': '2cd14601ef09'
+                'externalID': '{{ID}}'
+                'links':
+                  'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'timestamp': '20240108112117'
+                'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'version':
+                  'model': '1.0.0'
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': 'f4184d08a02c'
+                'externalID': '{{ID}}'
+                'links':
+                  'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'timestamp': '20231217140234'
+                'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'version':
+                  'model': '0.0.0'
+              - 'description': ''
+                'digest': 'e1594d08a01b'
+                'externalID': '{{ID}}'
+                'links':
+                  'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'timestamp': '20231201133246'
+                'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'version':
+                  'model': '0.0.0'
+            attachments:
+              - name: 'README.md'
+                links:
+                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
+              - name: 'User Manual.pdf'
+                links:
+                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
     InventoryEntryVersionResponseExample:
       value:
         'data':

@@ -56,18 +56,18 @@ type ImportThingModelResult struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
-	Attachments        *AttachmentsList     `json:"attachments,omitempty"`
-	Links              *InventoryEntryLinks `json:"links,omitempty"`
-	SchemaAuthor       SchemaAuthor         `json:"schema:author"`
-	SchemaManufacturer SchemaManufacturer   `json:"schema:manufacturer"`
-	SchemaMpn          string               `json:"schema:mpn"`
+	Attachments *AttachmentsList     `json:"attachments,omitempty"`
+	Links       *InventoryEntryLinks `json:"links,omitempty"`
 
-	// Source The name of the source repository where the inventory entry or version resides.
-	// The may be left empty when there is only a single repository served by the backend and thus there is not need for
+	// Repo The name of the source repository where the inventory entry or version resides.
+	// May be left empty when there is only a single repository served by the backend and thus there is not need for
 	// disambiguation. See also '/repos'
-	Source   *SourceRepository       `json:"source,omitempty"`
-	TmName   string                  `json:"tmName"`
-	Versions []InventoryEntryVersion `json:"versions"`
+	Repo               *SourceRepository       `json:"repo,omitempty"`
+	SchemaAuthor       SchemaAuthor            `json:"schema:author"`
+	SchemaManufacturer SchemaManufacturer      `json:"schema:manufacturer"`
+	SchemaMpn          string                  `json:"schema:mpn"`
+	TmName             string                  `json:"tmName"`
+	Versions           []InventoryEntryVersion `json:"versions"`
 }
 
 // InventoryEntryLinks defines model for InventoryEntryLinks.
@@ -77,7 +77,7 @@ type InventoryEntryLinks struct {
 
 // InventoryEntryResponse defines model for InventoryEntryResponse.
 type InventoryEntryResponse struct {
-	Data InventoryEntry `json:"data"`
+	Data []InventoryEntry `json:"data"`
 }
 
 // InventoryEntryVersion defines model for InventoryEntryVersion.
@@ -88,10 +88,10 @@ type InventoryEntryVersion struct {
 	ExternalID  string                      `json:"externalID"`
 	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
 
-	// Source The name of the source repository where the inventory entry or version resides.
-	// The may be left empty when there is only a single repository served by the backend and thus there is not need for
+	// Repo The name of the source repository where the inventory entry or version resides.
+	// May be left empty when there is only a single repository served by the backend and thus there is not need for
 	// disambiguation. See also '/repos'
-	Source    *SourceRepository `json:"source,omitempty"`
+	Repo      *SourceRepository `json:"repo,omitempty"`
 	Timestamp string            `json:"timestamp"`
 	TmID      string            `json:"tmID"`
 	Version   ModelVersion      `json:"version"`
@@ -166,7 +166,7 @@ type SchemaManufacturer struct {
 }
 
 // SourceRepository The name of the source repository where the inventory entry or version resides.
-// The may be left empty when there is only a single repository served by the backend and thus there is not need for
+// May be left empty when there is only a single repository served by the backend and thus there is not need for
 // disambiguation. See also '/repos'
 type SourceRepository = string
 
@@ -258,8 +258,8 @@ type GetInventoryByFetchNameParams struct {
 
 // GetInventoryByNameParams defines parameters for GetInventoryByName.
 type GetInventoryByNameParams struct {
-	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
-	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // GetInventoryByIDParams defines parameters for GetInventoryByID.

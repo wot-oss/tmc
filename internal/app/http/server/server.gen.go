@@ -38,7 +38,7 @@ type ServerInterface interface {
 	// Get the metadata of the most recent TM version matching the name
 	// (GET /inventory/.latest/{fetchName})
 	GetInventoryByFetchName(w http.ResponseWriter, r *http.Request, fetchName FetchName, params GetInventoryByFetchNameParams)
-	// Get an inventory entry by TM name
+	// Get inventory entries by TM name
 	// (GET /inventory/.tmName/{tmName})
 	GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string, params GetInventoryByNameParams)
 	// Get the metadata of a single TM by ID

@@ -249,12 +249,15 @@ func toInventoryResponse(ctx context.Context, res model.SearchResult) server.Inv
 	return resp
 }
 
-func toInventoryEntryResponse(ctx context.Context, e model.FoundEntry) server.InventoryEntryResponse {
+func toInventoryEntryResponse(ctx context.Context, es []model.FoundEntry) server.InventoryEntryResponse {
 	mapper := NewMapper(ctx)
 
-	invEntry := mapper.GetInventoryEntry(e)
+	var ses []server.InventoryEntry
+	for _, e := range es {
+		ses = append(ses, mapper.GetInventoryEntry(e))
+	}
 	resp := server.InventoryEntryResponse{
-		Data: invEntry,
+		Data: ses,
 	}
 	return resp
 }

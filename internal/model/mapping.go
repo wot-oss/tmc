@@ -62,12 +62,17 @@ func NewInventoryResponseToSearchResultMapper(s FoundSource, linksMapper func(li
 
 func (m *InventoryResponseToSearchResultMapper) ToSearchResult(inv server.InventoryResponse) SearchResult {
 	r := SearchResult{}
-	var es []FoundEntry
-	for _, e := range inv.Data {
-		es = append(es, m.ToFoundEntry(e))
-	}
+	es := m.ToFoundEntries(inv.Data)
 	r.Entries = es
 	return r
+}
+
+func (m *InventoryResponseToSearchResultMapper) ToFoundEntries(entries []server.InventoryEntry) []FoundEntry {
+	var es []FoundEntry
+	for _, e := range entries {
+		es = append(es, m.ToFoundEntry(e))
+	}
+	return es
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryEntry) FoundEntry {
@@ -80,7 +85,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryE
 		AttachmentContainer: AttachmentContainer{
 			Attachments: m.ToFoundVersionAttachments(e.Attachments),
 		},
-		FoundIn: m.subRepoFoundSource(e.Source),
+		FoundIn: m.subRepoFoundSource(e.Repo),
 	}
 }
 
@@ -106,7 +111,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersion(v server.Inventor
 				Attachments: m.ToFoundVersionAttachments(v.Attachments),
 			},
 		},
-		FoundIn: m.subRepoFoundSource(v.Source),
+		FoundIn: m.subRepoFoundSource(v.Repo),
 	}
 	return version
 }

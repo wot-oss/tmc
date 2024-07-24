@@ -385,9 +385,7 @@ func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.S
 				return model.SearchResult{}, err
 			}
 			return model.SearchResult{
-				Entries: []model.FoundEntry{
-					mapper.ToFoundEntry(tm.Data),
-				},
+				Entries: mapper.ToFoundEntries(tm.Data),
 			}, nil
 		} else {
 			var inv server.InventoryResponse
@@ -453,8 +451,8 @@ func (t *TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersi
 	log := slog.Default()
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
-		log.Error("Please specify a repoName to show the TM.")
-		return nil, errors.New("please specify a repoName to show the TM")
+		log.Error("cannot show versions for empty TM name.")
+		return nil, errors.New("cannot show versions for empty TM name")
 	}
 	reqUrl := t.parsedRoot.JoinPath("inventory", tmNamePath, url.PathEscape(name))
 	t.addRepoParam(reqUrl)
@@ -474,13 +472,17 @@ func (t *TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersi
 		if err != nil {
 			return nil, err
 		}
-		if len(vResp.Data.Versions) != 1 {
+		var versions []server.InventoryEntryVersion
+		for _, e := range vResp.Data {
+			versions = append(versions, e.Versions...)
+		}
+		if len(versions) == 0 {
 			log.Error(fmt.Sprintf("No thing models found for TM name: %s", name))
 			return nil, ErrTMNameNotFound
 		}
 
-		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper).
-			ToFoundVersions(vResp.Data.Versions), nil
+		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
+		return mapper.ToFoundVersions(versions), nil
 	case http.StatusNotFound:
 		return nil, ErrTMNameNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:

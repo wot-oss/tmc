@@ -377,7 +377,7 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 		return nil, err
 	}
 	match, actualId := f.getExistingID(tmID)
-	if match != idMatchFull && match != idMatchDigest {
+	if match != idMatchFull {
 		return nil, ErrTMNotFound
 	}
 
