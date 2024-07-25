@@ -39,6 +39,7 @@ paths:
       description: Returns the catalogs inventory
       operationId: getInventory
       parameters:
+        - $ref: '#/components/parameters/RepoConstraint'
         - name: 'filter.author'
           in: query
           description: |
@@ -114,20 +115,21 @@ paths:
       tags:
         - inventory
       summary: Get the metadata of a single TM by ID
-      description: Returns the metadata of a single TM
+      description: Returns the metadata of a single TM as a list which contains at most one inventory entry per repository
       operationId: getInventoryByID
       parameters:
         - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/RepoConstraint'
       responses:
         '200':
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InventoryEntryVersionResponse'
+                $ref: '#/components/schemas/InventoryEntryVersionsResponse'
               examples:
                 inventoryEntryVersion:
-                  $ref: '#/components/examples/InventoryEntryVersionResponseExample'
+                  $ref: '#/components/examples/InventoryEntryVersionsResponseExample'
         '400':
           description: Invalid ID supplied
           content:
@@ -156,6 +158,7 @@ paths:
       description: Returns the metadata of the most recent TM version matching the fetch name
       operationId: getInventoryByFetchName
       parameters:
+        - $ref: '#/components/parameters/RepoConstraint'
         - $ref: '#/components/parameters/FetchName'
       responses:
         '200':
@@ -191,17 +194,18 @@ paths:
     get:
       tags:
         - inventory
-      summary: Get an inventory entry by TM name
-      description: Returns a single inventory entry
+      summary: Get inventory entries by TM name
+      description: Returns a list of inventory entries with the given TM name from all repositories
       operationId: getInventoryByName
       parameters:
         - name: tmName
           in: path
-          description: Name of the inventory entry
+          description: Name of inventory entry
           required: true
           schema:
             type: string
           example: 'siemens/siemens/poc1000'
+        - $ref: '#/components/parameters/RepoConstraint'
       responses:
         '200':
           description: Successful operation
@@ -242,6 +246,7 @@ paths:
       operationId: getThingModelById
       parameters:
         - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/RepoConstraint'
         - name: restoreId
           in: query
           description: restore the TM's original external id, if it had one
@@ -290,6 +295,7 @@ paths:
       operationId: deleteThingModelById
       parameters:
         - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/RepoDisambiguator'
         - name: force
           in: query
           description: flag to force the deletion. must be set to "true"
@@ -326,6 +332,7 @@ paths:
         Returns the actual content of the Thing Model selected by given fetch name.
       operationId: getThingModelByFetchName
       parameters:
+        - $ref: '#/components/parameters/RepoConstraint'
         - $ref: '#/components/parameters/FetchName'
         - name: restoreId
           in: query
@@ -375,6 +382,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -412,6 +420,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       requestBody:
         description: Add a new attachment or overwrite an existing one
         content:
@@ -446,6 +455,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '204':
           description: Successful operation
@@ -480,6 +490,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -517,6 +528,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       requestBody:
         description: Add a new attachment or overwrite an existing one
         content:
@@ -551,6 +563,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '204':
           description: Successful operation
@@ -582,6 +595,7 @@ paths:
       description: Import a Thing Model
       operationId: importThingModel
       parameters:
+        - $ref: '#/components/parameters/RepoDisambiguator'
         - name: force
           in: query
           description: flag to force the import, ignoring any conflicts with existing TMs
@@ -1014,6 +1028,8 @@ components:
         schema:mpn:
           type: string
           example: 'POC1000'
+        repo:
+          $ref: '#/components/schemas/SourceRepository'
         versions:
           type: array
           items:
@@ -1029,6 +1045,15 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/InventoryEntryVersion'
+    InventoryEntryVersionsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntryVersion'
     InventoryEntryVersion:
       required:
         - tmID
@@ -1056,6 +1081,8 @@ components:
         timestamp:
           type: string
           example: '20231201133246'
+        repo:
+          $ref: '#/components/schemas/SourceRepository'
         links:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
         attachments:
@@ -1100,7 +1127,9 @@ components:
         - data
       properties:
         data:
-          $ref: '#/components/schemas/InventoryEntry'
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryEntry'
     ImportThingModelResponse:
       required:
         - data
@@ -1139,6 +1168,13 @@ components:
           type: string
           format: uri-reference
           example: './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json/.attachments/README.md'
+    SourceRepository:
+      type: string
+      example: 'global'
+      description: |
+        The name of the source repository where the inventory entry or version resides. 
+        May be left empty when there is only a single repository served by the backend and thus there is not need for
+        disambiguation. See also '/repos'
     ManufacturersResponse:
       type: object
       required:
@@ -1290,6 +1326,22 @@ components:
       schema:
         type: string
       example: 'README.md'
+    RepoDisambiguator:
+      name: repo
+      in: query
+      description: Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+      required: false
+      schema:
+        type: string
+      example: 'global'
+    RepoConstraint:
+      name: 'repo'
+      in: query
+      description: Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+      required: false
+      schema:
+        type: string
+      example: 'global'
 
   responses:
     UnauthorizedError:
@@ -1306,52 +1358,52 @@ components:
     InventoryEntryResponseExample:
       value:
         data:
-          'links':
-            'self': './inventory/.tmName/siemens/siemens/poc1000'
-          'tmName': 'siemens/siemens/poc1000'
-          'schema:author':
-            'schema:name': 'siemens'
-          'schema:manufacturer':
-            'schema:name': 'siemens'
-          'schema:mpn': 'POC1000'
-          'versions':
-            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
-              'digest': '2cd14601ef09'
-              'externalID': '{{ID}}'
-              'links':
-                'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-                'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-              'timestamp': '20240108112117'
-              'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
-              'version':
-                'model': '1.0.0'
-            - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
-              'digest': 'f4184d08a02c'
-              'externalID': '{{ID}}'
-              'links':
-                'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-                'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-              'timestamp': '20231217140234'
-              'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
-              'version':
-                'model': '0.0.0'
-            - 'description': ''
-              'digest': 'e1594d08a01b'
-              'externalID': '{{ID}}'
-              'links':
-                'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-                'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-              'timestamp': '20231201133246'
-              'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
-              'version':
-                'model': '0.0.0'
-          attachments:
-            - name: 'README.md'
-              links:
-                content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
-            - name: 'User Manual.pdf'
-              links:
-                content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
+          - 'links':
+              'self': './inventory/.tmName/siemens/siemens/poc1000'
+            'tmName': 'siemens/siemens/poc1000'
+            'schema:author':
+              'schema:name': 'siemens'
+            'schema:manufacturer':
+              'schema:name': 'siemens'
+            'schema:mpn': 'POC1000'
+            'versions':
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': '2cd14601ef09'
+                'externalID': '{{ID}}'
+                'links':
+                  'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'timestamp': '20240108112117'
+                'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'version':
+                  'model': '1.0.0'
+              - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+                'digest': 'f4184d08a02c'
+                'externalID': '{{ID}}'
+                'links':
+                  'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'timestamp': '20231217140234'
+                'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'version':
+                  'model': '0.0.0'
+              - 'description': ''
+                'digest': 'e1594d08a01b'
+                'externalID': '{{ID}}'
+                'links':
+                  'self': './inventory/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                  'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'timestamp': '20231201133246'
+                'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'version':
+                  'model': '0.0.0'
+            attachments:
+              - name: 'README.md'
+                links:
+                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
+              - name: 'User Manual.pdf'
+                links:
+                  content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
     InventoryEntryVersionResponseExample:
       value:
         'data':
@@ -1365,6 +1417,19 @@ components:
           'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
           'version':
             'model': '1.0.0'
+    InventoryEntryVersionsResponseExample:
+      value:
+        'data':
+          - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
+            'digest': '2cd14601ef09'
+            'externalID': '{{ID}}'
+            'links':
+              'self': './inventory/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+              'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'timestamp': '20240108112117'
+            'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'version':
+              'model': '1.0.0'
     InventoryResponseExample:
       value:
         meta:

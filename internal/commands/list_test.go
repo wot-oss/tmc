@@ -25,12 +25,14 @@ func TestListCommand_List(t *testing.T) {
 					Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 					Mpn:          "senseall",
 					Author:       model.SchemaAuthor{Name: "omnicorp"},
+					FoundIn:      model.FoundSource{RepoName: "r1"},
 				},
 				{
 					Name:         "omnicorp/lightall",
 					Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 					Mpn:          "lightall",
 					Author:       model.SchemaAuthor{Name: "omnicorp"},
+					FoundIn:      model.FoundSource{RepoName: "r1"},
 				},
 			},
 		}, nil)
@@ -41,12 +43,14 @@ func TestListCommand_List(t *testing.T) {
 					Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 					Mpn:          "senseall",
 					Author:       model.SchemaAuthor{Name: "omnicorp"},
+					FoundIn:      model.FoundSource{RepoName: "r2"},
 				},
 				{
 					Name:         "omnicorp/actall",
 					Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 					Mpn:          "actall",
 					Author:       model.SchemaAuthor{Name: "omnicorp"},
+					FoundIn:      model.FoundSource{RepoName: "r2"},
 				},
 			},
 		}, nil)
@@ -54,10 +58,15 @@ func TestListCommand_List(t *testing.T) {
 		res, err, _ := List(context.Background(), model.EmptySpec, params)
 
 		assert.NoError(t, err)
-		assert.Len(t, res.Entries, 3)
-		assert.Equal(t, "omnicorp/actall", res.Entries[0].Name)
-		assert.Equal(t, "omnicorp/lightall", res.Entries[1].Name)
-		assert.Equal(t, "omnicorp/senseall", res.Entries[2].Name)
+		if assert.Len(t, res.Entries, 4) {
+			assert.Equal(t, "omnicorp/actall", res.Entries[0].Name)
+			assert.Equal(t, "r2", res.Entries[0].FoundIn.RepoName)
+			assert.Equal(t, "omnicorp/lightall", res.Entries[1].Name)
+			assert.Equal(t, "omnicorp/senseall", res.Entries[2].Name)
+			assert.Equal(t, "r1", res.Entries[2].FoundIn.RepoName)
+			assert.Equal(t, "omnicorp/senseall", res.Entries[3].Name)
+			assert.Equal(t, "r2", res.Entries[3].FoundIn.RepoName)
+		}
 	})
 	t.Run("one error", func(t *testing.T) {
 		r1 := mocks.NewRepo(t)

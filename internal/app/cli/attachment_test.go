@@ -34,13 +34,13 @@ func TestAttachmentList(t *testing.T) {
 		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmName)
 		assert.NoError(t, err)
 		stdout := getOutput()
-		assert.Equal(t, "README.md\nUser Guide.pdf\n", stdout)
+		assert.Equal(t, "NAME            REPO\nREADME.md       \nUser Guide.pdf  \n", stdout)
 	})
 	t.Run("with resourceId", func(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmId := "author/manufacturer/mpn/v0.0.0-20240521143452-d662e089b3eb.tm.json"
-		r.On("GetTMMetadata", ctx, tmId).Return(&model.FoundVersion{
+		r.On("GetTMMetadata", ctx, tmId).Return([]model.FoundVersion{{
 			IndexVersion: model.IndexVersion{
 				AttachmentContainer: model.AttachmentContainer{[]model.Attachment{
 					{Name: "README.md"},
@@ -48,11 +48,11 @@ func TestAttachmentList(t *testing.T) {
 				}},
 			},
 			FoundIn: model.FoundSource{},
-		}, nil).Once()
+		}}, nil).Once()
 		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmId)
 		assert.NoError(t, err)
 		stdout := getOutput()
-		assert.Equal(t, "README.md\nUser Guide.pdf\n", stdout)
+		assert.Equal(t, "NAME            REPO\nREADME.md       \nUser Guide.pdf  \n", stdout)
 	})
 }
 

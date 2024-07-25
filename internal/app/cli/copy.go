@@ -83,7 +83,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 					case repos.ImportResultOK:
 						totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
 					}
-					spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
+					spec := model.NewSpecFromFoundSource(entry.FoundIn)
 					aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
 					if err == nil && aErr != nil {
 						err = aErr

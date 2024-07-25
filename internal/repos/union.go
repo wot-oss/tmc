@@ -105,6 +105,20 @@ func (u *Union) List(ctx context.Context, search *model.SearchParams) (model.Sea
 	return *r, errs
 }
 
+func (u *Union) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, []*RepoAccessError) {
+	mapper := func(r Repo) mapResult[[]model.FoundVersion] {
+		vers, err := r.GetTMMetadata(ctx, tmID)
+		if errors.Is(err, ErrTMNotFound) {
+			return mapResult[[]model.FoundVersion]{res: nil, err: nil}
+		}
+		return mapResult[[]model.FoundVersion]{res: vers, err: newRepoAccessError(r, err)}
+	}
+	var ident []model.FoundVersion
+	results := mapConcurrent(ctx, u.rs, mapper)
+	res, errs := reduce(results, ident, model.MergeFoundVersions)
+	return res, errs
+}
+
 // reduce reads results from ch until ch is closed and reduces them to a single result with identity as the starting value
 func reduce[T any](ch <-chan mapResult[T], identity T, reducer func(t1, t2 T) T) (T, []*RepoAccessError) {
 	accumulator := identity

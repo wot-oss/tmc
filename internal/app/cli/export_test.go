@@ -26,6 +26,7 @@ var exportListRes = model.SearchResult{
 			Author:       model.SchemaAuthor{Name: "a-corp"},
 			Manufacturer: model.SchemaManufacturer{Name: "eagle"},
 			Mpn:          "bt2000",
+			FoundIn:      model.FoundSource{RepoName: "r1"},
 			Versions: []model.FoundVersion{
 				{
 					IndexVersion: model.IndexVersion{
@@ -66,6 +67,7 @@ var exportListRes = model.SearchResult{
 			Author:       model.SchemaAuthor{Name: "b-corp"},
 			Manufacturer: model.SchemaManufacturer{Name: "frog"},
 			Mpn:          "bt3000",
+			FoundIn:      model.FoundSource{RepoName: "r1"},
 			Versions: []model.FoundVersion{
 				{
 					IndexVersion: model.IndexVersion{

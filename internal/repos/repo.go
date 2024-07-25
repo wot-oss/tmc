@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/viper"
 	"github.com/wot-oss/tmc/internal/config"
@@ -21,6 +22,7 @@ const (
 	KeyRepoAuth        = "auth"
 	KeyRepoEnabled     = "enabled"
 	KeyRepoDescription = "description"
+	keySubRepo         = "keySubRepo"
 
 	RepoTypeFile              = "file"
 	RepoTypeHttp              = "http"
@@ -114,7 +116,7 @@ type Repo interface {
 
 	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 
-	GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error)
+	GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error)
 	PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error
 	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
 	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
@@ -137,8 +139,10 @@ var Get = func(spec model.RepoSpec) (Repo, error) {
 		return nil, err
 	}
 	repos = filterEnabled(repos)
-	rc, ok := repos[spec.RepoName()]
-	if spec.RepoName() == "" {
+	parent, child := splitRepoName(spec.RepoName())
+	spec = model.NewRepoSpec(parent)
+	rc, ok := repos[parent]
+	if parent == "" {
 		switch len(repos) {
 		case 0:
 			return nil, ErrRepoNotFound
@@ -155,7 +159,15 @@ var Get = func(spec model.RepoSpec) (Repo, error) {
 			return nil, ErrRepoNotFound
 		}
 	}
+	if child != "" {
+		rc[keySubRepo] = child
+	}
 	return createRepo(rc, spec)
+}
+
+func splitRepoName(name string) (string, string) {
+	before, after, _ := strings.Cut(name, "/")
+	return before, after
 }
 
 func filterEnabled(repos Config) Config {

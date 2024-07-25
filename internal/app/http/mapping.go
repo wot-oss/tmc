@@ -46,14 +46,17 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 	invEntry.SchemaManufacturer.SchemaName = entry.Manufacturer.Name
 	invEntry.SchemaMpn = entry.Mpn
 	invEntry.Versions = m.GetInventoryEntryVersions(entry.Versions)
-
+	if entry.FoundIn.RepoName != "" {
+		invEntry.Repo = &entry.FoundIn.RepoName
+	}
 	hrefSelf, _ := url.JoinPath(basePathInventory, tmNamePath, entry.Name)
+	hrefSelf = m.appendSourceRepo(hrefSelf, entry.FoundIn.RepoName)
 	hrefSelf = resolveRelativeLink(m.Ctx, hrefSelf)
 	links := server.InventoryEntryLinks{
 		Self: hrefSelf,
 	}
 
-	atts := m.GetAttachmentsList(model.NewTMNameAttachmentContainerRef(entry.Name), entry.AttachmentContainer)
+	atts := m.GetAttachmentsList(model.NewTMNameAttachmentContainerRef(entry.Name), entry.AttachmentContainer, entry.FoundIn.RepoName)
 
 	invEntry.Links = &links
 	if atts != nil {
@@ -86,7 +89,11 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 	hrefContent, _ := url.JoinPath(basePathThingModels, version.TMID)
 	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
 
+	if version.FoundIn.RepoName != "" {
+		invVersion.Repo = &version.FoundIn.RepoName
+	}
 	hrefSelf, _ := url.JoinPath(basePathInventory, version.TMID)
+	hrefSelf = m.appendSourceRepo(hrefSelf, version.FoundIn.RepoName)
 	hrefSelf = resolveRelativeLink(m.Ctx, hrefSelf)
 
 	links := server.InventoryEntryVersionLinks{
@@ -96,7 +103,7 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 
 	invVersion.Links = &links
 
-	atts := m.GetAttachmentsList(model.NewTMIDAttachmentContainerRef(version.TMID), version.AttachmentContainer)
+	atts := m.GetAttachmentsList(model.NewTMIDAttachmentContainerRef(version.TMID), version.AttachmentContainer, version.FoundIn.RepoName)
 	if atts != nil {
 		invVersion.Attachments = &atts
 	}
@@ -104,17 +111,17 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 	return invVersion
 }
 
-func (m *Mapper) GetAttachmentsList(ref model.AttachmentContainerRef, container model.AttachmentContainer) server.AttachmentsList {
+func (m *Mapper) GetAttachmentsList(ref model.AttachmentContainerRef, container model.AttachmentContainer, foundInRepo string) server.AttachmentsList {
 	var attList server.AttachmentsList
 	for _, v := range container.Attachments {
-		att := m.GetAttachmentListEntry(ref, v)
+		att := m.GetAttachmentListEntry(ref, v, foundInRepo)
 		attList = append(attList, att)
 	}
 
 	return attList
 }
 
-func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a model.Attachment) server.AttachmentsListEntry {
+func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a model.Attachment, foundInRepo string) server.AttachmentsListEntry {
 	var containerPrefix string
 	switch ref.Kind() {
 	case model.AttachmentContainerKindTMID:
@@ -123,6 +130,7 @@ func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a mode
 		containerPrefix = path.Join(tmNamePath, ref.TMName)
 	}
 	hrefContent, _ := url.JoinPath(basePathThingModels, containerPrefix, ".attachments", a.Name)
+	hrefContent = m.appendSourceRepo(hrefContent, foundInRepo)
 	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
 
 	links := server.AttachmentLinks{
@@ -134,6 +142,21 @@ func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a mode
 	}
 
 	return entry
+}
+
+func (m *Mapper) appendSourceRepo(href, repoName string) string {
+	if repoName == "" {
+		return href
+	}
+	u, err := url.Parse(href)
+	if err != nil {
+		return href
+	}
+	vals := u.Query()
+	vals.Set("repo", repoName)
+	u.RawQuery = vals.Encode()
+
+	return u.String()
 }
 
 func resolveRelativeLink(ctx context.Context, link string) string {

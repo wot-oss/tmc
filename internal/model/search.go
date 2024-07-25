@@ -22,10 +22,16 @@ type FoundEntry struct {
 	Mpn          string
 	Author       SchemaAuthor
 	Versions     []FoundVersion
+	FoundIn      FoundSource
 	AttachmentContainer
 }
 type FoundVersion struct {
 	IndexVersion
+	FoundIn FoundSource
+}
+
+type FoundAttachment struct {
+	Attachment
 	FoundIn FoundSource
 }
 
@@ -36,9 +42,9 @@ type FoundSource struct {
 
 func (s FoundSource) String() string {
 	if s.Directory != "" {
-		return s.Directory
+		return "<" + s.Directory + ">"
 	}
-	return "<" + s.RepoName + ">"
+	return s.RepoName
 }
 
 func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
@@ -47,29 +53,18 @@ func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
 		tmid1, _ := ParseTMID(a.TMID)
 		tmid2, _ := ParseTMID(b.TMID)
 		if tmid1.Equals(tmid2) {
-			return -strings.Compare(tmid1.Version.Timestamp, tmid2.Version.Timestamp) // sort in reverse chronological order within the same TMID
+			tc := strings.Compare(tmid1.Version.Timestamp, tmid2.Version.Timestamp)
+			if tc != 0 {
+				return -tc // sort in reverse chronological order within the same TMID
+			}
 		}
-		return strings.Compare(a.TMID, b.TMID)
-	})
-	return slices.CompactFunc(vs1, func(v1, v2 FoundVersion) bool {
-		tmid1, _ := ParseTMID(v1.TMID)
-		tmid2, _ := ParseTMID(v2.TMID)
-		return tmid1.Equals(tmid2)
-	})
-}
-
-func (r FoundEntry) Merge(other FoundEntry) FoundEntry {
-	if r.Name == "" {
-		return FoundEntry{
-			Name:         other.Name,
-			Manufacturer: other.Manufacturer,
-			Mpn:          other.Mpn,
-			Author:       other.Author,
-			Versions:     other.Versions,
+		ic := strings.Compare(a.TMID, b.TMID)
+		if ic != 0 {
+			return ic
 		}
-	}
-	r.Versions = MergeFoundVersions(r.Versions, other.Versions)
-	return r
+		return strings.Compare(a.FoundIn.RepoName, b.FoundIn.RepoName)
+	})
+	return vs1
 }
 
 func (sr *SearchResult) Merge(other *SearchResult) {
@@ -79,23 +74,13 @@ func (sr *SearchResult) Merge(other *SearchResult) {
 func mergeFoundEntries(e1, e2 []FoundEntry) []FoundEntry {
 	e1 = append(e1, e2...)
 	slices.SortStableFunc(e1, func(a, b FoundEntry) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	if len(e1) < 2 {
-		return e1
-	}
-	i := 1
-	for k := 1; k < len(e1); k++ {
-		if e1[k].Name != e1[k-1].Name {
-			if i != k {
-				e1[i] = e1[k]
-			}
-			i++
-		} else {
-			e1[k-1] = e1[k-1].Merge(e1[k])
+		nc := strings.Compare(a.Name, b.Name)
+		if nc != 0 {
+			return nc
 		}
-	}
-	return e1[:i]
+		return strings.Compare(a.FoundIn.RepoName, b.FoundIn.RepoName)
+	})
+	return e1
 }
 
 type SearchParams struct {

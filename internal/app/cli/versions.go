@@ -30,7 +30,7 @@ func printIndexThing(name string, versions []model.FoundVersion) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tDESCRIPTION\tREPOSITORY\tID\n")
+	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tDESCRIPTION\tREPO\tID\n")
 	for _, v := range versions {
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.Description, v.FoundIn, v.Links["content"])
 	}

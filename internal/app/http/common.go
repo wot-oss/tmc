@@ -15,15 +15,16 @@ import (
 )
 
 const (
-	Error400Title  = "Bad Request"
-	Error401Title  = "Unauthorized"
-	Error404Title  = "Not Found"
-	Error409Title  = "Conflict"
-	Error503Title  = "Service Unavailable"
-	Error500Title  = "Internal Server Error"
-	Error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
-	Error502Title  = "Bad Gateway"
-	Error502Detail = "An upstream Thing Model repository returned an error"
+	Error400Title            = "Bad Request"
+	Error401Title            = "Unauthorized"
+	Error404Title            = "Not Found"
+	Error409Title            = "Conflict"
+	Error503Title            = "Service Unavailable"
+	Error500Title            = "Internal Server Error"
+	Error500Detail           = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
+	Error502Title            = "Bad Gateway"
+	Error502Detail           = "An upstream Thing Model repository returned an error"
+	ErrorRepoAmbiguousDetail = "Repository ambiguous. Repeat the request with the 'repo' query parameter"
 
 	HeaderAuthorization       = "Authorization"
 	HeaderContentType         = "Content-Type"
@@ -90,9 +91,14 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errors.Is(err, model.ErrInvalidIdOrName),
 		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
+		errors.Is(err, repos.ErrRepoNotFound),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
+	case errors.Is(err, repos.ErrAmbiguous):
+		errTitle = Error400Title
+		errDetail = ErrorRepoAmbiguousDetail
 		errStatus = http.StatusBadRequest
 	// handle error values we want to access with errors.As()
 	case errors.As(err, &nfErr):
@@ -199,6 +205,13 @@ func newBaseHttpError(err error, status int, title string, detail string, args .
 	return be
 }
 
+func convertRepoName(repo *string) string {
+	if repo != nil {
+		return *repo
+	}
+	return ""
+}
+
 func convertParams(params any) *model.SearchParams {
 
 	var filterAuthor *string
@@ -243,12 +256,15 @@ func toInventoryResponse(ctx context.Context, res model.SearchResult) server.Inv
 	return resp
 }
 
-func toInventoryEntryResponse(ctx context.Context, e model.FoundEntry) server.InventoryEntryResponse {
+func toInventoryEntryResponse(ctx context.Context, es []model.FoundEntry) server.InventoryEntryResponse {
 	mapper := NewMapper(ctx)
 
-	invEntry := mapper.GetInventoryEntry(e)
+	var ses []server.InventoryEntry
+	for _, e := range es {
+		ses = append(ses, mapper.GetInventoryEntry(e))
+	}
 	resp := server.InventoryEntryResponse{
-		Data: invEntry,
+		Data: ses,
 	}
 	return resp
 }
@@ -258,6 +274,16 @@ func toInventoryEntryVersionResponse(ctx context.Context, v model.FoundVersion) 
 
 	ev := mapper.GetInventoryEntryVersion(v)
 	resp := server.InventoryEntryVersionResponse{
+		Data: ev,
+	}
+	return resp
+}
+
+func toInventoryEntryVersionsResponse(ctx context.Context, v []model.FoundVersion) server.InventoryEntryVersionsResponse {
+	mapper := NewMapper(ctx)
+
+	ev := mapper.GetInventoryEntryVersions(v)
+	resp := server.InventoryEntryVersionsResponse{
 		Data: ev,
 	}
 	return resp

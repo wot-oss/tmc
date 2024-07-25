@@ -49,7 +49,7 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.SearchParams
 	var totalRes []operationResult
 	for _, entry := range searchResult.Entries {
 		if withAttachments {
-			spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
+			spec := model.NewSpecFromFoundSource(entry.FoundIn)
 			aRes, aErr := exportAttachments(ctx, spec, outputPath, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments)
 			if err == nil && aErr != nil {
 				err = aErr

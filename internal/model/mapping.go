@@ -1,6 +1,10 @@
 package model
 
-import "github.com/wot-oss/tmc/internal/app/http/server"
+import (
+	"fmt"
+
+	"github.com/wot-oss/tmc/internal/app/http/server"
+)
 
 type IndexToSearchResultMapper struct {
 	foundIn FoundSource
@@ -27,6 +31,7 @@ func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 		Mpn:                 e.Mpn,
 		Author:              e.Author,
 		Versions:            m.ToFoundVersions(e.Versions),
+		FoundIn:             m.foundIn,
 		AttachmentContainer: e.AttachmentContainer,
 	}
 }
@@ -57,12 +62,17 @@ func NewInventoryResponseToSearchResultMapper(s FoundSource, linksMapper func(li
 
 func (m *InventoryResponseToSearchResultMapper) ToSearchResult(inv server.InventoryResponse) SearchResult {
 	r := SearchResult{}
-	var es []FoundEntry
-	for _, e := range inv.Data {
-		es = append(es, m.ToFoundEntry(e))
-	}
+	es := m.ToFoundEntries(inv.Data)
 	r.Entries = es
 	return r
+}
+
+func (m *InventoryResponseToSearchResultMapper) ToFoundEntries(entries []server.InventoryEntry) []FoundEntry {
+	var es []FoundEntry
+	for _, e := range entries {
+		es = append(es, m.ToFoundEntry(e))
+	}
+	return es
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryEntry) FoundEntry {
@@ -75,6 +85,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryE
 		AttachmentContainer: AttachmentContainer{
 			Attachments: m.ToFoundVersionAttachments(e.Attachments),
 		},
+		FoundIn: m.subRepoFoundSource(e.Repo),
 	}
 }
 
@@ -100,7 +111,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersion(v server.Inventor
 				Attachments: m.ToFoundVersionAttachments(v.Attachments),
 			},
 		},
-		FoundIn: m.foundIn,
+		FoundIn: m.subRepoFoundSource(v.Repo),
 	}
 	return version
 }
@@ -129,4 +140,12 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundVersionLinks(v server.Inv
 	return map[string]string{
 		"content": v.Links.Content,
 	}
+}
+
+func (m *InventoryResponseToSearchResultMapper) subRepoFoundSource(source *server.SourceRepository) FoundSource {
+	fi := m.foundIn
+	if fi.RepoName != "" && source != nil && *source != "" {
+		fi = FoundSource{RepoName: fmt.Sprintf("%s/%s", fi.RepoName, *source)}
+	}
+	return fi
 }

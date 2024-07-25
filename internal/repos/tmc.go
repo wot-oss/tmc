@@ -27,6 +27,7 @@ const (
 // TmcRepo implements a Repo TM repository backed by an instance of TM catalog REST API server
 type TmcRepo struct {
 	baseHttpRepo
+	subRepo string
 }
 
 func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
@@ -34,13 +35,24 @@ func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
 	if err != nil {
 		return nil, err
 	}
-	r := &TmcRepo{baseHttpRepo: base}
+	sr, _ := config[keySubRepo].(string)
+	r := &TmcRepo{baseHttpRepo: base, subRepo: sr}
 	return r, nil
 }
 
 func (t *TmcRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
+	t.addRepoParam(reqUrl)
 	return fetchAttachment(ctx, reqUrl.String(), t.auth)
+}
+
+func (t *TmcRepo) addRepoParam(u *url.URL) {
+	if t.subRepo == "" {
+		return
+	}
+	vals := u.Query()
+	vals.Set("repo", t.subRepo)
+	u.RawQuery = vals.Encode()
 }
 
 func getContainerPath(ref model.AttachmentContainerRef) string {
@@ -98,6 +110,7 @@ func newErrorFromResponse(b []byte) error {
 
 func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
+	t.addRepoParam(reqUrl)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqUrl.String(), nil)
 	if err != nil {
 		return err
@@ -132,8 +145,9 @@ func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.Attachme
 
 }
 
-func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundVersion, error) {
+func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory", tmID)
+	t.addRepoParam(reqUrl)
 	resp, err := doGet(ctx, reqUrl.String(), t.auth)
 	if err != nil {
 		return nil, err
@@ -144,14 +158,14 @@ func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundV
 	}
 	switch resp.StatusCode {
 	case http.StatusOK:
-		var r server.InventoryEntryVersionResponse
+		var r server.InventoryEntryVersionsResponse
 		err = json.Unmarshal(b, &r)
 		if err != nil {
 			return nil, err
 		}
 		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
-		version := mapper.ToFoundVersion(r.Data)
-		return &version, nil
+		versions := mapper.ToFoundVersions(r.Data)
+		return versions, nil
 	case http.StatusNotFound:
 		var e server.ErrorResponse
 		err := json.Unmarshal(b, &e)
@@ -171,6 +185,7 @@ func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) (*model.FoundV
 
 func (t *TmcRepo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
+	t.addRepoParam(reqUrl)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqUrl.String(), bytes.NewBuffer(content))
 	if err != nil {
 		return err
@@ -206,6 +221,7 @@ func (t *TmcRepo) PushAttachment(ctx context.Context, container model.Attachment
 
 func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models")
+	t.addRepoParam(reqUrl)
 	vals := url.Values{}
 	if opts.Force {
 		vals["force"] = []string{"true"}
@@ -286,6 +302,7 @@ func (t *TmcRepo) Delete(ctx context.Context, id string) error {
 		"force": []string{"true"},
 	}
 	reqUrl.RawQuery = vals.Encode()
+	t.addRepoParam(reqUrl)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, reqUrl.String(), nil)
 	if err != nil {
@@ -321,6 +338,7 @@ func (t *TmcRepo) Spec() model.RepoSpec {
 }
 func (t *TmcRepo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", id)
+	t.addRepoParam(reqUrl)
 	return fetchTM(ctx, reqUrl.String(), t.auth)
 }
 
@@ -338,6 +356,7 @@ func (t *TmcRepo) RangeResources(context.Context, model.ResourceFilter, func(mod
 
 func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory")
+	t.addRepoParam(reqUrl)
 
 	single := false
 	if search != nil && search.Name != "" && search.Options.NameFilterType == model.FullMatch {
@@ -358,7 +377,7 @@ func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.S
 
 	switch resp.StatusCode {
 	case http.StatusOK:
-		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
+		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper) // fixme: should use a different mapper of spec to found source
 		if single {
 			var tm server.InventoryEntryResponse
 			err = json.Unmarshal(data, &tm)
@@ -366,9 +385,7 @@ func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.S
 				return model.SearchResult{}, err
 			}
 			return model.SearchResult{
-				Entries: []model.FoundEntry{
-					mapper.ToFoundEntry(tm.Data),
-				},
+				Entries: mapper.ToFoundEntries(tm.Data),
 			}, nil
 		} else {
 			var inv server.InventoryResponse
@@ -434,10 +451,11 @@ func (t *TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersi
 	log := slog.Default()
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
-		log.Error("Please specify a repoName to show the TM.")
-		return nil, errors.New("please specify a repoName to show the TM")
+		log.Error("cannot show versions for empty TM name.")
+		return nil, errors.New("cannot show versions for empty TM name")
 	}
 	reqUrl := t.parsedRoot.JoinPath("inventory", tmNamePath, url.PathEscape(name))
+	t.addRepoParam(reqUrl)
 	resp, err := doGet(ctx, reqUrl.String(), t.auth)
 	if err != nil {
 		return nil, err
@@ -454,13 +472,17 @@ func (t *TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersi
 		if err != nil {
 			return nil, err
 		}
-		if len(vResp.Data.Versions) != 1 {
+		var versions []server.InventoryEntryVersion
+		for _, e := range vResp.Data {
+			versions = append(versions, e.Versions...)
+		}
+		if len(versions) == 0 {
 			log.Error(fmt.Sprintf("No thing models found for TM name: %s", name))
 			return nil, ErrTMNameNotFound
 		}
 
-		return model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper).
-			ToFoundVersions(vResp.Data.Versions), nil
+		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
+		return mapper.ToFoundVersions(versions), nil
 	case http.StatusNotFound:
 		return nil, ErrTMNameNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
