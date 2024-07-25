@@ -187,7 +187,7 @@ func TestFileRepo_Fetch(t *testing.T) {
 
 }
 
-func TestFileRepo_Push(t *testing.T) {
+func TestFileRepo_Import(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
 	r := &FileRepo{
@@ -892,7 +892,7 @@ func TestFileRepo_FetchAttachment(t *testing.T) {
 	})
 }
 
-func TestFileRepo_PushAttachment(t *testing.T) {
+func TestFileRepo_ImportAttachment(t *testing.T) {
 	temp, _ := os.MkdirTemp("", "fr")
 	defer os.RemoveAll(temp)
 	r := &FileRepo{
@@ -905,15 +905,57 @@ func TestFileRepo_PushAttachment(t *testing.T) {
 	id := tmName + "/" + ver + TMExt
 	r2Name := "README2.md"
 	r2Content := []byte("# read this, too")
-	t.Run("tm name attachment", func(t *testing.T) {
-		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef(tmName), model.Attachment{Name: r2Name}, r2Content)
+	t.Run("tm name attachment without media type provided", func(t *testing.T) {
+		ref := model.NewTMNameAttachmentContainerRef(tmName)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name}, r2Content)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, r2Name))
+		index, err := r.readIndex()
+		if assert.NoError(t, err) {
+			c, _, _ := index.FindAttachmentContainer(ref)
+			att, found := c.FindAttachment(r2Name)
+			assert.True(t, found)
+			assert.NotEmpty(t, att.MediaType)
+		}
 	})
-	t.Run("tm id attachment", func(t *testing.T) {
-		err := r.ImportAttachment(context.Background(), model.NewTMIDAttachmentContainerRef(id), model.Attachment{Name: r2Name}, r2Content)
+	t.Run("tm name attachment with media type", func(t *testing.T) {
+		ref := model.NewTMNameAttachmentContainerRef(tmName)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/html"}, r2Content)
+		assert.NoError(t, err)
+		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, r2Name))
+		index, err := r.readIndex()
+		if assert.NoError(t, err) {
+			c, _, _ := index.FindAttachmentContainer(ref)
+			att, found := c.FindAttachment(r2Name)
+			assert.True(t, found)
+			assert.Equal(t, "text/html", att.MediaType)
+		}
+	})
+	t.Run("tm id attachment with media type provided by user", func(t *testing.T) {
+		ref := model.NewTMIDAttachmentContainerRef(id)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/markdown"}, r2Content)
 		assert.NoError(t, err)
 		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, ver, r2Name))
+		index, err := r.readIndex()
+		if assert.NoError(t, err) {
+			c, _, _ := index.FindAttachmentContainer(ref)
+			att, found := c.FindAttachment(r2Name)
+			assert.True(t, found)
+			assert.Equal(t, "text/markdown", att.MediaType)
+		}
+	})
+	t.Run("tm id attachment without media type", func(t *testing.T) {
+		ref := model.NewTMIDAttachmentContainerRef(id)
+		err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: r2Name, MediaType: "text/markdown"}, r2Content)
+		assert.NoError(t, err)
+		assert.FileExists(t, filepath.Join(temp, tmName, model.AttachmentsDir, ver, r2Name))
+		index, err := r.readIndex()
+		if assert.NoError(t, err) {
+			c, _, _ := index.FindAttachmentContainer(ref)
+			att, found := c.FindAttachment(r2Name)
+			assert.True(t, found)
+			assert.Equal(t, "text/markdown", att.MediaType)
+		}
 	})
 	t.Run("non existent tm name", func(t *testing.T) {
 		err := r.ImportAttachment(context.Background(), model.NewTMNameAttachmentContainerRef("omnicorp-tm-department/omnicorp/omnidarkness"), model.Attachment{Name: r2Name}, r2Content)

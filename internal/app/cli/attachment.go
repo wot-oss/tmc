@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -60,7 +59,7 @@ func printAttachments(atts []model.FoundAttachment) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tMIME\tREPO\n")
+	_, _ = fmt.Fprintf(table, "NAME\tMediaType\tREPO\n")
 	for _, value := range atts {
 		name := value.Name
 		ct := elideString(fmt.Sprintf("%v", value.MediaType), colWidth)
@@ -89,7 +88,7 @@ func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, file
 	}
 	err = commands.ImportAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), model.Attachment{
 		Name:      filepath.Base(filename),
-		MediaType: utils.DetectMediaType(mediaType, filename, bytes.NewBuffer(raw)),
+		MediaType: mediaType,
 	}, raw)
 	if err != nil {
 		Stderrf("Failed to put attachment %s to %s: %v", filename, tmNameOrId, err)

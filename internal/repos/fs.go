@@ -1,12 +1,10 @@
 package repos
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -590,46 +588,19 @@ func findAttachmentContainer(index *model.Index, ref model.AttachmentContainerRe
 	}, nil
 }
 
-type readableAttachment struct {
-	name string
-	rc   io.ReadCloser
-}
-
-type lazyFileReadCloser struct {
-	fName string
-	file  *os.File
-}
-
-func (rc *lazyFileReadCloser) Read(p []byte) (int, error) {
-	if rc.file == nil {
-		var err error
-		rc.file, err = os.Open(rc.fName)
-		if err != nil {
-			return 0, err
-		}
-	}
-	return rc.file.Read(p)
-}
-func (rc *lazyFileReadCloser) Close() error {
-	if rc.file != nil {
-		return rc.file.Close()
-	}
-	return nil
-}
-
-func getReadableAttachments(dir string) ([]readableAttachment, error) {
+func getFileNames(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
-	var attachments []readableAttachment
+	var files []string
 	for _, e := range entries {
 		if !e.IsDir() {
-			attachments = append(attachments, readableAttachment{e.Name(), &lazyFileReadCloser{fName: e.Name()}})
+			files = append(files, e.Name())
 		}
 	}
-	return attachments, nil
+	return files, nil
 }
 
 // getAttachmentsDir returns the directory where the attachments to the given tmNameOrId are stored
@@ -813,16 +784,15 @@ func (f *FileRepo) indexUpdaterForImportAttachment(ctx context.Context, ref mode
 			return nil, nil, 0, ctx.Err()
 		default:
 		}
-		cont, _, _ := oldIndex.FindAttachmentContainer(ref)
-		var mt string
-		if cont != nil {
-			oldAtt, _ := cont.FindAttachment(att.Name)
-			mt = oldAtt.MediaType
-		}
+		mt := att.MediaType
 		if mt == "" {
-			mt = att.MediaType
+			cont, _, _ := oldIndex.FindAttachmentContainer(ref)
+			if cont != nil {
+				oldAtt, _ := cont.FindAttachment(att.Name)
+				mt = oldAtt.MediaType
+			}
 		}
-		mediaType := utils.DetectMediaType(mt, att.Name, bytes.NewBuffer(content))
+		mediaType := utils.DetectMediaType(mt, att.Name, utils.ReadCloserGetterFromBytes(content))
 		a := model.Attachment{Name: att.Name, MediaType: mediaType}
 		err := oldIndex.InsertAttachments(ref, a)
 		return oldIndex, oldNames, 1, err
@@ -869,18 +839,17 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRef]struct{}, oldIndex *model.Index, newIndex *model.Index) error {
 	for ref, _ := range containers {
 		dir, _ := f.getAttachmentsDir(ref) // ref is sure to be valid
-		nameAttachments, err := getReadableAttachments(dir)
+		nameAttachments, err := getFileNames(dir)
 		if err != nil {
 			return err
 		}
 		container, _, _ := oldIndex.FindAttachmentContainer(ref)
 		var atts []model.Attachment
 		for _, na := range nameAttachments {
-			att, _ := container.FindAttachment(na.name)
+			att, _ := container.FindAttachment(na)
 			oldMt := att.MediaType
-			mediaType := utils.DetectMediaType(oldMt, na.name, na.rc)
-			_ = na.rc.Close()
-			a := model.Attachment{Name: na.name, MediaType: mediaType}
+			mediaType := utils.DetectMediaType(oldMt, na, utils.ReadCloserGetterFromFilename(na))
+			a := model.Attachment{Name: na, MediaType: mediaType}
 			atts = append(atts, a)
 		}
 		err = newIndex.InsertAttachments(ref, atts...)

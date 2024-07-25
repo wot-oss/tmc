@@ -1,7 +1,6 @@
 package http
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"slices"
@@ -289,7 +288,7 @@ func (dhs *defaultHandlerService) ImportAttachment(ctx context.Context, repo str
 	}
 	err = commands.ImportAttachment(ctx, spec, ref, model.Attachment{
 		Name:      attachmentFileName,
-		MediaType: utils.DetectMediaType(contentType, attachmentFileName, bytes.NewBuffer(content)),
+		MediaType: utils.DetectMediaType(contentType, attachmentFileName, utils.ReadCloserGetterFromBytes(content)),
 	}, content)
 	return err
 }

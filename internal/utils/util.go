@@ -259,21 +259,35 @@ func sanitizeAccents(s string) string {
 	return bs.String()
 }
 
+type ReadCloserGetter func() (io.ReadCloser, error)
+
+func ReadCloserGetterFromBytes(raw []byte) ReadCloserGetter {
+	return func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewBuffer(raw)), nil }
+}
+
+func ReadCloserGetterFromFilename(name string) ReadCloserGetter {
+	return func() (io.ReadCloser, error) { return os.Open(name) }
+}
+
 // DetectMediaType detects the media type of the file. The type provided by the user always takes precedence over
 // automatic detection, unless it is empty. The type is detected by http.DetectContenType. If that returns the
 // generic 'application/octet-stream', then the type is guessed from the filename extension.
 // If all of the above fails, it returns 'application/octet-stream'
-func DetectMediaType(userGivenType string, filename string, reader io.Reader) string {
+func DetectMediaType(userGivenType string, filename string, getReader ReadCloserGetter) string {
 	const mediaOctetStream = "application/octet-stream"
 	if userGivenType != "" {
 		return userGivenType
 	}
 
-	truncatedContent, err := io.ReadAll(io.LimitReader(reader, 512))
+	reader, err := getReader()
 	if err == nil {
-		ct := http.DetectContentType(truncatedContent)
-		if ct != mediaOctetStream {
-			return ct
+		defer reader.Close()
+		truncatedContent, err := io.ReadAll(io.LimitReader(reader, 512))
+		if err == nil {
+			ct := http.DetectContentType(truncatedContent)
+			if ct != mediaOctetStream {
+				return ct
+			}
 		}
 	}
 
