@@ -101,8 +101,16 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	match, _ := f.getExistingID(id)
-	if match != idMatchFull {
+	unlock, err := f.lockIndex(ctx)
+	if err != nil {
+		return err
+	}
+	defer unlock()
+	index, err := f.readIndex()
+	if err != nil {
+		return err
+	}
+	if index.FindByTMID(id) == nil {
 		return ErrTMNotFound
 	}
 	fullFilename, dir, _ := f.filenames(id)
@@ -111,11 +119,6 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 		return ErrTMNotFound
 	}
 	attDir, _ := f.getAttachmentsDir(model.NewTMIDAttachmentContainerRef(id))
-	unlock, err := f.lockIndex(ctx)
-	if err != nil {
-		return err
-	}
-	defer unlock()
 	h, err := f.listAttachments(model.NewTMIDAttachmentContainerRef(id))
 	if err != nil {
 		return err
@@ -376,17 +379,12 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 	if err != nil {
 		return nil, err
 	}
-	match, actualId := f.getExistingID(tmID)
-	if match != idMatchFull {
-		return nil, ErrTMNotFound
-	}
-
 	versions, err := f.Versions(ctx, id.Name)
 	if err != nil {
 		return nil, err
 	}
 	for _, v := range versions {
-		if v.TMID == actualId {
+		if v.TMID == tmID {
 			return []model.FoundVersion{v}, nil
 		}
 	}

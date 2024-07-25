@@ -205,6 +205,13 @@ func newBaseHttpError(err error, status int, title string, detail string, args .
 	return be
 }
 
+func convertRepoName(repo *string) string {
+	if repo != nil {
+		return *repo
+	}
+	return ""
+}
+
 func convertParams(params any) *model.SearchParams {
 
 	var filterAuthor *string

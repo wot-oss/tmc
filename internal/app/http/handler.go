@@ -35,7 +35,7 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 
 	searchParams := convertParams(params)
-	repo := convertToRepoName(params.Repo)
+	repo := convertRepoName(params.Repo)
 
 	inv, err := h.Service.ListInventory(r.Context(), repo, searchParams)
 
@@ -52,7 +52,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 // GetInventoryByName Get an inventory entry by inventory name
 // (GET /inventory/.tmName/{tmName})
 func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string, params server.GetInventoryByNameParams) {
-	repo := convertToRepoName(params.Repo)
+	repo := convertRepoName(params.Repo)
 	entries, err := h.Service.FindInventoryEntries(r.Context(), repo, tmName)
 
 	if err != nil {
@@ -68,7 +68,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 // GetInventoryByFetchName Get the metadata of the most recent TM version matching the name
 // (GET /inventory/.latest/{fetchName})
 func (h *TmcHandler) GetInventoryByFetchName(w http.ResponseWriter, r *http.Request, fetchName server.FetchName, params server.GetInventoryByFetchNameParams) {
-	entry, err := h.Service.GetLatestTMMetadata(r.Context(), convertToRepoName(params.Repo), fetchName)
+	entry, err := h.Service.GetLatestTMMetadata(r.Context(), convertRepoName(params.Repo), fetchName)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -88,7 +88,7 @@ func (h *TmcHandler) GetThingModelByFetchName(w http.ResponseWriter, r *http.Req
 		restoreId = *params.RestoreId
 	}
 
-	data, err := h.Service.FetchLatestThingModel(r.Context(), convertToRepoName(params.Repo), fetchName, restoreId)
+	data, err := h.Service.FetchLatestThingModel(r.Context(), convertRepoName(params.Repo), fetchName, restoreId)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -100,7 +100,7 @@ func (h *TmcHandler) GetThingModelByFetchName(w http.ResponseWriter, r *http.Req
 // GetInventoryById Get the metadata of a single TM by ID
 // (GET /inventory/{tmID})
 func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID server.TMID, params server.GetInventoryByIDParams) {
-	repo := convertToRepoName(params.Repo)
+	repo := convertRepoName(params.Repo)
 
 	versions, err := h.Service.GetTMMetadata(r.Context(), repo, tmID)
 
@@ -122,7 +122,7 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 		restoreId = *params.RestoreId
 	}
 
-	data, err := h.Service.FetchThingModel(r.Context(), convertToRepoName(params.Repo), id, restoreId)
+	data, err := h.Service.FetchThingModel(r.Context(), convertRepoName(params.Repo), id, restoreId)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -139,7 +139,7 @@ func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err := h.Service.DeleteThingModel(r.Context(), convertToRepoName(params.Repo), tmID)
+	err := h.Service.DeleteThingModel(r.Context(), convertRepoName(params.Repo), tmID)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -179,7 +179,7 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 		opts.OptPath = *p.OptPath
 	}
 
-	res, err := h.Service.ImportThingModel(r.Context(), convertToRepoName(p.Repo), b, opts)
+	res, err := h.Service.ImportThingModel(r.Context(), convertRepoName(p.Repo), b, opts)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -327,11 +327,11 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 
 func (h *TmcHandler) GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmid, attachmentFileName string, params server.GetThingModelAttachmentByNameParams) {
 	ref := model.NewTMIDAttachmentContainerRef(tmid)
-	h.fetchAttachment(w, r, convertToRepoName(params.Repo), ref, attachmentFileName)
+	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.GetTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.fetchAttachment(w, r, convertToRepoName(params.Repo), ref, attachmentFileName)
+	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 
 func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
@@ -355,22 +355,22 @@ func (h *TmcHandler) deleteAttachment(w http.ResponseWriter, r *http.Request, re
 
 func (h *TmcHandler) DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID server.TMID, attachmentFileName string, params server.DeleteThingModelAttachmentByNameParams) {
 	ref := model.NewTMIDAttachmentContainerRef(tmID)
-	h.deleteAttachment(w, r, convertToRepoName(params.Repo), ref, attachmentFileName)
+	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 
 func (h *TmcHandler) DeleteTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.DeleteTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.deleteAttachment(w, r, convertToRepoName(params.Repo), ref, attachmentFileName)
+	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 
 func (h *TmcHandler) PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string, params server.PutThingModelAttachmentByNameParams) {
 	ref := model.NewTMIDAttachmentContainerRef(tmID)
-	h.putAttachment(w, r, convertToRepoName(params.Repo), ref, attachmentFileName)
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 
 func (h *TmcHandler) PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.PutTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.putAttachment(w, r, convertToRepoName(params.Repo), ref, attachmentFileName)
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 
 func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
@@ -405,13 +405,6 @@ func (h *TmcHandler) createContext(r *http.Request) context.Context {
 	ctx = context.WithValue(ctx, ctxUrlRoot, h.Options.UrlContextRoot)
 
 	return ctx
-}
-
-func convertToRepoName(repo *string) string {
-	if repo != nil {
-		return *repo
-	}
-	return ""
 }
 
 func getRelativeDepth(path, siblingPath string) int {
