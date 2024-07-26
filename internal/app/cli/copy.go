@@ -145,7 +145,7 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 			})
 			continue
 		}
-		wErr := toRepo.PushAttachment(ctx, ref, att.Name, bytes)
+		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes)
 		if wErr != nil {
 			if err == nil {
 				err = wErr
@@ -153,7 +153,7 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 			results = append(results, operationResult{
 				typ:        opResultErr,
 				resourceId: resName,
-				text:       fmt.Errorf("could not push attachment %s to %v: %w", att.Name, ref, wErr).Error(),
+				text:       fmt.Errorf("could not import attachment %s to %v: %w", att.Name, ref, wErr).Error(),
 			})
 			continue
 		}

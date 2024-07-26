@@ -23,8 +23,9 @@ type AttachmentsList = []AttachmentsListEntry
 
 // AttachmentsListEntry defines model for AttachmentsListEntry.
 type AttachmentsListEntry struct {
-	Links *AttachmentLinks `json:"links,omitempty"`
-	Name  string           `json:"name"`
+	Links     *AttachmentLinks `json:"links,omitempty"`
+	MediaType string           `json:"mediaType"`
+	Name      string           `json:"name"`
 }
 
 // AuthorsResponse defines model for AuthorsResponse.

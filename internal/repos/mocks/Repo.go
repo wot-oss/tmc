@@ -195,6 +195,24 @@ func (_m *Repo) Import(ctx context.Context, id model.TMID, raw []byte, opts repo
 	return r0, r1
 }
 
+// ImportAttachment provides a mock function with given fields: ctx, container, attachment, content
+func (_m *Repo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte) error {
+	ret := _m.Called(ctx, container, attachment, content)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ImportAttachment")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, model.AttachmentContainerRef, model.Attachment, []byte) error); ok {
+		r0 = rf(ctx, container, attachment, content)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Index provides a mock function with given fields: ctx, updatedIds
 func (_m *Repo) Index(ctx context.Context, updatedIds ...string) error {
 	_va := make([]interface{}, len(updatedIds))
@@ -276,24 +294,6 @@ func (_m *Repo) ListCompletions(ctx context.Context, kind string, args []string,
 	}
 
 	return r0, r1
-}
-
-// PushAttachment provides a mock function with given fields: ctx, container, attachmentName, content
-func (_m *Repo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {
-	ret := _m.Called(ctx, container, attachmentName, content)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PushAttachment")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, model.AttachmentContainerRef, string, []byte) error); ok {
-		r0 = rf(ctx, container, attachmentName, content)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // RangeResources provides a mock function with given fields: ctx, filter, visit

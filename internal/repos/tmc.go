@@ -85,7 +85,7 @@ func fetchAttachment(ctx context.Context, reqUrl string, auth map[string]any) ([
 		if err == nil && e.Code != nil {
 			code = *e.Code
 		}
-		return nil, NewErrNotFound(code)
+		return nil, model.NewErrNotFound(code)
 	case http.StatusBadRequest:
 		return nil, model.ErrInvalidIdOrName
 	case http.StatusInternalServerError, http.StatusUnauthorized:
@@ -136,7 +136,7 @@ func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.Attachme
 		if err == nil && e.Code != nil {
 			code = *e.Code
 		}
-		return NewErrNotFound(code)
+		return model.NewErrNotFound(code)
 	case http.StatusUnauthorized, http.StatusInternalServerError:
 		return newErrorFromResponse(b)
 	default:
@@ -173,7 +173,7 @@ func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Found
 		if err == nil && e.Code != nil {
 			code = *e.Code
 		}
-		return nil, NewErrNotFound(code)
+		return nil, model.NewErrNotFound(code)
 	case http.StatusBadRequest:
 		return nil, model.ErrInvalidIdOrName
 	case http.StatusInternalServerError, http.StatusUnauthorized:
@@ -183,13 +183,14 @@ func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Found
 	}
 }
 
-func (t *TmcRepo) PushAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string, content []byte) error {
-	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
+func (t *TmcRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte) error {
+	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachment.Name)
 	t.addRepoParam(reqUrl)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqUrl.String(), bytes.NewBuffer(content))
 	if err != nil {
 		return err
 	}
+	req.Header.Set("Content-Type", attachment.MediaType)
 	resp, err := doHttp(req, t.auth)
 	if err != nil {
 		return err
@@ -209,7 +210,7 @@ func (t *TmcRepo) PushAttachment(ctx context.Context, container model.Attachment
 		if err == nil && e.Code != nil {
 			code = *e.Code
 		}
-		return NewErrNotFound(code)
+		return model.NewErrNotFound(code)
 	case http.StatusBadRequest:
 		return model.ErrInvalidIdOrName
 	case http.StatusUnauthorized, http.StatusInternalServerError:
@@ -325,7 +326,7 @@ func (t *TmcRepo) Delete(ctx context.Context, id string) error {
 		// we're sure that we've passed a valid 'force' flag, so it must be the id
 		return model.ErrInvalidId
 	case http.StatusNotFound:
-		return ErrTMNotFound
+		return model.ErrTMNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized:
 		return newErrorFromResponse(b)
 	default:
@@ -478,13 +479,13 @@ func (t *TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersi
 		}
 		if len(versions) == 0 {
 			log.Error(fmt.Sprintf("No thing models found for TM name: %s", name))
-			return nil, ErrTMNameNotFound
+			return nil, model.ErrTMNameNotFound
 		}
 
 		mapper := model.NewInventoryResponseToSearchResultMapper(t.Spec().ToFoundSource(), tmcLinksMapper)
 		return mapper.ToFoundVersions(versions), nil
 	case http.StatusNotFound:
-		return nil, ErrTMNameNotFound
+		return nil, model.ErrTMNameNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
 		return nil, newErrorFromResponse(data)
 	default:

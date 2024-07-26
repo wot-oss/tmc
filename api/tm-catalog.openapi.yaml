@@ -1154,8 +1154,11 @@ components:
       type: object
       required:
         - name
+        - mediaType
       properties:
         name:
+          type: string
+        mediaType:
           type: string
         links:
           $ref: '#/components/schemas/AttachmentLinks'
@@ -1399,9 +1402,11 @@ components:
                   'model': '0.0.0'
             attachments:
               - name: 'README.md'
+                mediaType: 'text/markdown'
                 links:
                   content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/README.md'
               - name: 'User Manual.pdf'
+                mediaType: 'application/pdf'
                 links:
                   content: './thing-models/.tmName/siemens/siemens/poc1000/.attachments/User%20Manual.pdf'
     InventoryEntryVersionResponseExample:

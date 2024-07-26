@@ -11,6 +11,7 @@ import (
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 //go:generate mockery --name HandlerService --outpkg mocks --output mocks
@@ -32,7 +33,7 @@ type HandlerService interface {
 	GetTMMetadata(ctx context.Context, repo string, tmID string) ([]model.FoundVersion, error)
 	GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (model.FoundVersion, error)
 	FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error)
-	PushAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error
+	ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string) error
 	DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error
 	ListRepos(ctx context.Context) ([]model.RepoDescription, error)
 }
@@ -259,7 +260,7 @@ func (dhs *defaultHandlerService) GetLatestTMMetadata(ctx context.Context, repo 
 	// because the metadata has been requested from exactly one repo and there was no error,
 	// metas length must be exactly one, but it does not hurt to check
 	if len(metas) != 1 {
-		return model.FoundVersion{}, repos.ErrTMNotFound
+		return model.FoundVersion{}, model.ErrTMNotFound
 	}
 	return metas[0], err
 }
@@ -277,15 +278,18 @@ func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, repo str
 	if err != nil {
 		return err
 	}
-	err = commands.AttachmentDelete(ctx, spec, ref, attachmentFileName)
+	err = commands.DeleteAttachment(ctx, spec, ref, attachmentFileName)
 	return err
 }
-func (dhs *defaultHandlerService) PushAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte) error {
+func (dhs *defaultHandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		return err
 	}
-	err = commands.AttachmentPush(ctx, spec, ref, attachmentFileName, content)
+	err = commands.ImportAttachment(ctx, spec, ref, model.Attachment{
+		Name:      attachmentFileName,
+		MediaType: utils.DetectMediaType(contentType, attachmentFileName, utils.ReadCloserGetterFromBytes(content)),
+	}, content)
 	return err
 }
 

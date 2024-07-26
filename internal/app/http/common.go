@@ -80,7 +80,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errStatus := http.StatusInternalServerError
 	errCode := ""
 
-	var nfErr *repos.ErrNotFound
+	var nfErr *model.ErrNotFound
 	var eErr *repos.ErrTMIDConflict
 	var aErr *repos.RepoAccessError
 	var bErr *BaseHttpError

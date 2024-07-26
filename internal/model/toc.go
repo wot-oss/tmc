@@ -18,10 +18,10 @@ type Index struct {
 	dataByName map[string]*IndexEntry
 }
 
-func (i *Index) reindexData() {
-	i.dataByName = make(map[string]*IndexEntry)
-	for _, v := range i.Data {
-		i.dataByName[v.Name] = v
+func (idx *Index) reindexData() {
+	idx.dataByName = make(map[string]*IndexEntry)
+	for _, v := range idx.Data {
+		idx.dataByName[v.Name] = v
 	}
 }
 
@@ -33,17 +33,30 @@ type AttachmentContainer struct {
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
+func (ac *AttachmentContainer) FindAttachment(name string) (att Attachment, found bool) {
+	if ac == nil {
+		return Attachment{}, false
+	}
+	for _, a := range ac.Attachments {
+		if a.Name == name {
+			return a, true
+		}
+	}
+	return Attachment{}, false
+}
+
 type IndexEntry struct {
 	Name         string             `json:"name"`
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
-	Versions     []IndexVersion     `json:"versions"`
+	Versions     []*IndexVersion    `json:"versions"`
 	AttachmentContainer
 }
 
 type Attachment struct {
-	Name string `json:"name"`
+	Name      string `json:"name"`
+	MediaType string `json:"mediaType"`
 }
 
 // AttachmentContainerRef contains a reference to an entity which can have file attachments
@@ -142,7 +155,7 @@ func (idx *Index) Sort() {
 	}
 	// sort versions of each entry descending
 	for _, entry := range idx.Data {
-		slices.SortFunc(entry.Versions, func(a IndexVersion, b IndexVersion) int {
+		slices.SortFunc(entry.Versions, func(a *IndexVersion, b *IndexVersion) int {
 			av := semver.MustParse(a.Version.Model)
 			bv := semver.MustParse(b.Version.Model)
 			vc := bv.Compare(av)
@@ -249,38 +262,15 @@ func (idx *Index) FindByTMID(tmID string) *IndexVersion {
 	}
 	for _, v := range e.Versions {
 		if v.TMID == tmID {
-			return &v
+			return v
 		}
 	}
 	return nil
 }
 
-func mapAttachments(atts []string) []Attachment {
-	var res []Attachment
-	for _, a := range atts {
-		res = append(res, Attachment{Name: a})
-	}
-	return res
-}
-
-func (idx *Index) SetEntryAttachments(name string, attachmentNames []string) {
-	entry := idx.FindByName(name)
-	if entry != nil {
-		entry.Attachments = mapAttachments(attachmentNames)
-	}
-}
-
 // Insert uses ThingModel to add a version, either to an existing
 // entry or as a new entry.
-func (idx *Index) Insert(ctm *ThingModel, tmAttachments []string) error {
-	mapAttachments := func(atts []string) []Attachment {
-		var res []Attachment
-		for _, a := range atts {
-			res = append(res, Attachment{Name: a})
-		}
-		return res
-	}
-
+func (idx *Index) Insert(ctm *ThingModel) error {
 	tmid, err := ParseTMID(ctm.ID)
 	if err != nil {
 		return err
@@ -304,22 +294,46 @@ func (idx *Index) Insert(ctm *ThingModel, tmAttachments []string) error {
 	if original != nil {
 		externalID = original.HRef
 	}
-	tv := IndexVersion{
-		Description:         ctm.Description,
-		TimeStamp:           tmid.Version.Timestamp,
-		Version:             Version{Model: tmid.Version.Base.String()},
-		TMID:                ctm.ID,
-		ExternalID:          externalID,
-		Digest:              tmid.Version.Hash,
-		Links:               map[string]string{"content": tmid.String()},
-		AttachmentContainer: AttachmentContainer{mapAttachments(tmAttachments)},
+	tv := &IndexVersion{
+		Description: ctm.Description,
+		TimeStamp:   tmid.Version.Timestamp,
+		Version:     Version{Model: tmid.Version.Base.String()},
+		TMID:        ctm.ID,
+		ExternalID:  externalID,
+		Digest:      tmid.Version.Hash,
+		Links:       map[string]string{"content": tmid.String()},
 	}
-	if idx := slices.IndexFunc(idxEntry.Versions, func(version IndexVersion) bool {
+	if idx := slices.IndexFunc(idxEntry.Versions, func(version *IndexVersion) bool {
 		return version.TMID == ctm.ID
 	}); idx == -1 {
 		idxEntry.Versions = append(idxEntry.Versions, tv)
 	} else {
 		idxEntry.Versions[idx] = tv
+	}
+	return nil
+}
+
+func (idx *Index) InsertAttachments(ref AttachmentContainerRef, atts ...Attachment) error {
+	container, _, err := idx.FindAttachmentContainer(ref)
+	if err != nil {
+		return err
+	}
+	for _, att := range atts {
+		found := false
+		na := Attachment{
+			Name:      att.Name,
+			MediaType: att.MediaType,
+		}
+		for i, ea := range container.Attachments {
+			if att.Name == ea.Name {
+				container.Attachments[i] = na
+				found = true
+				break
+			}
+		}
+		if !found {
+			container.Attachments = append(container.Attachments, na)
+		}
 	}
 	return nil
 }
@@ -334,7 +348,7 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 	}
 	idxEntry = idx.FindByName(name)
 	if idxEntry != nil {
-		idxEntry.Versions = slices.DeleteFunc(idxEntry.Versions, func(version IndexVersion) bool {
+		idxEntry.Versions = slices.DeleteFunc(idxEntry.Versions, func(version *IndexVersion) bool {
 			fnd := version.TMID == id
 			if fnd {
 				updated = true
@@ -350,6 +364,46 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 		}
 	}
 	return updated, "", nil
+}
+
+func (idx *Index) FindAttachmentContainer(ref AttachmentContainerRef) (*AttachmentContainer, *IndexEntry, error) {
+	k := ref.Kind()
+	var tmName string
+	switch k {
+	case AttachmentContainerKindInvalid:
+		return nil, nil, ErrInvalidIdOrName
+	case AttachmentContainerKindTMID:
+		id, err := ParseTMID(ref.TMID)
+		if err != nil {
+			return nil, nil, err
+		}
+		tmName = id.Name
+	case AttachmentContainerKindTMName:
+		fn, err := ParseFetchName(ref.TMName)
+		if err != nil || fn.Semver != "" {
+			return nil, nil, ErrInvalidIdOrName
+		}
+		tmName = ref.TMName
+	}
+
+	indexEntry := idx.FindByName(tmName)
+	if indexEntry == nil {
+		if ref.Kind() == AttachmentContainerKindTMID {
+			return nil, nil, ErrTMNotFound
+		} else {
+			return nil, nil, ErrTMNameNotFound
+		}
+	}
+	versions := indexEntry.Versions
+	if k == AttachmentContainerKindTMID {
+		for _, v := range versions {
+			if v.TMID == ref.TMID {
+				return &v.AttachmentContainer, indexEntry, nil
+			}
+		}
+		return nil, nil, ErrTMNotFound
+	}
+	return &indexEntry.AttachmentContainer, indexEntry, nil
 }
 
 const AttachmentsDir = ".attachments"

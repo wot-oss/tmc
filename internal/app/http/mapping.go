@@ -137,8 +137,9 @@ func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a mode
 		Content: hrefContent,
 	}
 	entry := server.AttachmentsListEntry{
-		Links: &links,
-		Name:  a.Name,
+		Links:     &links,
+		Name:      a.Name,
+		MediaType: a.MediaType,
 	}
 
 	return entry

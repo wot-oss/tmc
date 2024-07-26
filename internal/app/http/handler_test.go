@@ -653,7 +653,7 @@ func Test_FetchThingModel(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchThingModel", mock.Anything, "", tmID, false).Return(nil, repos.ErrTMNotFound).Once()
+		hs.On("FetchThingModel", mock.Anything, "", tmID, false).Return(nil, model.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -690,7 +690,7 @@ func Test_FetchAttachment(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("FetchAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil, repos.ErrTMNotFound).Once()
+		hs.On("FetchAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(nil, model.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -698,7 +698,7 @@ func Test_FetchAttachment(t *testing.T) {
 		var errResponse server.ErrorResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 		if assert.NotNil(t, errResponse.Code) {
-			assert.Equal(t, repos.ErrTMNotFound.Subject, *errResponse.Code)
+			assert.Equal(t, model.ErrTMNotFound.Subject, *errResponse.Code)
 		}
 	})
 }
@@ -894,7 +894,7 @@ func Test_ImportThingModel(t *testing.T) {
 		assertResponse500(t, rec, route)
 	})
 }
-func Test_PushAttachment(t *testing.T) {
+func Test_ImportAttachment(t *testing.T) {
 
 	tmID := "a-corp/eagle/bt2000/v1.0.0-20231231153548-243d1b462ddd.tm.json"
 	attContent := []byte("# readme.md file")
@@ -905,10 +905,10 @@ func Test_PushAttachment(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("with success", func(t *testing.T) {
-		hs.On("PushAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent).Return(nil).Once()
+		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent, "text/markdown").Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPut, route).
-			WithHeader(HeaderContentType, MimeOctetStream).
+			WithHeader(HeaderContentType, "text/markdown").
 			WithBody(attContent).
 			RunOnHandler(httpHandler)
 
@@ -919,11 +919,11 @@ func Test_PushAttachment(t *testing.T) {
 	t.Run("with invalid id", func(t *testing.T) {
 		// given: some route with invalid tmID
 		route := "/thing-models/not-an-id/.attachments/README.md"
-		hs.On("PushAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef("not-an-id"), "README.md", attContent).Return(model.ErrInvalidIdOrName).Once()
+		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef("not-an-id"), "README.md", attContent, "text/markdown").Return(model.ErrInvalidIdOrName).Once()
 		// when: calling the route
 
 		rec := testutils.NewRequest(http.MethodPut, route).
-			WithHeader(HeaderContentType, MimeOctetStream).
+			WithHeader(HeaderContentType, "text/markdown").
 			WithBody(attContent).
 			RunOnHandler(httpHandler)
 
@@ -947,7 +947,7 @@ func Test_PushAttachment(t *testing.T) {
 
 	t.Run("with unknown error", func(t *testing.T) {
 		// and given: some unknown error
-		hs.On("PushAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent).Return(unknownErr).Once()
+		hs.On("ImportAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.md", attContent, MimeOctetStream).Return(unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodPut, route).
 			WithHeader(HeaderContentType, MimeOctetStream).
@@ -1003,7 +1003,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(repos.ErrTMNotFound).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(model.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -1011,7 +1011,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 		var errResponse server.ErrorResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 		if assert.NotNil(t, errResponse.Code) {
-			assert.Equal(t, repos.ErrTMNotFound.Subject, *errResponse.Code)
+			assert.Equal(t, model.ErrTMNotFound.Subject, *errResponse.Code)
 		}
 
 	})
@@ -1045,7 +1045,7 @@ func Test_DeleteAttachment(t *testing.T) {
 	})
 
 	t.Run("with not found error", func(t *testing.T) {
-		hs.On("DeleteAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(repos.ErrAttachmentNotFound).Once()
+		hs.On("DeleteAttachment", mock.Anything, "", model.NewTMIDAttachmentContainerRef(tmID), "README.txt").Return(model.ErrAttachmentNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body
@@ -1053,7 +1053,7 @@ func Test_DeleteAttachment(t *testing.T) {
 		var errResponse server.ErrorResponse
 		assertUnmarshalResponse(t, rec.Body.Bytes(), &errResponse)
 		if assert.NotNil(t, errResponse.Code) {
-			assert.Equal(t, repos.ErrAttachmentNotFound.Subject, *errResponse.Code)
+			assert.Equal(t, model.ErrAttachmentNotFound.Subject, *errResponse.Code)
 		}
 	})
 
@@ -1280,7 +1280,7 @@ var (
 				FoundIn: model.FoundSource{RepoName: "r1"},
 				Versions: []model.FoundVersion{
 					{
-						IndexVersion: model.IndexVersion{
+						IndexVersion: &model.IndexVersion{
 							TMID:        "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccc.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -1291,7 +1291,7 @@ var (
 						FoundIn: model.FoundSource{RepoName: "r1"},
 					},
 					{
-						IndexVersion: model.IndexVersion{
+						IndexVersion: &model.IndexVersion{
 							TMID:        "a-corp/eagle/bt2000/v1.0.0-20231231153548-243d1b462ddd.tm.json",
 							Description: "desc version v0.0.0",
 							Version:     model.Version{Model: "0.0.0"},
@@ -1318,7 +1318,7 @@ var (
 				FoundIn:      model.FoundSource{RepoName: "r1"},
 				Versions: []model.FoundVersion{
 					{
-						IndexVersion: model.IndexVersion{
+						IndexVersion: &model.IndexVersion{
 							TMID:        "b-corp/frog/bt3000/v1.0.0-20240108140117-743d1b462uuu.tm.json",
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
@@ -1343,7 +1343,7 @@ var (
 				FoundIn:      model.FoundSource{RepoName: "r2"},
 				Versions: []model.FoundVersion{
 					{
-						IndexVersion: model.IndexVersion{
+						IndexVersion: &model.IndexVersion{
 							Description: "desc version v1.0.0",
 							Version:     model.Version{Model: "1.0.0"},
 							TMID:        "b-corp/eagle/PM20/v1.0.0-20240107123001-234d1b462fff.tm.json",

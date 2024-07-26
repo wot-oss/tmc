@@ -365,19 +365,17 @@ func (h *TmcHandler) DeleteTMNameAttachment(w http.ResponseWriter, r *http.Reque
 
 func (h *TmcHandler) PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string, params server.PutThingModelAttachmentByNameParams) {
 	ref := model.NewTMIDAttachmentContainerRef(tmID)
-	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType))
 }
 
 func (h *TmcHandler) PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.PutTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType))
 }
 
-func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
+func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, contentType string) {
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
-	err = r.Body.Close()
-
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -387,7 +385,7 @@ func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo 
 		return
 	}
 
-	err = h.Service.PushAttachment(r.Context(), repo, ref, attachmentFileName, b)
+	err = h.Service.ImportAttachment(r.Context(), repo, ref, attachmentFileName, b, contentType)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return

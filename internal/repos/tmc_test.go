@@ -689,7 +689,7 @@ func TestTmcRepo_PushAttachment(t *testing.T) {
 			} else {
 				ref = model.NewTMNameAttachmentContainerRef(test.tmName)
 			}
-			err := r.PushAttachment(context.Background(), ref, "README.md", test.reqBody)
+			err := r.ImportAttachment(context.Background(), ref, model.Attachment{Name: "README.md"}, test.reqBody)
 			if test.expErr == "" {
 				assert.NoError(t, err)
 			} else {
@@ -902,7 +902,7 @@ func TestTmcRepo_Delete(t *testing.T) {
 			id:       "omnicorp/lightall/v1.0.1-20240104165612-c81be4ed973d.tm.json",
 			status:   http.StatusNotFound,
 			respBody: []byte(`{"detail":"TM not found", "code": "TM"}`),
-			expErr:   ErrTMNotFound,
+			expErr:   model.ErrTMNotFound,
 		},
 		{
 			name:     "existing id",

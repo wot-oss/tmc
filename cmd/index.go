@@ -11,12 +11,12 @@ import (
 )
 
 var indexCmd = &cobra.Command{
-	Use:   "index [<id1> <id2> ...]",
+	Use:   "index",
 	Short: "Update the repository's index file",
 	Long: `Update the repository's index file listing all paths to Thing Model files. Used for simple search functionality.
-Optionally, TM id arguments can be provided to only update the table of contents with the given ids. Ids referring to non-existing files are removed from index.
 Specifying the catalog with --directory or --repo is optional if there's exactly one catalog configured`,
-	Run: executeCreateIndex,
+	Run:  executeCreateIndex,
+	Args: cobra.NoArgs,
 }
 
 func init() {
@@ -32,7 +32,7 @@ func executeCreateIndex(cmd *cobra.Command, args []string) {
 	spec := RepoSpec(cmd)
 	log.Debug(fmt.Sprintf("creating table of contents for repository %s", spec))
 
-	err := cli.Index(context.Background(), spec, args)
+	err := cli.Index(context.Background(), spec)
 	if err != nil {
 		os.Exit(1)
 	}

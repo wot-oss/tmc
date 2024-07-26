@@ -141,7 +141,7 @@ func ResolveFetchName(ctx context.Context, spec model.RepoSpec, fn model.FetchNa
 func findMostRecentVersion(versions []model.FoundVersion) (string, model.RepoSpec, error) {
 	log := slog.Default()
 	if len(versions) == 0 {
-		err := fmt.Errorf("%w: no versions found", repos.ErrTMNameNotFound)
+		err := fmt.Errorf("%w: no versions found", model.ErrTMNameNotFound)
 		log.Error(err.Error())
 		return "", model.EmptySpec, err
 	}
@@ -184,7 +184,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 
 	// see if anything remained
 	if len(versions) == 0 {
-		err := fmt.Errorf("%w: no version %s found", repos.ErrTMNotFound, ver)
+		err := fmt.Errorf("%w: no version %s found", model.ErrTMNotFound, ver)
 		log.Error(err.Error())
 		return "", model.EmptySpec, err
 	}
