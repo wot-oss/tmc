@@ -177,6 +177,9 @@ type AttachmentFileName = string
 // FetchName defines model for FetchName.
 type FetchName = string
 
+// ForceImport defines model for ForceImport.
+type ForceImport = bool
+
 // RepoConstraint defines model for RepoConstraint.
 type RepoConstraint = string
 
@@ -309,8 +312,8 @@ type ImportThingModelParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 
-	// Force flag to force the import, ignoring any conflicts with existing TMs
-	Force *string `form:"force,omitempty" json:"force,omitempty"`
+	// Force flag to force the import, ignoring any conflicts with existing data
+	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 
 	// OptPath optional path parts to append to the target path (and id) of imported TM, after the mandatory path structure
 	OptPath *string `form:"optPath,omitempty" json:"optPath,omitempty"`
@@ -341,6 +344,9 @@ type GetTMNameAttachmentParams struct {
 type PutTMNameAttachmentParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// Force flag to force the import, ignoring any conflicts with existing data
+	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
 // DeleteThingModelByIdParams defines parameters for DeleteThingModelById.
@@ -373,10 +379,13 @@ type GetThingModelAttachmentByNameParams struct {
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
-// PutThingModelAttachmentByNameParams defines parameters for PutThingModelAttachmentByName.
-type PutThingModelAttachmentByNameParams struct {
+// PutTMIDAttachmentParams defines parameters for PutTMIDAttachment.
+type PutTMIDAttachmentParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// Force flag to force the import, ignoring any conflicts with existing data
+	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
 // ImportThingModelJSONRequestBody defines body for ImportThingModel for application/json ContentType.

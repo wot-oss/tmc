@@ -82,7 +82,7 @@ type ServerInterface interface {
 	GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID TMID, attachmentFileName AttachmentFileName, params GetThingModelAttachmentByNameParams)
 	// Upload an attachment to a Thing Model
 	// (PUT /thing-models/{tmID}/.attachments/{attachmentFileName})
-	PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID TMID, attachmentFileName AttachmentFileName, params PutThingModelAttachmentByNameParams)
+	PutTMIDAttachment(w http.ResponseWriter, r *http.Request, tmID TMID, attachmentFileName AttachmentFileName, params PutTMIDAttachmentParams)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -768,6 +768,14 @@ func (siw *ServerInterfaceWrapper) PutTMNameAttachment(w http.ResponseWriter, r 
 		return
 	}
 
+	// ------------- Optional query parameter "force" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "force", r.URL.Query(), &params.Force)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PutTMNameAttachment(w, r, tmName, attachmentFileName, params)
 	}))
@@ -976,8 +984,8 @@ func (siw *ServerInterfaceWrapper) GetThingModelAttachmentByName(w http.Response
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// PutThingModelAttachmentByName operation middleware
-func (siw *ServerInterfaceWrapper) PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request) {
+// PutTMIDAttachment operation middleware
+func (siw *ServerInterfaceWrapper) PutTMIDAttachment(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -1003,7 +1011,7 @@ func (siw *ServerInterfaceWrapper) PutThingModelAttachmentByName(w http.Response
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params PutThingModelAttachmentByNameParams
+	var params PutTMIDAttachmentParams
 
 	// ------------- Optional query parameter "repo" -------------
 
@@ -1013,8 +1021,16 @@ func (siw *ServerInterfaceWrapper) PutThingModelAttachmentByName(w http.Response
 		return
 	}
 
+	// ------------- Optional query parameter "force" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "force", r.URL.Query(), &params.Force)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PutThingModelAttachmentByName(w, r, tmID, attachmentFileName, params)
+		siw.Handler.PutTMIDAttachment(w, r, tmID, attachmentFileName, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1143,7 +1159,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models/.tmName/{tmName:.+}/.attachments/{attachmentFileName:.+}", wrapper.DeleteTMNameAttachment).Methods("DELETE")
 
-	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}/.attachments/{attachmentFileName:.+}", wrapper.PutThingModelAttachmentByName).Methods("PUT")
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}/.attachments/{attachmentFileName:.+}", wrapper.PutTMIDAttachment).Methods("PUT")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}/.attachments/{attachmentFileName:.+}", wrapper.GetThingModelAttachmentByName).Methods("GET")
 

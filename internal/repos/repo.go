@@ -117,7 +117,7 @@ type Repo interface {
 	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 
 	GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error)
-	ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte) error
+	ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error
 	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
 	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
 }

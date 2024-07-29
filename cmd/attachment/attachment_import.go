@@ -33,8 +33,8 @@ var attachmentImportCmd = &cobra.Command{
 func attachmentImport(command *cobra.Command, args []string) {
 	spec := cmd.RepoSpec(command)
 	mediaType := command.Flag("media-type").Value.String()
-
-	err := cli.AttachmentImport(context.Background(), spec, args[0], args[1], mediaType)
+	force, _ := command.Flags().GetBool("force")
+	err := cli.AttachmentImport(context.Background(), spec, args[0], args[1], mediaType, force)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -43,4 +43,5 @@ func attachmentImport(command *cobra.Command, args []string) {
 func init() {
 	attachmentCmd.AddCommand(attachmentImportCmd)
 	attachmentImportCmd.Flags().StringP("media-type", "m", "", "Media type of the attachment")
+	attachmentImportCmd.Flags().Bool("force", false, `Force import, even if there is conflict with existing attachment.`)
 }

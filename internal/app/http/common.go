@@ -100,6 +100,10 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errTitle = Error400Title
 		errDetail = ErrorRepoAmbiguousDetail
 		errStatus = http.StatusBadRequest
+	case errors.Is(err, repos.ErrAttachmentExists):
+		errTitle = Error409Title
+		errDetail = err.Error()
+		errStatus = http.StatusConflict
 	// handle error values we want to access with errors.As()
 	case errors.As(err, &nfErr):
 		errTitle = Error404Title
@@ -210,6 +214,13 @@ func convertRepoName(repo *string) string {
 		return *repo
 	}
 	return ""
+}
+
+func convertForceParam(p *server.ForceImport) bool {
+	if p != nil {
+		return *p
+	}
+	return false
 }
 
 func convertParams(params any) *model.SearchParams {

@@ -59,7 +59,7 @@ func printAttachments(atts []model.FoundAttachment) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tMediaType\tREPO\n")
+	_, _ = fmt.Fprintf(table, "NAME\tMEDIATYPE\tREPO\n")
 	for _, value := range atts {
 		name := value.Name
 		ct := elideString(fmt.Sprintf("%v", value.MediaType), colWidth)
@@ -70,7 +70,7 @@ func printAttachments(atts []model.FoundAttachment) {
 
 }
 
-func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string, mediaType string) error {
+func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string, mediaType string, force bool) error {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		Stderrf("Error expanding file name %s: %v", filename, err)
@@ -89,7 +89,7 @@ func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, file
 	err = commands.ImportAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), model.Attachment{
 		Name:      filepath.Base(filename),
 		MediaType: mediaType,
-	}, raw)
+	}, raw, force)
 	if err != nil {
 		Stderrf("Failed to put attachment %s to %s: %v", filename, tmNameOrId, err)
 	}

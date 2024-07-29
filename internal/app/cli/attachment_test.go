@@ -34,7 +34,7 @@ func TestAttachmentList(t *testing.T) {
 		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmName)
 		assert.NoError(t, err)
 		stdout := getOutput()
-		assert.Equal(t, "NAME            MediaType        REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
+		assert.Equal(t, "NAME            MEDIATYPE        REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
 	})
 	t.Run("with resourceId", func(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
@@ -52,7 +52,7 @@ func TestAttachmentList(t *testing.T) {
 		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmId)
 		assert.NoError(t, err)
 		stdout := getOutput()
-		assert.Equal(t, "NAME            MediaType        REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
+		assert.Equal(t, "NAME            MEDIATYPE        REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
 	})
 }
 
@@ -65,8 +65,8 @@ func TestAttachmentImport(t *testing.T) {
 	attFile := "../../../test/data/attachments/" + attName
 	attContent, err := os.ReadFile(attFile)
 	assert.NoError(t, err)
-	r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: ""}, attContent).Return(nil).Once()
-	err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "")
+	r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: ""}, attContent, true).Return(nil).Once()
+	err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "", true)
 	assert.NoError(t, err)
 }
 

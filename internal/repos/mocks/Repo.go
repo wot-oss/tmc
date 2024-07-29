@@ -195,17 +195,17 @@ func (_m *Repo) Import(ctx context.Context, id model.TMID, raw []byte, opts repo
 	return r0, r1
 }
 
-// ImportAttachment provides a mock function with given fields: ctx, container, attachment, content
-func (_m *Repo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte) error {
-	ret := _m.Called(ctx, container, attachment, content)
+// ImportAttachment provides a mock function with given fields: ctx, container, attachment, content, force
+func (_m *Repo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
+	ret := _m.Called(ctx, container, attachment, content, force)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImportAttachment")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, model.AttachmentContainerRef, model.Attachment, []byte) error); ok {
-		r0 = rf(ctx, container, attachment, content)
+	if rf, ok := ret.Get(0).(func(context.Context, model.AttachmentContainerRef, model.Attachment, []byte, bool) error); ok {
+		r0 = rf(ctx, container, attachment, content, force)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -44,7 +44,6 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 	var totalRes []operationResult
 	var copiedIDs []string
 	for _, entry := range searchResult.Entries {
-		tmCopied := false
 		for _, version := range entry.Versions {
 			select {
 			case <-ctx.Done():
@@ -52,55 +51,59 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 			default:
 			}
 			res, cErr := copyThingModel(ctx, version, target, opts)
-			if cErr != nil {
-				var errExists *repos.ErrTMIDConflict
-				if errors.As(cErr, &errExists) {
-					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("already exists as %s", errExists.ExistingId)})
-				} else {
-					cErr = fmt.Errorf("error copying TM %s: %w", version.TMID, cErr)
-					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("%v", cErr)})
-				}
+			tmExisted := false
+			var errExists *repos.ErrTMIDConflict
+			if errors.As(cErr, &errExists) { // TM exists in target -> add error result and store the total error, but don't skip copying attachments
+				tmExisted = true
+				totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("already exists as %s", errExists.ExistingId)})
 				if err == nil {
 					err = cErr
 				}
 			} else {
+				if cErr != nil {
+					cErr = fmt.Errorf("error copying TM %s: %w", version.TMID, cErr)
+					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("%v", cErr)})
+					if err == nil {
+						err = cErr
+					}
+					continue
+				}
+			}
+
+			if !tmExisted {
 				copiedIDs = append(copiedIDs, res.TmID)
 				iErr := target.Index(ctx, res.TmID) // need to index the TM to be able to push attachments to it
 				if iErr != nil {
 					totalRes = append(totalRes, operationResult{opResultErr, res.TmID, "could not update index"})
 					continue
-				} else {
-					tmCopied = true
-					switch res.Type {
-					case repos.ImportResultWarning:
-						warn := res.Message
-						var cErr *repos.ErrTMIDConflict
-						if errors.As(res.Err, &cErr) {
-							warn = fmt.Sprintf("TM's version and timestamp clash with existing one %s", cErr.ExistingId)
-						}
-						msg := fmt.Sprintf("copied as %s with warning: %s", res.TmID, warn)
-						totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, msg})
-					case repos.ImportResultOK:
-						totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
-					}
-					spec := model.NewSpecFromFoundSource(entry.FoundIn)
-					aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
-					if err == nil && aErr != nil {
-						err = aErr
-					}
-					totalRes = append(totalRes, aRes...)
 				}
 			}
-		}
-		if tmCopied { // copy tm name attachments if at least one tm has been copied successfully
-			spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
-			aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments)
+
+			switch res.Type {
+			case repos.ImportResultWarning:
+				warn := res.Message
+				var cErr *repos.ErrTMIDConflict
+				if errors.As(res.Err, &cErr) {
+					warn = fmt.Sprintf("TM's version and timestamp clash with existing one %s", cErr.ExistingId)
+				}
+				msg := fmt.Sprintf("copied as %s with warning: %s", res.TmID, warn)
+				totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, msg})
+			case repos.ImportResultOK:
+				totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
+			}
+			spec := model.NewSpecFromFoundSource(entry.FoundIn)
+			aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments, opts.Force)
 			if err == nil && aErr != nil {
 				err = aErr
 			}
 			totalRes = append(totalRes, aRes...)
 		}
-
+		spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
+		aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments, opts.Force)
+		if err == nil && aErr != nil {
+			err = aErr
+		}
+		totalRes = append(totalRes, aRes...)
 	}
 
 	if err == nil && len(errs) > 0 {
@@ -123,7 +126,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 	return err
 }
 
-func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment) ([]operationResult, error) {
+func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment, force bool) ([]operationResult, error) {
 	relDir, err := model.RelAttachmentsDir(ref)
 	if err != nil {
 		return nil, err
@@ -145,7 +148,7 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 			})
 			continue
 		}
-		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes)
+		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes, force)
 		if wErr != nil {
 			if err == nil {
 				err = wErr

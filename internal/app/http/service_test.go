@@ -648,12 +648,12 @@ func TestService_ImportAttachment(t *testing.T) {
 	r := mocks.NewRepo(t)
 	r.On("ImportAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), model.Attachment{
 		Name:      attName,
-		MediaType: "text/plain; charset=utf-8",
-	}, attContent).Return(nil).Once()
+		MediaType: "text/markdown",
+	}, attContent, true).Return(nil).Once()
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 	rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "someRepo"}}, nil)
 	// when: pushing an attachment
-	err := underTest.ImportAttachment(context.Background(), "someRepo", model.NewTMNameAttachmentContainerRef(inventoryName), attName, attContent, "")
+	err := underTest.ImportAttachment(context.Background(), "someRepo", model.NewTMNameAttachmentContainerRef(inventoryName), attName, attContent, "text/markdown", true)
 	// then: service returns no error
 	assert.NoError(t, err)
 }

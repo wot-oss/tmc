@@ -395,9 +395,9 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 	return nil, model.ErrTMNotFound
 }
 
-func (f *FileRepo) ImportAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachment model.Attachment, content []byte) error {
+func (f *FileRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
 	log := slog.Default()
-	log.Debug(fmt.Sprintf("Importing attachment %s for '%v'", attachment, ref))
+	log.Debug(fmt.Sprintf("Importing attachment %s for '%v'", attachment, container))
 
 	err := f.checkRootValid()
 	if err != nil {
@@ -412,11 +412,18 @@ func (f *FileRepo) ImportAttachment(ctx context.Context, ref model.AttachmentCon
 	}
 	log.Debug("index locked")
 
-	attDir, err := f.prepareAttachmentOperation(ref)
+	attDir, err := f.prepareAttachmentOperation(container)
 	if err != nil {
 		return err
 	}
 
+	err = f.verifyAttachmentExistsInIndex(container, attachment.Name)
+	if err == nil && !force {
+		return ErrAttachmentExists
+	}
+	if err != nil && !errors.Is(err, model.ErrAttachmentNotFound) {
+		return err
+	}
 	err = os.MkdirAll(attDir, defaultDirPermissions)
 	if err != nil {
 		return err
@@ -427,7 +434,7 @@ func (f *FileRepo) ImportAttachment(ctx context.Context, ref model.AttachmentCon
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, ref, attachment, content), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, container, attachment, content), true)
 	if err != nil {
 		return err
 	}

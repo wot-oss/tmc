@@ -183,8 +183,13 @@ func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Found
 	}
 }
 
-func (t *TmcRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte) error {
+func (t *TmcRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachment.Name)
+	vals := reqUrl.Query()
+	if force {
+		vals["force"] = []string{"true"}
+	}
+	reqUrl.RawQuery = vals.Encode()
 	t.addRepoParam(reqUrl)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, reqUrl.String(), bytes.NewBuffer(content))
 	if err != nil {
@@ -213,6 +218,8 @@ func (t *TmcRepo) ImportAttachment(ctx context.Context, container model.Attachme
 		return model.NewErrNotFound(code)
 	case http.StatusBadRequest:
 		return model.ErrInvalidIdOrName
+	case http.StatusConflict:
+		return ErrAttachmentExists
 	case http.StatusUnauthorized, http.StatusInternalServerError:
 		return newErrorFromResponse(b)
 	default:

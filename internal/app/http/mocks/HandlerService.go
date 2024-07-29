@@ -333,17 +333,17 @@ func (_m *HandlerService) GetTMMetadata(ctx context.Context, repo string, tmID s
 	return r0, r1
 }
 
-// ImportAttachment provides a mock function with given fields: ctx, repo, ref, attachmentFileName, content, contentType
-func (_m *HandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string) error {
-	ret := _m.Called(ctx, repo, ref, attachmentFileName, content, contentType)
+// ImportAttachment provides a mock function with given fields: ctx, repo, ref, attachmentFileName, content, contentType, force
+func (_m *HandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string, force bool) error {
+	ret := _m.Called(ctx, repo, ref, attachmentFileName, content, contentType, force)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ImportAttachment")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string, []byte, string) error); ok {
-		r0 = rf(ctx, repo, ref, attachmentFileName, content, contentType)
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string, []byte, string, bool) error); ok {
+		r0 = rf(ctx, repo, ref, attachmentFileName, content, contentType, force)
 	} else {
 		r0 = ret.Error(0)
 	}

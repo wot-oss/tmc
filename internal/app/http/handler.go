@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -171,10 +170,7 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 	}
 
 	opts := repos.ImportOptions{}
-	if p.Force != nil {
-		parsedForce, err := strconv.ParseBool(*p.Force)
-		opts.Force = parsedForce && err == nil
-	}
+	opts.Force = convertForceParam(p.Force)
 	if p.OptPath != nil {
 		opts.OptPath = *p.OptPath
 	}
@@ -363,17 +359,17 @@ func (h *TmcHandler) DeleteTMNameAttachment(w http.ResponseWriter, r *http.Reque
 	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 
-func (h *TmcHandler) PutThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string, params server.PutThingModelAttachmentByNameParams) {
+func (h *TmcHandler) PutTMIDAttachment(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string, params server.PutTMIDAttachmentParams) {
 	ref := model.NewTMIDAttachmentContainerRef(tmID)
-	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType))
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
 }
 
 func (h *TmcHandler) PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.PutTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType))
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
 }
 
-func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, contentType string) {
+func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, contentType string, force bool) {
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -385,7 +381,7 @@ func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo 
 		return
 	}
 
-	err = h.Service.ImportAttachment(r.Context(), repo, ref, attachmentFileName, b, contentType)
+	err = h.Service.ImportAttachment(r.Context(), repo, ref, attachmentFileName, b, contentType, force)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return

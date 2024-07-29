@@ -16,6 +16,7 @@
 - `repo`: added flag for setting a repository description when adding/changing repo config
 - REST API: added source repository name to inventory responses
 - added setting/storing/detecting of attachment media types
+- return error on attachment import when it already exists and add a flag to override
 
 ### Changed
 
