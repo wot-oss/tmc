@@ -416,7 +416,7 @@ paths:
         - attachments
       summary: Upload an attachment to a Thing Model
       description: Upload an attachment to a Thing Model
-      operationId: putThingModelAttachmentByName
+      operationId: putTMIDAttachment
       parameters:
         - $ref: '#/components/parameters/TMID'
         - $ref: '#/components/parameters/AttachmentFileName'

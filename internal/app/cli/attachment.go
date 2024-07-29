@@ -59,7 +59,7 @@ func printAttachments(atts []model.FoundAttachment) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tMediaType\tREPO\n")
+	_, _ = fmt.Fprintf(table, "NAME\tMEDIATYPE\tREPO\n")
 	for _, value := range atts {
 		name := value.Name
 		ct := elideString(fmt.Sprintf("%v", value.MediaType), colWidth)

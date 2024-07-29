@@ -379,8 +379,8 @@ type GetThingModelAttachmentByNameParams struct {
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
-// PutThingModelAttachmentByNameParams defines parameters for PutThingModelAttachmentByName.
-type PutThingModelAttachmentByNameParams struct {
+// PutTMIDAttachmentParams defines parameters for PutTMIDAttachment.
+type PutTMIDAttachmentParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 

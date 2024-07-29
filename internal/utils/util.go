@@ -270,7 +270,7 @@ func ReadCloserGetterFromFilename(name string) ReadCloserGetter {
 }
 
 // DetectMediaType detects the media type of the file. The type provided by the user always takes precedence over
-// automatic detection, unless it is empty. The type is detected by http.DetectContenType. If that returns the
+// automatic detection, unless it is empty. The type is detected by http.DetectContentType. If that returns the
 // generic 'application/octet-stream', then the type is guessed from the filename extension.
 // If all of the above fails, it returns 'application/octet-stream'
 func DetectMediaType(userGivenType string, filename string, getReader ReadCloserGetter) string {
