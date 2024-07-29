@@ -11,12 +11,9 @@
 - REST API: added query parameter `force` to POST endpoint `/thing-models` to enforce pushing TMs with same TM name, semantic version and digest
 - REST API: added query parameter `optPath` to POST endpoint `/thing-models` to append optional path parts to the target path (and id)
 - added command `copy` to copy TMs between repositories
-- `export`: added flag to export attachments together with TMs
 - REST API: added GET endpoint `/repos` to list available repositories
 - `repo`: added flag for setting a repository description when adding/changing repo config
 - REST API: added source repository name to inventory responses
-- added setting/storing/detecting of attachment media types
-- return error on attachment import when it already exists and add a flag to override
 
 ### Changed
 
