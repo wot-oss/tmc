@@ -1,10 +1,6 @@
 # Change Log
 
-## [Unreleased]
-
-### Fixed
-
-- `import`: restore the printout of error to stdout when import was not successful
+## [v0.1.0]
 
 ### Added
 
@@ -23,6 +19,10 @@
 - `push`: shows a warning if there is a timestamp collision (retrying after a second has been removed)
 - `list, pull, versions`: return exit code 1 if at least one repo returns an error
 - `check index`: do not return error if repo does not contain any TM's and index
+
+### Fixed
+
+- `import`: restore the printout of error to stdout when import was not successful
 
 ## [v0.0.0-alpha.7]
 
