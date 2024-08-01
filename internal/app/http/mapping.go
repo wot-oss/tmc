@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"net/url"
+	"path"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -55,12 +56,12 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 		Self: hrefSelf,
 	}
 
-	//atts := m.GetAttachmentsList(model.NewTMNameAttachmentContainerRef(entry.Name), entry.AttachmentContainer, entry.FoundIn.RepoName)
+	atts := m.GetAttachmentsList(model.NewTMNameAttachmentContainerRef(entry.Name), entry.AttachmentContainer, entry.FoundIn.RepoName)
 
 	invEntry.Links = &links
-	//if atts != nil {
-	//	invEntry.Attachments = &atts
-	//}
+	if atts != nil {
+		invEntry.Attachments = &atts
+	}
 
 	return invEntry
 }
@@ -102,47 +103,47 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 
 	invVersion.Links = &links
 
-	//atts := m.GetAttachmentsList(model.NewTMIDAttachmentContainerRef(version.TMID), version.AttachmentContainer, version.FoundIn.RepoName)
-	//if atts != nil {
-	//	invVersion.Attachments = &atts
-	//}
+	atts := m.GetAttachmentsList(model.NewTMIDAttachmentContainerRef(version.TMID), version.AttachmentContainer, version.FoundIn.RepoName)
+	if atts != nil {
+		invVersion.Attachments = &atts
+	}
 
 	return invVersion
 }
 
-//func (m *Mapper) GetAttachmentsList(ref model.AttachmentContainerRef, container model.AttachmentContainer, foundInRepo string) server.AttachmentsList {
-//	var attList server.AttachmentsList
-//	for _, v := range container.Attachments {
-//		att := m.GetAttachmentListEntry(ref, v, foundInRepo)
-//		attList = append(attList, att)
-//	}
-//
-//	return attList
-//}
+func (m *Mapper) GetAttachmentsList(ref model.AttachmentContainerRef, container model.AttachmentContainer, foundInRepo string) server.AttachmentsList {
+	var attList server.AttachmentsList
+	for _, v := range container.Attachments {
+		att := m.GetAttachmentListEntry(ref, v, foundInRepo)
+		attList = append(attList, att)
+	}
 
-//func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a model.Attachment, foundInRepo string) server.AttachmentsListEntry {
-//	var containerPrefix string
-//	switch ref.Kind() {
-//	case model.AttachmentContainerKindTMID:
-//		containerPrefix = ref.TMID
-//	case model.AttachmentContainerKindTMName:
-//		containerPrefix = path.Join(tmNamePath, ref.TMName)
-//	}
-//	hrefContent, _ := url.JoinPath(basePathThingModels, containerPrefix, ".attachments", a.Name)
-//	hrefContent = m.appendSourceRepo(hrefContent, foundInRepo)
-//	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
-//
-//	links := server.AttachmentLinks{
-//		Content: hrefContent,
-//	}
-//	entry := server.AttachmentsListEntry{
-//		Links:     &links,
-//		Name:      a.Name,
-//		MediaType: a.MediaType,
-//	}
-//
-//	return entry
-//}
+	return attList
+}
+
+func (m *Mapper) GetAttachmentListEntry(ref model.AttachmentContainerRef, a model.Attachment, foundInRepo string) server.AttachmentsListEntry {
+	var containerPrefix string
+	switch ref.Kind() {
+	case model.AttachmentContainerKindTMID:
+		containerPrefix = ref.TMID
+	case model.AttachmentContainerKindTMName:
+		containerPrefix = path.Join(tmNamePath, ref.TMName)
+	}
+	hrefContent, _ := url.JoinPath(basePathThingModels, containerPrefix, ".attachments", a.Name)
+	hrefContent = m.appendSourceRepo(hrefContent, foundInRepo)
+	hrefContent = resolveRelativeLink(m.Ctx, hrefContent)
+
+	links := server.AttachmentLinks{
+		Content: hrefContent,
+	}
+	entry := server.AttachmentsListEntry{
+		Links:     &links,
+		Name:      a.Name,
+		MediaType: a.MediaType,
+	}
+
+	return entry
+}
 
 func (m *Mapper) appendSourceRepo(href, repoName string) string {
 	if repoName == "" {

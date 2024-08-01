@@ -13,6 +13,21 @@ const (
 	Names      GetCompletionsParamsKind = "names"
 )
 
+// AttachmentLinks defines model for AttachmentLinks.
+type AttachmentLinks struct {
+	Content string `json:"content"`
+}
+
+// AttachmentsList defines model for AttachmentsList.
+type AttachmentsList = []AttachmentsListEntry
+
+// AttachmentsListEntry defines model for AttachmentsListEntry.
+type AttachmentsListEntry struct {
+	Links     *AttachmentLinks `json:"links,omitempty"`
+	MediaType string           `json:"mediaType"`
+	Name      string           `json:"name"`
+}
+
 // AuthorsResponse defines model for AuthorsResponse.
 type AuthorsResponse struct {
 	Data []string `json:"data"`
@@ -42,7 +57,8 @@ type ImportThingModelResult struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
-	Links *InventoryEntryLinks `json:"links,omitempty"`
+	Attachments *AttachmentsList     `json:"attachments,omitempty"`
+	Links       *InventoryEntryLinks `json:"links,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
 	// May be left empty when there is only a single repository served by the backend and thus there is not need for
@@ -67,6 +83,7 @@ type InventoryEntryResponse struct {
 
 // InventoryEntryVersion defines model for InventoryEntryVersion.
 type InventoryEntryVersion struct {
+	Attachments *AttachmentsList            `json:"attachments,omitempty"`
 	Description string                      `json:"description"`
 	Digest      string                      `json:"digest"`
 	ExternalID  string                      `json:"externalID"`
@@ -154,6 +171,9 @@ type SchemaManufacturer struct {
 // disambiguation. See also '/repos'
 type SourceRepository = string
 
+// AttachmentFileName defines model for AttachmentFileName.
+type AttachmentFileName = string
+
 // FetchName defines model for FetchName.
 type FetchName = string
 
@@ -168,6 +188,9 @@ type RepoDisambiguator = string
 
 // TMID defines model for TMID.
 type TMID = string
+
+// TMName defines model for TMName.
+type TMName = string
 
 // UnauthorizedError defines model for UnauthorizedError.
 type UnauthorizedError = ErrorResponse
@@ -305,6 +328,27 @@ type GetThingModelByFetchNameParams struct {
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
 }
 
+// DeleteTMNameAttachmentParams defines parameters for DeleteTMNameAttachment.
+type DeleteTMNameAttachmentParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// GetTMNameAttachmentParams defines parameters for GetTMNameAttachment.
+type GetTMNameAttachmentParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// PutTMNameAttachmentParams defines parameters for PutTMNameAttachment.
+type PutTMNameAttachmentParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// Force flag to force the import, ignoring any conflicts with existing data
+	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
+}
+
 // DeleteThingModelByIdParams defines parameters for DeleteThingModelById.
 type DeleteThingModelByIdParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
@@ -321,6 +365,27 @@ type GetThingModelByIdParams struct {
 
 	// RestoreId restore the TM's original external id, if it had one
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
+}
+
+// DeleteThingModelAttachmentByNameParams defines parameters for DeleteThingModelAttachmentByName.
+type DeleteThingModelAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// GetThingModelAttachmentByNameParams defines parameters for GetThingModelAttachmentByName.
+type GetThingModelAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// PutTMIDAttachmentParams defines parameters for PutTMIDAttachment.
+type PutTMIDAttachmentParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// Force flag to force the import, ignoring any conflicts with existing data
+	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
 // ImportThingModelJSONRequestBody defines body for ImportThingModel for application/json ContentType.

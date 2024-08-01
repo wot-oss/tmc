@@ -1,5 +1,18 @@
 # Change Log
 
+## [unreleased]
+
+### Added
+
+- Added possibility to import file attachments to TMs and TM names
+- `export`: added flag to export attachments together with TMs
+- added setting/storing/detecting of attachment media types
+
+### Changed
+
+- return error on attachment import when it already exists and add a flag to override
+
+
 ## [v0.1.0]
 
 ### Added
