@@ -175,7 +175,7 @@ func TestRepoManager_All_And_Get(t *testing.T) {
 				},
 			}, hr)
 		})
-		t.Run("ad-hoc repo", func(t *testing.T) {
+		t.Run("local repo", func(t *testing.T) {
 			ar, err := Get(model.NewDirSpec("directory"))
 			assert.NoError(t, err)
 			assert.Equal(t, &FileRepo{
