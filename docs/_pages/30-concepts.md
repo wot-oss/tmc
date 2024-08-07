@@ -1,6 +1,10 @@
-This document contains the glossary of concepts and abbreviations used throughout Thing Model Catalog documentation and code
+---
+layout: post
+permalink: /concepts
+title: Concepts
+---
 
-# Glossary
+A short glossary of concepts and abbreviations used throughout Thing Model Catalog documentation and code
 
 **TM** - Thing Model
 
@@ -12,4 +16,4 @@ This document contains the glossary of concepts and abbreviations used throughou
 
 **Named Repository** - a Repository, the configuration of which is stored in a config file on the computer running the TMC Binary
 
-**Local Repository** - an unnamed Repository that is stored in a local directory, which is passed to the TMC Binary on the command file
+**Local Repository** - an unnamed Repository that is stored in a local directory, which is passed to the TMC Binary on the command line

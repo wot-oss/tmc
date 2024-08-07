@@ -7,54 +7,45 @@
 ---
 Find, use and contribute device descriptions for industrial IoT devices!
 
-⚠ This software is **experimental** and may not be fit for any purposes. 
+⚠ This software is **experimental** and may not be fit for any purpose. 
 
 The Thing Model Catalog Command Line Client, or ```tmc``` for short, is a tool for browsing, consuming, contributing and serving Thing Models.
 
-Thing Models are simple device descriptions specified in the [W3C Thing Description][1] standard. Thing Models are to Thing Descriptions what classes are to instances in programming languages.
-
-Thing Models let you describe industrial devices using a simple standardized JSON-based format, which is independent of the communication protocol. This enables a uniform access layer to the fragmented industrial protocol landscape we encounter today.
-
-Thing Descriptions are to Modbus, BACnet, MQTT, DNP3 ... what HTML is to HTTP.
+Read our [Documentation][3] for more.
 
 ---
 
 ## Installation
 
-1. Download the latest [release][2] for your operating system and architecture
-2. Optionally rename to ```tmc``` to remove os/arch postfixes
-3. Give it execution rights and move to a folder that is in your ```PATH```
+Download binary from [releases][2] page or
+
+```bash
+go install github.com/wot-oss/tmc@v0.1.0
+```
 
 ## Quick Start
 
-The ```tmc``` helps you to interact with a Thing Model catalog, which may be hosted on any git forge like github or create your own catalog in a git repository of your choosing. 
-
-To enable a culture of sharing, we provide a canonical repository at [], but feel free to create your own open or private catalog as well.
-
-To integrate publicly available and your own private Thing Models into your product, the ```tmc``` can be run as a server, exposing a REST API that can be protected with JWT tokens.
-
-### Configure Autocompletion
+### Configure Autocompletion (Optional)
 
 1. Read the help of the ```completion``` command to find out which shells are supported
-```bash
-tmc completion -h
-```
-
+    ```bash
+    tmc completion -h
+    ```
 2. Follow the instructions of the shell specific help text
-```bash
-tmc completion <shell> -h
-```
+    ```bash
+    tmc completion <shell> -h
+    ```
 
-### Browse the canoncial Catalog
+### Browse the Canonical Catalog
 
 1. Configure the canonical repository
-```bash
-tmc repo add --type http thingmodels 'https://raw.githubusercontent.com/wot-oss/thingmodels'
-```
+    ```bash
+    tmc repo add --type http thingmodels 'https://example.com/thingmodels'
+    ```
 2. List the contents of the canonical catalog
-```bash
-tmc list
-```
+    ```bash
+    tmc list
+    ```
 
 The listed names are formatted as follows
 
@@ -81,16 +72,16 @@ tmc versions <name>
 Like what you see? Fetch and store locally using the ```fetch``` command. It will print the Thing Model to stdout to enable unix-like piping:
 
 ```bash
-tmc fetch <NAME>
+tmc fetch <ID>
 ```
 
-If you just specify the name, the cli will fetch the latest version automatically. If you want to fetch a specific version, append the version string to the name, separated by a colon:
-
+You can also fetch a TM by specifying only the name part, optionally with a semantic version: 
 ```bash
-tmc fetch <NAME>:<SEMVER>
+tmc fetch <NAME>[:<SEMVER]
 ```
+Doing so will fetch the latest version of the TM that matches the given name and semver.
 
-To store the Thing Model locally instead of printing to stdout, specify the ```-o``` flag and point it to a directory:
+To store the Thing Model to a file instead of printing to stdout, specify the ```-o``` flag and point it to a directory:
 
 ```bash
 tmc fetch <NAME> -o .
@@ -99,7 +90,7 @@ tmc fetch <NAME> -o .
 
 [1]: https://www.w3.org/TR/wot-thing-description11/
 [2]: https://github.com/wot-oss/tmc/releases
-
+[3]: https://wot-oss.github.io/tmc/
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc?ref=badge_large)
