@@ -12,6 +12,7 @@ import (
 
 const (
 	KeyLogLevel             = "logLevel"
+	KeyConfigPath           = "config"
 	KeyUrlContextRoot       = "urlContextRoot"
 	KeyCorsAllowedOrigins   = "corsAllowedOrigins"
 	KeyCorsAllowedHeaders   = "corsAllowedHeaders"
@@ -28,15 +29,20 @@ const (
 )
 
 var HomeDir string
-var DefaultConfigDir string
+var ConfigDir string
+
+const DefaultConfigDir = "~/.tm-catalog"
 
 func InitConfig() {
-	var err error
-	HomeDir, err = os.UserHomeDir()
+	cfgPath := viper.GetString(KeyConfigPath)
+	if cfgPath == "" {
+		cfgPath = DefaultConfigDir
+	}
+	cfgPath, err := utils.ExpandHome(cfgPath)
 	if err != nil {
 		panic(err)
 	}
-	DefaultConfigDir = filepath.Join(HomeDir, ".tm-catalog")
+	ConfigDir = cfgPath
 }
 
 func InitViper() {
@@ -45,13 +51,14 @@ func InitViper() {
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
-	viper.AddConfigPath(DefaultConfigDir)
-	viper.AddConfigPath(".")
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			// Config file not found; do nothing and rely on defaults
-		} else {
-			panic("cannot read config: " + err.Error())
+	if ConfigDir != "" {
+		viper.AddConfigPath(ConfigDir)
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+				// Config file not found; do nothing and rely on defaults
+			} else {
+				panic("cannot read config: " + err.Error())
+			}
 		}
 	}
 	// set prefix "tmc" for environment variables
@@ -60,6 +67,7 @@ func InitViper() {
 
 	// bind viper variables to environment variables
 	_ = viper.BindEnv(KeyLogLevel)             // env variable name = tmc_loglevel
+	_ = viper.BindEnv(KeyConfigPath)           // env variable name = tmc_config
 	_ = viper.BindEnv(KeyUrlContextRoot)       // env variable name = tmc_urlcontextroot
 	_ = viper.BindEnv(KeyCorsAllowedOrigins)   // env variable name = tmc_corsallowedorigins
 	_ = viper.BindEnv(KeyCorsAllowedHeaders)   // env variable name = tmc_corsallowedheaders
@@ -83,9 +91,9 @@ func updateConfigFile(mod int, key string, data any) error {
 
 	configFile := viper.ConfigFileUsed()
 	if configFile == "" {
-		configFile = filepath.Join(DefaultConfigDir, "config.json")
+		configFile = filepath.Join(ConfigDir, "config.json")
 	}
-	err := os.MkdirAll(DefaultConfigDir, 0770)
+	err := os.MkdirAll(ConfigDir, 0770)
 	if err != nil {
 		return err
 	}
