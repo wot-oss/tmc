@@ -29,13 +29,13 @@ Name pattern, filters and search can be combined to narrow down the result.`,
 
 func init() {
 	RootCmd.AddCommand(copyCmd)
-	copyCmd.Flags().StringP("repo", "r", "", "Name of the repository to export from. Exports from all if omitted")
+	copyCmd.Flags().StringP("repo", "r", "", "Name of the source repository. Copies from all repositories if omitted")
 	_ = copyCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
-	copyCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
+	copyCmd.Flags().StringP("directory", "d", "", "Use the specified directory as source repository. The directory must contain a tmc repository.")
 	_ = copyCmd.MarkFlagDirname("directory")
 	copyCmd.Flags().StringP("toRepo", "R", "", "Name of the target repository for copying")
 	_ = copyCmd.RegisterFlagCompletionFunc("toRepo", completion.CompleteRepoNames)
-	copyCmd.Flags().StringP("toDirectory", "D", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
+	copyCmd.Flags().StringP("toDirectory", "D", "", "Use the specified directory as target repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
 	_ = copyCmd.MarkFlagDirname("toDirectory")
 	copyCmd.Flags().StringVar(&copyFilterFlags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	copyCmd.Flags().StringVar(&copyFilterFlags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")

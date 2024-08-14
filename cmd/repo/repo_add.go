@@ -1,11 +1,14 @@
 package repo
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 // repoAddCmd represents the 'repo add' command
@@ -47,7 +50,7 @@ the config may be a simple string, like a URL, or a json file.
 
 func init() {
 	repoCmd.AddCommand(repoAddCmd)
-	repoAddCmd.Flags().StringP("type", "t", "", "type of repo to add")
+	repoAddCmd.Flags().StringP("type", "t", "", fmt.Sprintf("type of repo to add. One of [%s]", strings.Join(repos.SupportedTypes, ", ")))
 	_ = repoAddCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
 	repoAddCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
 	repoAddCmd.Flags().StringP("description", "d", "", "description of the repo")
