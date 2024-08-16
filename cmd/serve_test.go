@@ -26,7 +26,7 @@ func TestGetServerOptionsReadsFromEnvironment(t *testing.T) {
 		t.Setenv(envAllowedOrigins, "http://example.org, https://sample.com")
 		t.Setenv(envAllowCredentials, "true")
 		t.Setenv(envMaxAge, "120")
-		config.InitViper()
+		config.ReadInConfig()
 
 		opts := getCORSOptions()
 
@@ -44,7 +44,7 @@ func TestGetServerOptionsReadsFromEnvironment(t *testing.T) {
 	})
 
 	t.Run("without set environment variables", func(t *testing.T) {
-		config.InitViper()
+		config.ReadInConfig()
 
 		opts := getCORSOptions()
 

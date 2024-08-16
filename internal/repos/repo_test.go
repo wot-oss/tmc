@@ -26,11 +26,11 @@ func TestSaveConfigOverwritesOnlyRepos(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	configFile := filepath.Join(config.DefaultConfigDir, "config.json")
+	configFile := filepath.Join(config.ConfigDir, "config.json")
 	err = os.WriteFile(configFile, []byte(`{
   "log": true,
   "repos": {
@@ -75,11 +75,11 @@ func TestReadConfigOverwritesRemotesWithRepos(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	configFile := filepath.Join(config.DefaultConfigDir, "config.json")
+	configFile := filepath.Join(config.ConfigDir, "config.json")
 	err = os.WriteFile(configFile, []byte(`{
   "log": true,
   "remotes": {
