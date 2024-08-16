@@ -14,7 +14,7 @@ var envVarLogLevel = strings.ToUpper(config.EnvPrefix + "_" + config.KeyLogLevel
 func TestLogDisabledByLogLevelEmpty(t *testing.T) {
 	// given: default environment with no environment variable set for loglevel
 	t.Setenv(envVarLogLevel, "")
-	config.InitViper()
+	config.ReadInConfig()
 
 	// when: initialize the logging
 	InitLogging()
@@ -28,7 +28,7 @@ func TestLogDisabledByLogLevelEmpty(t *testing.T) {
 func TestLogDisabledByLogLevelOff(t *testing.T) {
 	// given: default environment with environment variable for loglevel is set to "off"
 	t.Setenv(envVarLogLevel, "off")
-	config.InitViper()
+	config.ReadInConfig()
 
 	// when: initialize the logging
 	InitLogging()
@@ -57,7 +57,7 @@ func TestLogEnabledByLogLevel(t *testing.T) {
 		// when: setting loglevel via environment variable
 		t.Setenv(envVarLogLevel, test.in)
 		// and when: initialize the logging
-		config.InitViper()
+		config.ReadInConfig()
 		InitLogging()
 
 		hdl := slog.Default().Handler()

@@ -43,15 +43,13 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", config.DefaultConfigDir, "path to config directory")
 	RootCmd.PersistentFlags().StringVarP(&loglevel, "loglevel", "l", "", "enable logging by setting a log level, one of [error, warn, info, debug, off]")
 	RootCmd.PersistentPreRun = preRunAll
-	config.InitViper()
 	// bind viper variable "loglevel" to CLI flag --loglevel of root command
 	_ = viper.BindPFlag(config.KeyLogLevel, RootCmd.PersistentFlags().Lookup("loglevel"))
 	_ = viper.BindPFlag(config.KeyConfigPath, RootCmd.PersistentFlags().Lookup("config"))
 }
 
 func preRunAll(cmd *cobra.Command, args []string) {
-	config.InitConfig()
-	config.InitViper()
+	config.ReadInConfig()
 	// set default loglevel depending on subcommand
 	logDefault := cmd != nil && slices.Contains(logEnabledDefaultCmd, cmd.CalledAs())
 	if logDefault {

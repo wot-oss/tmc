@@ -21,7 +21,7 @@ func TestLoggingOnSubCommands(t *testing.T) {
 	config.ConfigDir = temp
 	defer func() { config.ConfigDir = orgDir }()
 
-	config.InitViper()
+	config.ReadInConfig()
 	RootCmd.ResetCommands()
 
 	var isDisabled bool
@@ -68,7 +68,7 @@ func TestLogFlagEnablesLogging(t *testing.T) {
 	config.ConfigDir = temp
 	defer func() { config.ConfigDir = orgDir }()
 
-	config.InitViper()
+	config.ReadInConfig()
 	RootCmd.ResetCommands()
 
 	var isDisabled bool

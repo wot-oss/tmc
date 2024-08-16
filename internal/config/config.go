@@ -33,34 +33,13 @@ var ConfigDir string
 
 const DefaultConfigDir = "~/.tm-catalog"
 
-func InitConfig() {
-	cfgPath := viper.GetString(KeyConfigPath)
-	if cfgPath == "" {
-		cfgPath = DefaultConfigDir
-	}
-	cfgPath, err := utils.ExpandHome(cfgPath)
-	if err != nil {
-		panic(err)
-	}
-	ConfigDir = cfgPath
-}
-
-func InitViper() {
+func init() {
 	viper.SetDefault(KeyLogLevel, LogLevelOff)
 	viper.SetDefault(KeyJWTValidation, false)
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
-	if ConfigDir != "" {
-		viper.AddConfigPath(ConfigDir)
-		if err := viper.ReadInConfig(); err != nil {
-			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-				// Config file not found; do nothing and rely on defaults
-			} else {
-				panic("cannot read config: " + err.Error())
-			}
-		}
-	}
+
 	// set prefix "tmc" for environment variables
 	// the environment variables then have to match pattern "tmc_<viper variable>", lower or uppercase
 	viper.SetEnvPrefix(EnvPrefix)
@@ -76,6 +55,30 @@ func InitViper() {
 	_ = viper.BindEnv(KeyJWTValidation)        // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWTServiceID)         // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
+
+}
+
+func ReadInConfig() {
+	cfgPath := viper.GetString(KeyConfigPath)
+	if cfgPath == "" {
+		cfgPath = DefaultConfigDir
+	}
+	cfgPath, err := utils.ExpandHome(cfgPath)
+	if err != nil {
+		panic(err)
+	}
+	ConfigDir = cfgPath
+
+	if ConfigDir != "" {
+		viper.AddConfigPath(ConfigDir)
+		if err := viper.ReadInConfig(); err != nil {
+			if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+				// Config file not found; do nothing and rely on defaults
+			} else {
+				panic("cannot read config: " + err.Error())
+			}
+		}
+	}
 }
 
 func Save(key string, data any) error {
