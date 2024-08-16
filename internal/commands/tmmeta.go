@@ -8,7 +8,7 @@ import (
 )
 
 func GetTMMetadata(ctx context.Context, spec model.RepoSpec, tmID string) ([]model.FoundVersion, error, []*repos.RepoAccessError) {
-	rs, err := repos.GetSpecdOrAll(spec)
+	rs, err := repos.GetUnion(spec)
 	if err != nil {
 		return nil, err, nil
 	}

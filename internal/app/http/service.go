@@ -213,7 +213,7 @@ func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo str
 }
 
 func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
-	rs, err := repos.GetSpecdOrAll(dhs.serveRepo)
+	rs, err := repos.GetUnion(dhs.serveRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +308,7 @@ func (dhs *defaultHandlerService) CheckHealthLive(ctx context.Context) error {
 
 func (dhs *defaultHandlerService) CheckHealthReady(ctx context.Context) error {
 
-	_, err := repos.GetSpecdOrAll(dhs.serveRepo)
+	_, err := repos.GetUnion(dhs.serveRepo)
 	if err != nil {
 		return errors.New("invalid repo configuration or ")
 	}

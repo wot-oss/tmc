@@ -430,8 +430,8 @@ func AsRepoConfig(bytes []byte) (map[string]any, error) {
 	return rc, nil
 }
 
-// GetSpecdOrAll returns a union containing the repo specified by spec, or union of all repo, if the spec is empty
-func GetSpecdOrAll(spec model.RepoSpec) (*Union, error) {
+// GetUnion returns a union containing the repo specified by spec, or a union of all repos, if the spec is empty
+func GetUnion(spec model.RepoSpec) (*Union, error) {
 	if spec.RepoName() != "" || spec.Dir() != "" {
 		repo, err := Get(spec)
 		if err != nil {

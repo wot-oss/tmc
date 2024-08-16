@@ -27,7 +27,7 @@ func FetchByTMIDOrName(ctx context.Context, spec model.RepoSpec, idOrName string
 }
 
 func FetchByTMID(ctx context.Context, spec model.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
-	rs, err := repos.GetSpecdOrAll(spec)
+	rs, err := repos.GetUnion(spec)
 	if err != nil {
 		return "", nil, err, nil
 	}

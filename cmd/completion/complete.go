@@ -59,7 +59,7 @@ func getRepo(cmd *cobra.Command) (*repos.Union, error) {
 		return nil, err
 	}
 
-	u, err := repos.GetSpecdOrAll(spec)
+	u, err := repos.GetUnion(spec)
 	if err != nil {
 		return nil, err
 	}

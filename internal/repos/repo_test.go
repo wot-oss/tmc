@@ -324,7 +324,7 @@ func TestGetSpecdOrAll(t *testing.T) {
 	})
 
 	// check if all repos are returned, when passing EmptySpec
-	all, err := GetSpecdOrAll(model.EmptySpec)
+	all, err := GetUnion(model.EmptySpec)
 	assert.NoError(t, err)
 	expLocs := []string{"somewhere", "somewhere-else"}
 	for _, r := range all.rs {
@@ -337,7 +337,7 @@ func TestGetSpecdOrAll(t *testing.T) {
 	}
 	assert.Len(t, expLocs, 0) // no locations remained that were not found
 
-	all, err = GetSpecdOrAll(model.NewRepoSpec("r1"))
+	all, err = GetUnion(model.NewRepoSpec("r1"))
 	assert.NoError(t, err)
 	if assert.Len(t, all.rs, 1) {
 		if r1, ok := all.rs[0].(*FileRepo); assert.True(t, ok) {
@@ -346,7 +346,7 @@ func TestGetSpecdOrAll(t *testing.T) {
 	}
 
 	// get local repo
-	all, err = GetSpecdOrAll(model.NewDirSpec("dir1"))
+	all, err = GetUnion(model.NewDirSpec("dir1"))
 	assert.NoError(t, err)
 	if assert.Len(t, all.rs, 1) {
 		if r1, ok := all.rs[0].(*FileRepo); assert.True(t, ok) {
