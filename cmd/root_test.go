@@ -17,11 +17,11 @@ func TestLoggingOnSubCommands(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	config.InitViper()
+	config.ReadInConfig()
 	RootCmd.ResetCommands()
 
 	var isDisabled bool
@@ -64,11 +64,11 @@ func TestLogFlagEnablesLogging(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	config.InitViper()
+	config.ReadInConfig()
 	RootCmd.ResetCommands()
 
 	var isDisabled bool
@@ -88,4 +88,63 @@ func TestLogFlagEnablesLogging(t *testing.T) {
 	_ = RootCmd.Execute()
 	// then: logging is ENABLED
 	assert.False(t, isDisabled)
+}
+
+func TestEnvVarOverridesDefaultConfigDir(t *testing.T) {
+	temp, err := os.MkdirTemp("", "config")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(temp)
+	orgDir := config.ConfigDir
+	defer func() { config.ConfigDir = orgDir }()
+	const envKey = "TMC_CONFIG"
+	orgEnv, unset := os.LookupEnv(envKey)
+	err = os.Setenv(envKey, temp)
+	assert.NoError(t, err)
+	defer func() {
+		if unset {
+			_ = os.Unsetenv(envKey)
+		} else {
+			_ = os.Setenv(envKey, orgEnv)
+		}
+	}()
+
+	RootCmd.ResetCommands()
+
+	// given: a sub-command of the root command
+	runFunc := func(cmd *cobra.Command, args []string) {}
+
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
+	RootCmd.AddCommand(importCmd)
+
+	// when: executing the command with the --loglevel flag
+	RootCmd.SetArgs([]string{"import"})
+	_ = RootCmd.Execute()
+	// then: ConfigDir is set to temp
+	assert.Equal(t, temp, config.ConfigDir)
+}
+func TestConfigFlagOverridesDefaultConfigDir(t *testing.T) {
+	temp, err := os.MkdirTemp("", "config")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(temp)
+	orgDir := config.ConfigDir
+	defer func() { config.ConfigDir = orgDir }()
+
+	RootCmd.ResetCommands()
+
+	// given: a sub-command of the root command
+	runFunc := func(cmd *cobra.Command, args []string) {}
+
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
+	RootCmd.AddCommand(importCmd)
+
+	// when: executing the command with the --loglevel flag
+	RootCmd.SetArgs([]string{"import"})
+	_ = RootCmd.ParseFlags([]string{"--config", temp})
+	_ = RootCmd.Execute()
+	// then: ConfigDir is set to temp
+	assert.Equal(t, temp, config.ConfigDir)
 }
