@@ -71,6 +71,18 @@ func (v TMVersion) BaseString() string {
 	return res
 }
 
+func (v TMVersion) Compare(other TMVersion) int {
+	vc := v.Base.Compare(other.Base)
+	if vc != 0 {
+		return vc
+	}
+	tc := strings.Compare(v.Timestamp, other.Timestamp) // our timestamps can be compared lexicographically
+	if tc != 0 {
+		return tc
+	}
+	return strings.Compare(v.Hash, other.Hash) // there's no sense in comparing hashes other that to ensure a stable order
+}
+
 func (id TMID) String() string {
 	return fmt.Sprintf("%s/%s%s", id.Name, id.Version, TMFileExtension)
 }

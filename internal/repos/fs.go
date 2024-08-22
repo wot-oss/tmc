@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
@@ -243,8 +242,8 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 			res = append(res, ver)
 		}
 	}
-	sort.Slice(res, func(i, j int) bool {
-		return strings.Compare(res[i].String(), res[j].String()) > 0
+	slices.SortStableFunc(res, func(a, b model.TMVersion) int {
+		return a.Compare(b)
 	})
 	return res
 }
@@ -339,6 +338,7 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 		return model.SearchResult{}, err
 	}
 	idx.Filter(search)
+	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
 	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx), nil
 }
 

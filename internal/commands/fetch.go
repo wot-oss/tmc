@@ -200,12 +200,8 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 // sortFoundVersionsDesc sorts by semver then timestamp in descending order, ie. from newest to oldest
 func sortFoundVersionsDesc(versions []model.FoundVersion) {
 	slices.SortStableFunc(versions, func(a, b model.FoundVersion) int {
-		av := semver.MustParse(a.Version.Model)
-		bv := semver.MustParse(b.Version.Model)
-		vc := bv.Compare(av)
-		if vc != 0 {
-			return vc
-		}
-		return strings.Compare(b.TimeStamp, a.TimeStamp) // our timestamps can be compared lexicographically
+		aid, _ := model.ParseTMID(a.TMID)
+		bid, _ := model.ParseTMID(b.TMID)
+		return -aid.Version.Compare(bid.Version)
 	})
 }
