@@ -213,11 +213,11 @@ func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo str
 }
 
 func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
-	rs, err := repos.GetUnion(dhs.serveRepo)
+	u, err := repos.GetUnion(dhs.serveRepo)
 	if err != nil {
 		return nil, err
 	}
-	return rs.ListCompletions(ctx, kind, args, toComplete), nil
+	return u.ListCompletions(ctx, kind, args, toComplete), nil
 }
 
 func (dhs *defaultHandlerService) GetTMMetadata(ctx context.Context, repo string, tmID string) ([]model.FoundVersion, error) {

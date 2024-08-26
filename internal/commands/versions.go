@@ -14,10 +14,10 @@ func NewVersionsCommand() *VersionsCommand {
 	return &VersionsCommand{}
 }
 func (c *VersionsCommand) ListVersions(ctx context.Context, spec model.RepoSpec, name string) ([]model.FoundVersion, error, []*repos.RepoAccessError) {
-	rs, err := repos.GetUnion(spec)
+	u, err := repos.GetUnion(spec)
 	if err != nil {
 		return nil, err, nil
 	}
-	versions, errors := rs.Versions(ctx, name)
+	versions, errors := u.Versions(ctx, name)
 	return versions, nil, errors
 }
