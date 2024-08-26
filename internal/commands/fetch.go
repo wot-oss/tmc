@@ -27,12 +27,12 @@ func FetchByTMIDOrName(ctx context.Context, spec model.RepoSpec, idOrName string
 }
 
 func FetchByTMID(ctx context.Context, spec model.RepoSpec, tmid string, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
-	rs, err := repos.GetSpecdOrAll(spec)
+	u, err := repos.GetUnion(spec)
 	if err != nil {
 		return "", nil, err, nil
 	}
 
-	fetch, bytes, err, accessErrors := rs.Fetch(ctx, tmid)
+	fetch, bytes, err, accessErrors := u.Fetch(ctx, tmid)
 	if err == nil && restoreId {
 		bytes = restoreExternalId(bytes)
 	}
@@ -146,8 +146,6 @@ func findMostRecentVersion(versions []model.FoundVersion) (string, model.RepoSpe
 		return "", model.EmptySpec, err
 	}
 
-	sortFoundVersionsDesc(versions)
-
 	v := versions[0]
 	return v.TMID, model.NewSpecFromFoundSource(v.FoundIn), nil
 }
@@ -189,23 +187,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 		return "", model.EmptySpec, err
 	}
 
-	// sort the remaining by semver then timestamp in descending order
-	sortFoundVersionsDesc(versions)
-
 	// and here's our winner
 	v := versions[0]
 	return v.TMID, model.NewSpecFromFoundSource(v.FoundIn), nil
-}
-
-// sortFoundVersionsDesc sorts by semver then timestamp in descending order, ie. from newest to oldest
-func sortFoundVersionsDesc(versions []model.FoundVersion) {
-	slices.SortStableFunc(versions, func(a, b model.FoundVersion) int {
-		av := semver.MustParse(a.Version.Model)
-		bv := semver.MustParse(b.Version.Model)
-		vc := bv.Compare(av)
-		if vc != 0 {
-			return vc
-		}
-		return strings.Compare(b.TimeStamp, a.TimeStamp) // our timestamps can be compared lexicographically
-	})
 }
