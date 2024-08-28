@@ -16,22 +16,34 @@ type Repo struct {
 	mock.Mock
 }
 
-// AnalyzeIndex provides a mock function with given fields: ctx
-func (_m *Repo) AnalyzeIndex(ctx context.Context) error {
+// CheckIntegrity provides a mock function with given fields: ctx
+func (_m *Repo) CheckIntegrity(ctx context.Context) ([]model.CheckResult, error) {
 	ret := _m.Called(ctx)
 
 	if len(ret) == 0 {
-		panic("no return value specified for AnalyzeIndex")
+		panic("no return value specified for CheckIntegrity")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context) error); ok {
+	var r0 []model.CheckResult
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context) ([]model.CheckResult, error)); ok {
+		return rf(ctx)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context) []model.CheckResult); ok {
 		r0 = rf(ctx)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.CheckResult)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // Delete provides a mock function with given fields: ctx, id
@@ -294,24 +306,6 @@ func (_m *Repo) ListCompletions(ctx context.Context, kind string, args []string,
 	}
 
 	return r0, r1
-}
-
-// RangeResources provides a mock function with given fields: ctx, filter, visit
-func (_m *Repo) RangeResources(ctx context.Context, filter model.ResourceFilter, visit func(model.Resource, error) bool) error {
-	ret := _m.Called(ctx, filter, visit)
-
-	if len(ret) == 0 {
-		panic("no return value specified for RangeResources")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, model.ResourceFilter, func(model.Resource, error) bool) error); ok {
-		r0 = rf(ctx, filter, visit)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
 }
 
 // Spec provides a mock function with given fields:

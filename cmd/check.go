@@ -10,60 +10,29 @@ import (
 )
 
 var checkCmd = &cobra.Command{
-	Use:   "check",
-	Short: "Check catalog",
-	Long:  `The command check and its subcommands allow to validate a catalog for consistency.`,
-}
-
-var checkResCmd = &cobra.Command{
-	Use:               "resources [<name1> <name2> <name3> ...]",
-	Short:             "Check resources in the catalog for consistency.",
-	Long:              `Check all or multiple named resources in the catalog for consistency.`,
-	Args:              cobra.MinimumNArgs(0),
-	Run:               checkResources,
+	Use:               "check",
+	Short:             "Check the integrity of internal repository storage",
+	Long:              `The check command verifies a repository for internal consistency and integrity of the storage.`,
+	Args:              cobra.NoArgs,
+	Run:               checkIntegrity,
 	ValidArgsFunction: completion.CompleteTMNames,
-}
-
-var checkIndexCmd = &cobra.Command{
-	Use:   "index",
-	Short: "Check the index of a catalog for consistency.",
-	Long:  `Check the index of a catalog for consistency.`,
-	Args:  cobra.MaximumNArgs(0),
-	Run:   checkIndex,
 }
 
 func init() {
 	RootCmd.AddCommand(checkCmd)
 
-	checkCmd.AddCommand(checkResCmd)
-	checkResCmd.Flags().StringP("repo", "r", "", "Name of the repository to check")
-	checkResCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
-	_ = checkResCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
-	_ = checkResCmd.MarkFlagDirname("directory")
-
-	checkCmd.AddCommand(checkIndexCmd)
-	checkIndexCmd.Flags().StringP("repo", "r", "", "Name of the repository to check")
-	checkIndexCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
-	_ = checkIndexCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
-	_ = checkIndexCmd.MarkFlagDirname("directory")
+	checkCmd.Flags().StringP("repo", "r", "", "Name of the repository to check")
+	checkCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
+	_ = checkCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	_ = checkCmd.MarkFlagDirname("directory")
 }
 
-func checkResources(cmd *cobra.Command, args []string) {
+func checkIntegrity(cmd *cobra.Command, args []string) {
 	spec := RepoSpec(cmd)
-	err := cli.CheckResources(context.Background(), spec, args)
+	err := cli.CheckIntegrity(context.Background(), spec)
 
 	if err != nil {
-		cli.Stderrf("check resources failed")
-		os.Exit(1)
-	}
-}
-
-func checkIndex(cmd *cobra.Command, args []string) {
-	spec := RepoSpec(cmd)
-	err := cli.CheckIndex(context.Background(), spec)
-
-	if err != nil {
-		cli.Stderrf("check index failed")
+		cli.Stderrf("integrity check failed")
 		os.Exit(1)
 	}
 }

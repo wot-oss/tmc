@@ -148,3 +148,34 @@ type RepoDescription struct {
 	Type        string
 	Description string
 }
+
+type CheckResultType int
+
+const (
+	CheckOK = CheckResultType(iota)
+	CheckWarning
+	CheckErr
+)
+
+func (t CheckResultType) String() string {
+	switch t {
+	case CheckOK:
+		return "OK"
+	case CheckWarning:
+		return "warn"
+	case CheckErr:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
+type CheckResult struct {
+	Typ          CheckResultType
+	ResourceName string
+	Message      string
+}
+
+func (r CheckResult) String() string {
+	return fmt.Sprintf("%v \t%s: %s", r.Typ, r.ResourceName, r.Message)
+}

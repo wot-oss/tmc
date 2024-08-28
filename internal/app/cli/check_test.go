@@ -95,7 +95,7 @@ func TestCheck_Resources(t *testing.T) {
 		err := CheckResources(context.Background(), model.NewRepoSpec("r1"), nil)
 		stdout := getStdout()
 		// then: there is a total error
-		assert.ErrorIs(t, err, errCheckResourcesFailed)
+		assert.ErrorIs(t, err, errCheckFailed)
 		// and then: stdout shows no error for valid ThingModel
 		assert.NotContains(t, stdout, CheckResult{typ: CheckErr, refName: tms[0].Name, text: ""}.String())
 		// and then: stdout shows errors for invalid ThingModels (no check for concrete error msg)
@@ -127,7 +127,7 @@ func TestCheck_Resources(t *testing.T) {
 		err := CheckResources(context.Background(), model.NewRepoSpec("r1"), nil)
 		stdout := getStdout()
 		// then: there is a total error
-		assert.ErrorIs(t, err, errCheckResourcesFailed)
+		assert.ErrorIs(t, err, errCheckFailed)
 		// and then: stdout shows error for invalid ThingModel (no check for concrete error msg)
 		assert.Contains(t, stdout, CheckResult{typ: CheckErr, refName: tm.Name, text: ""}.String())
 	})
@@ -152,19 +152,19 @@ func TestCheck_Index(t *testing.T) {
 
 	t.Run("with repository not found", func(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), nil, repos.ErrRepoNotFound))
-		err := CheckIndex(context.Background(), model.NewRepoSpec("r1"))
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"))
 		assert.ErrorIs(t, err, repos.ErrRepoNotFound)
 	})
 
-	t.Run("without AnalyzeIndex error", func(t *testing.T) {
-		r.On("AnalyzeIndex", mock.Anything).Return(nil).Once()
-		err := CheckIndex(context.Background(), model.NewRepoSpec("r1"))
+	t.Run("without CheckIntegrity error", func(t *testing.T) {
+		r.On("CheckIntegrity", mock.Anything).Return(nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"))
 		assert.NoError(t, err)
 	})
 
-	t.Run("with AnalyzeIndex error", func(t *testing.T) {
-		r.On("AnalyzeIndex", mock.Anything).Return(repos.ErrIndexMismatch).Once()
-		err := CheckIndex(context.Background(), model.NewRepoSpec("r1"))
+	t.Run("with CheckIntegrity error", func(t *testing.T) {
+		r.On("CheckIntegrity", mock.Anything).Return(repos.ErrIndexMismatch).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"))
 		assert.ErrorIs(t, err, repos.ErrIndexMismatch)
 	})
 }

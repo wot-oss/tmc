@@ -957,7 +957,7 @@ func TestTmcRepo_AnalyzeIndex(t *testing.T) {
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 	// when: AnalyzingIndex on the repo
-	err = r.AnalyzeIndex(context.Background())
+	err = r.CheckIntegrity(context.Background())
 	// then: it returns NotSupported error
 	assert.True(t, errors.Is(err, ErrNotSupported))
 }

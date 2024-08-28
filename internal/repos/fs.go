@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
-	"reflect"
 	"slices"
 	"strings"
 	"time"
@@ -285,33 +285,25 @@ func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 	return err
 }
 
-func (f *FileRepo) AnalyzeIndex(ctx context.Context) error {
-	err := f.checkRootValid()
+func (f *FileRepo) CheckIntegrity(ctx context.Context) (results []model.CheckResult, err error) {
+	err = f.checkRootValid()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	idxOld, errIdxOld := f.readIndex()
-	idxNew, err := f.updateIndex(ctx, f.fullIndexRebuild, false)
+	unlock, err := f.lockIndex(ctx)
+	defer unlock()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// if there are no TMs and there is an empty or missing index file, it's considered to be valid
-	if idxNew.IsEmpty() && (errIdxOld == ErrNoIndex || idxOld.IsEmpty()) {
-		return nil
-	} else if errIdxOld != nil {
-		return errIdxOld
+	idx, idxErr := f.readIndex()
+	if idxErr != nil && !errors.Is(idxErr, ErrNoIndex) {
+		return nil, err
 	}
+	idx.Sort()
 
-	idxNew.Sort()
-	idxOld.Sort()
-
-	idxOk := reflect.DeepEqual(idxOld.Data, idxNew.Data)
-	if !idxOk {
-		return ErrIndexMismatch
-	}
-	return nil
+	r, err := f.verifyAllFilesAreIndexed(ctx, idx)
+	return r, err
 }
 
 func (f *FileRepo) Spec() model.RepoSpec {
@@ -1062,6 +1054,67 @@ func (f *FileRepo) ListCompletions(ctx context.Context, kind string, args []stri
 	}
 }
 
+func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.CheckResult {
+	file = filepath.ToSlash(file)
+	if isIndexFile(file) {
+		return model.CheckResult{model.CheckOK, file, "OK"}
+	}
+	if isAtt, ref, attName := isAttachmentFile(file); isAtt {
+		container, _, err := idx.FindAttachmentContainer(ref)
+		if err != nil {
+			var nfErr *model.ErrNotFound
+			if errors.As(err, &nfErr) {
+				return model.CheckResult{model.CheckWarning, file, "appears to be an attachment file to a TM name or TM ID which does not exist. Was is imported correctly?"}
+			}
+		}
+		_, found := container.FindAttachment(attName)
+		if !found {
+			return model.CheckResult{model.CheckWarning, file, "appears to be an attachment file which is not known to the repository. Was is imported correctly?"}
+		}
+		return model.CheckResult{model.CheckOK, file, "OK"}
+	}
+	if isTMFile(file) {
+		ver := idx.FindByTMID(file)
+		if ver == nil {
+			return model.CheckResult{model.CheckWarning, file, "appears to be a TM file which is not known to the repository. Was is imported correctly?"}
+		}
+		return model.CheckResult{model.CheckOK, file, "OK"}
+	}
+	return model.CheckResult{model.CheckWarning, file, "file unknown"}
+}
+
+func isTMFile(file string) bool {
+	_, err := model.ParseTMID(file)
+	return err == nil
+}
+
+func isAttachmentFile(file string) (bool, model.AttachmentContainerRef, string) {
+	before, after, found := strings.Cut(file, "/"+model.AttachmentsDir+"/")
+	if !found {
+		return false, model.AttachmentContainerRef{}, ""
+	}
+	tmName, err := model.ParseFetchName(before)
+	if err != nil || tmName.Semver != "" {
+		return false, model.AttachmentContainerRef{}, ""
+	}
+	attName := path.Base(after)
+	if tmVer := path.Dir(after); tmVer != "." {
+		_, err := model.ParseTMVersion(tmVer)
+		if err != nil {
+			return false, model.AttachmentContainerRef{}, ""
+		}
+		return true, model.NewTMIDAttachmentContainerRef(tmName.Name + "/" + tmVer + ".tm.json"), attName
+	}
+	return true, model.NewTMNameAttachmentContainerRef(tmName.Name), attName
+}
+
+func isIndexFile(p string) bool {
+	return p == path.Join(RepoConfDir, IndexFilename) ||
+		p == path.Join(RepoConfDir, IndexFilename+".lock") ||
+		p == path.Join(RepoConfDir, TmNamesFile)
+
+}
+
 func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]string, error) {
 	if len(args) > 0 {
 		_, err := model.ParseTMID(args[0])
@@ -1094,5 +1147,4 @@ func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]str
 	} else {
 		return nil, ErrInvalidCompletionParams
 	}
-	return nil, nil
 }

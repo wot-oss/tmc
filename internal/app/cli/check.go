@@ -2,134 +2,113 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
+	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/commands/validate"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-const (
-	CheckOK = CheckResultType(iota)
-	CheckErr
-)
+var errCheckFailed = errors.New("integrity check failed")
 
-var errCheckResourcesFailed = errors.New("check resources failed")
+func CheckIntegrity(ctx context.Context, spec model.RepoSpec) error {
 
-type CheckResultType int
-
-func (t CheckResultType) String() string {
-	switch t {
-	case CheckOK:
-		return "OK"
-	case CheckErr:
-		return "error"
-	default:
-		return "unknown"
-	}
-}
-
-type CheckResult struct {
-	typ     CheckResultType
-	refName string
-	text    string
-}
-
-func (r CheckResult) String() string {
-	return fmt.Sprintf("%v\t %s: %s", r.typ, r.refName, r.text)
-}
-
-func CheckResources(ctx context.Context, spec model.RepoSpec, names []string) error {
 	repo, err := repos.Get(spec)
 	if err != nil {
 		Stderrf("could not initialize a repo instance for %v: %v. check config", spec, err)
 		return err
 	}
 
-	fmt.Printf("Checking resources of catalog: %s ...\n", spec)
+	fmt.Printf("Checking integrity of repository (%s) ...\n", spec)
 
-	resFilter := model.ResourceFilter{
-		Names: names,
-		Types: []model.ResourceType{model.ResTypeTM},
+	totalRes, err := checkIndexedResourcesAreValid(ctx, repo)
+	results, iErr := repo.CheckIntegrity(ctx)
+	if err == nil {
+		err = iErr
 	}
-
-	var totalRes []CheckResult
-	err = repo.RangeResources(ctx, resFilter, func(res model.Resource, visitErr error) bool {
-
-		if visitErr != nil {
-			totalRes = append(totalRes, CheckResult{typ: CheckErr, refName: res.Name, text: visitErr.Error()})
-			return true
-		}
-
-		if res.Typ == model.ResTypeTM {
-			res, cErr := checkThingModel(res)
-			if cErr != nil {
-				totalRes = append(totalRes, res)
-				return true
-			}
-		}
-		return true
-	})
-
-	if err != nil {
-		Stderrf(err.Error())
-	}
-
+	totalRes = append(totalRes, results...)
 	for _, res := range totalRes {
-		fmt.Println(res)
-
-		if err == nil && res.typ == CheckErr {
-			err = errCheckResourcesFailed
+		if res.Typ != model.CheckOK {
+			fmt.Println(res)
+		}
+		if err == nil && res.Typ == model.CheckErr {
+			err = errCheckFailed
 		}
 	}
+
 	return err
 }
 
-func checkThingModel(res model.Resource) (CheckResult, error) {
-	_, err := validate.ValidateThingModel(res.Raw)
+func checkIndexedResourcesAreValid(ctx context.Context, repo repos.Repo) ([]model.CheckResult, error) {
+	var results []model.CheckResult
+	list, err := repo.List(ctx, &model.SearchParams{})
 	if err != nil {
-		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
+		return nil, err
 	}
+	for _, entry := range list.Entries {
+		rs := checkAttachments(ctx, repo, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments)
+		results = append(results, rs...)
+		for _, version := range entry.Versions {
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			default:
+			}
 
-	tm := &model.ThingModel{}
-	err = json.Unmarshal(res.Raw, tm)
+			tr := checkThingModel(ctx, repo, version.TMID)
+			results = append(results, tr)
+			rs = checkAttachments(ctx, repo, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
+			results = append(results, rs...)
+		}
+	}
+	return results, nil
+}
+
+func checkAttachments(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment) []model.CheckResult {
+	var results []model.CheckResult
+	for _, attachment := range attachments {
+		_, err := repo.FetchAttachment(ctx, ref, attachment.Name)
+		dir, _ := model.RelAttachmentsDir(ref)
+		attResourseName := fmt.Sprintf("%s/%s", dir, attachment.Name)
+		if err != nil {
+			res := model.CheckResult{model.CheckErr, attResourseName, err.Error()}
+			results = append(results, res)
+		} else {
+			res := model.CheckResult{model.CheckOK, attResourseName, "OK"}
+			results = append(results, res)
+		}
+	}
+	return results
+}
+
+func checkThingModel(ctx context.Context, repo repos.Repo, tmid string) model.CheckResult {
+	id, raw, err := repo.Fetch(ctx, tmid)
 	if err != nil {
-		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: err.Error()}
 	}
-
+	tm, err := validate.ValidateThingModel(raw)
+	if err != nil {
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: fmt.Sprintf("invalid TM content: %s", err.Error())}
+	}
 	if tm.ID == "" {
-		err = errors.New("TM id missing")
-		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
+		err = errors.New("TM id is missing in the file")
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: err.Error()}
 	}
-
-	_, err = model.ParseTMID(tm.ID)
+	idInFile, err := model.ParseTMID(tm.ID)
 	if err != nil {
-		return CheckResult{typ: CheckErr, refName: res.Name, text: err.Error()}, err
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: "TM id in the file is invalid"}
+	}
+	if tm.ID != tmid || id != tmid {
+		err = errors.New("TM id does not match the file location")
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: err.Error()}
+	}
+	hashStr, _, _ := commands.CalculateFileDigest(raw) // ignore the error, because the file has been validated already
+
+	if idInFile.Version.Hash != hashStr {
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: "file content does not match the digest in ID"}
 	}
 
-	if res.RelPath != tm.ID {
-		err = errors.New("TM id does not match resource location")
-		return CheckResult{typ: CheckErr, refName: res.RelPath, text: err.Error()}, err
-	}
-
-	return CheckResult{typ: CheckOK, refName: res.Name, text: fmt.Sprintf("check successful")}, nil
-}
-
-func CheckIndex(ctx context.Context, spec model.RepoSpec) error {
-
-	repo, err := repos.Get(spec)
-	if err != nil {
-		Stderrf("could not initialize a repo instance for %v: %v. check config", spec, err)
-		return err
-	}
-
-	fmt.Printf("Checking index of catalog (%s) ...\n", spec)
-
-	err = repo.AnalyzeIndex(ctx)
-	if err != nil {
-		Stderrf(err.Error())
-	}
-	return err
+	return model.CheckResult{Typ: model.CheckOK, ResourceName: tmid, Message: fmt.Sprintf("OK")}
 }

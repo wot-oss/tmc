@@ -780,7 +780,7 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		err := r.Index(context.Background())
 		assert.NoError(t, err)
 		// when: analyzing index
-		err = r.AnalyzeIndex(context.Background())
+		err, _ = r.CheckIntegrity(context.Background())
 		// then: there is no error
 		assert.NoError(t, err)
 	})
@@ -792,7 +792,7 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		err := r.Index(context.Background(), tmIds[0])
 		assert.NoError(t, err)
 		// when: analyzing index
-		err = r.AnalyzeIndex(context.Background())
+		err, _ = r.CheckIntegrity(context.Background())
 		// then: there is an error for index mismatch
 		assert.ErrorIs(t, err, ErrIndexMismatch)
 	})
@@ -802,7 +802,7 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		initRepo(true)
 		// and given: there is no index file in the repo
 		// when: analyzing index
-		err := r.AnalyzeIndex(context.Background())
+		err, _ := r.CheckIntegrity(context.Background())
 		// then: there is an error for missing index
 		assert.ErrorIs(t, err, ErrNoIndex)
 	})
@@ -814,7 +814,7 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		err := r.Index(context.Background())
 		assert.NoError(t, err)
 		// when: analyzing index
-		err = r.AnalyzeIndex(context.Background())
+		err, _ = r.CheckIntegrity(context.Background())
 		// then: there is no error, as an empty repo is a valid one
 		assert.NoError(t, err)
 	})
@@ -824,7 +824,7 @@ func TestFileRepo_AnalyzeIndex(t *testing.T) {
 		initRepo(false)
 		// and given: there is no index file in the repo
 		// when: analyzing index
-		err := r.AnalyzeIndex(context.Background())
+		err, _ := r.CheckIntegrity(context.Background())
 		// then: there is no error, as an empty repo is a valid one
 		assert.NoError(t, err)
 	})

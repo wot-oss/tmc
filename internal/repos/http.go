@@ -134,12 +134,8 @@ func (h *HttpRepo) Index(context.Context, ...string) error {
 	return ErrNotSupported
 }
 
-func (h *HttpRepo) AnalyzeIndex(context.Context) error {
-	return ErrNotSupported
-}
-
-func (h *HttpRepo) RangeResources(context.Context, model.ResourceFilter, func(model.Resource, error) bool) error {
-	return ErrNotSupported
+func (h *HttpRepo) CheckIntegrity(ctx context.Context) (results []model.CheckResult, err error) {
+	return nil, nil
 }
 
 func (h *HttpRepo) Spec() model.RepoSpec {
