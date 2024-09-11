@@ -153,7 +153,6 @@ type CheckResultType int
 
 const (
 	CheckOK = CheckResultType(iota)
-	CheckWarning
 	CheckErr
 )
 
@@ -161,8 +160,6 @@ func (t CheckResultType) String() string {
 	switch t {
 	case CheckOK:
 		return "OK"
-	case CheckWarning:
-		return "warn"
 	case CheckErr:
 		return "error"
 	default:
@@ -179,3 +176,6 @@ type CheckResult struct {
 func (r CheckResult) String() string {
 	return fmt.Sprintf("%v \t%s: %s", r.Typ, r.ResourceName, r.Message)
 }
+
+// ResourceFilter is a function which determines whether a named resource should be processed or not
+type ResourceFilter func(string) bool

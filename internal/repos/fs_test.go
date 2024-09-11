@@ -739,94 +739,53 @@ func TestFileRepo_ListCompletions(t *testing.T) {
 	})
 }
 
-func TestFileRepo_AnalyzeIndex(t *testing.T) {
-	temp, _ := os.MkdirTemp("", "fr")
-	defer os.RemoveAll(temp)
+func TestFileRepo_CheckIntegrity(t *testing.T) {
 
-	initRepo := func(copyTMs bool) []string {
-		os.RemoveAll(temp)
-		testutils.CreateDir(temp, "")
-		var tmIds []string
-		if copyTMs {
-			assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
+	t.Run("with only valid ThingModels", func(t *testing.T) {
+		temp, _ := os.MkdirTemp("", "fr")
+		defer os.RemoveAll(temp)
+		assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
+		spec := model.NewDirSpec(temp)
 
-			err := filepath.Walk(temp, func(path string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-				if strings.HasSuffix(path, TMExt) {
-					tmId, _ := filepath.Rel(temp, path)
-					tmIds = append(tmIds, tmId)
-				}
-				return nil
-			})
-			assert.NoError(t, err)
-			// make sure there are at least 2 TM's in the repo
-			assert.GreaterOrEqual(t, len(tmIds), 2)
+		// given: a clean repository with index
+		r := &FileRepo{
+			root: temp,
+			spec: spec,
 		}
-		return tmIds
-	}
+		_ = r.Index(context.Background())
+		// when checking the integrity
+		res, err := r.CheckIntegrity(context.Background(), nil)
 
-	spec := model.NewDirSpec(temp)
-	r := &FileRepo{
-		root: temp,
-		spec: spec,
-	}
-
-	t.Run("with some TMs in the repo and complete index file", func(t *testing.T) {
-		// given: a repo with some TM's inside
-		initRepo(true)
-		// and given: complete index file in the repo
-		err := r.Index(context.Background())
+		// then: there is no total error
 		assert.NoError(t, err)
-		// when: analyzing index
-		err, _ = r.CheckIntegrity(context.Background())
-		// then: there is no error
-		assert.NoError(t, err)
+		// and then: result list only contains OK results
+		for _, result := range res {
+			assert.Equal(t, model.CheckOK, result.Typ)
+		}
 	})
 
-	t.Run("with some TMs in the repo, but incomplete index file", func(t *testing.T) {
-		// given: a repo with some TM's inside
-		tmIds := initRepo(true)
-		// and given: incomplete index file in the repo (contains only one TM)
-		err := r.Index(context.Background(), tmIds[0])
-		assert.NoError(t, err)
-		// when: analyzing index
-		err, _ = r.CheckIntegrity(context.Background())
-		// then: there is an error for index mismatch
-		assert.ErrorIs(t, err, ErrIndexMismatch)
-	})
+	t.Run("with some invalid ThingModels", func(t *testing.T) {
+		temp, _ := os.MkdirTemp("", "fr")
+		defer os.RemoveAll(temp)
+		assert.NoError(t, testutils.CopyDir("../../test/data/integrity/faulty", temp))
+		spec := model.NewDirSpec(temp)
 
-	t.Run("with some TMs in the repo, but missing index file", func(t *testing.T) {
-		// given: a repo with some TM's inside
-		initRepo(true)
-		// and given: there is no index file in the repo
-		// when: analyzing index
-		err, _ := r.CheckIntegrity(context.Background())
-		// then: there is an error for missing index
-		assert.ErrorIs(t, err, ErrNoIndex)
-	})
+		// given: a repository with unknown files
+		r := &FileRepo{
+			root: temp,
+			spec: spec,
+		}
 
-	t.Run("with no TM's in the repo, but with index file", func(t *testing.T) {
-		// given: a repo with no TM's inside
-		initRepo(false)
-		// and given: a created index file in the repo
-		err := r.Index(context.Background())
+		// when: checking the given ThingModels
+		res, err := r.CheckIntegrity(context.Background(), nil)
+		// then: there is no total error
 		assert.NoError(t, err)
-		// when: analyzing index
-		err, _ = r.CheckIntegrity(context.Background())
-		// then: there is no error, as an empty repo is a valid one
-		assert.NoError(t, err)
-	})
-
-	t.Run("with no TM's in the repo and missing index file", func(t *testing.T) {
-		// given: a repo with no TM's inside
-		initRepo(false)
-		// and given: there is no index file in the repo
-		// when: analyzing index
-		err, _ := r.CheckIntegrity(context.Background())
-		// then: there is no error, as an empty repo is a valid one
-		assert.NoError(t, err)
+		// then: results include errors for invalid files
+		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "mistake.md", Message: "file unknown"})
+		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "omnicorp/omnicorp/lightall/.attachments/mistake.md", Message: "appears to be an attachment file which is not known to the repository. Make sure you import it using TMC CLI"})
+		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "omnicorp/omnicorp/lightall/.attachments/v1.0.1-20240807094932-5a3840060b05/mistake.md", Message: "appears to be an attachment file which is not known to the repository. Make sure you import it using TMC CLI"})
+		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "omnicorp/omnicorp/lightall/v1.0.2-20240819094932-5a3840060b05.tm.json", Message: "appears to be a TM file which is not known to the repository. Make sure you import it using TMC CLI"})
+		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "vomnicorp/vomnicorp/mistake.md", Message: "file unknown"})
 	})
 }
 

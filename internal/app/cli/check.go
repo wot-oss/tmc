@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
+	"slices"
 
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/commands/validate"
@@ -13,7 +15,7 @@ import (
 
 var errCheckFailed = errors.New("integrity check failed")
 
-func CheckIntegrity(ctx context.Context, spec model.RepoSpec) error {
+func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string) error {
 
 	repo, err := repos.Get(spec)
 	if err != nil {
@@ -23,8 +25,9 @@ func CheckIntegrity(ctx context.Context, spec model.RepoSpec) error {
 
 	fmt.Printf("Checking integrity of repository (%s) ...\n", spec)
 
-	totalRes, err := checkIndexedResourcesAreValid(ctx, repo)
-	results, iErr := repo.CheckIntegrity(ctx)
+	resFilter := resourceFilterFromArgs(args)
+	totalRes, err := checkIndexedResourcesAreValid(ctx, repo, resFilter)
+	results, iErr := repo.CheckIntegrity(ctx, resFilter)
 	if err == nil {
 		err = iErr
 	}
@@ -37,18 +40,36 @@ func CheckIntegrity(ctx context.Context, spec model.RepoSpec) error {
 			err = errCheckFailed
 		}
 	}
-
+	if err == nil {
+		fmt.Println("OK")
+	} else {
+		Stderrf("%v", err)
+	}
 	return err
 }
 
-func checkIndexedResourcesAreValid(ctx context.Context, repo repos.Repo) ([]model.CheckResult, error) {
+func resourceFilterFromArgs(args []string) model.ResourceFilter {
+	if len(args) == 0 {
+		return func(s string) bool {
+			return true
+		}
+	}
+	slices.Sort(args)
+	return func(s string) bool {
+		_, found := slices.BinarySearch(args, s)
+		return found
+	}
+
+}
+
+func checkIndexedResourcesAreValid(ctx context.Context, repo repos.Repo, filter model.ResourceFilter) ([]model.CheckResult, error) {
 	var results []model.CheckResult
 	list, err := repo.List(ctx, &model.SearchParams{})
 	if err != nil {
 		return nil, err
 	}
 	for _, entry := range list.Entries {
-		rs := checkAttachments(ctx, repo, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments)
+		rs := checkAttachments(ctx, repo, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments, filter)
 		results = append(results, rs...)
 		for _, version := range entry.Versions {
 			select {
@@ -57,18 +78,25 @@ func checkIndexedResourcesAreValid(ctx context.Context, repo repos.Repo) ([]mode
 			default:
 			}
 
-			tr := checkThingModel(ctx, repo, version.TMID)
-			results = append(results, tr)
-			rs = checkAttachments(ctx, repo, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
+			if filter(version.TMID) {
+				tr := checkThingModel(ctx, repo, version.TMID)
+				results = append(results, tr)
+			}
+			rs = checkAttachments(ctx, repo, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments, filter)
 			results = append(results, rs...)
 		}
 	}
 	return results, nil
 }
 
-func checkAttachments(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment) []model.CheckResult {
+func checkAttachments(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment, filter model.ResourceFilter) []model.CheckResult {
 	var results []model.CheckResult
+	relDir, _ := model.RelAttachmentsDir(ref) // no error expected here, because ref comes from index
 	for _, attachment := range attachments {
+		resourceName := path.Join(relDir, attachment.Name)
+		if !filter(resourceName) {
+			continue
+		}
 		_, err := repo.FetchAttachment(ctx, ref, attachment.Name)
 		dir, _ := model.RelAttachmentsDir(ref)
 		attResourseName := fmt.Sprintf("%s/%s", dir, attachment.Name)
@@ -86,15 +114,14 @@ func checkAttachments(ctx context.Context, repo repos.Repo, ref model.Attachment
 func checkThingModel(ctx context.Context, repo repos.Repo, tmid string) model.CheckResult {
 	id, raw, err := repo.Fetch(ctx, tmid)
 	if err != nil {
-		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: err.Error()}
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: fmt.Sprintf("could not fetch the TM file to verify integrity: %s", err.Error())}
 	}
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
 		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: fmt.Sprintf("invalid TM content: %s", err.Error())}
 	}
 	if tm.ID == "" {
-		err = errors.New("TM id is missing in the file")
-		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: err.Error()}
+		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: "TM id is missing in the file"}
 	}
 	idInFile, err := model.ParseTMID(tm.ID)
 	if err != nil {

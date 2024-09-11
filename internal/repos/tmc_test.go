@@ -950,28 +950,15 @@ func TestTmcRepo_Delete(t *testing.T) {
 	}
 }
 
-func TestTmcRepo_AnalyzeIndex(t *testing.T) {
+func TestTmcRepo_CheckIntegrity(t *testing.T) {
 	// given: a TMC Repo
 	config, err := createTmcRepoConfig("http://example.com", nil, "")
 	assert.NoError(t, err)
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 	// when: AnalyzingIndex on the repo
-	err = r.CheckIntegrity(context.Background())
-	// then: it returns NotSupported error
-	assert.True(t, errors.Is(err, ErrNotSupported))
-}
-
-func TestTmcRepo_RangeResources(t *testing.T) {
-	// given: a TMC Repo
-	config, err := createTmcRepoConfig("http://example.com", nil, "")
-	assert.NoError(t, err)
-	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
-	assert.NoError(t, err)
-	// when: RangeResources on the repo
-	err = r.RangeResources(context.Background(), model.ResourceFilter{}, func(resource model.Resource, err error) bool {
-		return true
-	})
-	// then: it returns NotSupported error
-	assert.True(t, errors.Is(err, ErrNotSupported))
+	res, err := r.CheckIntegrity(context.Background(), nil)
+	// then: it returns nil
+	assert.Nil(t, res)
+	assert.Nil(t, err)
 }

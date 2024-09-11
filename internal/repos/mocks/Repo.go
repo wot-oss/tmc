@@ -16,9 +16,9 @@ type Repo struct {
 	mock.Mock
 }
 
-// CheckIntegrity provides a mock function with given fields: ctx
-func (_m *Repo) CheckIntegrity(ctx context.Context) ([]model.CheckResult, error) {
-	ret := _m.Called(ctx)
+// CheckIntegrity provides a mock function with given fields: ctx, filter
+func (_m *Repo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) ([]model.CheckResult, error) {
+	ret := _m.Called(ctx, filter)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CheckIntegrity")
@@ -26,19 +26,19 @@ func (_m *Repo) CheckIntegrity(ctx context.Context) ([]model.CheckResult, error)
 
 	var r0 []model.CheckResult
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) ([]model.CheckResult, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, model.ResourceFilter) ([]model.CheckResult, error)); ok {
+		return rf(ctx, filter)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) []model.CheckResult); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, model.ResourceFilter) []model.CheckResult); ok {
+		r0 = rf(ctx, filter)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]model.CheckResult)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, model.ResourceFilter) error); ok {
+		r1 = rf(ctx, filter)
 	} else {
 		r1 = ret.Error(1)
 	}

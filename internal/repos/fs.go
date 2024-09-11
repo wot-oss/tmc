@@ -139,7 +139,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	_ = rmEmptyDirs(dir, f.root)
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, id), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, id))
 	return err
 }
 
@@ -278,14 +278,14 @@ func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 	}
 
 	if len(ids) == 0 {
-		_, err = f.updateIndex(ctx, f.fullIndexRebuild, true)
+		_, err = f.updateIndex(ctx, f.fullIndexRebuild)
 		return err
 	}
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, ids...), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, ids...))
 	return err
 }
 
-func (f *FileRepo) CheckIntegrity(ctx context.Context) (results []model.CheckResult, err error) {
+func (f *FileRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
 	err = f.checkRootValid()
 	if err != nil {
 		return nil, err
@@ -297,12 +297,12 @@ func (f *FileRepo) CheckIntegrity(ctx context.Context) (results []model.CheckRes
 		return nil, err
 	}
 	idx, idxErr := f.readIndex()
-	if idxErr != nil && !errors.Is(idxErr, ErrNoIndex) {
+	if idxErr != nil {
 		return nil, err
 	}
 	idx.Sort()
 
-	r, err := f.verifyAllFilesAreIndexed(ctx, idx)
+	r, err := f.verifyAllFilesAreIndexed(ctx, idx, filter)
 	return r, err
 }
 
@@ -426,7 +426,7 @@ func (f *FileRepo) ImportAttachment(ctx context.Context, container model.Attachm
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, container, attachment, content), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, container, attachment, content))
 	if err != nil {
 		return err
 	}
@@ -524,7 +524,7 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentCon
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ctx, ref, attachmentName), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ctx, ref, attachmentName))
 	if err != nil {
 		return err
 	}
@@ -671,7 +671,7 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater, persist bool) (*model.Index, error) {
+func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	start := time.Now()
@@ -692,18 +692,16 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater, persis
 
 	newIndex.Sort()
 	duration := time.Now().Sub(start)
-	if persist {
-		// Ignore error as we are sure our struct does not contain channel,
-		// complex or function values that would throw an error.
-		newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
-		err := utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
-		if err != nil {
-			return nil, err
-		}
-		err = f.writeNamesFile(names)
-		if err != nil {
-			return nil, err
-		}
+	// Ignore error as we are sure our struct does not contain channel,
+	// complex or function values that would throw an error.
+	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
+	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
+	if err != nil {
+		return nil, err
+	}
+	err = f.writeNamesFile(names)
+	if err != nil {
+		return nil, err
 	}
 
 	msg := "Updated index with %d records in %s "
@@ -1054,6 +1052,42 @@ func (f *FileRepo) ListCompletions(ctx context.Context, kind string, args []stri
 	}
 }
 
+func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Index, filter model.ResourceFilter) ([]model.CheckResult, error) {
+	if filter == nil {
+		filter = func(_ string) bool { return true }
+	}
+
+	var results []model.CheckResult
+
+	err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		resourceName, err := filepath.Rel(f.root, path)
+		if err != nil {
+			return err
+		}
+		if !filter(resourceName) {
+			return nil
+		}
+		checkResult := f.verifyFileIsIndexed(resourceName, idx)
+		results = append(results, checkResult)
+
+		return nil
+	})
+
+	return results, err
+
+}
+
 func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.CheckResult {
 	file = filepath.ToSlash(file)
 	if isIndexFile(file) {
@@ -1064,23 +1098,23 @@ func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.Chec
 		if err != nil {
 			var nfErr *model.ErrNotFound
 			if errors.As(err, &nfErr) {
-				return model.CheckResult{model.CheckWarning, file, "appears to be an attachment file to a TM name or TM ID which does not exist. Was is imported correctly?"}
+				return model.CheckResult{model.CheckErr, file, "appears to be an attachment file to a TM name or TM ID which does not exist. Make sure you import it using TMC CLI"}
 			}
 		}
 		_, found := container.FindAttachment(attName)
 		if !found {
-			return model.CheckResult{model.CheckWarning, file, "appears to be an attachment file which is not known to the repository. Was is imported correctly?"}
+			return model.CheckResult{model.CheckErr, file, "appears to be an attachment file which is not known to the repository. Make sure you import it using TMC CLI"}
 		}
 		return model.CheckResult{model.CheckOK, file, "OK"}
 	}
 	if isTMFile(file) {
 		ver := idx.FindByTMID(file)
 		if ver == nil {
-			return model.CheckResult{model.CheckWarning, file, "appears to be a TM file which is not known to the repository. Was is imported correctly?"}
+			return model.CheckResult{model.CheckErr, file, "appears to be a TM file which is not known to the repository. Make sure you import it using TMC CLI"}
 		}
 		return model.CheckResult{model.CheckOK, file, "OK"}
 	}
-	return model.CheckResult{model.CheckWarning, file, "file unknown"}
+	return model.CheckResult{model.CheckErr, file, "file unknown"}
 }
 
 func isTMFile(file string) bool {

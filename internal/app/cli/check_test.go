@@ -5,167 +5,242 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/wot-oss/tmc/internal/repos"
-	"github.com/wot-oss/tmc/internal/testutils"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/repos/mocks"
+	"github.com/wot-oss/tmc/internal/testutils"
 	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
-func TestCheck_Resources(t *testing.T) {
-	r := mocks.NewRepo(t)
-	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
-
-	t.Run("with only valid ThingModels", func(t *testing.T) {
-		restore, getStdout := testutils.ReplaceStdout()
-		defer restore()
-
-		// given: some ThingModels found in a repository
-		tms := []model.Resource{
-			{ // correct TM
-				Name:    "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-				RelPath: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
-			},
-			{ // another correct TM
-				Name:    "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-				RelPath: "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm6),
-			},
-		}
-
-		r.On("RangeResources", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			visit := args.Get(2).(func(resource model.Resource, err error) bool)
-			for _, tm := range tms {
-				visit(tm, nil)
-			}
-		}).Return(nil).Once()
-
-		// when: checking the given ThingModels
-		err := CheckResources(context.Background(), model.NewRepoSpec("r1"), nil)
-		stdout := getStdout()
-
-		// then: there is no total error
-		assert.NoError(t, err)
-		// and then: stdout does not contain any error
-		assert.NotContains(t, stdout, CheckErr.String())
-	})
-
-	t.Run("with some invalid ThingModels", func(t *testing.T) {
-		restore, getStdout := testutils.ReplaceStdout()
-		defer restore()
-
-		// given: some ThingModels found in a repository
-		tms := []model.Resource{
-			{ // correct TM
-				Name:    "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-				RelPath: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
-			},
-			{ // missing id
-				Name:    "mycompany/bartech/bazlamp/v0.0.2-20240101130000-2fc13316b7d8.tm.json",
-				RelPath: "mycompany/bartech/bazlamp/v0.0.2-20240101130000-2fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm2),
-			},
-			{ // invalid id
-				Name:    "mycompany/bartech/bazlamp/v0.0.3-20240101140000-3fc13316b7d8.tm.json",
-				RelPath: "mycompany/bartech/bazlamp/v0.0.3-20240101140000-3fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm3),
-			},
-			{ // missing MPN
-				Name:    "mycompany/bartech/bazlamp/v0.0.4-20240101150000-4fc13316b7d8.tm.json",
-				RelPath: "mycompany/bartech/bazlamp/v0.0.4-20240101150000-4fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm4),
-			},
-			{ // invalid json
-				Name:    "mycompany/bartech/bazlamp/v0.0.5-20240101160000-5fc13316b7d8.tm.json",
-				RelPath: "mycompany/bartech/bazlamp/v0.0.5-20240101160000-5fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm5),
-			},
-			{ // id does not match resource location
-				Name:    "mycompany/bartech/bazlamp/v0.0.6-20240101160000-5fc13316b7d8.tm.json",
-				RelPath: "mycompany/bartech/bazlamp/v0.0.6-20240101160000-5fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
-			},
-		}
-
-		r.On("RangeResources", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			visit := args.Get(2).(func(resource model.Resource, err error) bool)
-			for _, tm := range tms {
-				visit(tm, nil)
-			}
-		}).Return(nil).Once()
-
-		// when: checking the given ThingModels
-		err := CheckResources(context.Background(), model.NewRepoSpec("r1"), nil)
-		stdout := getStdout()
-		// then: there is a total error
-		assert.ErrorIs(t, err, errCheckFailed)
-		// and then: stdout shows no error for valid ThingModel
-		assert.NotContains(t, stdout, CheckResult{typ: CheckErr, refName: tms[0].Name, text: ""}.String())
-		// and then: stdout shows errors for invalid ThingModels (no check for concrete error msg)
-		assert.Contains(t, stdout, CheckResult{typ: CheckErr, refName: tms[1].Name, text: ""}.String())
-		assert.Contains(t, stdout, CheckResult{typ: CheckErr, refName: tms[2].Name, text: ""}.String())
-		assert.Contains(t, stdout, CheckResult{typ: CheckErr, refName: tms[3].Name, text: ""}.String())
-		assert.Contains(t, stdout, CheckResult{typ: CheckErr, refName: tms[4].Name, text: ""}.String())
-		assert.Contains(t, stdout, CheckResult{typ: CheckErr, refName: tms[5].Name, text: ""}.String())
-	})
-
-	t.Run("with visit error", func(t *testing.T) {
-		restore, getStdout := testutils.ReplaceStdout()
-		defer restore()
-
-		// given: some ThingModels found in a repository
-		tm := model.Resource{
-			// correct TM
-			Name:    "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
-			RelPath: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json", Typ: model.ResTypeTM, Raw: []byte(tm1),
-		}
-
-		someVisitError := errors.New("some visit error")
-		r.On("RangeResources", mock.Anything, mock.Anything, mock.Anything).Run(func(args mock.Arguments) {
-			visit := args.Get(2).(func(resource model.Resource, err error) bool)
-			visit(tm, someVisitError)
-		}).Return(nil).Once()
-
-		// when: checking the given ThingModel
-		err := CheckResources(context.Background(), model.NewRepoSpec("r1"), nil)
-		stdout := getStdout()
-		// then: there is a total error
-		assert.ErrorIs(t, err, errCheckFailed)
-		// and then: stdout shows error for invalid ThingModel (no check for concrete error msg)
-		assert.Contains(t, stdout, CheckResult{typ: CheckErr, refName: tm.Name, text: ""}.String())
-	})
-
-	t.Run("with general RangeResources error", func(t *testing.T) {
-		someError := errors.New("some error")
-		r.On("RangeResources", mock.Anything, mock.Anything, mock.Anything).Return(someError).Once()
-		err := CheckResources(context.Background(), model.NewRepoSpec("r1"), nil)
-		assert.ErrorIs(t, err, someError)
-	})
+func TestCheckIntegrity_IndexedResources(t *testing.T) {
 
 	t.Run("with repository not found", func(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), nil, repos.ErrRepoNotFound))
-		err := CheckResources(context.Background(), model.NewRepoSpec("r1"), nil)
-		assert.ErrorIs(t, err, repos.ErrRepoNotFound)
-	})
-}
-
-func TestCheck_Index(t *testing.T) {
-	r := mocks.NewRepo(t)
-	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
-
-	t.Run("with repository not found", func(t *testing.T) {
-		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), nil, repos.ErrRepoNotFound))
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"))
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
 		assert.ErrorIs(t, err, repos.ErrRepoNotFound)
 	})
 
-	t.Run("without CheckIntegrity error", func(t *testing.T) {
-		r.On("CheckIntegrity", mock.Anything).Return(nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"))
+	t.Run("without error", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		sr := model.SearchResult{Entries: []model.FoundEntry{
+			{
+				Name: "mycompany/bartech/bazlamp",
+				Manufacturer: model.SchemaManufacturer{
+					Name: "bartech",
+				},
+				Mpn: "bazlamp",
+				Author: model.SchemaAuthor{
+					Name: "mycompany",
+				},
+				Versions: []model.FoundVersion{
+					{
+						IndexVersion: &model.IndexVersion{
+							TMID: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json",
+							AttachmentContainer: model.AttachmentContainer{
+								Attachments: []model.Attachment{{Name: "CHANGELOG.md"}},
+							},
+						},
+					},
+				},
+				AttachmentContainer: model.AttachmentContainer{
+					Attachments: []model.Attachment{{Name: "README.md"}},
+				},
+			},
+			{
+				Name: "yourcompany/bartech/bazlamp",
+				Manufacturer: model.SchemaManufacturer{
+					Name: "bartech",
+				},
+				Mpn: "bazlamp",
+				Author: model.SchemaAuthor{
+					Name: "yourcompany",
+				},
+				Versions: []model.FoundVersion{
+					{
+						IndexVersion: &model.IndexVersion{
+							TMID: "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-35afe53c124a.tm.json",
+						},
+					},
+				},
+			},
+		}}
+		r.On("List", mock.Anything, mock.Anything).Return(sr, nil)
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm1), nil)
+		r.On("Fetch", mock.Anything, "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-35afe53c124a.tm.json").Return("yourcompany/bartech/bazlamp/v0.0.1-20240101120000-35afe53c124a.tm.json", []byte(tm6), nil)
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef("mycompany/bartech/bazlamp"), "README.md").Return([]byte("# READ THIS"), nil)
+		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json"), "CHANGELOG.md").Return([]byte("# THIS HAS CHANGED"), nil)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
 		assert.NoError(t, err)
 	})
+	t.Run("with attachment not found", func(t *testing.T) {
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
 
+		r := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		sr := model.SearchResult{Entries: []model.FoundEntry{
+			{
+				Name: "mycompany/bartech/bazlamp",
+				Manufacturer: model.SchemaManufacturer{
+					Name: "bartech",
+				},
+				Mpn: "bazlamp",
+				Author: model.SchemaAuthor{
+					Name: "mycompany",
+				},
+				Versions: []model.FoundVersion{
+					{
+						IndexVersion: &model.IndexVersion{
+							TMID: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json",
+						},
+					},
+				},
+				AttachmentContainer: model.AttachmentContainer{
+					Attachments: []model.Attachment{{Name: "README.md"}},
+				},
+			},
+		}}
+		r.On("List", mock.Anything, mock.Anything).Return(sr, nil)
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm1), nil)
+		// when: FetchAttachments returns an error
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef("mycompany/bartech/bazlamp"), "README.md").Return(nil, model.ErrAttachmentNotFound)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "attachment not found")
+	})
+	t.Run("with TM file not found", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(sr1, nil)
+		// when: fetch returns an error
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("", nil, model.ErrTMNotFound)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "could not fetch the TM file to verify integrity")
+	})
+	t.Run("with TM file invalid", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(sr1, nil)
+		// when: fetch returns an TM without MPN
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm4), nil)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "invalid TM content")
+	})
+	t.Run("with missing id in TM file", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(sr1, nil)
+		// when: fetch returns an TM without id
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm2), nil)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "TM id is missing in the file")
+	})
+	t.Run("with invalid id in TM file", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(sr1, nil)
+		// when: fetch returns an TM with invalid id
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm3), nil)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "TM id in the file is invalid")
+	})
+	t.Run("with wrong TM location", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(sr1, nil)
+		// when: fetch returns incorrect file location
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-35afe53c124a.tm.json", []byte(tm1), nil)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "TM id does not match the file location")
+	})
+	t.Run("with wrong TM content", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(sr1, nil)
+		// when: fetch returns file with incorrect hash
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm5), nil)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "file content does not match the digest in ID")
+	})
 	t.Run("with CheckIntegrity error", func(t *testing.T) {
-		r.On("CheckIntegrity", mock.Anything).Return(repos.ErrIndexMismatch).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"))
-		assert.ErrorIs(t, err, repos.ErrIndexMismatch)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+
+		r := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		sr := model.SearchResult{Entries: []model.FoundEntry{
+			{
+				Name: "mycompany/bartech/bazlamp",
+				Manufacturer: model.SchemaManufacturer{
+					Name: "bartech",
+				},
+				Mpn: "bazlamp",
+				Author: model.SchemaAuthor{
+					Name: "mycompany",
+				},
+				Versions: []model.FoundVersion{
+					{
+						IndexVersion: &model.IndexVersion{
+							TMID: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json",
+						},
+					},
+				},
+			},
+		}}
+		r.On("List", mock.Anything, mock.Anything).Return(sr, nil)
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm1), nil)
+		// when: CheckIntegrity returns an error
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return([]model.CheckResult{
+			{model.CheckErr, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", "something unexpected"},
+		}, errors.New("something")).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		assert.Contains(t, getStdout(), "something unexpected")
 	})
 }
 
@@ -173,7 +248,7 @@ func TestCheck_Index(t *testing.T) {
 var tm1 = `{
   "@context": [ "https://www.w3.org/2022/wot/td/v1.1", { "schema":"https://schema.org/" }],
   "@type": "tm:ThingModel",
-  "id": "mycompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+  "id": "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json",
   "title": "Lamp Thing Model",
   "schema:author": { "schema:name": "MyCompany" },
   "schema:manufacturer": { "schema:name": "BarTech" },
@@ -215,20 +290,46 @@ var tm4 = `{
   "version": { "model": "v.0.0.4" }
 }`
 
-// invalid json
-var tm5 = `
+// invalid hash
+var tm5 = `{
   "@context": [ "https://www.w3.org/2022/wot/td/v1.1", { "schema":"https://schema.org/" }],
   "@type": "tm:ThingModel",
+  "id": "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json",
+  "title": "Lamp Thing Model",
+  "schema:author": { "schema:name": "MyCompany" },
+  "schema:manufacturer": { "schema:name": "BarTech" },
+  "schema:mpn": "BazLamp}",  
+  "version": { "model": "v0.0.1" }
 }`
 
 // another correct TM
 var tm6 = `{
   "@context": [ "https://www.w3.org/2022/wot/td/v1.1", { "schema":"https://schema.org/" }],
   "@type": "tm:ThingModel",
-  "id": "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-1fc13316b7d8.tm.json",
+  "id": "yourcompany/bartech/bazlamp/v0.0.1-20240101120000-35afe53c124a.tm.json",
   "title": "Lamp Thing Model",
   "schema:author": { "schema:name": "YourCompany" },
   "schema:manufacturer": { "schema:name": "BarTech" },
   "schema:mpn": "BazLamp}",  
   "version": { "model": "v.0.0.1" }
 }`
+
+var sr1 = model.SearchResult{Entries: []model.FoundEntry{
+	{
+		Name: "mycompany/bartech/bazlamp",
+		Manufacturer: model.SchemaManufacturer{
+			Name: "bartech",
+		},
+		Mpn: "bazlamp",
+		Author: model.SchemaAuthor{
+			Name: "mycompany",
+		},
+		Versions: []model.FoundVersion{
+			{
+				IndexVersion: &model.IndexVersion{
+					TMID: "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json",
+				},
+			},
+		},
+	},
+}}

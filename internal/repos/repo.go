@@ -101,7 +101,7 @@ type Repo interface {
 	// removes those from index. Performs a full update if no updatedIds given
 	Index(ctx context.Context, updatedIds ...string) error
 	// CheckIntegrity checks the internal resources for integrity and consistency
-	CheckIntegrity(ctx context.Context) (results []model.CheckResult, err error)
+	CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error)
 	// List searches the catalog for TMs matching search parameters
 	List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error)
 	// Versions lists versions of a TM with given name

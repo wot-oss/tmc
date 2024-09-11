@@ -134,7 +134,7 @@ func (h *HttpRepo) Index(context.Context, ...string) error {
 	return ErrNotSupported
 }
 
-func (h *HttpRepo) CheckIntegrity(ctx context.Context) (results []model.CheckResult, err error) {
+func (h *HttpRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
 	return nil, nil
 }
 

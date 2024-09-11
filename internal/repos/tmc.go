@@ -354,7 +354,7 @@ func (t *TmcRepo) Index(context.Context, ...string) error {
 	return nil // ignore request to update index as index updates are presumed to be handled by the underlying repo
 }
 
-func (t *TmcRepo) CheckIntegrity(ctx context.Context) (results []model.CheckResult, err error) {
+func (t *TmcRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
 	return nil, nil
 }
 
