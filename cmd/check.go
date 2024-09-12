@@ -35,6 +35,7 @@ func checkIntegrity(cmd *cobra.Command, args []string) {
 
 	if err != nil {
 		cli.Stderrf("integrity check failed")
+		cli.Stderrf("Hint: make sure you did not change any files directly, bypassing TMC CLI. If you did, consider reverting the files and/or running `tmc index` on the repository")
 		os.Exit(1)
 	}
 }

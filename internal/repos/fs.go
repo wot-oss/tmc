@@ -1075,6 +1075,7 @@ func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Inde
 		if err != nil {
 			return err
 		}
+		resourceName = filepath.ToSlash(resourceName)
 		if !filter(resourceName) {
 			return nil
 		}
@@ -1089,7 +1090,6 @@ func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Inde
 }
 
 func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.CheckResult {
-	file = filepath.ToSlash(file)
 	if isIndexFile(file) {
 		return model.CheckResult{model.CheckOK, file, "OK"}
 	}

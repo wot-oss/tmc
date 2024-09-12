@@ -42,7 +42,7 @@ func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string) err
 	}
 	if err == nil {
 		fmt.Println("OK")
-	} else {
+	} else if !errors.Is(err, errCheckFailed) {
 		Stderrf("%v", err)
 	}
 	return err
@@ -99,12 +99,12 @@ func checkAttachments(ctx context.Context, repo repos.Repo, ref model.Attachment
 		}
 		_, err := repo.FetchAttachment(ctx, ref, attachment.Name)
 		dir, _ := model.RelAttachmentsDir(ref)
-		attResourseName := fmt.Sprintf("%s/%s", dir, attachment.Name)
+		attResourceName := fmt.Sprintf("%s/%s", dir, attachment.Name)
 		if err != nil {
-			res := model.CheckResult{model.CheckErr, attResourseName, err.Error()}
+			res := model.CheckResult{model.CheckErr, attResourceName, err.Error()}
 			results = append(results, res)
 		} else {
-			res := model.CheckResult{model.CheckOK, attResourseName, "OK"}
+			res := model.CheckResult{model.CheckOK, attResourceName, "OK"}
 			results = append(results, res)
 		}
 	}
