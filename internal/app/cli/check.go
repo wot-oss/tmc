@@ -13,7 +13,10 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-var errCheckFailed = errors.New("integrity check failed")
+var (
+	errCheckFailed = errors.New("integrity check failed")
+	errNotARepo    = errors.New("not a repository")
+)
 
 func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string) error {
 
@@ -27,6 +30,10 @@ func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string) err
 
 	resFilter := resourceFilterFromArgs(args)
 	totalRes, err := checkIndexedResourcesAreValid(ctx, repo, resFilter)
+	if errors.Is(err, errNotARepo) {
+		fmt.Printf("(%s) is not a TMC repository\n", spec)
+		return nil
+	}
 	results, iErr := repo.CheckIntegrity(ctx, resFilter)
 	if err == nil {
 		err = iErr
@@ -66,6 +73,9 @@ func checkIndexedResourcesAreValid(ctx context.Context, repo repos.Repo, filter 
 	var results []model.CheckResult
 	list, err := repo.List(ctx, &model.SearchParams{})
 	if err != nil {
+		if errors.Is(err, repos.ErrNoIndex) {
+			return nil, errNotARepo
+		}
 		return nil, err
 	}
 	for _, entry := range list.Entries {

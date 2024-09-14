@@ -22,6 +22,14 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		assert.ErrorIs(t, err, repos.ErrRepoNotFound)
 	})
 
+	t.Run("with not a repository", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(model.SearchResult{}, repos.ErrNoIndex)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		assert.NoError(t, err)
+	})
+
 	t.Run("without error", func(t *testing.T) {
 		r := mocks.NewRepo(t)
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))

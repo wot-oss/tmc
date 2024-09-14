@@ -764,7 +764,27 @@ func TestFileRepo_CheckIntegrity(t *testing.T) {
 		}
 	})
 
-	t.Run("with some invalid ThingModels", func(t *testing.T) {
+	t.Run("with a directory without index", func(t *testing.T) {
+		temp, _ := os.MkdirTemp("", "fr")
+		defer os.RemoveAll(temp)
+		assert.NoError(t, testutils.CopyDir("../../test/data/index", temp))
+		spec := model.NewDirSpec(temp)
+
+		// given: a repo directory without index
+		r := &FileRepo{
+			root: temp,
+			spec: spec,
+		}
+		// when checking the integrity
+		res, err := r.CheckIntegrity(context.Background(), nil)
+
+		// then: there is no total error
+		assert.NoError(t, err)
+		// and then: result list is empty
+		assert.Empty(t, res)
+	})
+
+	t.Run("with some invalid files", func(t *testing.T) {
 		temp, _ := os.MkdirTemp("", "fr")
 		defer os.RemoveAll(temp)
 		assert.NoError(t, testutils.CopyDir("../../test/data/integrity/faulty", temp))
@@ -781,11 +801,15 @@ func TestFileRepo_CheckIntegrity(t *testing.T) {
 		// then: there is no total error
 		assert.NoError(t, err)
 		// then: results include errors for invalid files
-		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "mistake.md", Message: "file unknown"})
+		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "omnicorp/mistake.md", Message: "file unknown"})
 		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "omnicorp/omnicorp/lightall/.attachments/mistake.md", Message: "appears to be an attachment file which is not known to the repository. Make sure you import it using TMC CLI"})
 		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "omnicorp/omnicorp/lightall/.attachments/v1.0.1-20240807094932-5a3840060b05/mistake.md", Message: "appears to be an attachment file which is not known to the repository. Make sure you import it using TMC CLI"})
 		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "omnicorp/omnicorp/lightall/v1.0.2-20240819094932-5a3840060b05.tm.json", Message: "appears to be a TM file which is not known to the repository. Make sure you import it using TMC CLI"})
 		assert.Contains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "vomnicorp/vomnicorp/mistake.md", Message: "file unknown"})
+		// and then: results do not include errors for ignored files
+		assert.NotContains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: ".dotDir/ignored.txt", Message: "file unknown"})
+		assert.NotContains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: "ignoredDir/ignored.txt", Message: "file unknown"})
+		assert.NotContains(t, res, model.CheckResult{Typ: model.CheckErr, ResourceName: ".dotFile", Message: "file unknown"})
 	})
 }
 

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 )
@@ -296,8 +297,11 @@ func (f *FileRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilt
 	if err != nil {
 		return nil, err
 	}
-	idx, idxErr := f.readIndex()
-	if idxErr != nil {
+	idx, err := f.readIndex()
+	if err != nil {
+		if errors.Is(err, ErrNoIndex) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	idx.Sort()
@@ -953,6 +957,33 @@ func (f *FileRepo) writeNamesFile(names []string) error {
 	names = slices.Compact(names)
 	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, TmNamesFile), defaultFilePermissions)
 }
+func (f *FileRepo) readIgnoreFile() (*ignore.GitIgnore, error) {
+	ignoreFileName := filepath.Join(f.root, RepoConfDir, TmIgnoreFile)
+	_, err := os.Stat(ignoreFileName)
+	if os.IsNotExist(err) {
+		err := f.writeDefaultIgnoreFile()
+		if err != nil {
+			return nil, err
+		}
+	}
+	lines, err := utils.ReadFileLines(ignoreFileName)
+	if err != nil {
+		return nil, err
+	}
+	gitIgnore := ignore.CompileIgnoreLines(lines...)
+	return gitIgnore, nil
+}
+func (f *FileRepo) writeDefaultIgnoreFile() error {
+	ignoreDefaults := []string{
+		"# ignore any top-level files",
+		"/*",
+		"!/*/",
+		"",
+		"# ignore any top-level directories starting with a dot",
+		"/.*/",
+	}
+	return utils.WriteFileLines(ignoreDefaults, filepath.Join(f.root, RepoConfDir, TmIgnoreFile), defaultFilePermissions)
+}
 
 type thingMetadata struct {
 	tm model.ThingModel
@@ -1056,10 +1087,14 @@ func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Inde
 	if filter == nil {
 		filter = func(_ string) bool { return true }
 	}
+	ignor, err := f.prepareIgnoreFunc()
+	if err != nil {
+		return nil, err
+	}
 
 	var results []model.CheckResult
 
-	err := filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
@@ -1076,7 +1111,7 @@ func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Inde
 			return err
 		}
 		resourceName = filepath.ToSlash(resourceName)
-		if !filter(resourceName) {
+		if ignor(resourceName) || !filter(resourceName) {
 			return nil
 		}
 		checkResult := f.verifyFileIsIndexed(resourceName, idx)
@@ -1090,7 +1125,7 @@ func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Inde
 }
 
 func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.CheckResult {
-	if isIndexFile(file) {
+	if isTmcConfigFile(file) {
 		return model.CheckResult{model.CheckOK, file, "OK"}
 	}
 	if isAtt, ref, attName := isAttachmentFile(file); isAtt {
@@ -1115,6 +1150,16 @@ func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.Chec
 		return model.CheckResult{model.CheckOK, file, "OK"}
 	}
 	return model.CheckResult{model.CheckErr, file, "file unknown"}
+}
+
+func (f *FileRepo) prepareIgnoreFunc() (func(string) bool, error) {
+	gitIgnore, err := f.readIgnoreFile()
+	if err != nil {
+		return nil, err
+	}
+	return func(s string) bool {
+		return gitIgnore.MatchesPath(s)
+	}, nil
 }
 
 func isTMFile(file string) bool {
@@ -1142,9 +1187,10 @@ func isAttachmentFile(file string) (bool, model.AttachmentContainerRef, string) 
 	return true, model.NewTMNameAttachmentContainerRef(tmName.Name), attName
 }
 
-func isIndexFile(p string) bool {
+func isTmcConfigFile(p string) bool {
 	return p == path.Join(RepoConfDir, IndexFilename) ||
 		p == path.Join(RepoConfDir, IndexFilename+".lock") ||
+		p == path.Join(RepoConfDir, TmIgnoreFile) ||
 		p == path.Join(RepoConfDir, TmNamesFile)
 
 }
