@@ -148,3 +148,34 @@ type RepoDescription struct {
 	Type        string
 	Description string
 }
+
+type CheckResultType int
+
+const (
+	CheckOK = CheckResultType(iota)
+	CheckErr
+)
+
+func (t CheckResultType) String() string {
+	switch t {
+	case CheckOK:
+		return "OK"
+	case CheckErr:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
+type CheckResult struct {
+	Typ          CheckResultType
+	ResourceName string
+	Message      string
+}
+
+func (r CheckResult) String() string {
+	return fmt.Sprintf("%v \t%s: %s", r.Typ, r.ResourceName, r.Message)
+}
+
+// ResourceFilter is a function which determines whether a named resource should be processed or not
+type ResourceFilter func(string) bool

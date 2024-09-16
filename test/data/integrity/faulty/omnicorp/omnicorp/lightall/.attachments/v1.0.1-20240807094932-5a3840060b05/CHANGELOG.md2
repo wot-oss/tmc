@@ -7,12 +7,11 @@
 - Added possibility to import file attachments to TMs and TM names
 - `export`: added flag to export attachments together with TMs
 - added setting/storing/detecting of attachment media types
-- `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check` 
 
 ### Changed
 
 - return error on attachment import when it already exists and add a flag to override
-- `check`: removed subcommands of `check` command, unifying both into the parent command
+
 
 ## [v0.1.0]
 

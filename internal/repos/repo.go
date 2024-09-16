@@ -34,6 +34,7 @@ const (
 	RepoConfDir               = ".tmc"
 	IndexFilename             = "tm-catalog.toc.json"
 	TmNamesFile               = "tmnames.txt"
+	TmIgnoreFile              = ".tmcignore"
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -100,8 +101,8 @@ type Repo interface {
 	// Index updates repository's index file with data from given TM files. For ids that refer to non-existing files,
 	// removes those from index. Performs a full update if no updatedIds given
 	Index(ctx context.Context, updatedIds ...string) error
-	// AnalyzeIndex checks the index for consistency.
-	AnalyzeIndex(ctx context.Context) error
+	// CheckIntegrity checks the internal resources for integrity and consistency
+	CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error)
 	// List searches the catalog for TMs matching search parameters
 	List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error)
 	// Versions lists versions of a TM with given name
@@ -110,9 +111,6 @@ type Repo interface {
 	Spec() model.RepoSpec
 	// Delete deletes the TM with given id from repo. Returns ErrTMNotFound if TM does not exist
 	Delete(ctx context.Context, id string) error
-	// RangeResources iterates over resources within this Repo.
-	// Iteration can be narrowed down by a ResourceFilter. Each iteration calls the visit function.
-	RangeResources(ctx context.Context, filter model.ResourceFilter, visit func(res model.Resource, err error) bool) error
 
 	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 

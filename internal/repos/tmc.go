@@ -354,12 +354,8 @@ func (t *TmcRepo) Index(context.Context, ...string) error {
 	return nil // ignore request to update index as index updates are presumed to be handled by the underlying repo
 }
 
-func (t *TmcRepo) AnalyzeIndex(context.Context) error {
-	return ErrNotSupported
-}
-
-func (t *TmcRepo) RangeResources(context.Context, model.ResourceFilter, func(model.Resource, error) bool) error {
-	return ErrNotSupported
+func (t *TmcRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
+	return nil, nil
 }
 
 func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
