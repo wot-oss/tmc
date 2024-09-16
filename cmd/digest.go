@@ -24,5 +24,5 @@ var digestCmd = &cobra.Command{
 
 func init() {
 	// uncomment the next line if necessary for testing. Never commit it uncommented
-	RootCmd.AddCommand(digestCmd)
+	//RootCmd.AddCommand(digestCmd)
 }
