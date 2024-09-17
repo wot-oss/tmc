@@ -104,8 +104,8 @@ func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, atta
 
 	return err
 }
-func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName)
+func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string, concat bool) error {
+	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName, concat)
 	if err != nil {
 		Stderrf("Failed to fetch attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}

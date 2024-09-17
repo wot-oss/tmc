@@ -31,11 +31,34 @@ func DeleteAttachment(ctx context.Context, spec model.RepoSpec, ref model.Attach
 	err = repo.DeleteAttachment(ctx, ref, attachmentName)
 	return err
 }
-func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
+func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string, concat bool) ([]byte, error) {
 	repo, err := repos.Get(spec)
 	if err != nil {
 		return nil, fmt.Errorf("Could not ìnitialize a repo instance for %s: %w\ncheck config", spec, err)
 	}
 
-	return repo.FetchAttachment(ctx, ref, attachmentName)
+	att, err := repo.FetchAttachment(ctx, ref, attachmentName)
+	if err != nil || !concat || ref.Kind() != model.AttachmentContainerKindTMName {
+		return att, err
+	}
+
+	searchResult, err := repo.List(ctx, &model.SearchParams{Name: ref.TMName})
+	if err != nil {
+		return att, err
+	}
+
+	for _, e := range searchResult.Entries { // there's supposed to be exactly one entry, actually
+		for _, v := range e.Versions {
+			_, found := v.FindAttachment(attachmentName)
+			if !found {
+				continue
+			}
+			vAtt, err := repo.FetchAttachment(ctx, model.NewTMIDAttachmentContainerRef(v.TMID), attachmentName)
+			if err != nil {
+				return att, err
+			}
+			att = append(att, vAtt...)
+		}
+	}
+	return att, nil
 }

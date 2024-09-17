@@ -498,6 +498,12 @@ paths:
         - $ref: '#/components/parameters/TMName'
         - $ref: '#/components/parameters/AttachmentFileName'
         - $ref: '#/components/parameters/RepoDisambiguator'
+        - name: concat
+          in: query
+          description: Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: Successful operation

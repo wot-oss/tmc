@@ -81,7 +81,7 @@ func TestAttachmentFetch(t *testing.T) {
 	attName := "README.md"
 	attContent := []byte("attachment content")
 	r.On("FetchAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), attName).Return(attContent, nil).Once()
-	err := AttachmentFetch(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attName)
+	err := AttachmentFetch(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attName, false)
 	assert.NoError(t, err)
 
 	stdout := getOutput()

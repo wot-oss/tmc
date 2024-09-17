@@ -125,9 +125,9 @@ func (_m *HandlerService) DeleteThingModel(ctx context.Context, repo string, tmI
 	return r0
 }
 
-// FetchAttachment provides a mock function with given fields: ctx, repo, ref, attachmentFileName
-func (_m *HandlerService) FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error) {
-	ret := _m.Called(ctx, repo, ref, attachmentFileName)
+// FetchAttachment provides a mock function with given fields: ctx, repo, ref, attachmentFileName, concat
+func (_m *HandlerService) FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) ([]byte, error) {
+	ret := _m.Called(ctx, repo, ref, attachmentFileName, concat)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FetchAttachment")
@@ -135,19 +135,19 @@ func (_m *HandlerService) FetchAttachment(ctx context.Context, repo string, ref 
 
 	var r0 []byte
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string) ([]byte, error)); ok {
-		return rf(ctx, repo, ref, attachmentFileName)
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string, bool) ([]byte, error)); ok {
+		return rf(ctx, repo, ref, attachmentFileName, concat)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string) []byte); ok {
-		r0 = rf(ctx, repo, ref, attachmentFileName)
+	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string, bool) []byte); ok {
+		r0 = rf(ctx, repo, ref, attachmentFileName, concat)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, model.AttachmentContainerRef, string) error); ok {
-		r1 = rf(ctx, repo, ref, attachmentFileName)
+	if rf, ok := ret.Get(1).(func(context.Context, string, model.AttachmentContainerRef, string, bool) error); ok {
+		r1 = rf(ctx, repo, ref, attachmentFileName, concat)
 	} else {
 		r1 = ret.Error(1)
 	}

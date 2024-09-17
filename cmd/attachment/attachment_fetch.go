@@ -13,9 +13,16 @@ import (
 var attachmentFetchCmd = &cobra.Command{
 	Use:   "fetch <tmNameOrId> <attachmentName>",
 	Short: "Fetch an attachment",
-	Long:  `Fetch an attachment`,
-	Args:  cobra.ExactArgs(2),
-	Run:   attachmentFetch,
+	Long: `Fetch an attachment to a TM name or a TM ID.
+
+The --concat flag can be used to fetch a concatenation of the attachment to a TM name and 
+all homonymous attachments to TMs with this TM name. This can be used, for example, to produce a single README.md or 
+CHANGELOG.md file from snippets attached to each TM ID.
+Applied to a TM ID --concat flag has no effect.
+Concatenating non-text-based attachments is unlikely to produce useful results.  
+`,
+	Args: cobra.ExactArgs(2),
+	Run:  attachmentFetch,
 	ValidArgsFunction: func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		var comps []string
 		switch len(args) {
@@ -33,7 +40,8 @@ var attachmentFetchCmd = &cobra.Command{
 func attachmentFetch(command *cobra.Command, args []string) {
 	spec := cmd.RepoSpec(command)
 
-	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1])
+	concat, _ := command.Flags().GetBool("concat")
+	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1], concat)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -41,4 +49,5 @@ func attachmentFetch(command *cobra.Command, args []string) {
 
 func init() {
 	attachmentCmd.AddCommand(attachmentFetchCmd)
+	attachmentFetchCmd.Flags().BoolP("concat", "c", false, "Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same")
 }
