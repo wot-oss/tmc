@@ -8,7 +8,7 @@ import (
 )
 
 var validateCmd = &cobra.Command{
-	Use:   "validate FILENAME",
+	Use:   "validate <file>",
 	Short: "validate a TM before importing",
 	Long:  `validate a ThingModel to ensure it is ready to be imported into TM catalog`,
 	Args:  cobra.ExactArgs(1),

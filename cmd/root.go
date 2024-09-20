@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal"
 	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/config"
@@ -60,13 +61,49 @@ func preRunAll(cmd *cobra.Command, args []string) {
 	internal.InitLogging()
 }
 
-func RepoSpec(cmd *cobra.Command) model.RepoSpec {
+func RepoSpecFromFlags(cmd *cobra.Command) model.RepoSpec {
 	repoName := cmd.Flag("repo").Value.String()
 	dir := cmd.Flag("directory").Value.String()
 	spec, err := model.NewSpec(repoName, dir)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of target repository. --repo and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of repository. --repo and --directory are mutually exclusive. Set at most one")
 		os.Exit(1)
 	}
 	return spec
+}
+
+type FilterFlags struct {
+	FilterAuthor       string
+	FilterManufacturer string
+	FilterMpn          string
+	Search             string
+}
+
+func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
+	return model.ToSearchParams(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &name, &flags.Search,
+		&model.SearchOptions{NameFilterType: model.PrefixMatch})
+}
+
+// AddRepoConstraintFlags adds repo and directory flags for commands that can use multiple repositories (e.g. list)
+func AddRepoConstraintFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("repo", "r", "", "Name of the repository to use as source. Uses all if omitted. Mutually exclusive with --directory.")
+	_ = cmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	cmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --repo.")
+	_ = cmd.MarkFlagDirname("directory")
+}
+
+// AddRepoDisambiguatorFlags adds repo and directory flags for commands that use exactly one repository (e.g. delete)
+func AddRepoDisambiguatorFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("repo", "r", "", "Name of the repository to use. Required if the repository is ambiguous. Mutually exclusive with --directory.")
+	_ = cmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
+	cmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --repo.")
+	_ = cmd.MarkFlagDirname("directory")
+}
+
+func AddTMFilterFlags(cmd *cobra.Command, flags *FilterFlags) {
+	cmd.Flags().StringVar(&flags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
+	cmd.Flags().StringVar(&flags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
+	cmd.Flags().StringVar(&flags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
+	cmd.Flags().StringVarP(&flags.Search, "search", "s", "", "search TMs by their content matching the search term")
+
 }

@@ -10,7 +10,7 @@ import (
 // digestCmd is only intended for testing and is therefore commented out.
 // If you need to just calculate version digests of some files, you can _temporarily_ remove comment in init()
 var digestCmd = &cobra.Command{
-	Use:   "digest <FILENAME>",
+	Use:   "digest <filename>",
 	Short: "calculate version digest of a TM file",
 	Long:  `calculate version digest of a TM file. The file must be json and contain a json object, but it is not validated`,
 	Args:  cobra.ExactArgs(1),

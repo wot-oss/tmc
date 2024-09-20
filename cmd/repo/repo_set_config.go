@@ -10,7 +10,7 @@ import (
 
 // repoSetConfigCmd represents the 'repo set-config' command
 var repoSetConfigCmd = &cobra.Command{
-	Use:   "set-config [--type <type>] <name> (<config> | --file <configFileName>)",
+	Use:   "set-config [--type <type>] <name> (<config> | --file <config-file>)",
 	Short: "Set config for a repository",
 	Long: `Overwrite config of a repository. Depending on the repository type,
 the config may be a simple string, like a URL, or a json file.
