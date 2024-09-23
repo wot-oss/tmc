@@ -70,7 +70,7 @@ func printAttachments(atts []model.FoundAttachment) {
 
 }
 
-func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string, mediaType string, force bool) error {
+func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename, attachmentName, mediaType string, force bool) error {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		Stderrf("Error expanding file name %s: %v", filename, err)
@@ -86,8 +86,11 @@ func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, file
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 	}
+	if attachmentName == "" {
+		attachmentName = filepath.Base(filename)
+	}
 	err = commands.ImportAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), model.Attachment{
-		Name:      filepath.Base(filename),
+		Name:      attachmentName,
 		MediaType: mediaType,
 	}, raw, force)
 	if err != nil {
