@@ -14,7 +14,7 @@ var exportFilterFlags = FilterFlags{}
 var exportCmd = &cobra.Command{
 	Use:   "export [<name-pattern>]",
 	Short: "Export multiple TMs from a catalog and, optionally, their attachments",
-	Long: `Exports one or more TMs from a catalog by name pattern, filters or search. 
+	Long: `Export one or more TMs from a catalog by name pattern, filters or search. 
 
 Accepts the same <name-pattern> and filter flags as list command.
 Use list command with the same parameters to verify beforehand which TMs are going to be exported.`,

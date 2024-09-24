@@ -17,11 +17,10 @@ var importCmd = &cobra.Command{
 	Use:   "import <file-or-directory>",
 	Short: "Import a TM or a directory with TMs into a catalog",
 	Long: `Import a single Thing Model or a directory with Thing Models into a catalog.
+	
+Importing a directory will walk the directory tree recursively and import all found ThingModels.
 
-	The name of the file or directory to import. Importing a directory will walk the directory tree recursively and 
-	import all found ThingModels.
-
-Specifying the target repository with --directory or --repo is optional if there's exactly one enabled named repository in the config
+Specifying the target repository with --directory or --repo is optional if there's exactly one enabled named repository in the config.
 `,
 	Args: cobra.ExactArgs(1),
 	Run:  executeImport,

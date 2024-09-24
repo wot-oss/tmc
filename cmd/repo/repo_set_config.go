@@ -52,7 +52,7 @@ the config may be a simple string, like a URL, or a json file.
 
 func init() {
 	repoCmd.AddCommand(repoSetConfigCmd)
-	repoSetConfigCmd.Flags().StringP("type", "t", "", "type of repo to add")
+	repoSetConfigCmd.Flags().StringP("type", "t", "", "new type of repo")
 	_ = repoSetConfigCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
 	repoSetConfigCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
 	repoSetConfigCmd.Flags().StringP("description", "d", "", "description of the repo")

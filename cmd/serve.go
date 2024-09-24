@@ -17,7 +17,7 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start a REST API server",
-	Long:  `Start a REST API server for accessing and manipulating the catalog.`,
+	Long:  `Start a REST API server for accessing and manipulating the catalog`,
 	Args:  cobra.MaximumNArgs(0),
 	Run:   serve,
 }

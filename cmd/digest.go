@@ -11,8 +11,8 @@ import (
 // If you need to just calculate version digests of some files, you can _temporarily_ remove comment in init()
 var digestCmd = &cobra.Command{
 	Use:   "digest <filename>",
-	Short: "calculate version digest of a TM file",
-	Long:  `calculate version digest of a TM file. The file must be json and contain a json object, but it is not validated`,
+	Short: "Calculate version digest of a TM file",
+	Long:  `Calculate version digest of a TM file. The file must be json and must contain a json object, but it is not validated.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cli.CalcFileDigest(args[0])
