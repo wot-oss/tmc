@@ -53,10 +53,10 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 			res, cErr := copyThingModel(ctx, version, target, opts)
 			tmExisted := false
 			var errExists *repos.ErrTMIDConflict
-			if errors.As(cErr, &errExists) { // TM exists in target -> add error result and store the total error, but don't skip copying attachments
+			if errors.As(cErr, &errExists) { // TM exists in target -> add error result and store the total error (unless ought to ignore), but don't skip copying attachments
 				tmExisted = true
 				totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("already exists as %s", errExists.ExistingId)})
-				if err == nil {
+				if err == nil && !opts.IgnoreExisting {
 					err = cErr
 				}
 			} else {
@@ -92,14 +92,14 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 				totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
 			}
 			spec := model.NewSpecFromFoundSource(entry.FoundIn)
-			aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments, opts.Force)
+			aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments, opts.Force, opts.IgnoreExisting)
 			if err == nil && aErr != nil {
 				err = aErr
 			}
 			totalRes = append(totalRes, aRes...)
 		}
 		spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
-		aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments, opts.Force)
+		aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments, opts.Force, opts.IgnoreExisting)
 		if err == nil && aErr != nil {
 			err = aErr
 		}
@@ -126,7 +126,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 	return err
 }
 
-func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment, force bool) ([]operationResult, error) {
+func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment, force, ignoreExisting bool) ([]operationResult, error) {
 	relDir, err := model.RelAttachmentsDir(ref)
 	if err != nil {
 		return nil, err
@@ -150,14 +150,15 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 		}
 		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes, force)
 		if wErr != nil {
-			if err == nil {
-				err = wErr
-			}
 			results = append(results, operationResult{
 				typ:        opResultErr,
 				resourceId: resName,
 				text:       fmt.Errorf("could not import attachment %s to %v: %w", att.Name, ref, wErr).Error(),
 			})
+			doIgnore := ignoreExisting && errors.Is(wErr, repos.ErrAttachmentExists)
+			if err == nil && !doIgnore {
+				err = wErr
+			}
 			continue
 		}
 		results = append(results, operationResult{

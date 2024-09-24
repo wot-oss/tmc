@@ -42,12 +42,14 @@ func init() {
 	copyCmd.Flags().StringVar(&copyFilterFlags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
 	copyCmd.Flags().StringVarP(&copyFilterFlags.Search, "search", "s", "", "search TMs by their content matching the search term")
 	copyCmd.Flags().Bool("force", false, `Force copy, even if there are conflicts with existing TMs.`)
+	copyCmd.Flags().Bool("ignore-existing", false, `Ignore TMs and attachments that have conflicts with existing ones instead of returning an error code.`)
 }
 
 func executeCopy(cmd *cobra.Command, args []string) {
 	toRepoName := cmd.Flag("toRepo").Value.String()
 	toDirName := cmd.Flag("toDirectory").Value.String()
 	force, _ := cmd.Flags().GetBool("force")
+	ie, _ := cmd.Flags().GetBool("ignore-existing")
 
 	spec := RepoSpec(cmd)
 	toSpec, err := model.NewSpec(toRepoName, toDirName)
@@ -61,7 +63,7 @@ func executeCopy(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	search := cli.CreateSearchParamsFromCLI(copyFilterFlags, name)
-	err = cli.Copy(context.Background(), spec, toSpec, search, repos.ImportOptions{Force: force})
+	err = cli.Copy(context.Background(), spec, toSpec, search, repos.ImportOptions{Force: force, IgnoreExisting: ie})
 
 	if err != nil {
 		cli.Stderrf("copy failed")
