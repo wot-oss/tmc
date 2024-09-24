@@ -121,6 +121,9 @@ func (p *ImportExecutor) importFile(ctx context.Context, filename string, repo r
 		var errExists *repos.ErrTMIDConflict
 		if errors.As(err, &errExists) {
 			res.Message = fmt.Sprintf("file %s already exists as %s", filename, errExists.ExistingId)
+			if opts.IgnoreExisting {
+				return res, nil
+			}
 			return res, err
 		}
 		err := fmt.Errorf("error importing file %s: %w", filename, err)

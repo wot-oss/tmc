@@ -1,5 +1,13 @@
 # Change Log
 
+
+## [v0.1.1]
+
+### Added
+
+- `import`: added flag `--ignore-existing` to ignore TMs that have conflicts with existing TMs instead of returning an error code
+
+
 ## [v0.1.0]
 
 ### Added
