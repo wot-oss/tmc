@@ -22,7 +22,7 @@ To integrate publicly available and your own private Thing Models into your prod
     tmc completion <shell> -h
     ```
 
-## Browse the Canoncial Catalog
+## Browse the Canonical Catalog
 
 1. Configure the canonical repository
     ```bash
@@ -36,7 +36,7 @@ To integrate publicly available and your own private Thing Models into your prod
 The listed names are formatted as follows
 
 ```
-<author>/<manufacturer>/<model>
+<author>/<manufacturer>/<model>[/<optional-path>]
 ```
 
 You can specify a part of that path after the ```list``` command to filter the list for only parts of the list tree (use tab to auto-complete path parts):

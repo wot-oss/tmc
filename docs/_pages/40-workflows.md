@@ -48,8 +48,8 @@ tmc fetch siemens/siemens/poc1000:v1.0.1
 ## Set Up a List of TM Repositories
 
 Most subcommands of `tmc` operate by default on the list of named repositories stored in its `config.json` file, unless a single one of them is selected
-by `--repository` flag or a local repository is defined by `--directory` flag. The default location of the `config.json` file is `~/.tm-catalog/`. If a `config.json` file 
-is present in the current working directory, it takes precedence over the one in user home dir.
+by `--repo` flag or a local repository is defined by `--directory` flag. The default location of the `config.json` file is `~/.tm-catalog`. You can 
+override the default config directory with the `--config` flag.
 
 To view and modify the list of repositories in the config file, use command `repo` and its subcommands. For example:
 ```bash
