@@ -52,15 +52,13 @@ func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
 	slices.SortStableFunc(vs1, func(a, b FoundVersion) int {
 		tmid1, _ := ParseTMID(a.TMID)
 		tmid2, _ := ParseTMID(b.TMID)
-		if tmid1.Equals(tmid2) {
-			tc := strings.Compare(tmid1.Version.Timestamp, tmid2.Version.Timestamp)
-			if tc != 0 {
-				return -tc // sort in reverse chronological order within the same TMID
-			}
+		nc := strings.Compare(tmid1.Name, tmid2.Name)
+		if nc != 0 {
+			return nc
 		}
-		ic := strings.Compare(a.TMID, b.TMID)
-		if ic != 0 {
-			return ic
+		vc := -tmid1.Version.Compare(tmid2.Version) // sort in descending order within the same TM name
+		if vc != 0 {
+			return vc
 		}
 		return strings.Compare(a.FoundIn.RepoName, b.FoundIn.RepoName)
 	})

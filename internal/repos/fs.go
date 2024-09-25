@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"path/filepath"
-	"reflect"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/gofrs/flock"
+	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 )
@@ -140,7 +140,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	_ = rmEmptyDirs(dir, f.root)
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, id), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, id))
 	return err
 }
 
@@ -243,8 +243,8 @@ func findTMFileEntriesByBaseVersion(entries []os.DirEntry, version model.TMVersi
 			res = append(res, ver)
 		}
 	}
-	sort.Slice(res, func(i, j int) bool {
-		return strings.Compare(res[i].String(), res[j].String()) > 0
+	slices.SortStableFunc(res, func(a, b model.TMVersion) int {
+		return a.Compare(b)
 	})
 	return res
 }
@@ -279,40 +279,35 @@ func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 	}
 
 	if len(ids) == 0 {
-		_, err = f.updateIndex(ctx, f.fullIndexRebuild, true)
+		_, err = f.updateIndex(ctx, f.fullIndexRebuild)
 		return err
 	}
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, ids...), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, ids...))
 	return err
 }
 
-func (f *FileRepo) AnalyzeIndex(ctx context.Context) error {
-	err := f.checkRootValid()
+func (f *FileRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
+	err = f.checkRootValid()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	idxOld, errIdxOld := f.readIndex()
-	idxNew, err := f.updateIndex(ctx, f.fullIndexRebuild, false)
+	unlock, err := f.lockIndex(ctx)
+	defer unlock()
 	if err != nil {
-		return err
+		return nil, err
 	}
-
-	// if there are no TMs and there is an empty or missing index file, it's considered to be valid
-	if idxNew.IsEmpty() && (errIdxOld == ErrNoIndex || idxOld.IsEmpty()) {
-		return nil
-	} else if errIdxOld != nil {
-		return errIdxOld
+	idx, err := f.readIndex()
+	if err != nil {
+		if errors.Is(err, ErrNoIndex) {
+			return nil, nil
+		}
+		return nil, err
 	}
+	idx.Sort()
 
-	idxNew.Sort()
-	idxOld.Sort()
-
-	idxOk := reflect.DeepEqual(idxOld.Data, idxNew.Data)
-	if !idxOk {
-		return ErrIndexMismatch
-	}
-	return nil
+	r, err := f.verifyAllFilesAreIndexed(ctx, idx, filter)
+	return r, err
 }
 
 func (f *FileRepo) Spec() model.RepoSpec {
@@ -339,6 +334,7 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 		return model.SearchResult{}, err
 	}
 	idx.Filter(search)
+	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
 	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx), nil
 }
 
@@ -434,7 +430,7 @@ func (f *FileRepo) ImportAttachment(ctx context.Context, container model.Attachm
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, container, attachment, content), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, container, attachment, content))
 	if err != nil {
 		return err
 	}
@@ -532,7 +528,7 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentCon
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ctx, ref, attachmentName), true)
+	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ctx, ref, attachmentName))
 	if err != nil {
 		return err
 	}
@@ -679,7 +675,7 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater, persist bool) (*model.Index, error) {
+func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
 	// Prepare data collection for logging stats
 	var log = slog.Default()
 	start := time.Now()
@@ -700,18 +696,16 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater, persis
 
 	newIndex.Sort()
 	duration := time.Now().Sub(start)
-	if persist {
-		// Ignore error as we are sure our struct does not contain channel,
-		// complex or function values that would throw an error.
-		newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
-		err := utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
-		if err != nil {
-			return nil, err
-		}
-		err = f.writeNamesFile(names)
-		if err != nil {
-			return nil, err
-		}
+	// Ignore error as we are sure our struct does not contain channel,
+	// complex or function values that would throw an error.
+	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
+	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
+	if err != nil {
+		return nil, err
+	}
+	err = f.writeNamesFile(names)
+	if err != nil {
+		return nil, err
 	}
 
 	msg := "Updated index with %d records in %s "
@@ -963,6 +957,33 @@ func (f *FileRepo) writeNamesFile(names []string) error {
 	names = slices.Compact(names)
 	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, TmNamesFile), defaultFilePermissions)
 }
+func (f *FileRepo) readIgnoreFile() (*ignore.GitIgnore, error) {
+	ignoreFileName := filepath.Join(f.root, RepoConfDir, TmIgnoreFile)
+	_, err := os.Stat(ignoreFileName)
+	if os.IsNotExist(err) {
+		err := f.writeDefaultIgnoreFile()
+		if err != nil {
+			return nil, err
+		}
+	}
+	lines, err := utils.ReadFileLines(ignoreFileName)
+	if err != nil {
+		return nil, err
+	}
+	gitIgnore := ignore.CompileIgnoreLines(lines...)
+	return gitIgnore, nil
+}
+func (f *FileRepo) writeDefaultIgnoreFile() error {
+	ignoreDefaults := []string{
+		"# ignore any top-level files",
+		"/*",
+		"!/*/",
+		"",
+		"# ignore any top-level directories starting with a dot",
+		"/.*/",
+	}
+	return utils.WriteFileLines(ignoreDefaults, filepath.Join(f.root, RepoConfDir, TmIgnoreFile), defaultFilePermissions)
+}
 
 type thingMetadata struct {
 	tm model.ThingModel
@@ -1062,6 +1083,118 @@ func (f *FileRepo) ListCompletions(ctx context.Context, kind string, args []stri
 	}
 }
 
+func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Index, filter model.ResourceFilter) ([]model.CheckResult, error) {
+	if filter == nil {
+		filter = func(_ string) bool { return true }
+	}
+	ignor, err := f.prepareIgnoreFunc()
+	if err != nil {
+		return nil, err
+	}
+
+	var results []model.CheckResult
+
+	err = filepath.Walk(f.root, func(path string, info os.FileInfo, err error) error {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		resourceName, err := filepath.Rel(f.root, path)
+		if err != nil {
+			return err
+		}
+		resourceName = filepath.ToSlash(resourceName)
+		if ignor(resourceName) || !filter(resourceName) {
+			return nil
+		}
+		checkResult := f.verifyFileIsIndexed(resourceName, idx)
+		results = append(results, checkResult)
+
+		return nil
+	})
+
+	return results, err
+
+}
+
+func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.CheckResult {
+	if isTmcConfigFile(file) {
+		return model.CheckResult{model.CheckOK, file, "OK"}
+	}
+	if isAtt, ref, attName := isAttachmentFile(file); isAtt {
+		container, _, err := idx.FindAttachmentContainer(ref)
+		if err != nil {
+			var nfErr *model.ErrNotFound
+			if errors.As(err, &nfErr) {
+				return model.CheckResult{model.CheckErr, file, "appears to be an attachment file to a TM name or TM ID which does not exist. Make sure you import it using TMC CLI"}
+			}
+		}
+		_, found := container.FindAttachment(attName)
+		if !found {
+			return model.CheckResult{model.CheckErr, file, "appears to be an attachment file which is not known to the repository. Make sure you import it using TMC CLI"}
+		}
+		return model.CheckResult{model.CheckOK, file, "OK"}
+	}
+	if isTMFile(file) {
+		ver := idx.FindByTMID(file)
+		if ver == nil {
+			return model.CheckResult{model.CheckErr, file, "appears to be a TM file which is not known to the repository. Make sure you import it using TMC CLI"}
+		}
+		return model.CheckResult{model.CheckOK, file, "OK"}
+	}
+	return model.CheckResult{model.CheckErr, file, "file unknown"}
+}
+
+func (f *FileRepo) prepareIgnoreFunc() (func(string) bool, error) {
+	gitIgnore, err := f.readIgnoreFile()
+	if err != nil {
+		return nil, err
+	}
+	return func(s string) bool {
+		return gitIgnore.MatchesPath(s)
+	}, nil
+}
+
+func isTMFile(file string) bool {
+	_, err := model.ParseTMID(file)
+	return err == nil
+}
+
+func isAttachmentFile(file string) (bool, model.AttachmentContainerRef, string) {
+	before, after, found := strings.Cut(file, "/"+model.AttachmentsDir+"/")
+	if !found {
+		return false, model.AttachmentContainerRef{}, ""
+	}
+	tmName, err := model.ParseFetchName(before)
+	if err != nil || tmName.Semver != "" {
+		return false, model.AttachmentContainerRef{}, ""
+	}
+	attName := path.Base(after)
+	if tmVer := path.Dir(after); tmVer != "." {
+		_, err := model.ParseTMVersion(tmVer)
+		if err != nil {
+			return false, model.AttachmentContainerRef{}, ""
+		}
+		return true, model.NewTMIDAttachmentContainerRef(tmName.Name + "/" + tmVer + ".tm.json"), attName
+	}
+	return true, model.NewTMNameAttachmentContainerRef(tmName.Name), attName
+}
+
+func isTmcConfigFile(p string) bool {
+	return p == path.Join(RepoConfDir, IndexFilename) ||
+		p == path.Join(RepoConfDir, IndexFilename+".lock") ||
+		p == path.Join(RepoConfDir, TmIgnoreFile) ||
+		p == path.Join(RepoConfDir, TmNamesFile)
+
+}
+
 func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]string, error) {
 	if len(args) > 0 {
 		_, err := model.ParseTMID(args[0])
@@ -1094,5 +1227,4 @@ func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]str
 	} else {
 		return nil, ErrInvalidCompletionParams
 	}
-	return nil, nil
 }

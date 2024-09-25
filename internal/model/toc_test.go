@@ -294,7 +294,7 @@ func TestIndex_InsertAttachments(t *testing.T) {
 	assert.NoError(t, err)
 	atts := []Attachment{{
 		Name:      "README.md",
-		MediaType: "text/markdown",
+		MediaType: "Message/markdown",
 	}, {
 		Name:      "User Guide.pdf",
 		MediaType: "application/pdf",
@@ -308,7 +308,7 @@ func TestIndex_InsertAttachments(t *testing.T) {
 
 	nameAtts := []Attachment{{
 		Name:      "CHANGELOG.md",
-		MediaType: "text/markdown",
+		MediaType: "Message/markdown",
 	}}
 	nameRef := NewTMNameAttachmentContainerRef(tmName)
 	err = idx.InsertAttachments(nameRef, nameAtts...)
@@ -334,7 +334,7 @@ func TestIndex_Insert(t *testing.T) {
 	assert.Equal(t, 1, len(idx.Data))
 	assert.Equal(t, "aut/man/mpn", idx.Data[0].Name)
 	assert.Equal(t, 1, len(idx.Data[0].Versions))
-	err = idx.InsertAttachments(NewTMIDAttachmentContainerRef("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"), Attachment{Name: "README.md", MediaType: "text/markdown"}, Attachment{Name: "User Guide.pdf", MediaType: "application/pdf"})
+	err = idx.InsertAttachments(NewTMIDAttachmentContainerRef("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"), Attachment{Name: "README.md", MediaType: "Message/markdown"}, Attachment{Name: "User Guide.pdf", MediaType: "application/pdf"})
 	assert.NoError(t, err)
 	assert.Equal(t, &IndexVersion{
 		Description: "descr",
@@ -346,7 +346,7 @@ func TestIndex_Insert(t *testing.T) {
 		Digest:              "abcd12345678",
 		TimeStamp:           "20231023121314",
 		ExternalID:          "externalID",
-		AttachmentContainer: AttachmentContainer{[]Attachment{{Name: "README.md", MediaType: "text/markdown"}, {Name: "User Guide.pdf", MediaType: "application/pdf"}}},
+		AttachmentContainer: AttachmentContainer{[]Attachment{{Name: "README.md", MediaType: "Message/markdown"}, {Name: "User Guide.pdf", MediaType: "application/pdf"}}},
 	}, idx.Data[0].Versions[0])
 
 	err = idx.Insert(&ThingModel{

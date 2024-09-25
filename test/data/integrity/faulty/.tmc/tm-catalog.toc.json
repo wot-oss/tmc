@@ -1,0 +1,44 @@
+{
+  "meta": {
+    "created": "2024-09-11T13:11:49.258841318+03:00"
+  },
+  "data": [
+    {
+      "name": "omnicorp/omnicorp/lightall",
+      "schema:manufacturer": {
+        "schema:name": "omnicorp"
+      },
+      "schema:mpn": "lightall",
+      "schema:author": {
+        "schema:name": "omnicorp"
+      },
+      "versions": [
+        {
+          "description": "",
+          "version": {
+            "model": "1.0.1"
+          },
+          "links": {
+            "content": "omnicorp/omnicorp/lightall/v1.0.1-20240807094932-5a3840060b05.tm.json"
+          },
+          "tmID": "omnicorp/omnicorp/lightall/v1.0.1-20240807094932-5a3840060b05.tm.json",
+          "digest": "5a3840060b05",
+          "timestamp": "20240807094932",
+          "externalID": "",
+          "attachments": [
+            {
+              "name": "CHANGELOG.md",
+              "mediaType": "text/plain; charset=utf-8"
+            }
+          ]
+        }
+      ],
+      "attachments": [
+        {
+          "name": "README.md",
+          "mediaType": "text/plain; charset=utf-8"
+        }
+      ]
+    }
+  ]
+}

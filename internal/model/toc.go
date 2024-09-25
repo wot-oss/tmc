@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -155,18 +154,10 @@ func (idx *Index) Sort() {
 	}
 	// sort versions of each entry descending
 	for _, entry := range idx.Data {
-		slices.SortFunc(entry.Versions, func(a *IndexVersion, b *IndexVersion) int {
-			av := semver.MustParse(a.Version.Model)
-			bv := semver.MustParse(b.Version.Model)
-			vc := bv.Compare(av)
-			if vc != 0 {
-				return vc
-			}
-			vc = strings.Compare(b.TimeStamp, a.TimeStamp) // our timestamps can be compared lexicographically
-			if vc != 0 {
-				return vc
-			}
-			return strings.Compare(b.TMID, a.TMID) // in case of semVer and timestamp equality, use complete ID to ensure stable order
+		slices.SortStableFunc(entry.Versions, func(a, b *IndexVersion) int {
+			aid, _ := ParseTMID(a.TMID)
+			bid, _ := ParseTMID(b.TMID)
+			return -aid.Version.Compare(bid.Version)
 		})
 	}
 	// sort entries ascending
