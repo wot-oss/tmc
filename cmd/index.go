@@ -12,25 +12,23 @@ import (
 
 var indexCmd = &cobra.Command{
 	Use:   "index",
-	Short: "Update the repository's index file",
-	Long: `Update the repository's index file listing all paths to Thing Model files. Used for simple search functionality.
-Specifying the catalog with --directory or --repo is optional if there's exactly one catalog configured`,
-	Run:  executeCreateIndex,
+	Short: "Refresh the repository's internal index, if it has one",
+	Long: `Refresh the repository's internal index, if it has one.
+Specifying the repository with --directory or --repo is optional if there's exactly one repository configured.`,
+	Run:  executeRefreshIndex,
 	Args: cobra.NoArgs,
 }
 
 func init() {
 	RootCmd.AddCommand(indexCmd)
-	indexCmd.Flags().StringP("repo", "r", "", "Name of the repository to update")
-	indexCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
-
+	AddRepoDisambiguatorFlags(indexCmd)
 }
 
-func executeCreateIndex(cmd *cobra.Command, args []string) {
+func executeRefreshIndex(cmd *cobra.Command, args []string) {
 	var log = slog.Default()
 
-	spec := RepoSpec(cmd)
-	log.Debug(fmt.Sprintf("creating table of contents for repository %s", spec))
+	spec := RepoSpecFromFlags(cmd)
+	log.Debug(fmt.Sprintf("Refreshing index for repository %s", spec))
 
 	err := cli.Index(context.Background(), spec)
 	if err != nil {
