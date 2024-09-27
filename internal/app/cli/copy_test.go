@@ -239,9 +239,13 @@ func TestCopy(t *testing.T) {
 		source := mocks.NewRepo(t)
 		target := mocks.NewRepo(t)
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec, model.EmptySpec}, []repos.Repo{source, target, nil}, []error{nil, nil, repos.ErrAmbiguous}))
-		//rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, source, target))
 		err := Copy(context.Background(), model.EmptySpec, model.NewRepoSpec("r1"), nil, repos.ImportOptions{})
 		assert.ErrorIs(t, err, repos.ErrAmbiguous)
+	})
+
+	t.Run("with same source and target", func(t *testing.T) {
+		err := Copy(context.Background(), model.EmptySpec, model.EmptySpec, nil, repos.ImportOptions{})
+		assert.ErrorIs(t, err, ErrInvalidArgs)
 	})
 
 	t.Run("with error fetching a ThingModel", func(t *testing.T) {

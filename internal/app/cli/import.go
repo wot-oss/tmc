@@ -30,7 +30,7 @@ func NewImportExecutor(now commands.Now) *ImportExecutor {
 func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model.RepoSpec, optTree bool, opts repos.ImportOptions) ([]repos.ImportResult, error) {
 	repo, err := repos.Get(spec)
 	if err != nil {
-		Stderrf("Could not ìnitialize a repo instance for %s: %v\ncheck config", spec, err)
+		Stderrf("Could not initialize a repo instance for %s: %v\ncheck config", spec, err)
 		return nil, err
 	}
 

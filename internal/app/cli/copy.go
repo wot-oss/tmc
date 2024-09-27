@@ -12,14 +12,18 @@ import (
 )
 
 func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, search *model.SearchParams, opts repos.ImportOptions) error {
+	if repo.RepoName() == toRepo.RepoName() && repo.Dir() == toRepo.Dir() {
+		Stderrf("Source repo cannot be the same as target")
+		return ErrInvalidArgs
+	}
 	_, err := repos.Get(repo) // ensure that source repo is unambiguous
 	if err != nil {
-		Stderrf("Could not ìnitialize a source repo instance for %s: %v\ncheck config", repo, err)
+		Stderrf("Could not initialize a source repo instance for %s: %v\ncheck config", repo, err)
 		return err
 	}
 	target, err := repos.Get(toRepo)
 	if err != nil {
-		Stderrf("Could not ìnitialize a target repo instance for %s: %v\ncheck config", toRepo, err)
+		Stderrf("Could not initialize a target repo instance for %s: %v\ncheck config", toRepo, err)
 		return err
 	}
 

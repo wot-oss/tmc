@@ -29,9 +29,9 @@ Use list command with the same parameters to verify beforehand which TMs are goi
 func init() {
 	RootCmd.AddCommand(copyCmd)
 	AddRepoConstraintFlags(copyCmd)
-	copyCmd.Flags().StringP("toRepo", "R", "", "Name of the target repository. Mutually exclusive with --toDirectory.")
+	copyCmd.Flags().StringP("toRepo", "R", "", "Name of the target repository. Mutually exclusive with --toDirectory. Required, unless --toDirectory is set.")
 	_ = copyCmd.RegisterFlagCompletionFunc("toRepo", completion.CompleteRepoNames)
-	copyCmd.Flags().StringP("toDirectory", "D", "", "Use the specified directory as the target repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --toRepo.")
+	copyCmd.Flags().StringP("toDirectory", "D", "", "Use the specified directory as the target repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --toRepo. Required, unless --toRepo is set.")
 	_ = copyCmd.MarkFlagDirname("toDirectory")
 	AddTMFilterFlags(copyCmd, &copyFilterFlags)
 	copyCmd.Flags().Bool("force", false, `Force copy, even if there are conflicts with existing TMs.`)
