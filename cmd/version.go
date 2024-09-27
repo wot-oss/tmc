@@ -12,8 +12,8 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Show the tmc version information",
-	Long:  `Show the tmc version information.`,
+	Short: "Show tmc version information",
+	Long:  `Show tmc version information`,
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("tmc version %s\n", cli.TmcVersion)

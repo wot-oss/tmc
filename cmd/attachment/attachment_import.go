@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentImportCmd = &cobra.Command{
-	Use:   "import <tmNameOrId> <attachmentFile>",
+	Use:   "import <tm-name-or-id> <filename>",
 	Short: "Import an attachment",
 	Long:  `Add or replace an attachment`,
 	Args:  cobra.ExactArgs(2),
@@ -31,7 +31,7 @@ var attachmentImportCmd = &cobra.Command{
 }
 
 func attachmentImport(command *cobra.Command, args []string) {
-	spec := cmd.RepoSpec(command)
+	spec := cmd.RepoSpecFromFlags(command)
 	mediaType := command.Flag("media-type").Value.String()
 	name := command.Flag("name").Value.String()
 	force, _ := command.Flags().GetBool("force")
@@ -43,7 +43,8 @@ func attachmentImport(command *cobra.Command, args []string) {
 
 func init() {
 	attachmentCmd.AddCommand(attachmentImportCmd)
-	attachmentImportCmd.Flags().StringP("media-type", "m", "", "Media type of the attachment")
+	cmd.AddRepoDisambiguatorFlags(attachmentImportCmd)
+	attachmentImportCmd.Flags().StringP("media-type", "m", "", "Media type of the attachment. Guessed automatically, if the flag is not set.")
 	attachmentImportCmd.Flags().StringP("name", "n", "", "Use this name for the attachment instead of the original file's name")
 	attachmentImportCmd.Flags().Bool("force", false, `Force import, even if there is conflict with existing attachment.`)
 }

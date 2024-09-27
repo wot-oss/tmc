@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentListCmd = &cobra.Command{
-	Use:   "list <tmNameOrId>",
+	Use:   "list <tm-name-or-id>",
 	Short: "List attachments",
 	Long:  `List attachments to given inventory TM name or id`,
 	Args:  cobra.ExactArgs(1),
@@ -29,7 +29,7 @@ var attachmentListCmd = &cobra.Command{
 }
 
 func attachmentList(command *cobra.Command, args []string) {
-	spec := cmd.RepoSpec(command)
+	spec := cmd.RepoSpecFromFlags(command)
 
 	err := cli.AttachmentList(context.Background(), spec, args[0])
 	if err != nil {
@@ -38,5 +38,6 @@ func attachmentList(command *cobra.Command, args []string) {
 }
 
 func init() {
+	cmd.AddRepoDisambiguatorFlags(attachmentListCmd)
 	attachmentCmd.AddCommand(attachmentListCmd)
 }

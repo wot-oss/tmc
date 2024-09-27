@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentFetchCmd = &cobra.Command{
-	Use:   "fetch <tmNameOrId> <attachmentName>",
+	Use:   "fetch <tm-name-or-id> <attachment-name>",
 	Short: "Fetch an attachment",
 	Long: `Fetch an attachment to a TM name or a TM ID.
 
@@ -38,7 +38,7 @@ Concatenating non-text-based attachments is unlikely to produce useful results.
 }
 
 func attachmentFetch(command *cobra.Command, args []string) {
-	spec := cmd.RepoSpec(command)
+	spec := cmd.RepoSpecFromFlags(command)
 
 	concat, _ := command.Flags().GetBool("concat")
 	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1], concat)
@@ -48,6 +48,7 @@ func attachmentFetch(command *cobra.Command, args []string) {
 }
 
 func init() {
+	cmd.AddRepoDisambiguatorFlags(attachmentFetchCmd)
 	attachmentCmd.AddCommand(attachmentFetchCmd)
 	attachmentFetchCmd.Flags().BoolP("concat", "c", false, "Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same")
 }
