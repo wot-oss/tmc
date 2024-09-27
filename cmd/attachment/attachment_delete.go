@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentDeleteCmd = &cobra.Command{
-	Use:   "delete <tmNameOrId> <attachmentName>",
+	Use:   "delete <tm-name-or-id> <attachment-name>",
 	Short: "Delete an attachment",
 	Long:  `Delete an attachment`,
 	Args:  cobra.ExactArgs(2),
@@ -31,7 +31,7 @@ var attachmentDeleteCmd = &cobra.Command{
 }
 
 func attachmentDelete(command *cobra.Command, args []string) {
-	spec := cmd.RepoSpec(command)
+	spec := cmd.RepoSpecFromFlags(command)
 
 	err := cli.AttachmentDelete(context.Background(), spec, args[0], args[1])
 	if err != nil {
@@ -40,5 +40,6 @@ func attachmentDelete(command *cobra.Command, args []string) {
 }
 
 func init() {
+	cmd.AddRepoDisambiguatorFlags(attachmentDeleteCmd)
 	attachmentCmd.AddCommand(attachmentDeleteCmd)
 }

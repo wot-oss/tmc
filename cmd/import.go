@@ -14,14 +14,13 @@ import (
 
 // importCmd represents the import command
 var importCmd = &cobra.Command{
-	Use:   "import <file-or-dirname>",
+	Use:   "import <file-or-directory>",
 	Short: "Import a TM or a directory with TMs into a catalog",
 	Long: `Import a single Thing Model or a directory with Thing Models into a catalog.
-file-or-dirname
-	The name of the file or directory to import. Importing a directory will walk the directory tree recursively and 
-	import all found ThingModels.
+	
+Importing a directory will walk the directory tree recursively and import all found ThingModels.
 
-Specifying the target repository with --directory or --repo is optional if there's exactly one enabled named repository in the config
+Specifying the target repository with --directory or --repo is optional if there's exactly one enabled named repository in the config.
 `,
 	Args: cobra.ExactArgs(1),
 	Run:  executeImport,
@@ -29,10 +28,7 @@ Specifying the target repository with --directory or --repo is optional if there
 
 func init() {
 	RootCmd.AddCommand(importCmd)
-	importCmd.Flags().StringP("repo", "r", "", "Name of the target repository. Can be omitted if there's only one")
-	_ = importCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
-	importCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
-	_ = importCmd.MarkFlagDirname("directory")
+	AddRepoDisambiguatorFlags(importCmd)
 	importCmd.Flags().StringP("opt-path", "p", "", "Appends optional path parts to the target path (and id) of imported files, after the mandatory path structure")
 	_ = importCmd.RegisterFlagCompletionFunc("repo", completion.NoCompletionNoFile)
 	importCmd.Flags().BoolP("opt-tree", "t", false, `Use original directory tree structure below file-or-dirname as --opt-path for each found ThingModel file.
@@ -47,7 +43,7 @@ func executeImport(cmd *cobra.Command, args []string) {
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
 	force, _ := cmd.Flags().GetBool("force")
 	ie, _ := cmd.Flags().GetBool("ignore-existing")
-	spec := RepoSpec(cmd)
+	spec := RepoSpecFromFlags(cmd)
 	opts := repos.ImportOptions{
 		Force:          force,
 		OptPath:        optPath,

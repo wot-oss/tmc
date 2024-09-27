@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentFetchCmd = &cobra.Command{
-	Use:   "fetch <tmNameOrId> <attachmentName>",
+	Use:   "fetch <tm-name-or-id> <attachment-name>",
 	Short: "Fetch an attachment",
 	Long:  `Fetch an attachment`,
 	Args:  cobra.ExactArgs(2),
@@ -31,7 +31,7 @@ var attachmentFetchCmd = &cobra.Command{
 }
 
 func attachmentFetch(command *cobra.Command, args []string) {
-	spec := cmd.RepoSpec(command)
+	spec := cmd.RepoSpecFromFlags(command)
 
 	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1])
 	if err != nil {
@@ -40,5 +40,6 @@ func attachmentFetch(command *cobra.Command, args []string) {
 }
 
 func init() {
+	cmd.AddRepoDisambiguatorFlags(attachmentFetchCmd)
 	attachmentCmd.AddCommand(attachmentFetchCmd)
 }

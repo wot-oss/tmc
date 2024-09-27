@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
@@ -19,18 +18,6 @@ var TmcVersion = "n/a"
 func Stderrf(format string, args ...any) {
 	_, _ = fmt.Fprintf(os.Stderr, format, args...)
 	_, _ = fmt.Fprintln(os.Stderr)
-}
-
-type FilterFlags struct {
-	FilterAuthor       string
-	FilterManufacturer string
-	FilterMpn          string
-	Search             string
-}
-
-func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
-	return model.ToSearchParams(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &name, &flags.Search,
-		&model.SearchOptions{NameFilterType: model.PrefixMatch})
 }
 
 func printErrs(hdr string, errs []*repos.RepoAccessError) {
