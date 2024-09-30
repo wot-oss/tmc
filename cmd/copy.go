@@ -29,18 +29,20 @@ Use list command with the same parameters to verify beforehand which TMs are goi
 func init() {
 	RootCmd.AddCommand(copyCmd)
 	AddRepoConstraintFlags(copyCmd)
-	copyCmd.Flags().StringP("toRepo", "R", "", "Name of the target repository. Mutually exclusive with --toDirectory.")
+	copyCmd.Flags().StringP("toRepo", "R", "", "Name of the target repository. Mutually exclusive with --toDirectory. Required, unless --toDirectory is set.")
 	_ = copyCmd.RegisterFlagCompletionFunc("toRepo", completion.CompleteRepoNames)
-	copyCmd.Flags().StringP("toDirectory", "D", "", "Use the specified directory as the target repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --toRepo.")
+	copyCmd.Flags().StringP("toDirectory", "D", "", "Use the specified directory as the target repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --toRepo. Required, unless --toRepo is set.")
 	_ = copyCmd.MarkFlagDirname("toDirectory")
 	AddTMFilterFlags(copyCmd, &copyFilterFlags)
 	copyCmd.Flags().Bool("force", false, `Force copy, even if there are conflicts with existing TMs.`)
+	copyCmd.Flags().Bool("ignore-existing", false, `Ignore TMs and attachments that have conflicts with existing ones instead of returning an error code.`)
 }
 
 func executeCopy(cmd *cobra.Command, args []string) {
 	toRepoName := cmd.Flag("toRepo").Value.String()
 	toDirName := cmd.Flag("toDirectory").Value.String()
 	force, _ := cmd.Flags().GetBool("force")
+	ie, _ := cmd.Flags().GetBool("ignore-existing")
 
 	spec := RepoSpecFromFlags(cmd)
 	toSpec, err := model.NewSpec(toRepoName, toDirName)
@@ -54,7 +56,7 @@ func executeCopy(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	search := CreateSearchParamsFromCLI(copyFilterFlags, name)
-	err = cli.Copy(context.Background(), spec, toSpec, search, repos.ImportOptions{Force: force})
+	err = cli.Copy(context.Background(), spec, toSpec, search, repos.ImportOptions{Force: force, IgnoreExisting: ie})
 
 	if err != nil {
 		cli.Stderrf("copy failed")
