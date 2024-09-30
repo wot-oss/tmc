@@ -36,13 +36,14 @@ go install github.com/wot-oss/tmc@v0.1.0
     tmc completion <shell> -h
     ```
 
-### Browse the Canonical Catalog
+### Browse the Default Catalog
 
-1. Configure the canonical repository
+1. Configure default repository
     ```bash
     tmc repo add --type http thingmodels 'https://example.com/thingmodels'
     ```
-2. List the contents of the canonical catalog
+   At the moment, a default repository should be provided by your organization. We envision providing an example ThingModel catalog available to everyone in the near future.
+2. List the contents of the default repository
     ```bash
     tmc list
     ```

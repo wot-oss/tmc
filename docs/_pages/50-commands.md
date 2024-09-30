@@ -13,7 +13,7 @@ all the necessary information.
 
 > Usage:
 > 
->    tmc repo add [--type <type>] <name> (\<config> | --file \<config-file-name>)
+>   tmc repo add [--type &lt;type>] <name> (&lt;config> | --file &lt;config-file-name>)
 > 
 
 All repos have two mandatory fields: 'type' and 'loc' (short for location), and an optional 'description' field. 
@@ -41,9 +41,9 @@ HTTP repos are read-only.
 
 The structure of HTTP directory tree is expected to be exactly as the one stored by a file repo.
 That means, that normally, the relative file paths are simply appended to the 'loc' URL. If the server requires putting
-the requested file's path anywhere other than at the end of the URL, you can use a placeholder `{{ID}}` in the URL, both in the path and in query part.
+the requested file's path anywhere other than at the end of the URL, you can use a placeholder `{% raw %}{{ID}}{% endraw %}` in the URL, both in the path and in query part.
 
-E.g. for an HTTP repo served by a GitLab installation, you may use ```https://example.com/api/v4/projects/<project-id>/repository/files/{{ID}}?ref=main``` 
+E.g. for an HTTP repo served by a GitLab installation, you may use ```https://example.com/api/v4/projects/<project-id>/repository/files/{% raw %}{{ID}}{% endraw %}?ref=main``` 
 as the URL.
 
 HTTP repos can have a Bearer authentication token configured in an 'auth' field taking the following form: `"auth": {"bearer": "<TOKEN>"}`. 

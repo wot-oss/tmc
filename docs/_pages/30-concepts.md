@@ -10,11 +10,15 @@ A short glossary of concepts and abbreviations used throughout Thing Model Catal
 
 **TM** - Thing Model
 
+**TM name** - a path-like string identifying a set of different versions of TMs for the same device from the same author. The first three path segments are always the author, manufacturer and mpn (manufacturer part number) has the format of `<author>/<manufacturer>/<mpn>[/<optional-extra-path-segments>`
+
+**TM version** - a single specific TM in context of the set of TMs with the same TM name. Also, the string identifying this TM, i.e. the last segment of the TM's ID. See [TM IDs](#tm-ids-and-structure-of-repositories) 
+
 **Catalog**, **TM Catalog**, **TMC** - a set of TMs accessible via a single entry point: CLI or REST API
 
-n **Named Repository** - a Repository, the configuration of which is stored in a config file
+**Named Repository** - a Repository, the configuration of which is stored in a config file
 
-**Local Repository** - an [ad-hoc] unnamed Repository that is stored in a local directory, which is passed to the TMC 
+**Local Repository** - an "ad-hoc" unnamed Repository that is stored in a local directory, which is passed to the TMC 
 Binary on the command line
 
 ## Working With Repositories
@@ -38,6 +42,7 @@ list of repositories to operate on (e.g. `tmc list`), or it will require that yo
 repositories by name using the `--repo` flag (e.g. `tmc import`).
 You can still constrain the commands like `tmc list` or `tmc versions` to operate on a single repository using the same 
 `--repo` flag even though it's not mandatory.
+
 
 ## TM IDs and Structure of Repositories
 

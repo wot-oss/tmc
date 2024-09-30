@@ -15,10 +15,15 @@ tmc <command> --help
 
 To be imported into a catalog, a TM must be valid according to the [W3C Thing Model schema][1]. In addition to that,
 some minimal key fields defined by [schema.org][2] are required.
-Those fields are:
+The fields are:
 - `schema:author/schema:name` (https://schema.org/author)
 - `schema:manufacturer/schema:name` (https://schema.org/manufacturer)
 - `schema:mpn` (https://schema.org/mpn)
+
+These fields together build the mandatory part of TM name.
+
+You may also want to set the field `version/model` (https://www.w3.org/TR/wot-thing-description11/#versioninfo) to track 
+and communicate the extent of changes between versions of TMs with the same TM name.
 
 You can check if a TM can be imported by validating it beforehand:
 ```bash
@@ -68,10 +73,11 @@ To expose a catalog over HTTP, start a server:
 ```bash
 tmc serve
 ```
-The OpenAPI description of the API [is available][3] in our GitHub repository.
+An OpenAPI description of the API [is available][4] for ease of integration. (Raw source [here][3].)
 
 
 [1]: https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json
 [2]: https://schema.org
 [3]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
+[4]: https://editor.swagger.io/?url=https://raw.githubusercontent.com/wot-oss/tmc/refs/heads/main/api/tm-catalog.openapi.yaml
 
