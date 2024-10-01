@@ -11,8 +11,8 @@ import (
 // repoRenameCmd represents the 'repo show' command
 var repoRenameCmd = &cobra.Command{
 	Use:   "rename <old-name> <new-name>",
-	Short: "Renames repository <old-name> to <new-name>",
-	Long:  `Renames repository <old-name> to <new-name>`,
+	Short: "Rename repository <old-name> to <new-name>",
+	Long:  `Rename repository <old-name> to <new-name>`,
 	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cli.RepoRename(args[0], args[1])

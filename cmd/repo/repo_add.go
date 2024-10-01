@@ -13,11 +13,11 @@ import (
 
 // repoAddCmd represents the 'repo add' command
 var repoAddCmd = &cobra.Command{
-	Use:   "add [--type <type>] <name> (<config> | --file <configFileName>)",
+	Use:   "add [--type <type>] <name> (<config> | --file <config-file>)",
 	Short: "Add a named repository",
 	Long: `Add a named repository to the tmc configuration file. Depending on the repository type,
-the config may be a simple string, like a URL, or a json file.
---type is optional only if --file is used and the type is specified there.
+the config may be a simple string, like directory path or a URL, or a json file. See online user documentation for details on json config file format.
+--type is optional only if --file is used and the type is specified in the config file.
 `,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {

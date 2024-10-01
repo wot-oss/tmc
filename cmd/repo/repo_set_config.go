@@ -1,16 +1,18 @@
 package repo
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 // repoSetConfigCmd represents the 'repo set-config' command
 var repoSetConfigCmd = &cobra.Command{
-	Use:   "set-config [--type <type>] <name> (<config> | --file <configFileName>)",
+	Use:   "set-config [--type <type>] <name> (<config> | --file <config-file>)",
 	Short: "Set config for a repository",
 	Long: `Overwrite config of a repository. Depending on the repository type,
 the config may be a simple string, like a URL, or a json file.
@@ -52,7 +54,7 @@ the config may be a simple string, like a URL, or a json file.
 
 func init() {
 	repoCmd.AddCommand(repoSetConfigCmd)
-	repoSetConfigCmd.Flags().StringP("type", "t", "", "type of repo to add")
+	repoSetConfigCmd.Flags().StringP("type", "t", "", fmt.Sprintf("new type of repo. One of %v", repos.SupportedTypes))
 	_ = repoSetConfigCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
 	repoSetConfigCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
 	repoSetConfigCmd.Flags().StringP("description", "d", "", "description of the repo")
