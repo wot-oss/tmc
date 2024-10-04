@@ -28,7 +28,17 @@ To integrate publicly available and your own private Thing Models into your prod
     ```bash
     tmc repo add --type http thingmodels 'https://example.com/thingmodels'
     ```
-   At the moment, a default repository should be provided by your organization. We envision providing an example ThingModel catalog available to everyone in the near future.
+   At the moment, a default catalog should be provided by your organization. We envision providing an example 
+ThingModel catalog available to everyone in the near future. 
+
+> ##### TIP
+>
+> If you want to host a catalog for your organization or project, you have two options: 
+> 1. [A simple read-only catalog hosted by your favorite git forge][1]
+> 2. [A catalog served by the TMC REST API][2]
+> You can configure those as a repo of type 'http' or 'tmc', respectively
+{: .block-tip }
+
 2. List the contents of the default repository
     ```bash
     tmc list
@@ -79,3 +89,6 @@ To store the Thing Model locally instead of printing to stdout, specify the ```-
 ```bash
 tmc fetch <NAME> -o .
 ```
+
+[1]: ./workflows#publish-a-catalog-to-a-git-forge
+[2]: ./workflows#expose-a-catalog-for-http-clients
