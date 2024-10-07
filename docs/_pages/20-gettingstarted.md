@@ -6,8 +6,6 @@ title: Getting Started
 
 The ```tmc``` helps you to interact with a Thing Model catalog, which may be hosted on any git forge like GitHub or create your own catalog in a git repository of your choosing.
 
-To enable a culture of sharing, we provide a canonical repository at [tbd], but feel free to create your own open or private catalog as well.
-
 To integrate publicly available and your own private Thing Models into your product, the ```tmc``` can be run as a server, exposing a REST API that can be protected with JWT tokens.
 
 ## Configure Autocompletion (Optional)
