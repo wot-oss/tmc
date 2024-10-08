@@ -14,7 +14,7 @@ import (
 func ImportAttachment(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, att model.Attachment, content []byte, force bool) error {
 	repo, err := repos.Get(spec)
 	if err != nil {
-		return fmt.Errorf("Could not ìnitialize a repo instance for %s: %w\ncheck config", spec, err)
+		return fmt.Errorf("Could not initialize a repo instance for %s: %w\ncheck config", spec, err)
 	}
 
 	sanitizedAttachmentName := strings.ReplaceAll(filepath.ToSlash(filepath.Clean(att.Name)), "/", "-")
@@ -26,7 +26,7 @@ func ImportAttachment(ctx context.Context, spec model.RepoSpec, ref model.Attach
 func DeleteAttachment(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string) error {
 	repo, err := repos.Get(spec)
 	if err != nil {
-		return fmt.Errorf("Could not ìnitialize a repo instance for %s: %w\ncheck config", spec, err)
+		return fmt.Errorf("Could not initialize a repo instance for %s: %w\ncheck config", spec, err)
 	}
 
 	err = repo.DeleteAttachment(ctx, ref, attachmentName)
@@ -35,7 +35,7 @@ func DeleteAttachment(ctx context.Context, spec model.RepoSpec, ref model.Attach
 func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string, concat bool) ([]byte, error) {
 	repo, err := repos.Get(spec)
 	if err != nil {
-		return nil, fmt.Errorf("Could not ìnitialize a repo instance for %s: %w\ncheck config", spec, err)
+		return nil, fmt.Errorf("Could not initialize a repo instance for %s: %w\ncheck config", spec, err)
 	}
 
 	attFound := false

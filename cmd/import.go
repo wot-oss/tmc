@@ -35,16 +35,19 @@ func init() {
 	Has no effect when file-or-dirname points to a file.
 	Overrides --opt-path`)
 	importCmd.Flags().Bool("force", false, `Force import, even if there are conflicts with existing TMs.`)
+	importCmd.Flags().Bool("ignore-existing", false, `Ignore TMs that have conflicts with existing TMs instead of returning an error code.`)
 }
 
 func executeImport(cmd *cobra.Command, args []string) {
 	optPath := cmd.Flag("opt-path").Value.String()
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
 	force, _ := cmd.Flags().GetBool("force")
+	ie, _ := cmd.Flags().GetBool("ignore-existing")
 	spec := RepoSpecFromFlags(cmd)
 	opts := repos.ImportOptions{
-		Force:   force,
-		OptPath: optPath,
+		Force:          force,
+		OptPath:        optPath,
+		IgnoreExisting: ie,
 	}
 	_, err := cli.NewImportExecutor(time.Now).Import(context.Background(), args[0], spec, optTree, opts)
 	if err != nil {

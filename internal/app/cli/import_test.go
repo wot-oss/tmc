@@ -145,6 +145,49 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 			assert.Equalf(t, repos.ImportResultError, res[3].Type, "res[3]: want ImportResultError, got %v", res[3].Type)
 		}
 	})
+	t.Run("import directory with ignore-existing", func(t *testing.T) {
+		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)
+		e := NewImportExecutor(clk.Now)
+		opts := repos.ImportOptions{
+			IgnoreExisting: true,
+		}
+		tmid := model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json")
+		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid.String()}, nil)
+		tmid = model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json")
+		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid.String()}, nil)
+		tmid = model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123245-98b3fbd291f4.tm.json")
+		cErr := &repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
+			ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"}
+		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(
+			repos.ImportResult{
+				Type:    repos.ImportResultError,
+				TmID:    "",
+				Message: cErr.Error(),
+				Err:     cErr,
+			}, cErr)
+		tmid = model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123246-575dfac219e2.tm.json")
+		cErr = &repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
+			ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json"}
+		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(
+			repos.ImportResult{
+				Type:    repos.ImportResultError,
+				TmID:    "",
+				Message: cErr.Error(),
+				Err:     cErr,
+			}, cErr)
+		r.On("Index", mock.Anything,
+			"omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
+			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
+
+		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts)
+		assert.NoError(t, err)
+		if assert.Len(t, res, 4) {
+			assert.Equalf(t, repos.ImportResultOK, res[0].Type, "res[0]: want ImportResultOK, got %v", res[0].Type)
+			assert.Equalf(t, repos.ImportResultOK, res[1].Type, "res[1]: want ImportResultOK, got %v", res[1].Type)
+			assert.Equalf(t, repos.ImportResultError, res[2].Type, "res[2]: want ImportResultError, got %v", res[2].Type)
+			assert.Equalf(t, repos.ImportResultError, res[3].Type, "res[3]: want ImportResultError, got %v", res[3].Type)
+		}
+	})
 
 	t.Run("import directory with optPath", func(t *testing.T) {
 		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)

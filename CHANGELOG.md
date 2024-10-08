@@ -4,6 +4,7 @@
 
 ### Added
 
+- `copy`: added flag `--ignore-existing` to ignore TMs and attachments that have conflicts with existing ones instead of returning an error code
 - Added possibility to import file attachments to TMs and TM names
 - `export`: added flag to export attachments together with TMs
 - added setting/storing/detecting of attachment media types
@@ -13,6 +14,14 @@
 
 - return error on attachment import when it already exists and add a flag to override
 - `check`: removed subcommands of `check` command, unifying both into the parent command
+
+
+## [v0.1.1]
+
+### Added
+
+- `import`: added flag `--ignore-existing` to ignore TMs that have conflicts with existing TMs instead of returning an error code
+
 
 ## [v0.1.0]
 
