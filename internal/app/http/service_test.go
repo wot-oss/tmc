@@ -648,41 +648,44 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 	attName := "README.md"
 	tmidV1 := "a/b/c/v1.0.0-20240108112117-2cd14601ef09.tm.json"
 	tmidV2 := "a/b/c/v2.0.0-20240108112117-2cd14601ef09.tm.json"
-	// given: repo returns an attachment
-	r := mocks.NewRepo(t)
-	r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
-	r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
-	r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV2), attName).Return(attContent3, nil).Once()
-	r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
-		Entries: []model.FoundEntry{
-			{
-				Name: "a/b/c",
-				Versions: []model.FoundVersion{
-					{
-						IndexVersion: &model.IndexVersion{
-							Description: "",
-							Version:     model.Version{},
-							Links:       nil,
-							TMID:        tmidV1,
-							AttachmentContainer: model.AttachmentContainer{
-								Attachments: []model.Attachment{
-									{
-										Name: "README.md",
+
+	t.Run("with TM name attachment", func(t *testing.T) {
+		// given: repo with a README.md attachment on TM name and two TM IDs
+		r := mocks.NewRepo(t)
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
+		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
+		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV2), attName).Return(attContent3, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+			Entries: []model.FoundEntry{
+				{
+					Name: "a/b/c",
+					Versions: []model.FoundVersion{
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV1,
+								AttachmentContainer: model.AttachmentContainer{
+									Attachments: []model.Attachment{
+										{
+											Name: "README.md",
+										},
 									},
 								},
 							},
 						},
-					},
-					{
-						IndexVersion: &model.IndexVersion{
-							Description: "",
-							Version:     model.Version{},
-							Links:       nil,
-							TMID:        tmidV2,
-							AttachmentContainer: model.AttachmentContainer{
-								Attachments: []model.Attachment{
-									{
-										Name: "README.md",
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV2,
+								AttachmentContainer: model.AttachmentContainer{
+									Attachments: []model.Attachment{
+										{
+											Name: "README.md",
+										},
 									},
 								},
 							},
@@ -690,17 +693,200 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 					},
 				},
 			},
-		},
-	}, nil).Once()
-	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
-	// when: fetching an attachment
-	res, err := underTest.FetchAttachment(context.Background(), "", model.NewTMNameAttachmentContainerRef(inventoryName), attName, true)
-	// then: service returns the concatenated attachment content
-	assert.NoError(t, err)
-	expContent := append(attContent1, attContent2...)
-	expContent = append(expContent, attContent3...)
+		}, nil).Once()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+		// when: fetching an attachment
+		res, err := underTest.FetchAttachment(context.Background(), "", model.NewTMNameAttachmentContainerRef(inventoryName), attName, true)
+		// then: service returns the concatenated attachment content
+		assert.NoError(t, err)
+		expContent := append(attContent1, attContent2...)
+		expContent = append(expContent, attContent3...)
 
-	assert.Equal(t, expContent, res)
+		assert.Equal(t, expContent, res)
+	})
+	t.Run("without TM name attachment", func(t *testing.T) {
+		// given: repo with a README.md attachment on two TM IDs, but not on TM name
+		r := mocks.NewRepo(t)
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil, model.ErrAttachmentNotFound).Once()
+		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
+		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV2), attName).Return(attContent3, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+			Entries: []model.FoundEntry{
+				{
+					Name: "a/b/c",
+					Versions: []model.FoundVersion{
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV1,
+								AttachmentContainer: model.AttachmentContainer{
+									Attachments: []model.Attachment{
+										{
+											Name: "README.md",
+										},
+									},
+								},
+							},
+						},
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV2,
+								AttachmentContainer: model.AttachmentContainer{
+									Attachments: []model.Attachment{
+										{
+											Name: "README.md",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, nil).Once()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+		// when: fetching an attachment
+		res, err := underTest.FetchAttachment(context.Background(), "", model.NewTMNameAttachmentContainerRef(inventoryName), attName, true)
+		// then: service returns the concatenated attachment content
+		assert.NoError(t, err)
+		expContent := append(attContent2, attContent3...)
+		assert.Equal(t, expContent, res)
+	})
+	t.Run("with one TMID attachment missing", func(t *testing.T) {
+		// given: repo with a README.md attachment on TM name and one of two TM IDs
+		r := mocks.NewRepo(t)
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
+		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+			Entries: []model.FoundEntry{
+				{
+					Name: "a/b/c",
+					Versions: []model.FoundVersion{
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV1,
+								AttachmentContainer: model.AttachmentContainer{
+									Attachments: []model.Attachment{
+										{
+											Name: "README.md",
+										},
+									},
+								},
+							},
+						},
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV2,
+							},
+						},
+					},
+				},
+			},
+		}, nil).Once()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+		// when: fetching an attachment
+		res, err := underTest.FetchAttachment(context.Background(), "", model.NewTMNameAttachmentContainerRef(inventoryName), attName, true)
+		// then: service returns the concatenated attachment content
+		assert.NoError(t, err)
+		expContent := append(attContent1, attContent2...)
+		assert.Equal(t, expContent, res)
+	})
+	t.Run("with both TMID attachments missing", func(t *testing.T) {
+		// given: repo with a README.md attachment on TM name but none of two TM IDs
+		r := mocks.NewRepo(t)
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
+		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+			Entries: []model.FoundEntry{
+				{
+					Name: "a/b/c",
+					Versions: []model.FoundVersion{
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV1,
+								AttachmentContainer: model.AttachmentContainer{
+									Attachments: []model.Attachment{
+										{
+											Name: "CHANGELOG.md",
+										},
+									},
+								},
+							},
+						},
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV2,
+							},
+						},
+					},
+				},
+			},
+		}, nil).Once()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+		// when: fetching an attachment
+		res, err := underTest.FetchAttachment(context.Background(), "", model.NewTMNameAttachmentContainerRef(inventoryName), attName, true)
+		// then: service returns just the TM name attachment content
+		assert.NoError(t, err)
+		assert.Equal(t, attContent1, res)
+	})
+	t.Run("with all attachments missing", func(t *testing.T) {
+		// given: repo with no README.md attachment on TM name nor any of the TM IDs
+		r := mocks.NewRepo(t)
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil, model.ErrAttachmentNotFound).Once()
+		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+			Entries: []model.FoundEntry{
+				{
+					Name: "a/b/c",
+					Versions: []model.FoundVersion{
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV1,
+								AttachmentContainer: model.AttachmentContainer{
+									Attachments: []model.Attachment{
+										{
+											Name: "CHANGELOG.md",
+										},
+									},
+								},
+							},
+						},
+						{
+							IndexVersion: &model.IndexVersion{
+								Description: "",
+								Version:     model.Version{},
+								Links:       nil,
+								TMID:        tmidV2,
+							},
+						},
+					},
+				},
+			},
+		}, nil).Once()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
+		// when: fetching an attachment
+		_, err := underTest.FetchAttachment(context.Background(), "", model.NewTMNameAttachmentContainerRef(inventoryName), attName, true)
+		// then: service returns the ErrAttachmentNotFound
+		assert.ErrorIs(t, err, model.ErrAttachmentNotFound)
+	})
 }
 
 func TestService_ImportAttachment(t *testing.T) {

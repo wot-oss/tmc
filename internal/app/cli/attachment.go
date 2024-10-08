@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -107,13 +108,31 @@ func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, atta
 
 	return err
 }
-func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string, concat bool) error {
+func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string, concat bool, outputPath string) error {
 	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName, concat)
 	if err != nil {
 		Stderrf("Failed to fetch attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}
 
-	fmt.Print(string(content))
+	if outputPath == "" {
+		fmt.Print(string(content))
+		return nil
+	}
+	f, err := os.Stat(outputPath)
+	if err != nil && !os.IsNotExist(err) {
+		Stderrf("Could not stat output folder: %v", err)
+		return err
+	}
+	if f != nil && !f.IsDir() {
+		Stderrf("output target folder --output is not a folder")
+		return errors.New("output target folder --output is not a folder")
+	}
+	fullFilename := filepath.Join(outputPath, attachmentName)
+	err = os.WriteFile(fullFilename, content, 0660)
+	if err != nil {
+		Stderrf("could not write attachment to file %s: %v", fullFilename, err)
+		return err
+	}
 	return nil
 }
 

@@ -41,7 +41,8 @@ func attachmentFetch(command *cobra.Command, args []string) {
 	spec := cmd.RepoSpecFromFlags(command)
 
 	concat, _ := command.Flags().GetBool("concat")
-	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1], concat)
+	outputPath := command.Flag("output").Value.String()
+	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1], concat, outputPath)
 	if err != nil {
 		os.Exit(1)
 	}
@@ -51,4 +52,7 @@ func init() {
 	cmd.AddRepoDisambiguatorFlags(attachmentFetchCmd)
 	attachmentCmd.AddCommand(attachmentFetchCmd)
 	attachmentFetchCmd.Flags().BoolP("concat", "c", false, "Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same")
+	attachmentFetchCmd.Flags().StringP("output", "o", "", "Write the fetched attachment to output folder instead of stdout")
+	_ = attachmentFetchCmd.MarkFlagDirname("output")
+
 }

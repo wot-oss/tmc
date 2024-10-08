@@ -500,7 +500,7 @@ paths:
         - $ref: '#/components/parameters/RepoDisambiguator'
         - name: concat
           in: query
-          description: Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same
+          description: Fetch a concatenation of the attachment to a TM name and homonymous attachments to all of its versions
           required: false
           schema:
             type: boolean

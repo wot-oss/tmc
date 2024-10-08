@@ -45,6 +45,6 @@ func init() {
 	attachmentCmd.AddCommand(attachmentImportCmd)
 	cmd.AddRepoDisambiguatorFlags(attachmentImportCmd)
 	attachmentImportCmd.Flags().StringP("media-type", "m", "", "Media type of the attachment. Guessed automatically, if the flag is not set.")
-	attachmentImportCmd.Flags().StringP("name", "n", "", "Use this name for the attachment instead of the original file's name")
+	attachmentImportCmd.Flags().StringP("name", "n", "", "Use this name for the attachment instead of the original file name")
 	attachmentImportCmd.Flags().Bool("force", false, `Force import, even if there is conflict with existing attachment.`)
 }

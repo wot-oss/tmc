@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -37,8 +38,18 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 		return nil, fmt.Errorf("Could not ìnitialize a repo instance for %s: %w\ncheck config", spec, err)
 	}
 
+	attFound := false
 	att, err := repo.FetchAttachment(ctx, ref, attachmentName)
-	if err != nil || !concat || ref.Kind() != model.AttachmentContainerKindTMName {
+	if err != nil {
+		if concat && errors.Is(err, model.ErrAttachmentNotFound) {
+			att = nil
+		} else {
+			return att, err
+		}
+	} else {
+		attFound = true
+	}
+	if !concat || ref.Kind() != model.AttachmentContainerKindTMName {
 		return att, err
 	}
 
@@ -46,19 +57,22 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 	if err != nil {
 		return att, err
 	}
-
 	for _, e := range searchResult.Entries { // there's supposed to be exactly one entry, actually
 		for _, v := range e.Versions {
 			_, found := v.FindAttachment(attachmentName)
 			if !found {
 				continue
 			}
+			attFound = true
 			vAtt, err := repo.FetchAttachment(ctx, model.NewTMIDAttachmentContainerRef(v.TMID), attachmentName)
 			if err != nil {
 				return att, err
 			}
 			att = append(att, vAtt...)
 		}
+	}
+	if !attFound {
+		return nil, model.ErrAttachmentNotFound
 	}
 	return att, nil
 }
