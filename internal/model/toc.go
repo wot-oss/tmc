@@ -160,6 +160,7 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
+	SearchScore float32           `json:"-"`
 	AttachmentContainer
 }
 
@@ -183,7 +184,7 @@ func (idx *Index) Sort() {
 	slices.SortFunc(idx.Data, func(a *IndexEntry, b *IndexEntry) int {
 		return strings.Compare(a.Name, b.Name)
 	})
-	SearchScore float32           `json:"-"`
+
 }
 
 func (idx *Index) Filter(search *SearchParams) {
@@ -192,9 +193,10 @@ func (idx *Index) Filter(search *SearchParams) {
 	}
 	search.Sanitize()
 	exclude := func(entry *IndexEntry) bool {
-		if !entry.MatchesSearchText(search.Query) {
+		//todo: disable when activating content search
+		/*if !entry.MatchesSearchText(search.Query) {
 			return true
-		}
+		}*/
 
 		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
 			return true

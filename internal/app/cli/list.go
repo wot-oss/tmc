@@ -43,15 +43,16 @@ func printIndex(res model.SearchResult) {
 		mpn := elideString(value.Mpn, colWidth)
 		auth := elideString(value.Author.Name, colWidth)
 		repo := elideString(fmt.Sprintf("%v", value.FoundIn), colWidth)
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, auth, man, mpn, repo)
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t", name, auth, man, mpn)
-		for i, vers := range value.Versions {
+
+		sc := ""
+		for i, ver := range value.Versions {
 			if i > 0 {
-				fmt.Fprint(table, ", ")
+				sc = sc + ", "
 			}
-			fmt.Fprintf(table, "%2.1f", vers.SearchScore)
+			sc = sc + fmt.Sprintf("%2.5f (v%s)", ver.SearchScore, ver.Version.Model)
 		}
-		fmt.Fprint(table, "\n")
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\n", name, auth, man, mpn, repo, sc)
+
 	}
 	_ = table.Flush()
 }
