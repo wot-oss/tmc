@@ -1,11 +1,16 @@
 package repos
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/kinbiko/jsonassert"
@@ -21,11 +26,11 @@ func TestSaveConfigOverwritesOnlyRepos(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	configFile := filepath.Join(config.DefaultConfigDir, "config.json")
+	configFile := filepath.Join(config.ConfigDir, "config.json")
 	err = os.WriteFile(configFile, []byte(`{
   "log": true,
   "repos": {
@@ -70,11 +75,11 @@ func TestReadConfigOverwritesRemotesWithRepos(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	configFile := filepath.Join(config.DefaultConfigDir, "config.json")
+	configFile := filepath.Join(config.ConfigDir, "config.json")
 	err = os.WriteFile(configFile, []byte(`{
   "log": true,
   "remotes": {
@@ -319,10 +324,10 @@ func TestGetSpecdOrAll(t *testing.T) {
 	})
 
 	// check if all repos are returned, when passing EmptySpec
-	all, err := GetSpecdOrAll(model.EmptySpec)
+	u, err := GetUnion(model.EmptySpec)
 	assert.NoError(t, err)
 	expLocs := []string{"somewhere", "somewhere-else"}
-	for _, r := range all.rs {
+	for _, r := range u.rs {
 		if fr, ok := r.(*FileRepo); assert.True(t, ok) {
 			idx := slices.IndexFunc(expLocs, func(s string) bool { return s == fr.root })
 			if assert.Greater(t, idx, -1) {
@@ -332,21 +337,216 @@ func TestGetSpecdOrAll(t *testing.T) {
 	}
 	assert.Len(t, expLocs, 0) // no locations remained that were not found
 
-	all, err = GetSpecdOrAll(model.NewRepoSpec("r1"))
+	u, err = GetUnion(model.NewRepoSpec("r1"))
 	assert.NoError(t, err)
-	if assert.Len(t, all.rs, 1) {
-		if r1, ok := all.rs[0].(*FileRepo); assert.True(t, ok) {
+	if assert.Len(t, u.rs, 1) {
+		if r1, ok := u.rs[0].(*FileRepo); assert.True(t, ok) {
 			assert.Equal(t, "somewhere", r1.root)
 		}
 	}
 
 	// get local repo
-	all, err = GetSpecdOrAll(model.NewDirSpec("dir1"))
+	u, err = GetUnion(model.NewDirSpec("dir1"))
 	assert.NoError(t, err)
-	if assert.Len(t, all.rs, 1) {
-		if r1, ok := all.rs[0].(*FileRepo); assert.True(t, ok) {
+	if assert.Len(t, u.rs, 1) {
+		if r1, ok := u.rs[0].(*FileRepo); assert.True(t, ok) {
 			assert.Equal(t, "dir1", r1.root)
 		}
 	}
 
+}
+
+func TestGet_SplitsSubRepoName(t *testing.T) {
+	viper.Set(KeyRepos, map[string]any{
+		"r1": map[string]any{
+			"type": "tmc",
+			"loc":  "http://example.com/tmc",
+		},
+	})
+
+	t.Run("with empty repo name", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec(""))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "", tmcRepo.subRepo)
+	})
+
+	t.Run("with simple repo name", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec("r1"))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "", tmcRepo.subRepo)
+	})
+
+	t.Run("with subrepo", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec("r1/child"))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "child", tmcRepo.subRepo)
+	})
+
+	t.Run("with chained subrepo", func(t *testing.T) {
+		repo, err := Get(model.NewRepoSpec("r1/child/grandchild"))
+		assert.NoError(t, err)
+		tmcRepo, ok := repo.(*TmcRepo)
+		assert.True(t, ok)
+		assert.Equal(t, "r1", tmcRepo.Spec().RepoName())
+		assert.Equal(t, "child/grandchild", tmcRepo.subRepo)
+	})
+
+}
+
+func TestGetDescriptions(t *testing.T) {
+	rdComparer := func(a, b model.RepoDescription) int {
+		return strings.Compare(a.Name, b.Name)
+	}
+
+	t.Run("without tmc repos", func(t *testing.T) {
+		viper.Set(KeyRepos, map[string]any{
+			"r1": map[string]any{
+				"type":        "file",
+				"loc":         "somewhere",
+				"description": "r1 description",
+			},
+			"r2": map[string]any{
+				"type":        "file",
+				"loc":         "somewhere-else",
+				"description": "r2 description",
+			},
+		})
+
+		t.Run("with dir spec", func(t *testing.T) {
+			ds, err := GetDescriptions(context.Background(), model.NewDirSpec("somewhere"))
+			assert.NoError(t, err)
+			assert.Len(t, ds, 0)
+		})
+		t.Run("with single file repo", func(t *testing.T) {
+			ds, err := GetDescriptions(context.Background(), model.NewRepoSpec("r1"))
+			assert.NoError(t, err)
+			expDs := []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 description"}}
+			slices.SortFunc(ds, rdComparer)
+			assert.Equal(t, expDs, ds)
+
+		})
+		t.Run("with empty spec", func(t *testing.T) {
+			ds, err := GetDescriptions(context.Background(), model.EmptySpec)
+			assert.NoError(t, err)
+			expDs := []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 description"}, {Name: "r2", Type: "file", Description: "r2 description"}}
+			slices.SortFunc(ds, rdComparer)
+			assert.Equal(t, expDs, ds)
+		})
+
+	})
+	t.Run("with a tmc repo", func(t *testing.T) {
+		type ht struct {
+			name      string
+			spec      model.RepoSpec
+			status    int
+			respBody  []byte
+			expErr    error
+			expDescrs []model.RepoDescription
+		}
+		htc := make(chan ht, 1)
+		defer close(htc)
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := <-htc
+			assert.Equal(t, http.MethodGet, r.Method)
+			assert.Equal(t, "/repos", r.URL.Path)
+			w.WriteHeader(h.status)
+			_, _ = w.Write(h.respBody)
+		}))
+		defer srv.Close()
+		viper.Set(KeyRepos, map[string]any{
+			"r1": map[string]any{
+				"type":        "file",
+				"loc":         "somewhere",
+				"description": "r1 description",
+			},
+			"r2": map[string]any{
+				"type":        "tmc",
+				"loc":         srv.URL,
+				"description": "r2 description",
+			},
+		})
+
+		tests := []ht{
+			{
+				name:      "with empty spec and error expanding",
+				spec:      model.EmptySpec,
+				status:    http.StatusBadGateway,
+				expErr:    &RepoAccessError{model.NewRepoSpec("r2"), errors.New("oops")},
+				expDescrs: nil,
+				respBody:  []byte(`{"detail":"oops"}`),
+			},
+			{
+				name:      "with empty spec and two sources",
+				spec:      model.EmptySpec,
+				status:    http.StatusOK,
+				expErr:    nil,
+				expDescrs: []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 description"}, {Name: "r2/r2-1", Description: "r2-1 description"}, {Name: "r2/r2-2", Description: "r2-2 description"}},
+				respBody:  []byte(`{"data": [{"name": "r2-1", "description": "r2-1 description"}, {"name": "r2-2", "description": "r2-2 description"}]}`),
+			},
+			{
+				name:      "with empty spec and one source",
+				spec:      model.EmptySpec,
+				status:    http.StatusOK,
+				expErr:    nil,
+				expDescrs: []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 description"}, {Name: "r2", Type: "tmc", Description: "r2 description"}},
+				respBody:  []byte(`{"data": [{"name": "r2-1", "description": "r2-1 description"}]}`), // actually, the tmc api should return empty list in this case, but the client side should be able to handle this anyway
+			},
+			{
+				name:      "with empty spec and no named sources",
+				spec:      model.EmptySpec,
+				status:    http.StatusOK,
+				expErr:    nil,
+				expDescrs: []model.RepoDescription{{Name: "r1", Type: "file", Description: "r1 description"}, {Name: "r2", Type: "tmc", Description: "r2 description"}},
+				respBody:  []byte(`{"data": []}`),
+			},
+			{
+				name:      "with repo spec and two sources",
+				spec:      model.NewRepoSpec("r2"),
+				status:    http.StatusOK,
+				expErr:    nil,
+				expDescrs: []model.RepoDescription{{Name: "r2/r2-1", Description: "r2-1 description"}, {Name: "r2/r2-2", Description: "r2-2 description"}},
+				respBody:  []byte(`{"data": [{"name": "r2-1", "description": "r2-1 description"}, {"name": "r2-2", "description": "r2-2 description"}]}`),
+			},
+			{
+				name:      "with repo spec and one source",
+				spec:      model.NewRepoSpec("r2"),
+				status:    http.StatusOK,
+				expErr:    nil,
+				expDescrs: []model.RepoDescription{{Name: "r2", Type: "tmc", Description: "r2 description"}},
+				respBody:  []byte(`{"data": [{"name": "r2-1", "description": "r2-1 description"}]}`), // actually, the tmc api should return empty list in this case, but the client side should be able to handle this anyway
+			},
+			{
+				name:      "with repo spec and no named sources",
+				spec:      model.NewRepoSpec("r2"),
+				status:    http.StatusOK,
+				expErr:    nil,
+				expDescrs: []model.RepoDescription{{Name: "r2", Type: "tmc", Description: "r2 description"}},
+				respBody:  []byte(`{"data": []}`),
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				htc <- test
+
+				ds, err := GetDescriptions(context.Background(), test.spec)
+				if test.expErr == nil {
+					assert.NoError(t, err)
+					slices.SortFunc(ds, rdComparer)
+					slices.SortFunc(test.expDescrs, rdComparer)
+					assert.Equal(t, test.expDescrs, ds)
+				} else {
+					assert.Equal(t, test.expErr, err)
+				}
+			})
+		}
+	})
 }

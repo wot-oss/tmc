@@ -1,9 +1,59 @@
 # Change Log
 
-## [Unreleased]
+## [unreleased]
 
 ### Added
 
+- `copy`: added flag `--ignore-existing` to ignore TMs and attachments that have conflicts with existing ones instead of returning an error code
+- Added possibility to import file attachments to TMs and TM names
+- `export`: added flag to export attachments together with TMs
+- added setting/storing/detecting of attachment media types
+- `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check` 
+
+### Changed
+
+- return error on attachment import when it already exists and add a flag to override
+- `check`: removed subcommands of `check` command, unifying both into the parent command
+
+
+## [v0.1.1]
+
+### Added
+
+- `import`: added flag `--ignore-existing` to ignore TMs that have conflicts with existing TMs instead of returning an error code
+
+
+## [v0.1.0]
+
+### Added
+
+- REST API: added query parameter `force` to POST endpoint `/thing-models` to enforce pushing TMs with same TM name, semantic version and digest
+- REST API: added query parameter `optPath` to POST endpoint `/thing-models` to append optional path parts to the target path (and id)
+- added command `copy` to copy TMs between repositories
+- REST API: added GET endpoint `/repos` to list available repositories
+- `repo`: added flag for setting a repository description when adding/changing repo config
+- REST API: added source repository name to inventory responses
+
+### Changed
+
+- `push`: renamed "push" to "import"
+- `pull`: renamed "pull" to "export"
+- `push`: always reject pushing TMs with same TM name, semantic version and digest by default, but can be enforced by flag `--force`
+- `push`: shows a warning if there is a timestamp collision (retrying after a second has been removed)
+- `list, pull, versions`: return exit code 1 if at least one repo returns an error
+- `check index`: do not return error if repo does not contain any TM's and index
+
+### Fixed
+
+- `import`: restore the printout of error to stdout when import was not successful
+
+## [v0.0.0-alpha.7]
+
+### Added
+
+- Added verb ```check``` with sub-commands ```index``` and ```resources```
+- ```check index```: validates the index wrt stored Thing Models
+- ```check resources```: validates stored Thing Models (path, name, syntax etc.)
 - Put a limit on importable TM name length at 255 characters
 
 ### Changed

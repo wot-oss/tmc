@@ -22,9 +22,13 @@ func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams) 
 		return err
 	}
 
+	if len(errs) > 0 {
+		err = errs[0]
+	}
+
 	printIndex(index)
 	printErrs("Errors occurred while listing:", errs)
-	return nil
+	return err
 }
 
 // TODO: use better table writer with eliding etc.
@@ -32,12 +36,14 @@ func printIndex(res model.SearchResult) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tAUTHOR\tMANUFACTURER\tMPN\tSCORE\n")
+	_, _ = fmt.Fprintf(table, "NAME\tAUTHOR\tMANUFACTURER\tMPN\tREPO\n")
 	for _, value := range res.Entries {
 		name := value.Name
 		man := elideString(value.Manufacturer.Name, colWidth)
 		mpn := elideString(value.Mpn, colWidth)
 		auth := elideString(value.Author.Name, colWidth)
+		repo := elideString(fmt.Sprintf("%v", value.FoundIn), colWidth)
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, auth, man, mpn, repo)
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t", name, auth, man, mpn)
 		for i, vers := range value.Versions {
 			if i > 0 {

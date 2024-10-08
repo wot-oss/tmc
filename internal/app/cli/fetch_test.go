@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"bytes"
 	"context"
-	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,11 +11,13 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos/mocks"
+	"github.com/wot-oss/tmc/internal/testutils"
 	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
 func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
-	old := os.Stdout
+	restore, getOutput := testutils.ReplaceStdout()
+	defer restore()
 
 	r := mocks.NewRepo(t)
 
@@ -25,19 +25,9 @@ func TestFetchExecutor_Fetch_To_Stdout(t *testing.T) {
 	r.On("Fetch", mock.Anything, "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json").
 		Return("author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", []byte("{}"), nil)
 
-	rr, w, _ := os.Pipe()
-	os.Stdout = w
-	outC := make(chan string, 1)
-	go func() {
-		var buf bytes.Buffer
-		io.Copy(&buf, rr)
-		outC <- buf.String()
-	}()
 	err := Fetch(context.Background(), model.NewRepoSpec("repo"), "author/manufacturer/mpn/folder/sub/v1.0.0-20231205123243-c49617d2e4fc.tm.json", "", false)
 	assert.NoError(t, err)
-	os.Stdout = old
-	_ = w.Close()
-	stdout := <-outC
+	stdout := getOutput()
 	assert.Equal(t, "{}\n", stdout)
 }
 

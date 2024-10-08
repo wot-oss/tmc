@@ -74,7 +74,20 @@
           "tmID": "omnicorp-r-d-research/omnicorp-gmbh-co-kg/senseall/v1.0.1-20231208142830-c49617d2e4fc.tm.json",
           "digest": "c49617d2e4fc",
           "timestamp": "20231208142830",
-          "externalID": ""
+          "externalID": "",
+          "attachments": [
+            {
+              "name": "firmware update notes.md"
+            }
+          ]
+        }
+      ],
+      "attachments": [
+        {
+          "name": "README.md"
+        },
+        {
+          "name": "User Guide.pdf"
         }
       ]
     }

@@ -3,12 +3,14 @@ package cmd
 import (
 	"log/slog"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/wot-oss/tmc/internal"
 	"github.com/wot-oss/tmc/internal/config"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 func TestLoggingOnSubCommands(t *testing.T) {
@@ -17,11 +19,11 @@ func TestLoggingOnSubCommands(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	config.InitViper()
+	config.ReadInConfig()
 	RootCmd.ResetCommands()
 
 	var isDisabled bool
@@ -35,9 +37,9 @@ func TestLoggingOnSubCommands(t *testing.T) {
 
 	var listCmd = &cobra.Command{Use: "list", Run: runFunc}
 	var serveCmd = &cobra.Command{Use: "serve", Run: runFunc}
-	var pushCmd = &cobra.Command{Use: "push", Run: runFunc}
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
 
-	RootCmd.AddCommand(listCmd, serveCmd, pushCmd)
+	RootCmd.AddCommand(listCmd, serveCmd, importCmd)
 
 	// when: executing the list command
 	RootCmd.SetArgs([]string{"list"})
@@ -51,8 +53,8 @@ func TestLoggingOnSubCommands(t *testing.T) {
 	// then: logging is default ENABLED
 	assert.False(t, isDisabled)
 
-	// when: executing the push command
-	RootCmd.SetArgs([]string{"push"})
+	// when: executing the import command
+	RootCmd.SetArgs([]string{"import"})
 	_ = RootCmd.Execute()
 	// then: logging is default DISABLED
 	assert.True(t, isDisabled)
@@ -64,11 +66,11 @@ func TestLogFlagEnablesLogging(t *testing.T) {
 		panic(err)
 	}
 	defer os.RemoveAll(temp)
-	orgDir := config.DefaultConfigDir
-	config.DefaultConfigDir = temp
-	defer func() { config.DefaultConfigDir = orgDir }()
+	orgDir := config.ConfigDir
+	config.ConfigDir = temp
+	defer func() { config.ConfigDir = orgDir }()
 
-	config.InitViper()
+	config.ReadInConfig()
 	RootCmd.ResetCommands()
 
 	var isDisabled bool
@@ -79,13 +81,122 @@ func TestLogFlagEnablesLogging(t *testing.T) {
 		_, isDisabled = hdl.(*internal.DiscardLogHandler)
 	}
 
-	var pushCmd = &cobra.Command{Use: "push", Run: runFunc}
-	RootCmd.AddCommand(pushCmd)
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
+	RootCmd.AddCommand(importCmd)
 
 	// when: executing the command with the --loglevel flag
-	RootCmd.SetArgs([]string{"push"})
+	RootCmd.SetArgs([]string{"import"})
 	_ = RootCmd.ParseFlags([]string{"--loglevel", "info"})
 	_ = RootCmd.Execute()
 	// then: logging is ENABLED
 	assert.False(t, isDisabled)
+}
+
+func TestEnvVarOverridesDefaultConfigDir(t *testing.T) {
+	temp, err := os.MkdirTemp("", "config")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(temp)
+	orgDir := config.ConfigDir
+	defer func() { config.ConfigDir = orgDir }()
+	const envKey = "TMC_CONFIG"
+	orgEnv, unset := os.LookupEnv(envKey)
+	err = os.Setenv(envKey, temp)
+	assert.NoError(t, err)
+	defer func() {
+		if unset {
+			_ = os.Unsetenv(envKey)
+		} else {
+			_ = os.Setenv(envKey, orgEnv)
+		}
+	}()
+
+	RootCmd.ResetCommands()
+
+	// given: a sub-command of the root command
+	runFunc := func(cmd *cobra.Command, args []string) {}
+
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
+	RootCmd.AddCommand(importCmd)
+
+	// when: executing the command with the --loglevel flag
+	RootCmd.SetArgs([]string{"import"})
+	_ = RootCmd.Execute()
+	// then: ConfigDir is set to temp
+	assert.Equal(t, temp, config.ConfigDir)
+}
+func TestConfigFlagOverridesDefaultConfigDir(t *testing.T) {
+	temp, err := os.MkdirTemp("", "config")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(temp)
+	orgDir := config.ConfigDir
+	defer func() { config.ConfigDir = orgDir }()
+
+	RootCmd.ResetCommands()
+
+	// given: a sub-command of the root command
+	runFunc := func(cmd *cobra.Command, args []string) {}
+
+	var importCmd = &cobra.Command{Use: "import", Run: runFunc}
+	RootCmd.AddCommand(importCmd)
+
+	// when: executing the command with the --loglevel flag
+	RootCmd.SetArgs([]string{"import"})
+	_ = RootCmd.ParseFlags([]string{"--config", temp})
+	_ = RootCmd.Execute()
+	// then: ConfigDir is set to temp
+	assert.Equal(t, temp, config.ConfigDir)
+}
+
+func resetSearchFlags(flags *FilterFlags) {
+	flags.FilterAuthor = ""
+	flags.FilterManufacturer = ""
+	flags.FilterMpn = ""
+	flags.Search = ""
+}
+
+func TestConvertSearchParams(t *testing.T) {
+
+	// given: no filter params set via CLI flags
+	flags := FilterFlags{}
+	// when: converting to SearchParams
+	params := CreateSearchParamsFromCLI(flags, "")
+	// then: SearchParams are undefined
+	assert.Nil(t, params)
+
+	// given: filter params are set with single values
+	resetSearchFlags(&flags)
+	flags.FilterAuthor = "some author"
+	flags.FilterManufacturer = "some manufacturer"
+	flags.FilterMpn = "some mpn"
+	flags.Search = "some term"
+	name := "omni-corp/omni"
+	// when: converting to SearchParams
+	params = CreateSearchParamsFromCLI(flags, name)
+	// then: the filter values are converted correctly
+	assert.NotNil(t, params)
+	assert.Equal(t, []string{flags.FilterAuthor}, params.Author)
+	assert.Equal(t, []string{flags.FilterManufacturer}, params.Manufacturer)
+	assert.Equal(t, []string{flags.FilterMpn}, params.Mpn)
+	assert.Equal(t, name, params.Name)
+	assert.Equal(t, model.PrefixMatch, params.Options.NameFilterType)
+	assert.Equal(t, flags.Search, params.Query)
+
+	// given: filter params are set with multiple comma-separated values
+	resetSearchFlags(&flags)
+	flags.FilterAuthor = "some author 1,some author 2"
+	flags.FilterManufacturer = "some manufacturer 1,some manufacturer 2"
+	flags.FilterMpn = "some mpn 1,some mpn 2,some mpn 3"
+	flags.Search = "some term"
+	// when: converting to SearchParams
+	params = CreateSearchParamsFromCLI(flags, "")
+	// then: the multiple filter values are converted correctly
+	assert.NotNil(t, params)
+	assert.Equal(t, strings.Split(flags.FilterAuthor, ","), params.Author)
+	assert.Equal(t, strings.Split(flags.FilterManufacturer, ","), params.Manufacturer)
+	assert.Equal(t, strings.Split(flags.FilterMpn, ","), params.Mpn)
+	assert.Equal(t, flags.Search, params.Query)
 }

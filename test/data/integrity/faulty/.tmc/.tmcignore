@@ -1,0 +1,9 @@
+# ignore any top-level files
+/*
+!/*/
+
+# ignore any top-level directories starting with a dot
+/.*/
+
+# user-added ignore rule
+/ignoredDir/

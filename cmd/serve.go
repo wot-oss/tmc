@@ -1,16 +1,12 @@
 package cmd
 
 import (
-	"errors"
 	"os"
 
 	"github.com/wot-oss/tmc/internal/app/http/cors"
-	"github.com/wot-oss/tmc/internal/model"
-
 	"github.com/wot-oss/tmc/internal/app/http/jwt"
 
 	"github.com/spf13/viper"
-	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/utils"
 
@@ -21,23 +17,16 @@ import (
 var serveCmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start a REST API server",
-	Long: `Start a REST API server for accessing and manipulating the catalog.
-A target repository for push operations must be specified with --pushTarget in case neither --repo nor --directory is given.
-This may be omitted if there's exactly one repository configured`,
-	Args: cobra.MaximumNArgs(0),
-	Run:  serve,
+	Long:  `Start a REST API server for accessing and manipulating the catalog`,
+	Args:  cobra.MaximumNArgs(0),
+	Run:   serve,
 }
 
 func init() {
 	RootCmd.AddCommand(serveCmd)
 	serveCmd.Flags().StringP("host", "", "0.0.0.0", "Serve with this host name")
 	serveCmd.Flags().StringP("port", "", "8080", "Serve with this port")
-	serveCmd.Flags().StringP("repo", "r", "", "Name of a single repository to serve. Will serve all if omitted")
-	_ = serveCmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
-	serveCmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository.")
-	_ = serveCmd.MarkFlagDirname("directory")
-	serveCmd.Flags().StringP("pushTarget", "t", "", "Name of the repo to use as target for push operations")
-	_ = serveCmd.RegisterFlagCompletionFunc("pushTarget", completion.CompleteRepoNames)
+	AddRepoConstraintFlags(serveCmd)
 	serveCmd.Flags().String(config.KeyUrlContextRoot, "",
 		"Define additional URL context root path to be considered in hypermedia links (env var TMC_URLCONTEXTROOT)")
 	serveCmd.Flags().String(config.KeyCorsAllowedOrigins, "", "Set comma-separated list for CORS allowed origins (env var TMC_CORSALLOWEDORIGINS)")
@@ -61,22 +50,10 @@ func init() {
 func serve(cmd *cobra.Command, args []string) {
 	host := cmd.Flag("host").Value.String()
 	port := cmd.Flag("port").Value.String()
-	repo := cmd.Flag("repo").Value.String()
-	dir := cmd.Flag("directory").Value.String()
-	pushTarget := cmd.Flag("pushTarget").Value.String()
-	spec, err := model.NewSpec(repo, dir)
-	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of repository to be served. --repo and --directory are mutually exclusive. Set at most one")
-		os.Exit(1)
-	}
-
+	spec := RepoSpecFromFlags(cmd)
 	opts := getServeOptions()
 
-	pushSpec := spec
-	if repo == "" && dir == "" && pushTarget != "" {
-		pushSpec = model.NewRepoSpec(pushTarget)
-	}
-	err = cli.Serve(host, port, opts, spec, pushSpec)
+	err := cli.Serve(host, port, opts, spec)
 	if err != nil {
 		cli.Stderrf("serve failed")
 		os.Exit(1)

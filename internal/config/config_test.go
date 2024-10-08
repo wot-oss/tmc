@@ -16,10 +16,10 @@ func setupDefaultConfigDir() func() {
 		panic(err)
 	}
 
-	orgDir := DefaultConfigDir
-	DefaultConfigDir = temp
+	orgDir := ConfigDir
+	ConfigDir = temp
 	return func() {
-		DefaultConfigDir = orgDir
+		ConfigDir = orgDir
 		os.RemoveAll(temp)
 	}
 }
@@ -28,7 +28,7 @@ func TestSaveConfigOverwritesOnlyKeyValue(t *testing.T) {
 	defer setupDefaultConfigDir()()
 
 	// given: a config file
-	configFile := filepath.Join(DefaultConfigDir, "config.json")
+	configFile := filepath.Join(ConfigDir, "cfg.json")
 	err := os.WriteFile(configFile, []byte(`{
   "loglevel": "debug",
   "repos": {
@@ -83,7 +83,7 @@ func TestDeleteConfigRemovesOnlyKeyValue(t *testing.T) {
 	defer setupDefaultConfigDir()()
 
 	// given: a config file
-	configFile := filepath.Join(DefaultConfigDir, "config.json")
+	configFile := filepath.Join(ConfigDir, "config.json")
 	err := os.WriteFile(configFile, []byte(`{
   "loglevel": "debug",
   "repos": {

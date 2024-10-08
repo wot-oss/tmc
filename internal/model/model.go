@@ -3,6 +3,10 @@ package model
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"regexp"
+
+	"github.com/Masterminds/semver/v3"
 )
 
 // ThingModel is a model for unmarshalling a Thing Model to be
@@ -27,6 +31,55 @@ type SchemaManufacturer struct {
 
 type Version struct {
 	Model string `json:"model"`
+}
+
+type FetchName struct {
+	Name   string
+	Semver string
+}
+
+var ErrInvalidFetchName = errors.New("invalid fetch name")
+
+var fetchNameRegex = regexp.MustCompile(`^([a-z\-0-9]+(/[\w\-0-9]+){2,})(:(.+))?$`)
+
+func ParseFetchName(fetchName string) (FetchName, error) {
+	// Find submatches in the input string
+	matches := fetchNameRegex.FindStringSubmatch(fetchName)
+
+	// Check if there are enough submatches
+	if len(matches) < 2 {
+		err := fmt.Errorf("%w: %s - must be NAME[:SEMVER]", ErrInvalidFetchName, fetchName)
+		slog.Default().Error(err.Error())
+		return FetchName{}, err
+	}
+
+	fn := FetchName{}
+	// Extract values from submatches
+	fn.Name = matches[1]
+	if len(matches) > 4 && matches[4] != "" {
+		fn.Semver = matches[4]
+		_, err := semver.NewVersion(fn.Semver)
+		if err != nil {
+			return FetchName{}, fmt.Errorf("%w: %s - invalid semantic version", ErrInvalidFetchName, fetchName)
+		}
+	}
+	return fn, nil
+}
+
+// ParseAsTMIDOrFetchName parses idOrName as model.TMID. If that fails, parses it as FetchName.
+// Returns error is idOrName is not valid as either. Only one of returned pointers may be not nil
+func ParseAsTMIDOrFetchName(idOrName string) (*TMID, *FetchName, error) {
+	tmid, err1 := ParseTMID(idOrName)
+	if err1 == nil {
+		return &tmid, nil, nil
+	}
+	fn, err2 := ParseFetchName(idOrName)
+	if err2 == nil {
+		return nil, &fn, nil
+	}
+
+	slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
+	return nil, nil, fmt.Errorf("%w: %w, %w", ErrInvalidIdOrName, err1, err2)
 }
 
 type RepoSpec struct {
@@ -89,3 +142,40 @@ func (r RepoSpec) String() string {
 var EmptySpec, _ = NewSpec("", "")
 
 var ErrInvalidSpec = errors.New("illegal repo spec: both local directory and repo name given")
+
+type RepoDescription struct {
+	Name        string
+	Type        string
+	Description string
+}
+
+type CheckResultType int
+
+const (
+	CheckOK = CheckResultType(iota)
+	CheckErr
+)
+
+func (t CheckResultType) String() string {
+	switch t {
+	case CheckOK:
+		return "OK"
+	case CheckErr:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
+type CheckResult struct {
+	Typ          CheckResultType
+	ResourceName string
+	Message      string
+}
+
+func (r CheckResult) String() string {
+	return fmt.Sprintf("%v \t%s: %s", r.Typ, r.ResourceName, r.Message)
+}
+
+// ResourceFilter is a function which determines whether a named resource should be processed or not
+type ResourceFilter func(string) bool

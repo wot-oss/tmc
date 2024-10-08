@@ -1,7 +1,9 @@
 package reposmocks
 
 import (
+	"context"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,18 +42,36 @@ func CreateMockAllFunction(err error, rs ...repos.Repo) func() ([]repos.Repo, er
 func MockReposGet(t interface {
 	Cleanup(func())
 }, mock func(spec model.RepoSpec) (repos.Repo, error)) {
-	org := repos.Get
+	orig := repos.Get
 	repos.Get = mock
-	t.Cleanup(func() { repos.Get = org })
+	t.Cleanup(func() { repos.Get = orig })
 }
 
 func CreateMockGetFunction(t *testing.T, spec model.RepoSpec, r repos.Repo, err error) func(s model.RepoSpec) (repos.Repo, error) {
+	return CreateMockGetFunctionFromList(t, []model.RepoSpec{model.EmptySpec, spec}, []repos.Repo{r, r}, []error{err, err})
+}
+
+func CreateMockGetFunctionFromList(t *testing.T, specs []model.RepoSpec, r []repos.Repo, errs []error) func(s model.RepoSpec) (repos.Repo, error) {
 	return func(s model.RepoSpec) (repos.Repo, error) {
-		if assert.Equal(t, spec, s, "unexpected spec in mock") {
-			return r, err
+		if assert.Contains(t, specs, s, "unexpected spec in mock") {
+			for i, spec := range specs {
+				if reflect.DeepEqual(spec, s) {
+					return r[i], errs[i]
+				}
+			}
 		}
-		err := fmt.Errorf("unexpected spec in mock. want: %v, got: %v", spec, s)
+		err := fmt.Errorf("unexpected spec in mock. want one of: %v, got: %v", specs, s)
 		FailTest(t, err)
 		return nil, err
 	}
+}
+
+func MockReposGetDescriptions(t interface {
+	Cleanup(func())
+}, descrs []model.RepoDescription, err error) {
+	org := repos.GetDescriptions
+	repos.GetDescriptions = func(ctx context.Context, spec model.RepoSpec) ([]model.RepoDescription, error) {
+		return descrs, err
+	}
+	t.Cleanup(func() { repos.GetDescriptions = org })
 }

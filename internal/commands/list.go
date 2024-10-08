@@ -8,10 +8,10 @@ import (
 )
 
 func List(ctx context.Context, rSpec model.RepoSpec, search *model.SearchParams) (model.SearchResult, error, []*repos.RepoAccessError) {
-	rs, err := repos.GetSpecdOrAll(rSpec)
+	u, err := repos.GetUnion(rSpec)
 	if err != nil {
 		return model.SearchResult{}, err, nil
 	}
-	sr, errs := rs.List(ctx, search)
+	sr, errs := u.List(ctx, search)
 	return sr, nil, errs
 }

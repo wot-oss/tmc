@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/spf13/viper"
 	"github.com/wot-oss/tmc/internal/config"
@@ -14,21 +15,26 @@ import (
 )
 
 const (
-	KeyRepos       = "repos"
-	keyRemotes     = "remotes" // left for compatibility
-	KeyRepoType    = "type"
-	KeyRepoLoc     = "loc"
-	KeyRepoAuth    = "auth"
-	KeyRepoEnabled = "enabled"
+	KeyRepos           = "repos"
+	keyRemotes         = "remotes" // left for compatibility
+	KeyRepoType        = "type"
+	KeyRepoLoc         = "loc"
+	KeyRepoAuth        = "auth"
+	KeyRepoEnabled     = "enabled"
+	KeyRepoDescription = "description"
+	keySubRepo         = "keySubRepo"
 
-	RepoTypeFile             = "file"
-	RepoTypeHttp             = "http"
-	RepoTypeTmc              = "tmc"
-	CompletionKindNames      = "names"
-	CompletionKindFetchNames = "fetchNames"
-	RepoConfDir              = ".tmc"
-	IndexFilename            = "tm-catalog.toc.json"
-	TmNamesFile              = "tmnames.txt"
+	RepoTypeFile              = "file"
+	RepoTypeHttp              = "http"
+	RepoTypeTmc               = "tmc"
+	CompletionKindNames       = "names"
+	CompletionKindFetchNames  = "fetchNames"
+	CompletionKindNamesOrIds  = "namesOrIds"
+	CompletionKindAttachments = "attachments"
+	RepoConfDir               = ".tmc"
+	IndexFilename             = "tm-catalog.toc.json"
+	TmNamesFile               = "tmnames.txt"
+	TmIgnoreFile              = ".tmcignore"
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -37,28 +43,87 @@ type Config map[string]map[string]any
 
 var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
 
+type ImportResultType int
+
+const (
+	ImportResultOK      = ImportResultType(iota + 1)
+	ImportResultWarning // imported but with warning
+	ImportResultError   // not imported because of error
+)
+
+func (t ImportResultType) String() string {
+	switch t {
+	case ImportResultOK:
+		return "OK"
+	case ImportResultWarning:
+		return "warning"
+	case ImportResultError:
+		return "error"
+	default:
+		return "internal error: unknown import result type"
+	}
+}
+
+type ImportResult struct {
+	Type ImportResultType
+	// TmID is not empty when the result is successful, i.e. Type is OK or Warning
+	TmID    string
+	Message string
+	// Err is not nil when there was an ID conflict or another error during import, i.e. Type is TMExists or Warning or Error
+	Err error
+}
+
+func ImportResultFromError(err error) (ImportResult, error) {
+	return ImportResult{
+		Type:    ImportResultError,
+		Message: err.Error(),
+		Err:     err,
+	}, err
+}
+
+func (r ImportResult) String() string {
+	return fmt.Sprintf("%v\t %s", r.Type, r.Message)
+}
+
+func (r ImportResult) IsSuccessful() bool {
+	return r.Type == ImportResultOK || r.Type == ImportResultWarning
+}
+
 //go:generate mockery --name Repo --outpkg mocks --output mocks
 type Repo interface {
-	// Push writes the Thing Model file into the path under root that corresponds to id.
+	// Import writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
 	// there is a file with the same semantic version and timestamp but different content
-	Push(ctx context.Context, id model.TMID, raw []byte) error
+	Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error)
 	// Fetch retrieves the Thing Model file from repo
 	// Returns the actual id of the retrieved Thing Model (it may differ in the timestamp from the id requested), the file contents, and an error
 	Fetch(ctx context.Context, id string) (string, []byte, error)
 	// Index updates repository's index file with data from given TM files. For ids that refer to non-existing files,
 	// removes those from index. Performs a full update if no updatedIds given
 	Index(ctx context.Context, updatedIds ...string) error
+	// CheckIntegrity checks the internal resources for integrity and consistency
+	CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error)
 	// List searches the catalog for TMs matching search parameters
 	List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error)
 	// Versions lists versions of a TM with given name
 	Versions(ctx context.Context, name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Repo has been created from
 	Spec() model.RepoSpec
-	// Delete deletes the TM with given id from repo. Returns ErrTmNotFound if TM does not exist
+	// Delete deletes the TM with given id from repo. Returns ErrTMNotFound if TM does not exist
 	Delete(ctx context.Context, id string) error
 
-	ListCompletions(ctx context.Context, kind string, toComplete string) ([]string, error)
+	ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
+
+	GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error)
+	ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error
+	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
+	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
+}
+
+type ImportOptions struct {
+	Force          bool
+	OptPath        string
+	IgnoreExisting bool
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {
@@ -73,8 +138,10 @@ var Get = func(spec model.RepoSpec) (Repo, error) {
 		return nil, err
 	}
 	repos = filterEnabled(repos)
-	rc, ok := repos[spec.RepoName()]
-	if spec.RepoName() == "" {
+	parent, child := splitRepoName(spec.RepoName())
+	spec = model.NewRepoSpec(parent)
+	rc, ok := repos[parent]
+	if parent == "" {
 		switch len(repos) {
 		case 0:
 			return nil, ErrRepoNotFound
@@ -91,7 +158,15 @@ var Get = func(spec model.RepoSpec) (Repo, error) {
 			return nil, ErrRepoNotFound
 		}
 	}
+	if child != "" {
+		rc[keySubRepo] = child
+	}
 	return createRepo(rc, spec)
+}
+
+func splitRepoName(name string) (string, string) {
+	before, after, _ := strings.Cut(name, "/")
+	return before, after
 }
 
 func filterEnabled(repos Config) Config {
@@ -138,6 +213,67 @@ var All = func() ([]Repo, error) {
 		rs = append(rs, r)
 	}
 	return rs, err
+}
+
+// GetDescriptions returns the list of descriptions of repositories that could be used as targets for write operations
+// or be returned as "found-in" sources when reading from catalog
+var GetDescriptions = func(ctx context.Context, spec model.RepoSpec) ([]model.RepoDescription, error) {
+	if spec.Dir() != "" {
+		return nil, nil
+	}
+	conf, err := ReadConfig()
+	if err != nil {
+		return nil, err
+	}
+	var rs []model.RepoDescription
+	for n, rc := range conf {
+		en := utils.JsGetBool(rc, KeyRepoEnabled)
+		if en != nil && !*en {
+			continue
+		}
+		if spec.RepoName() == "" || n == spec.RepoName() {
+			ds, _ := rc[KeyRepoDescription].(string)
+			r := model.RepoDescription{
+				Name:        n,
+				Type:        fmt.Sprintf("%v", rc[KeyRepoType]),
+				Description: ds,
+			}
+			rs = append(rs, r)
+		}
+	}
+	rs, err = expandTmcRepos(ctx, rs)
+	return rs, err
+}
+
+func expandTmcRepos(ctx context.Context, descriptions []model.RepoDescription) ([]model.RepoDescription, error) {
+	var ds []model.RepoDescription
+	for _, d := range descriptions {
+		if d.Type != RepoTypeTmc {
+			ds = append(ds, d)
+			continue
+		}
+		spec := model.NewRepoSpec(d.Name)
+		repo, err := Get(spec)
+		if err != nil {
+			return nil, err
+		}
+		tmc, _ := repo.(*TmcRepo)
+		repos, err := tmc.GetSubRepos(ctx)
+		if err != nil {
+			return nil, &RepoAccessError{spec, err}
+		}
+		if len(repos) < 2 {
+			ds = append(ds, d)
+		} else {
+			for _, rd := range repos {
+				ds = append(ds, model.RepoDescription{
+					Name:        fmt.Sprintf("%s/%s", d.Name, rd.Name),
+					Description: rd.Description,
+				})
+			}
+		}
+	}
+	return ds, nil
 }
 
 func ReadConfig() (Config, error) {
@@ -209,39 +345,39 @@ func Remove(name string) error {
 	return saveConfig(conf)
 }
 
-func Add(name, typ, confStr string, confFile []byte) error {
+func Add(name, typ, confStr string, confFile []byte, descr string) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err == nil || !errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoExists
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err)
+	return setRepoConfig(name, typ, confStr, confFile, err, descr)
 }
 
-func SetConfig(name, typ, confStr string, confFile []byte) error {
+func SetConfig(name, typ, confStr string, confFile []byte, descr string) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err != nil && errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoNotFound
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err)
+	return setRepoConfig(name, typ, confStr, confFile, err, descr)
 }
 
-func setRepoConfig(name string, typ string, confStr string, confFile []byte, err error) error {
+func setRepoConfig(name string, typ string, confStr string, confFile []byte, err error, descr string) error {
 	var rc map[string]any
 	switch typ {
 	case RepoTypeFile:
-		rc, err = createFileRepoConfig(confStr, confFile)
+		rc, err = createFileRepoConfig(confStr, confFile, descr)
 		if err != nil {
 			return err
 		}
 	case RepoTypeHttp:
-		rc, err = createHttpRepoConfig(confStr, confFile)
+		rc, err = createHttpRepoConfig(confStr, confFile, descr)
 		if err != nil {
 			return err
 		}
 	case RepoTypeTmc:
-		rc, err = createTmcRepoConfig(confStr, confFile)
+		rc, err = createTmcRepoConfig(confStr, confFile, descr)
 		if err != nil {
 			return err
 		}
@@ -293,8 +429,8 @@ func AsRepoConfig(bytes []byte) (map[string]any, error) {
 	return rc, nil
 }
 
-// GetSpecdOrAll returns a union containing the repo specified by spec, or union of all repo, if the spec is empty
-func GetSpecdOrAll(spec model.RepoSpec) (*Union, error) {
+// GetUnion returns a union containing the repo specified by spec, or a union of all repos, if the spec is empty
+func GetUnion(spec model.RepoSpec) (*Union, error) {
 	if spec.RepoName() != "" || spec.Dir() != "" {
 		repo, err := Get(spec)
 		if err != nil {

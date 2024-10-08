@@ -18,70 +18,47 @@ import (
 )
 
 const (
-	maxPushRetries = 3
-	maxNameLength  = 255
+	maxNameLength = 255
 )
 
 var ErrTMNameTooLong = fmt.Errorf("TM name too long (max %d allowed)", maxNameLength)
 
 type Now func() time.Time
-type PushCommand struct {
+type ImportCommand struct {
 	now Now
 }
 
-func NewPushCommand(now Now) *PushCommand {
-	return &PushCommand{
+func NewImportCommand(now Now) *ImportCommand {
+	return &ImportCommand{
 		now: now,
 	}
 }
 
-// PushFile prepares file contents for pushing (generates id if necessary, etc.) and pushes to repo.
-// Returns the ID that the TM has been stored under, and error.
-// If the repo already contains the same TM, returns the id of the existing TM and an instance of repos.ErrTMIDConflict
-func (c *PushCommand) PushFile(ctx context.Context, raw []byte, repo repos.Repo, optPath string) (string, error) {
+// ImportFile prepares file contents for importing (generates id if necessary, etc.) and imports to repo.
+// Returns ImportResult which includes the ID that the TM has been stored under, and error.
+// If the repo already contains the same TM, the error will be an instance of repos.ErrTMIDConflict
+func (c *ImportCommand) ImportFile(ctx context.Context, raw []byte, repo repos.Repo, opts repos.ImportOptions) (repos.ImportResult, error) {
 	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
 		log.Error("validation failed", "error", err)
-		return "", err
+		return repos.ImportResultFromError(err)
 	}
-	retriesLeft := maxPushRetries
-RETRY:
-	retriesLeft--
-	prepared, id, err := prepareToImport(c.now, tm, raw, optPath)
+	prepared, id, err := prepareToImport(c.now, tm, raw, opts.OptPath)
 	if err != nil {
-		return "", err
+		return repos.ImportResultFromError(err)
 	}
 
-	err = repo.Push(ctx, id, prepared)
-	if err != nil {
-		var errConflict *repos.ErrTMIDConflict
-		if errors.As(err, &errConflict) {
-			if errConflict.Type == repos.IdConflictSameTimestamp {
-				if retriesLeft >= 0 {
-					time.Sleep(1 * time.Second) // sleep 1 sec to get a different timestamp in id
-					goto RETRY
-				}
-				return errConflict.ExistingId, err
-			}
-			log.Info("Thing Model conflicts with existing", "id", id, "existing-id", errConflict.ExistingId, "conflictType", errConflict.Type)
-			return errConflict.ExistingId, err
-		}
-		log.Error("error pushing to repo", "error", err)
-		return id.String(), err
+	res, err := repo.Import(ctx, id, prepared, opts)
+	if err == nil {
+		log.Info("import executed without error")
 	}
-	log.Info("pushed successfully")
-	return id.String(), nil
+	return res, err
 }
 
 func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
 	var intermediate = make([]byte, len(raw))
 	copy(intermediate, raw)
-
-	intermediate, err := replaceKeysWithSanitized(intermediate, tm)
-	if err != nil {
-		return nil, model.TMID{}, err
-	}
 
 	// see if there's an id in the file that needs to be preserved
 	value, dataType, _, err := jsonparser.Get(intermediate, "id")
@@ -123,21 +100,6 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 	return final, finalId, nil
 }
 
-func replaceKeysWithSanitized(bytes []byte, tm *model.ThingModel) ([]byte, error) {
-	authorString, _ := json.Marshal(tm.Author.Name)
-	bytes, err := jsonparser.Set(bytes, authorString, "schema:author", "schema:name")
-	if err != nil {
-		return bytes, err
-	}
-	manufString, _ := json.Marshal(tm.Manufacturer.Name)
-	bytes, err = jsonparser.Set(bytes, manufString, "schema:manufacturer", "schema:name")
-	if err != nil {
-		return bytes, err
-	}
-	mpnString, _ := json.Marshal(tm.Mpn)
-	bytes, err = jsonparser.Set(bytes, mpnString, "schema:mpn")
-	return bytes, err
-}
 func moveIdToOriginalLink(raw []byte, id string) []byte {
 	linksValue, dataType, _, err := jsonparser.Get(raw, "links")
 	if err != nil && dataType != jsonparser.NotExist {

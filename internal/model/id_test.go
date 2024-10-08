@@ -12,20 +12,14 @@ func TestParseId(t *testing.T) {
 	id, err := ParseTMID(i1)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "author", id.Author)
-	assert.Equal(t, "manufacturer", id.Manufacturer)
-	assert.Equal(t, "mpn", id.Mpn)
-	assert.Equal(t, "", id.OptionalPath)
+	assert.Equal(t, "author/manufacturer/mpn", id.Name)
 	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
 
 	i2 := "author/manufacturer/mpn/byfirmware/v1/v1.2.3-pre1-20231109150513-e86784632bf6.tm.json"
 	id, err = ParseTMID(i2)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "author", id.Author)
-	assert.Equal(t, "manufacturer", id.Manufacturer)
-	assert.Equal(t, "mpn", id.Mpn)
-	assert.Equal(t, "byfirmware/v1", id.OptionalPath)
+	assert.Equal(t, "author/manufacturer/mpn/byfirmware/v1", id.Name)
 	assert.Equal(t, "v1.2.3-pre1", id.Version.Base.Original())
 
 	ids := []string{
@@ -38,33 +32,6 @@ func TestParseId(t *testing.T) {
 	}
 }
 
-func TestTMID_AssertValidFor(t *testing.T) {
-	tm := &ThingModel{
-		Manufacturer: SchemaManufacturer{"manufacturer"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{"author"},
-		Version:      Version{"1.2.3"},
-	}
-	ids := []string{
-		"authr/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
-		"author/manuf/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json",
-		"author/manufacturer/mpn2/v1.2.3-20231109150513-e86784632bf6.tm.json",
-	}
-	for i, v := range ids {
-		id, err := ParseTMID(v)
-		assert.NoError(t, err)
-		err = id.AssertValidFor(tm)
-		assert.ErrorIs(t, err, ErrInvalidId, "incorrect error at %d", i)
-	}
-
-	i1 := "author/manufacturer/mpn/v1.2.3-20231109150513-e86784632bf6.tm.json"
-	id, err := ParseTMID(i1)
-	assert.NoError(t, err)
-	tm.Version.Model = "v1.3"
-	err = id.AssertValidFor(tm)
-	assert.ErrorIs(t, err, ErrVersionDiffers)
-
-}
 func TestParseTMVersion(t *testing.T) {
 	v1 := "v1.2.3-pre1-20231109150513-e86784632bf6"
 	tv1, err := ParseTMVersion(v1)
@@ -110,31 +77,31 @@ func TestTMVersionFromOriginal(t *testing.T) {
 }
 
 func TestTMID_String(t *testing.T) {
-	id := TMID{
-		OptionalPath: "byfirmware/v1",
-		Author:       "author",
-		Manufacturer: "manufacturer",
-		Mpn:          "mpn",
-		Version: TMVersion{
+	id := NewTMID("author", "manufacturer", "mpn", "byfirmware/v1",
+		TMVersion{
 			Base:      semver.MustParse("v1.2.3"),
 			Timestamp: "20241243052343",
 			Hash:      "ab1234567890",
-		},
-	}
+		})
 
 	assert.Equal(t, "author/manufacturer/mpn/byfirmware/v1/v1.2.3-20241243052343-ab1234567890.tm.json", id.String())
 
-	id2 := TMID{
-		OptionalPath: "byfirmware/v1",
-		Author:       "manufacturer",
-		Manufacturer: "manufacturer",
-		Mpn:          "mpn",
-		Version: TMVersion{
+	id2 := NewTMID("manufacturer", "manufacturer", "mpn", "byfirmware/v1",
+		TMVersion{
 			Base:      semver.MustParse("v1.2.3"),
 			Timestamp: "20241243052343",
 			Hash:      "ab1234567890",
-		},
-	}
+		})
 
 	assert.Equal(t, "manufacturer/manufacturer/mpn/byfirmware/v1/v1.2.3-20241243052343-ab1234567890.tm.json", id2.String())
+}
+
+func TestNewTMID_SanitizesNameParts(t *testing.T) {
+	id := NewTMID("aut/hor", "MAN&UFACTURER", "mpn!", "by_firmware/v1",
+		TMVersion{
+			Base:      semver.MustParse("v1.2.3"),
+			Timestamp: "20241243052343",
+			Hash:      "ab1234567890",
+		})
+	assert.Equal(t, "aut-hor/man-ufacturer/mpn/by-firmware/v1", id.Name)
 }

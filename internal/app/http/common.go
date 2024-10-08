@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -16,15 +15,16 @@ import (
 )
 
 const (
-	Error400Title  = "Bad Request"
-	Error401Title  = "Unauthorized"
-	Error404Title  = "Not Found"
-	Error409Title  = "Conflict"
-	Error503Title  = "Service Unavailable"
-	Error500Title  = "Internal Server Error"
-	Error500Detail = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
-	Error502Title  = "Bad Gateway"
-	Error502Detail = "An upstream Thing Model repository returned an error"
+	Error400Title            = "Bad Request"
+	Error401Title            = "Unauthorized"
+	Error404Title            = "Not Found"
+	Error409Title            = "Conflict"
+	Error503Title            = "Service Unavailable"
+	Error500Title            = "Internal Server Error"
+	Error500Detail           = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
+	Error502Title            = "Bad Gateway"
+	Error502Detail           = "An upstream Thing Model repository returned an error"
+	ErrorRepoAmbiguousDetail = "Repository ambiguous. Repeat the request with the 'repo' query parameter"
 
 	HeaderAuthorization       = "Authorization"
 	HeaderContentType         = "Content-Type"
@@ -32,6 +32,7 @@ const (
 	HeaderXContentTypeOptions = "X-Content-Type-Options"
 	MimeText                  = "text/plain"
 	MimeJSON                  = "application/json"
+	MimeOctetStream           = "application/octet-stream"
 	MimeProblemJSON           = "application/problem+json"
 	NoSniff                   = "nosniff"
 	NoCache                   = "no-cache, no-store, max-age=0, must-revalidate"
@@ -79,24 +80,36 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	errStatus := http.StatusInternalServerError
 	errCode := ""
 
+	var nfErr *model.ErrNotFound
 	var eErr *repos.ErrTMIDConflict
 	var aErr *repos.RepoAccessError
 	var bErr *BaseHttpError
 
 	switch true {
 	// handle sentinel errors with errors.Is()
-	case errors.Is(err, repos.ErrTmNotFound):
-		errTitle = Error404Title
-		errDetail = err.Error()
-		errStatus = http.StatusNotFound
 	case errors.Is(err, model.ErrInvalidId),
-		errors.Is(err, commands.ErrInvalidFetchName),
+		errors.Is(err, model.ErrInvalidIdOrName),
+		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
+		errors.Is(err, repos.ErrRepoNotFound),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
+	case errors.Is(err, repos.ErrAmbiguous):
+		errTitle = Error400Title
+		errDetail = ErrorRepoAmbiguousDetail
+		errStatus = http.StatusBadRequest
+	case errors.Is(err, repos.ErrAttachmentExists):
+		errTitle = Error409Title
+		errDetail = err.Error()
+		errStatus = http.StatusConflict
 	// handle error values we want to access with errors.As()
+	case errors.As(err, &nfErr):
+		errTitle = Error404Title
+		errDetail = err.Error()
+		errStatus = http.StatusNotFound
+		errCode = nfErr.Code()
 	case errors.As(err, &bErr):
 		errTitle = bErr.Title
 		errDetail = bErr.Detail
@@ -196,6 +209,20 @@ func newBaseHttpError(err error, status int, title string, detail string, args .
 	return be
 }
 
+func convertRepoName(repo *string) string {
+	if repo != nil {
+		return *repo
+	}
+	return ""
+}
+
+func convertForceParam(p *server.ForceImport) bool {
+	if p != nil {
+		return *p
+	}
+	return false
+}
+
 func convertParams(params any) *model.SearchParams {
 
 	var filterAuthor *string
@@ -224,27 +251,8 @@ func convertParams(params any) *model.SearchParams {
 		search = mpnsParams.Search
 	}
 
-	var searchParams model.SearchParams
-	if filterAuthor != nil || filterManufacturer != nil || filterMpn != nil || filterName != nil || search != nil {
-		searchParams = model.SearchParams{}
-		if filterAuthor != nil {
-			searchParams.Author = strings.Split(*filterAuthor, ",")
-		}
-		if filterManufacturer != nil {
-			searchParams.Manufacturer = strings.Split(*filterManufacturer, ",")
-		}
-		if filterMpn != nil {
-			searchParams.Mpn = strings.Split(*filterMpn, ",")
-		}
-		if filterName != nil {
-			searchParams.Name = *filterName
-			searchParams.Options.NameFilterType = model.PrefixMatch
-		}
-		if search != nil {
-			searchParams.Query = *search
-		}
-	}
-	return &searchParams
+	return model.ToSearchParams(filterAuthor, filterManufacturer, filterMpn, filterName, search,
+		&model.SearchOptions{NameFilterType: model.PrefixMatch})
 }
 
 func toInventoryResponse(ctx context.Context, res model.SearchResult) server.InventoryResponse {
@@ -259,22 +267,35 @@ func toInventoryResponse(ctx context.Context, res model.SearchResult) server.Inv
 	return resp
 }
 
-func toInventoryEntryResponse(ctx context.Context, e model.FoundEntry) server.InventoryEntryResponse {
+func toInventoryEntryResponse(ctx context.Context, es []model.FoundEntry) server.InventoryEntryResponse {
 	mapper := NewMapper(ctx)
 
-	invEntry := mapper.GetInventoryEntry(e)
+	var ses []server.InventoryEntry
+	for _, e := range es {
+		ses = append(ses, mapper.GetInventoryEntry(e))
+	}
 	resp := server.InventoryEntryResponse{
-		Data: invEntry,
+		Data: ses,
 	}
 	return resp
 }
 
-func toInventoryEntryVersionsResponse(ctx context.Context, versions []model.FoundVersion) server.InventoryEntryVersionsResponse {
+func toInventoryEntryVersionResponse(ctx context.Context, v model.FoundVersion) server.InventoryEntryVersionResponse {
 	mapper := NewMapper(ctx)
 
-	invEntryVersions := mapper.GetInventoryEntryVersions(versions)
+	ev := mapper.GetInventoryEntryVersion(v)
+	resp := server.InventoryEntryVersionResponse{
+		Data: ev,
+	}
+	return resp
+}
+
+func toInventoryEntryVersionsResponse(ctx context.Context, v []model.FoundVersion) server.InventoryEntryVersionsResponse {
+	mapper := NewMapper(ctx)
+
+	ev := mapper.GetInventoryEntryVersions(v)
 	resp := server.InventoryEntryVersionsResponse{
-		Data: invEntryVersions,
+		Data: ev,
 	}
 	return resp
 }
@@ -300,11 +321,37 @@ func toMpnsResponse(mpns []string) server.MpnsResponse {
 	return resp
 }
 
-func toPushThingModelResponse(tmID string) server.PushThingModelResponse {
-	data := server.PushThingModelResult{
-		TmID: tmID,
+func toReposResponse(repos []model.RepoDescription) server.ReposResponse {
+	rds := []server.RepoDescription{}
+	for _, r := range repos {
+		r := r
+		rds = append(rds, server.RepoDescription{
+			Description: func(s string) *string {
+				if s == "" {
+					return nil
+				}
+				return &s
+			}(r.Description),
+			Name: r.Name,
+		})
 	}
-	return server.PushThingModelResponse{
+	resp := server.ReposResponse{
+		Data: rds,
+	}
+	return resp
+}
+
+func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelResponse {
+	data := server.ImportThingModelResult{
+		TmID: res.TmID,
+	}
+	data.Message = &res.Message
+	var ce repos.CodedError
+	if errors.As(res.Err, &ce) {
+		code := ce.Code()
+		data.Code = &code
+	}
+	return server.ImportThingModelResponse{
 		Data: data,
 	}
 }

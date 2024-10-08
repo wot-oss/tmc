@@ -6,9 +6,7 @@ package cli
 import (
 	"fmt"
 	"os"
-	"strings"
 
-	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
@@ -22,41 +20,6 @@ func Stderrf(format string, args ...any) {
 	_, _ = fmt.Fprintln(os.Stderr)
 }
 
-type FilterFlags struct {
-	FilterAuthor       string
-	FilterManufacturer string
-	FilterMpn          string
-	Search             string
-}
-
-func (ff *FilterFlags) IsSet() bool {
-	return ff.FilterAuthor != "" || ff.FilterManufacturer != "" || ff.FilterMpn != "" || ff.Search != ""
-}
-
-func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
-	var search *model.SearchParams
-	if flags.IsSet() || name != "" {
-		search = &model.SearchParams{}
-		if flags.FilterAuthor != "" {
-			search.Author = strings.Split(flags.FilterAuthor, DefaultListSeparator)
-		}
-		if flags.FilterManufacturer != "" {
-			search.Manufacturer = strings.Split(flags.FilterManufacturer, DefaultListSeparator)
-		}
-		if flags.FilterMpn != "" {
-			search.Mpn = strings.Split(flags.FilterMpn, DefaultListSeparator)
-		}
-		if flags.Search != "" {
-			search.Query = flags.Search
-		}
-		if name != "" {
-			search.Name = name
-		}
-		search.Options.NameFilterType = model.PrefixMatch
-	}
-	return search
-}
-
 func printErrs(hdr string, errs []*repos.RepoAccessError) {
 	if len(errs) == 0 {
 		return
@@ -65,4 +28,35 @@ func printErrs(hdr string, errs []*repos.RepoAccessError) {
 	for _, e := range errs {
 		Stderrf("%v", e)
 	}
+}
+
+const (
+	opResultOK = opResultType(iota)
+	opResultWarn
+	opResultErr
+)
+
+type opResultType int
+
+func (t opResultType) String() string {
+	switch t {
+	case opResultOK:
+		return "OK"
+	case opResultWarn:
+		return "warning"
+	case opResultErr:
+		return "error"
+	default:
+		return "unknown"
+	}
+}
+
+type operationResult struct {
+	typ        opResultType
+	resourceId string
+	text       string
+}
+
+func (r operationResult) String() string {
+	return fmt.Sprintf("%v\t %s %s", r.typ, r.resourceId, r.text)
 }

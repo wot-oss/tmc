@@ -1,20 +1,22 @@
 package repo
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 // repoAddCmd represents the 'repo add' command
 var repoAddCmd = &cobra.Command{
-	Use:   "add [--type <type>] <name> (<config> | --file <configFileName>)",
+	Use:   "add [--type <type>] <name> (<config> | --file <config-file>)",
 	Short: "Add a named repository",
 	Long: `Add a named repository to the tmc configuration file. Depending on the repository type,
-the config may be a simple string, like a URL, or a json file.
---type is optional only if --file is used and the type is specified there.
+the config may be a simple string, like directory path or a URL, or a json file. See online user documentation for details on json config file format.
+--type is optional only if --file is used and the type is specified in the config file.
 `,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -35,7 +37,9 @@ the config may be a simple string, like a URL, or a json file.
 			os.Exit(1)
 		}
 
-		err = cli.RepoAdd(name, typ, confStr, confFile)
+		descr, _ := cmd.Flags().GetString("description")
+
+		err = cli.RepoAdd(name, typ, confStr, confFile, descr)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -45,7 +49,8 @@ the config may be a simple string, like a URL, or a json file.
 
 func init() {
 	repoCmd.AddCommand(repoAddCmd)
-	repoAddCmd.Flags().StringP("type", "t", "", "type of repo to add")
+	repoAddCmd.Flags().StringP("type", "t", "", fmt.Sprintf("type of repo to add. One of %v", repos.SupportedTypes))
 	_ = repoAddCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
 	repoAddCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
+	repoAddCmd.Flags().StringP("description", "d", "", "description of the repo")
 }

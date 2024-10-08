@@ -6,7 +6,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/utils"
@@ -16,8 +16,10 @@ import (
 // e.g. if path variables of routes need a regex pattern
 var (
 	routePathVarPatch = map[string]string{
-		"{name}":       "{name:.+}",
-		"{tmIDOrName}": "{tmIDOrName:.+}",
+		"{tmID}":               "{tmID:.+}",
+		"{tmName}":             "{tmName:.+}",
+		"{fetchName}":          "{fetchName:.+}",
+		"{attachmentFileName}": "{attachmentFileName:.+}",
 	}
 )
 
@@ -69,7 +71,16 @@ func patchRoutes(routes []*lineData) {
 	for _, p := range routes {
 		s = append(s, p.oldValue)
 	}
-	sort.Sort(sort.Reverse(sort.StringSlice(s)))
+	// sort by number of slashes desc, then by value desc
+	slices.SortFunc(s, func(a, b string) int {
+		ac := strings.Count(a, "/")
+		bc := strings.Count(b, "/")
+		if ac == bc {
+			return -strings.Compare(a, b)
+		} else {
+			return bc - ac
+		}
+	})
 
 	// update line data and assign reordered routes
 	for idx, p := range routes {

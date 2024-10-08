@@ -1,8 +1,6 @@
 module github.com/wot-oss/tmc
 
-go 1.22
-
-toolchain go1.22.2
+go 1.23
 
 require (
 	github.com/Masterminds/semver/v3 v3.2.1
@@ -65,6 +63,7 @@ require (
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	github.com/sagikazarmark/locafero v0.3.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
