@@ -127,6 +127,11 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attac
 		Stderrf("output target folder --output is not a folder")
 		return errors.New("output target folder --output is not a folder")
 	}
+	err = os.MkdirAll(outputPath, 0770)
+	if err != nil {
+		Stderrf("could not create output folder %s: %v", outputPath, err)
+		return err
+	}
 	fullFilename := filepath.Join(outputPath, attachmentName)
 	err = os.WriteFile(fullFilename, content, 0660)
 	if err != nil {
