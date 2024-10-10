@@ -7,7 +7,7 @@
 ---
 Find, use and contribute device descriptions for industrial IoT devices!
 
-⚠ This software is **experimental** and may not be fit for any purposes. 
+⚠ This software is **experimental** and may not be fit for any purposes.
 
 The Thing Model Catalog Command Line Client, or ```tmc``` for short, is a tool for browsing, consuming, contributing and serving Thing Models.
 
@@ -27,7 +27,7 @@ Thing Descriptions are to Modbus, BACnet, MQTT, DNP3 ... what HTML is to HTTP.
 
 ## Quick Start
 
-The ```tmc``` helps you to interact with a Thing Model catalog, which may be hosted on any git forge like github or create your own catalog in a git repository of your choosing. 
+The ```tmc``` helps you to interact with a Thing Model catalog, which may be hosted on any git forge like github or create your own catalog in a git repository of your choosing.
 
 To enable a culture of sharing, we provide a canonical repository at [], but feel free to create your own open or private catalog as well.
 

@@ -338,6 +338,9 @@ type DeleteTMNameAttachmentParams struct {
 type GetTMNameAttachmentParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// Concat Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same
+	Concat *bool `form:"concat,omitempty" json:"concat,omitempty"`
 }
 
 // PutTMNameAttachmentParams defines parameters for PutTMNameAttachment.

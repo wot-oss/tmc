@@ -65,9 +65,18 @@ func TestAttachmentImport(t *testing.T) {
 	attFile := "../../../test/data/attachments/" + attName
 	attContent, err := os.ReadFile(attFile)
 	assert.NoError(t, err)
-	r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: ""}, attContent, true).Return(nil).Once()
-	err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "", true)
-	assert.NoError(t, err)
+	t.Run("with original file name", func(t *testing.T) {
+		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: ""}, attContent, true).Return(nil).Once()
+		err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "", "", true)
+		assert.NoError(t, err)
+	})
+
+	t.Run("with overwritten file name", func(t *testing.T) {
+		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: "differentName.md", MediaType: ""}, attContent, true).Return(nil).Once()
+		err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attFile, "differentName.md", "", true)
+		assert.NoError(t, err)
+	})
+
 }
 
 func TestAttachmentFetch(t *testing.T) {
@@ -81,7 +90,7 @@ func TestAttachmentFetch(t *testing.T) {
 	attName := "README.md"
 	attContent := []byte("attachment content")
 	r.On("FetchAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), attName).Return(attContent, nil).Once()
-	err := AttachmentFetch(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attName)
+	err := AttachmentFetch(ctx, model.NewDirSpec("somewhere"), tmNameOrId, attName, false, "")
 	assert.NoError(t, err)
 
 	stdout := getOutput()
