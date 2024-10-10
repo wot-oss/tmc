@@ -108,7 +108,7 @@ func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath stri
 		var aErr error
 		resName := fmt.Sprintf("%s/%s", relDir, att.Name)
 		finalOutput := filepath.Join(attDir, att.Name)
-		bytes, aErr = commands.AttachmentFetch(ctx, spec, ref, att.Name)
+		bytes, aErr = commands.AttachmentFetch(ctx, spec, ref, att.Name, false)
 		if aErr != nil {
 			if err == nil {
 				err = aErr

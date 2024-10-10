@@ -720,6 +720,14 @@ func (siw *ServerInterfaceWrapper) GetTMNameAttachment(w http.ResponseWriter, r 
 		return
 	}
 
+	// ------------- Optional query parameter "concat" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "concat", r.URL.Query(), &params.Concat)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "concat", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetTMNameAttachment(w, r, tmName, attachmentFileName, params)
 	}))
