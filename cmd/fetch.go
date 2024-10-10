@@ -13,7 +13,9 @@ var fetchCmd = &cobra.Command{
 	Use:   "fetch <name>[:<semver>] | <tmid>",
 	Short: "Fetch a TM by name or id",
 	Long: `Fetch a TM by name, optionally accepting a semantic version, or id.
-The semantic version can be full or partial, e.g. v1.2.3, v1.2, v1. The 'v' at the beginning of a version is optional.`,
+The semantic version can be full or partial, e.g. v1.2.3, v1.2, v1. The 'v' at the beginning of a version is optional.
+When fetching by id, the returned TM's id might have a different timestamp than that in the requested id, because the timestamp
+is considered irrelevant in this case. The TM name, semantic version, and content digest will match exactly, of course.`,
 	Args:              cobra.ExactArgs(1),
 	Run:               executeFetch,
 	ValidArgsFunction: completion.CompleteFetchNames,
