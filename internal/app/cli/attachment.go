@@ -112,6 +112,7 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attac
 	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName, concat)
 	if err != nil {
 		Stderrf("Failed to fetch attachment %s to %s: %v", attachmentName, tmNameOrId, err)
+		return err
 	}
 
 	if outputPath == "" {
