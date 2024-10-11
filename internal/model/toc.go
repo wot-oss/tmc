@@ -2,14 +2,13 @@ package model
 
 import (
 	"fmt"
+	"github.com/blevesearch/bleve/v2"
 	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/blevesearch/bleve/v2"
-	bleveSearch "github.com/blevesearch/bleve/v2/search"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -104,52 +103,6 @@ func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
 	return AttachmentContainerKindTMID
 }
 
-// func (idx *Index) getMap() *indexmap.IndexMap[string, IndexVersion] {
-// 	versions := indexmap.NewIndexMap(indexmap.NewPrimaryIndex(func(value *IndexVersion) string {
-// 		return value.TMID
-// 	}))
-
-// 	versions.SetCmpFn(func(value1, value2 *IndexVersion) int {
-// 		return cmp.Compare(value2.searchScore, value1.searchScore)
-// 	})
-// 	versions.AddIndex("manufacturer",indexmap.NewSecondaryIndex(func(value *IndexVersion) []any {
-// 		return []any{value.}
-// 	}))
-// 	for _,ve := range idx.Data {
-// 		versions.Insert(&ve.Versions[])
-// 	}
-// 	return versions
-// }
-
-func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
-	if e == nil {
-		return false
-	}
-	searchQuery = utils.ToTrimmedLower(searchQuery)
-	if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
-		return true
-	}
-	for _, version := range e.Versions {
-		if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
-			return true
-		}
-		if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
-			return true
-		}
-	}
-	return false
-
-}
-
 const TMLinkRel = "content"
 
 type IndexVersion struct {
@@ -184,7 +137,6 @@ func (idx *Index) Sort() {
 	slices.SortFunc(idx.Data, func(a *IndexEntry, b *IndexEntry) int {
 		return strings.Compare(a.Name, b.Name)
 	})
-
 }
 
 func (idx *Index) Filter(search *SearchParams) {
@@ -193,11 +145,6 @@ func (idx *Index) Filter(search *SearchParams) {
 	}
 	search.Sanitize()
 	exclude := func(entry *IndexEntry) bool {
-		//todo: disable when activating content search
-		/*if !entry.MatchesSearchText(search.Query) {
-			return true
-		}*/
-
 		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
 			return true
 		}
@@ -223,47 +170,17 @@ func (idx *Index) Filter(search *SearchParams) {
 		}
 		return e
 	})
-	if len(search.Query) > 0 {
-		bleveIdx, errOpen := bleve.Open("../catalog.bleve")
-		if errOpen != nil {
-			//return fmt.Errorf("error opening bleve index: %v", errOpen)
-		} else {
-			defer bleveIdx.Close()
-			query := bleve.NewQueryStringQuery(search.Query)
-			req := bleve.NewSearchRequestOptions(query, 100000, 0, true)
-			sr, err := bleveIdx.Search(req)
-			_ = sr
-			if err == nil {
-				fmt.Printf("list from filter %d TMs - list from bleve %d TM-Versions\n", len(idx.Data), sr.Hits.Len())
-				if sr.Hits.Len() == 0 {
-					idx.Data = make([]*IndexEntry, 0)
-				} else {
-					idx.Data = slices.DeleteFunc(idx.Data, func(tocEntry *IndexEntry) bool {
-						return !matchesFilterVersions(sr.Hits, tocEntry)
-					})
-				}
-				fmt.Printf("Found %d TD's\n", len(idx.Data))
-			}
-		}
+	if len(idx.Data) == 0 {
+		return
 	}
-}
 
-func matchesFilterVersions(hits bleveSearch.DocumentMatchCollection, value *IndexEntry) bool {
-	if hits.Len() == 0 {
-		return true
-	}
-	match := false
-	for i, v := range value.Versions {
-		//match = match || slices.Contains(acceptedValues, v.TMID)
-		for _, hv := range hits {
-			parts := strings.Split(hv.ID, ":")
-			if v.TMID == parts[0] {
-				match = true
-				value.Versions[i].SearchScore = float32(hv.Score)
-			}
+	if len(search.Query) > 0 {
+		del := excludeBySimpleContentSearch(search.Query)
+		//del := excludeByContentSearch(search.Query)
+		if del != nil {
+			idx.Data = slices.DeleteFunc(idx.Data, del)
 		}
 	}
-	return match
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
@@ -292,6 +209,73 @@ func matchesFilter(acceptedValues []string, value string) bool {
 		return true
 	}
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
+}
+
+func excludeBySimpleContentSearch(searchQuery string) func(e *IndexEntry) bool {
+	return func(e *IndexEntry) bool {
+		if e == nil {
+			return true
+		}
+		searchQuery = utils.ToTrimmedLower(searchQuery)
+		if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
+			return false
+		}
+		for _, version := range e.Versions {
+			if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
+				return false
+			}
+			if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
+func excludeByContentSearch(query string) func(e *IndexEntry) bool {
+
+	bleveIdx, errOpen := bleve.Open("../catalog.bleve")
+	if errOpen != nil {
+		return nil
+		//return fmt.Errorf("error opening bleve index: %v", errOpen)
+	} else {
+		defer bleveIdx.Close()
+		query := bleve.NewQueryStringQuery(query)
+		req := bleve.NewSearchRequestOptions(query, 100000, 0, true)
+		sr, err := bleveIdx.Search(req)
+
+		if err != nil {
+			slog.Default().Error(err.Error())
+			return nil
+		}
+
+		del := func(e *IndexEntry) bool {
+			if sr.Hits.Len() == 0 {
+				return true
+			}
+			del := true
+			for i, v := range e.Versions {
+				for _, hv := range sr.Hits {
+					parts := strings.Split(hv.ID, ":")
+					if v.TMID == parts[0] {
+						del = false
+						e.Versions[i].SearchScore = float32(hv.Score)
+					}
+				}
+			}
+			return del
+		}
+		return del
+	}
 }
 
 // FindByName searches by TM name and returns a pointer to the IndexEntry if found
