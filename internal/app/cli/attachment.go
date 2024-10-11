@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -70,7 +71,7 @@ func printAttachments(atts []model.FoundAttachment) {
 
 }
 
-func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename string, mediaType string, force bool) error {
+func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename, attachmentName, mediaType string, force bool) error {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		Stderrf("Error expanding file name %s: %v", filename, err)
@@ -86,8 +87,11 @@ func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, file
 	if err != nil {
 		Stderrf("Couldn't read file %s: %v", filename, err)
 	}
+	if attachmentName == "" {
+		attachmentName = filepath.Base(filename)
+	}
 	err = commands.ImportAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), model.Attachment{
-		Name:      filepath.Base(filename),
+		Name:      attachmentName,
 		MediaType: mediaType,
 	}, raw, force)
 	if err != nil {
@@ -104,13 +108,37 @@ func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, atta
 
 	return err
 }
-func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName)
+func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string, concat bool, outputPath string) error {
+	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName, concat)
 	if err != nil {
 		Stderrf("Failed to fetch attachment %s to %s: %v", attachmentName, tmNameOrId, err)
+		return err
 	}
 
-	fmt.Print(string(content))
+	if outputPath == "" {
+		fmt.Print(string(content))
+		return nil
+	}
+	f, err := os.Stat(outputPath)
+	if err != nil && !os.IsNotExist(err) {
+		Stderrf("Could not stat output folder: %v", err)
+		return err
+	}
+	if f != nil && !f.IsDir() {
+		Stderrf("output target folder --output is not a folder")
+		return errors.New("output target folder --output is not a folder")
+	}
+	err = os.MkdirAll(outputPath, 0770)
+	if err != nil {
+		Stderrf("could not create output folder %s: %v", outputPath, err)
+		return err
+	}
+	fullFilename := filepath.Join(outputPath, attachmentName)
+	err = os.WriteFile(fullFilename, content, 0660)
+	if err != nil {
+		Stderrf("could not write attachment to file %s: %v", fullFilename, err)
+		return err
+	}
 	return nil
 }
 

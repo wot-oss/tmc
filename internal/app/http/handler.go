@@ -323,15 +323,19 @@ func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, para
 
 func (h *TmcHandler) GetThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmid, attachmentFileName string, params server.GetThingModelAttachmentByNameParams) {
 	ref := model.NewTMIDAttachmentContainerRef(tmid)
-	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, false)
 }
 func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.GetTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
-	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+	concat := false
+	if params.Concat != nil {
+		concat = *params.Concat
+	}
+	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, concat)
 }
 
-func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
-	data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName)
+func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) {
+	data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName, concat)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return

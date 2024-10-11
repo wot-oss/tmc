@@ -31,7 +31,7 @@ type HandlerService interface {
 	GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error)
 	GetTMMetadata(ctx context.Context, repo string, tmID string) ([]model.FoundVersion, error)
 	GetLatestTMMetadata(ctx context.Context, repo string, fetchName string) (model.FoundVersion, error)
-	FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error)
+	FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) ([]byte, error)
 	ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string, force bool) error
 	DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error
 	ListRepos(ctx context.Context) ([]model.RepoDescription, error)
@@ -264,12 +264,12 @@ func (dhs *defaultHandlerService) GetLatestTMMetadata(ctx context.Context, repo 
 	return metas[0], err
 }
 
-func (dhs *defaultHandlerService) FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) ([]byte, error) {
+func (dhs *defaultHandlerService) FetchAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) ([]byte, error) {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
-	content, err := commands.AttachmentFetch(ctx, spec, ref, attachmentFileName)
+	content, err := commands.AttachmentFetch(ctx, spec, ref, attachmentFileName, concat)
 	return content, err
 }
 func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error {
