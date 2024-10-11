@@ -73,3 +73,17 @@ If a version does not have an attachment named "README.md", it is skipped.
 
 The flag is intended to concatenate simple text files. It does not verify whether concatenating attachments produces a valid file for its media type.
 E.g. concatenating HTML or PDF files is not going to produce useful results.
+
+## `check`
+
+When a file repository is [published to a git forge][1], there exists the risk that contributions from multiple people
+will produce conflicts which won't get detected in time. Hence, there is the `check` command to verify a repository for
+internal consistency and integrity of the storage. `check` will fail if you store any files in the repository other than
+those that were added by using `tmc`. Exception to that is that files on top level and directories starting with a dot,
+are always ignored. In fact, when you run `tmc check` for the first time, a `.tmcignore` file with defaults is created
+in `.tmc` folder under file repository's root. If you do want to store some other files along with TMs and attachments
+under the repo's root, you should add corresponding lines to `.tmcignore`. It has the same pattern format as
+[`.gitignore`][2], but the paths are always relative to repo's root, instead of to directory where `.tmcignore` resides.
+
+[1]: ./workflows#publish-a-catalog-to-a-git-forge
+[2]: https://git-scm.com/docs/gitignore#_pattern_format
