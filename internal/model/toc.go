@@ -166,9 +166,9 @@ func (idx *Index) Sort() {
 	})
 }
 
-func (idx *Index) Filter(search *SearchParams) {
+func (idx *Index) Filter(search *SearchParams) error {
 	if search == nil {
-		return
+		return nil
 	}
 	search.Sanitize()
 	exclude := func(entry *IndexEntry) bool {
@@ -198,7 +198,7 @@ func (idx *Index) Filter(search *SearchParams) {
 		return e
 	})
 	if len(idx.Data) == 0 {
-		return
+		return nil
 	}
 
 	if len(search.Query) > 0 {
@@ -207,6 +207,7 @@ func (idx *Index) Filter(search *SearchParams) {
 			idx.Data = slices.DeleteFunc(idx.Data, del)
 		}
 	}
+	return nil
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
