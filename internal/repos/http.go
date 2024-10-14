@@ -147,7 +147,10 @@ func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	idx.Filter(search)
+	err = idx.Filter(search)
+	if err != nil {
+		return model.SearchResult{}, err
+	}
 	return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx), nil
 }
 

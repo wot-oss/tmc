@@ -139,9 +139,9 @@ func (idx *Index) Sort() {
 	})
 }
 
-func (idx *Index) Filter(search *SearchParams) {
+func (idx *Index) Filter(search *SearchParams) error {
 	if search == nil {
-		return
+		return nil
 	}
 	search.Sanitize()
 	exclude := func(entry *IndexEntry) bool {
@@ -171,7 +171,7 @@ func (idx *Index) Filter(search *SearchParams) {
 		return e
 	})
 	if len(idx.Data) == 0 {
-		return
+		return nil
 	}
 
 	if len(search.Query) > 0 {
@@ -181,6 +181,7 @@ func (idx *Index) Filter(search *SearchParams) {
 			idx.Data = slices.DeleteFunc(idx.Data, del)
 		}
 	}
+	return nil
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
@@ -238,43 +239,6 @@ func excludeBySimpleContentSearch(searchQuery string) func(e *IndexEntry) bool {
 			}
 		}
 		return true
-	}
-}
-
-func excludeByContentSearch(query string) func(e *IndexEntry) bool {
-
-	bleveIdx, errOpen := bleve.Open("../catalog.bleve")
-	if errOpen != nil {
-		return nil
-		//return fmt.Errorf("error opening bleve index: %v", errOpen)
-	} else {
-		defer bleveIdx.Close()
-		query := bleve.NewQueryStringQuery(query)
-		req := bleve.NewSearchRequestOptions(query, 100000, 0, true)
-		sr, err := bleveIdx.Search(req)
-
-		if err != nil {
-			slog.Default().Error(err.Error())
-			return nil
-		}
-
-		del := func(e *IndexEntry) bool {
-			if sr.Hits.Len() == 0 {
-				return true
-			}
-			del := true
-			for i, v := range e.Versions {
-				for _, hv := range sr.Hits {
-					parts := strings.Split(hv.ID, ":")
-					if v.TMID == parts[0] {
-						del = false
-						e.Versions[i].SearchScore = float32(hv.Score)
-					}
-				}
-			}
-			return del
-		}
-		return del
 	}
 }
 
