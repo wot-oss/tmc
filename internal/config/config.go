@@ -28,7 +28,6 @@ const (
 	modDel
 )
 
-var HomeDir string
 var ConfigDir string
 
 const DefaultConfigDir = "~/.tm-catalog"

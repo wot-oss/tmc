@@ -9,15 +9,38 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/buger/jsonparser"
+	"github.com/gregjones/httpcache"
+	"github.com/gregjones/httpcache/diskcache"
+	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const RelFileUriPlaceholder = "{{ID}}"
+
+var httpClient *http.Client
+var once sync.Once
+
+func getHttpClient() *http.Client {
+	once.Do(func() {
+		cacheDir := filepath.Join(config.ConfigDir, ".http-cache")
+		err := os.MkdirAll(cacheDir, 0770)
+		if err != nil {
+			panic(err)
+		}
+		cache := diskcache.New(cacheDir)
+		transport := httpcache.NewTransport(cache)
+		httpClient = &http.Client{Transport: transport}
+	})
+	return httpClient
+}
 
 type baseHttpRepo struct {
 	root       string
@@ -187,7 +210,7 @@ func doHttp(req *http.Request, auth map[string]any) (*http.Response, error) {
 			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", *bearerToken))
 		}
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := getHttpClient().Do(req)
 	return resp, err
 }
 
