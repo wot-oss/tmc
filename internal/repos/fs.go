@@ -37,6 +37,9 @@ var osReadFile = os.ReadFile // mockable for testing
 type FileRepo struct {
 	root string
 	spec model.RepoSpec
+
+	// cached index
+	idx *model.Index
 }
 
 func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) {
@@ -340,6 +343,9 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 
 // readIndex reads the contents of the index file. Must be called after the lock is acquired with lockIndex()
 func (f *FileRepo) readIndex() (*model.Index, error) {
+	if f.idx != nil {
+		return f.idx, nil
+	}
 	data, err := os.ReadFile(f.indexFilename())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -350,6 +356,9 @@ func (f *FileRepo) readIndex() (*model.Index, error) {
 
 	var index model.Index
 	err = json.Unmarshal(data, &index)
+	if err == nil {
+		f.idx = &index
+	}
 	return &index, err
 }
 
@@ -695,6 +704,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	}
 
 	newIndex.Sort()
+	f.idx = newIndex
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,
 	// complex or function values that would throw an error.
@@ -918,6 +928,7 @@ func (f *FileRepo) lockIndex(ctx context.Context) (unlockFunc, error) {
 	unlock := func() {
 		cancel()
 		_ = fl.Unlock()
+		f.idx = nil
 		log.Debug(fmt.Sprintf("unlocked index file: %s", idxFile))
 	}
 	locked, err := fl.TryLockContext(ctx, indexLocRetryDelay)
