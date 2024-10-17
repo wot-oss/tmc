@@ -333,7 +333,10 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	idx.Filter(search)
+	err = idx.Filter(search)
+	if err != nil {
+		return model.SearchResult{}, err
+	}
 	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
 	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx), nil
 }
