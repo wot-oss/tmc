@@ -18,7 +18,7 @@ var importCmd = &cobra.Command{
 	Short: "Import a TM or a directory with TMs into a catalog",
 	Long: `Import a single Thing Model or a directory with Thing Models into a catalog.
 	
-Importing a directory will walk the directory tree recursively and import all found ThingModels.
+Importing a directory will walk the directory tree recursively and attempt to import all found .json files.
 
 Specifying the target repository with --directory or --repo is optional if there's exactly one enabled named repository in the config.
 `,
@@ -31,8 +31,8 @@ func init() {
 	AddRepoDisambiguatorFlags(importCmd)
 	importCmd.Flags().StringP("opt-path", "p", "", "Appends optional path parts to the target path (and id) of imported files, after the mandatory path structure")
 	_ = importCmd.RegisterFlagCompletionFunc("repo", completion.NoCompletionNoFile)
-	importCmd.Flags().BoolP("opt-tree", "t", false, `Use original directory tree structure below file-or-dirname as --opt-path for each found ThingModel file.
-	Has no effect when file-or-dirname points to a file.
+	importCmd.Flags().BoolP("opt-tree", "t", false, `Use original directory tree structure below file-or-directory as --opt-path for each found ThingModel file.
+	Has no effect when file-or-directory points to a file.
 	Overrides --opt-path`)
 	importCmd.Flags().Bool("force", false, `Force import, even if there are conflicts with existing TMs.`)
 	importCmd.Flags().Bool("ignore-existing", false, `Ignore TMs that have conflicts with existing TMs instead of returning an error code.`)
