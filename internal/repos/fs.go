@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -24,12 +23,10 @@ const (
 	defaultFilePermissions = 0664
 	indexLockTimeout       = 5 * time.Second
 	indexLocRetryDelay     = 13 * time.Millisecond
-	errTmExistsPrefix      = "Thing Model already exists under id: "
 	TMExt                  = ".tm.json"
 )
 
 var ErrRootInvalid = errors.New("root is not a directory")
-var ErrIndexLocked = errors.New("could not acquire lock on index file")
 var osStat = os.Stat         // mockable for testing
 var osReadFile = os.ReadFile // mockable for testing
 
@@ -42,7 +39,7 @@ type FileRepo struct {
 func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) {
 	loc := utils.JsGetString(config, KeyRepoLoc)
 	if loc == nil {
-		return nil, fmt.Errorf("invalid file repo config. loc is either not found or not a string")
+		return nil, fmt.Errorf("cannot create a file repo from spec %v. Invalid config. loc is either not found or not a string", spec)
 	}
 	rootPath, err := utils.ExpandHome(*loc)
 	if err != nil {
@@ -56,7 +53,7 @@ func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) 
 
 func (f *FileRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
 	if len(raw) == 0 {
-		err := errors.New("nothing to write")
+		err := fmt.Errorf("nothing to write for id %v", id)
 		return ImportResultFromError(err)
 	}
 	idS := id.String()
@@ -67,11 +64,8 @@ func (f *FileRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts I
 		return ImportResultFromError(err)
 	}
 
-	match, existingId := f.getExistingID(idS)
-	log := slog.Default()
-	log.Debug(fmt.Sprintf("match: %v, existingId: %v", match, existingId))
+	match, existingId := f.getExistingID(ctx, idS)
 	if (match == idMatchDigest || match == idMatchFull) && !opts.Force {
-		log.Info(fmt.Sprintf("Same TM content already exists under ID %v", existingId))
 		err := &ErrTMIDConflict{Type: IdConflictSameContent, ExistingId: existingId}
 		return ImportResult{Type: ImportResultError, Message: err.Error(), Err: err}, err
 	}
@@ -81,11 +75,8 @@ func (f *FileRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts I
 		err := fmt.Errorf("could not write TM to catalog: %v", err)
 		return ImportResultFromError(err)
 	}
-	log.Info("saved Thing Model file", "filename", fullPath)
 
 	if match == idMatchTimestamp && !opts.Force {
-		msg := fmt.Sprintf("Version and timestamp clash with existing %v", existingId)
-		log.Info(msg)
 		err := &ErrTMIDConflict{Type: IdConflictSameTimestamp, ExistingId: existingId}
 		return ImportResult{Type: ImportResultWarning, TmID: idS, Message: err.Error(), Err: err}, nil
 	}
@@ -116,7 +107,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	fullFilename, dir, _ := f.filenames(id)
 	err = os.Remove(fullFilename)
 	if os.IsNotExist(err) {
-		return model.ErrTMNotFound
+		return fmt.Errorf("couldn't delete TM file %s: %w", id, model.ErrTMNotFound)
 	}
 	attDir, _ := f.getAttachmentsDir(model.NewTMIDAttachmentContainerRef(id))
 	h, err := f.listAttachments(model.NewTMIDAttachmentContainerRef(id))
@@ -131,7 +122,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 		_attDir := filepath.Dir(attDir)
 		// make sure there's no mistake, and we're about to delete the correct dir with attachments
 		if filepath.Base(_attDir) != model.AttachmentsDir {
-			return fmt.Errorf("internal error: not in .attachments directory: %s", attDir)
+			return fmt.Errorf("internal error while deleting %s: not in .attachments directory: %s", id, attDir)
 		}
 		err = os.RemoveAll(_attDir)
 		if err != nil {
@@ -140,7 +131,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	_ = rmEmptyDirs(dir, f.root)
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, id))
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(id))
 	return err
 }
 
@@ -148,14 +139,13 @@ func rmEmptyDirs(from string, upTo string) error {
 	from, errF := filepath.Abs(from)
 	upTo, errU := filepath.Abs(upTo)
 	if errF != nil {
-		slog.Default().Error("from path cannot be converted to absolute path", "error", errF)
+		errF = fmt.Errorf("from path %s cannot be converted to absolute path: %w", from, errF)
 		return errF
 	} else if errU != nil {
-		slog.Default().Error("upTo path cannot be converted to absolute path", "error", errU)
+		errU = fmt.Errorf("upTo path %s cannot be converted to absolute path: %w", upTo, errU)
 		return errU
 	} else if !strings.HasPrefix(from, upTo) {
-		err := errors.New("from path is not below upTo")
-		slog.Default().Error("error removing empty dirs", "error", err)
+		err := fmt.Errorf("cannot remove empty dirs: from path %s is not below upTo %s", from, upTo)
 		return err
 	}
 
@@ -191,7 +181,7 @@ const (
 	idMatchTimestamp // semver and timestamp match
 )
 
-func (f *FileRepo) getExistingID(ids string) (idMatch, string) {
+func (f *FileRepo) getExistingID(ctx context.Context, ids string) (idMatch, string) {
 	fullName, dir, base := f.filenames(ids)
 	// try full repoName as given
 	if _, err := os.Stat(fullName); err == nil {
@@ -204,7 +194,7 @@ func (f *FileRepo) getExistingID(ids string) (idMatch, string) {
 	}
 	version, err := model.ParseTMVersion(strings.TrimSuffix(base, TMExt))
 	if err != nil {
-		slog.Default().Error("invalid TM version in TM id", "id", ids, "error", err)
+		utils.GetLogger(ctx, "FileRepo").Warn("invalid TM version in TM id", "id", ids, "error", err)
 		return idMatchNone, ""
 	}
 	idPrefix := strings.TrimSuffix(ids, base)
@@ -258,7 +248,7 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 	if err != nil {
 		return "", nil, err
 	}
-	match, actualId := f.getExistingID(id)
+	match, actualId := f.getExistingID(ctx, id)
 	if match != idMatchFull && match != idMatchDigest {
 		return "", nil, model.ErrTMNotFound
 	}
@@ -282,7 +272,7 @@ func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 		_, err = f.updateIndex(ctx, f.fullIndexRebuild)
 		return err
 	}
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ctx, ids...))
+	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ids...))
 	return err
 }
 
@@ -315,9 +305,6 @@ func (f *FileRepo) Spec() model.RepoSpec {
 }
 
 func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
-	log := slog.Default()
-	log.Debug(fmt.Sprintf("Creating list with filter '%v'", search))
-
 	err := f.checkRootValid()
 	if err != nil {
 		return model.SearchResult{}, err
@@ -358,7 +345,6 @@ func (f *FileRepo) indexFilename() string {
 }
 
 func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
-	log := slog.Default()
 	name = strings.TrimSpace(name)
 	res, err := f.List(ctx, &model.SearchParams{Name: name})
 	if err != nil {
@@ -367,7 +353,6 @@ func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 
 	if len(res.Entries) != 1 {
 		err := fmt.Errorf("%w: %s", model.ErrTMNameNotFound, name)
-		log.Error(err.Error())
 		return nil, err
 	}
 
@@ -392,21 +377,16 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 }
 
 func (f *FileRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
-	log := slog.Default()
-	log.Debug(fmt.Sprintf("Importing attachment %s for '%v'", attachment, container))
-
 	err := f.checkRootValid()
 	if err != nil {
 		return err
 	}
-	log.Debug("root dir validated")
 
 	unlock, err := f.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
 		return err
 	}
-	log.Debug("index locked")
 
 	attDir, err := f.prepareAttachmentOperation(container)
 	if err != nil {
@@ -430,7 +410,7 @@ func (f *FileRepo) ImportAttachment(ctx context.Context, container model.Attachm
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(ctx, container, attachment, content))
+	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(container, attachment, content))
 	if err != nil {
 		return err
 	}
@@ -454,9 +434,6 @@ func (f *FileRepo) prepareAttachmentOperation(ref model.AttachmentContainerRef) 
 }
 
 func (f *FileRepo) FetchAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
-	log := slog.Default()
-	log.Debug(fmt.Sprintf("Fetching attachment %s for '%v'", attachmentName, ref))
-
 	err := f.checkRootValid()
 	if err != nil {
 		return nil, err
@@ -499,9 +476,6 @@ func (f *FileRepo) verifyAttachmentExistsInIndex(ref model.AttachmentContainerRe
 	return nil
 }
 func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentContainerRef, attachmentName string) error {
-	log := slog.Default()
-	log.Debug(fmt.Sprintf("Deleting attachment %s for '%v'", attachmentName, ref))
-
 	err := f.checkRootValid()
 	if err != nil {
 		return err
@@ -528,7 +502,7 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentCon
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ctx, ref, attachmentName))
+	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ref, attachmentName))
 	if err != nil {
 		return err
 	}
@@ -610,7 +584,6 @@ func getFileNames(dir string) ([]string, error) {
 func (f *FileRepo) getAttachmentsDir(ref model.AttachmentContainerRef) (string, error) {
 	relDir, err := model.RelAttachmentsDir(ref)
 	attDir := filepath.Join(f.root, relDir)
-	slog.Default().Debug("attachments dir calculated", "container", ref, "attDir", attDir)
 	return attDir, err
 }
 
@@ -618,10 +591,8 @@ func (f *FileRepo) checkRootValid() error {
 	stat, err := os.Stat(f.root)
 	if err != nil || !stat.IsDir() {
 		err := fmt.Errorf("%s: %w", f.Spec(), ErrRootInvalid)
-		slog.Default().Debug(err.Error())
 		return err
 	}
-	slog.Default().Debug(fmt.Sprintf("%s: root dir check ok", f.Spec()))
 	return nil
 }
 
@@ -677,7 +648,6 @@ func makeAbs(dir string) (string, error) {
 
 func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
 	// Prepare data collection for logging stats
-	var log = slog.Default()
 	start := time.Now()
 
 	oldNames := f.readNamesFile()
@@ -708,15 +678,15 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 		return nil, err
 	}
 
-	msg := "Updated index with %d records in %s "
-	msg = fmt.Sprintf(msg, fileCount, duration.String())
-	log.Info(msg)
+	msg := fmt.Sprintf("Updated index with %d records in %s ", fileCount, duration.String())
+	utils.GetLogger(ctx, "FileRepo").Debug(msg)
+
 	return newIndex, nil
 }
 
 type indexUpdater func(ctx context.Context, oldIndex *model.Index, oldNames []string) (newIndex *model.Index, newNames []string, updatedFileCount int, err error)
 
-func (f *FileRepo) indexUpdaterForIds(ctx context.Context, ids ...string) indexUpdater {
+func (f *FileRepo) indexUpdaterForIds(ids ...string) indexUpdater {
 	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
 		fileCount := 0
 		newNames := oldNames
@@ -728,9 +698,9 @@ func (f *FileRepo) indexUpdaterForIds(ctx context.Context, ids ...string) indexU
 				return nil, nil, 0, ctx.Err()
 			default:
 			}
-			path := filepath.Join(f.root, id)
-			info, statErr := osStat(path)
-			upd, id, nameDeleted, err := f.updateIndexWithFile(newIndex, path, info, statErr)
+			pth := filepath.Join(f.root, id)
+			info, statErr := osStat(pth)
+			upd, id, nameDeleted, err := f.updateIndexWithFile(ctx, newIndex, pth, info, statErr)
 			if err != nil {
 				return nil, nil, 0, err
 			}
@@ -756,7 +726,7 @@ func (f *FileRepo) indexUpdaterForIds(ctx context.Context, ids ...string) indexU
 	}
 
 }
-func (f *FileRepo) indexUpdaterForDeleteAttachment(ctx context.Context, ref model.AttachmentContainerRef, attName string) indexUpdater {
+func (f *FileRepo) indexUpdaterForDeleteAttachment(ref model.AttachmentContainerRef, attName string) indexUpdater {
 	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
 		select {
 		case <-ctx.Done():
@@ -778,7 +748,7 @@ func (f *FileRepo) indexUpdaterForDeleteAttachment(ctx context.Context, ref mode
 
 	}
 }
-func (f *FileRepo) indexUpdaterForImportAttachment(ctx context.Context, ref model.AttachmentContainerRef, att model.Attachment, content []byte) indexUpdater {
+func (f *FileRepo) indexUpdaterForImportAttachment(ref model.AttachmentContainerRef, att model.Attachment, content []byte) indexUpdater {
 	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
 		select {
 		case <-ctx.Done():
@@ -814,7 +784,7 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 			return ctx.Err()
 		default:
 		}
-		upd, id, _, err := f.updateIndexWithFile(newIndex, path, info, err)
+		upd, id, _, err := f.updateIndexWithFile(ctx, newIndex, path, info, err)
 		if err != nil {
 			return err
 		}
@@ -838,7 +808,7 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 }
 
 func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRef]struct{}, oldIndex *model.Index, newIndex *model.Index) error {
-	for ref, _ := range containers {
+	for ref := range containers {
 		dir, _ := f.getAttachmentsDir(ref) // ref is sure to be valid
 		nameAttachments, err := getFileNames(dir)
 		if err != nil {
@@ -861,8 +831,8 @@ func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRe
 	return nil
 }
 
-func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.FileInfo, err error) (updated bool, indexedId model.TMID, deletedName string, errr error) {
-	log := slog.Default()
+func (f *FileRepo) updateIndexWithFile(ctx context.Context, idx *model.Index, path string, info os.FileInfo, err error) (updated bool, indexedId model.TMID, deletedName string, errr error) {
+	log := utils.GetLogger(ctx, "FileRepo")
 	idS, _ := strings.CutPrefix(filepath.ToSlash(filepath.Clean(path)), filepath.ToSlash(filepath.Clean(f.root)))
 	idS, _ = strings.CutPrefix(idS, "/")
 	if os.IsNotExist(err) {
@@ -883,16 +853,12 @@ func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.Fi
 	}
 	thingMeta, err := f.getThingMetadata(path)
 	if err != nil {
-		err = fmt.Errorf("failed to extract metadata from file %s with error: %w", path, err)
-		log.Error(err.Error())
-		log.Error("The file will be excluded from the table of contents.")
+		log.Warn(fmt.Sprintf("failed to extract metadata from file %s: %v. The file will be excluded from index", path, err))
 		return false, model.TMID{}, "", nil
 	}
 	err = idx.Insert(&thingMeta.tm)
 	if err != nil {
-		log.Error(fmt.Sprintf("Failed to insert %s into index:", path))
-		log.Error(err.Error())
-		log.Error("The file will be excluded from index")
+		log.Warn(fmt.Sprintf("failed to insert %s into index: %v. The file will be excluded from index", path, err))
 		return false, model.TMID{}, "", nil
 	}
 	return true, thingMeta.id, "", nil
@@ -901,13 +867,12 @@ func (f *FileRepo) updateIndexWithFile(idx *model.Index, path string, info os.Fi
 type unlockFunc func()
 
 func (f *FileRepo) lockIndex(ctx context.Context) (unlockFunc, error) {
-	log := slog.Default()
-	log.Debug(fmt.Sprintf("%s: attempting to lock index", f.Spec()))
 	rd := filepath.Join(f.root, RepoConfDir)
 	stat, err := os.Stat(rd)
 	if err != nil || !stat.IsDir() {
 		err := os.MkdirAll(rd, defaultDirPermissions)
 		if err != nil {
+			err := fmt.Errorf("couldn't create repo config dir %s: %w", rd, err)
 			return func() {}, err
 		}
 	}
@@ -918,21 +883,15 @@ func (f *FileRepo) lockIndex(ctx context.Context) (unlockFunc, error) {
 	unlock := func() {
 		cancel()
 		_ = fl.Unlock()
-		log.Debug(fmt.Sprintf("unlocked index file: %s", idxFile))
 	}
 	locked, err := fl.TryLockContext(ctx, indexLocRetryDelay)
-	if err != nil {
-		//log.Debug("failed to lock index file: %s", idxFile)
+	if err != nil || !locked {
+		err = fmt.Errorf("failed to lock index file %s: %w", idxFile, err)
 		return unlock, err
-	}
-	if !locked {
-		//log.Debug("failed to lock index file: %s", idxFile)
-		return unlock, ErrIndexLocked
 	}
 
 	f.moveOldIndex(idxFile)
 
-	log.Debug(fmt.Sprintf("locked index file: %s", idxFile))
 	return unlock, nil
 }
 
@@ -1027,7 +986,8 @@ func (f *FileRepo) ListCompletions(ctx context.Context, kind string, args []stri
 		return names, nil
 	case CompletionKindFetchNames:
 		if strings.Contains(toComplete, "..") {
-			return nil, fmt.Errorf("%w :no completions for name containing '..'", ErrInvalidCompletionParams)
+			err := fmt.Errorf("%w :no completions for name containing '..': %s", ErrInvalidCompletionParams, toComplete)
+			return nil, err
 		}
 
 		name, _, _ := strings.Cut(toComplete, ":")
@@ -1042,13 +1002,14 @@ func (f *FileRepo) ListCompletions(ctx context.Context, kind string, args []stri
 			if !e.IsDir() && strings.HasSuffix(e.Name(), TMExt) {
 				ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name(), TMExt))
 				if err != nil {
+					utils.GetLogger(ctx, "FileRepo.ListCompletions").Debug(err.Error())
 					continue
 				}
 				vm[ver.BaseString()] = struct{}{}
 			}
 		}
 		var vs []string
-		for v, _ := range vm {
+		for v := range vm {
 			vs = append(vs, fmt.Sprintf("%s:%s", name, v))
 		}
 		slices.Sort(vs)

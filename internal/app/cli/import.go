@@ -113,8 +113,9 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 func (p *ImportExecutor) importFile(ctx context.Context, filename string, repo repos.Repo, opts repos.ImportOptions) (repos.ImportResult, error) {
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
-		Stderrf("Couldn't read file %s: %v", filename, err)
-		return repos.ImportResultFromError(fmt.Errorf("error importing file %s: %w", filename, err))
+		err := fmt.Errorf("error reading file %s for import: %w", filename, err)
+		Stderrf("%v", err.Error())
+		return repos.ImportResultFromError(err)
 	}
 	res, err := commands.NewImportCommand(p.now).ImportFile(ctx, raw, repo, opts)
 	if err != nil {
@@ -127,6 +128,7 @@ func (p *ImportExecutor) importFile(ctx context.Context, filename string, repo r
 			return res, err
 		}
 		err := fmt.Errorf("error importing file %s: %w", filename, err)
+		Stderrf("%v", err.Error())
 		return repos.ImportResultFromError(err)
 	}
 	switch res.Type {
@@ -141,7 +143,9 @@ func (p *ImportExecutor) importFile(ctx context.Context, filename string, repo r
 	case repos.ImportResultOK:
 		res.Message = fmt.Sprintf("file %s imported as %s", filename, res.TmID)
 	default:
-		return repos.ImportResultFromError(fmt.Errorf("unexpected ImportResult type %v when importing file %s", res.Type, filename))
+		err := fmt.Errorf("unexpected ImportResult type %v when importing file %s", res.Type, filename)
+		Stderrf("%v", err.Error())
+		return repos.ImportResultFromError(err)
 	}
 	return res, err
 }

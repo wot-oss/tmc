@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"path"
 	"strings"
 	"time"
@@ -38,25 +37,20 @@ func NewImportCommand(now Now) *ImportCommand {
 // Returns ImportResult which includes the ID that the TM has been stored under, and error.
 // If the repo already contains the same TM, the error will be an instance of repos.ErrTMIDConflict
 func (c *ImportCommand) ImportFile(ctx context.Context, raw []byte, repo repos.Repo, opts repos.ImportOptions) (repos.ImportResult, error) {
-	log := slog.Default()
 	tm, err := validate.ValidateThingModel(raw)
 	if err != nil {
-		log.Error("validation failed", "error", err)
 		return repos.ImportResultFromError(err)
 	}
-	prepared, id, err := prepareToImport(c.now, tm, raw, opts.OptPath)
+	prepared, id, err := prepareToImport(ctx, c.now, tm, raw, opts.OptPath)
 	if err != nil {
 		return repos.ImportResultFromError(err)
 	}
 
 	res, err := repo.Import(ctx, id, prepared, opts)
-	if err == nil {
-		log.Info("import executed without error")
-	}
 	return res, err
 }
 
-func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
+func prepareToImport(ctx context.Context, now Now, tm *model.ThingModel, raw []byte, optPath string) ([]byte, model.TMID, error) {
 	var intermediate = make([]byte, len(raw))
 	copy(intermediate, raw)
 
@@ -74,7 +68,7 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 		if err != nil {
 			if errors.Is(err, model.ErrInvalidId) {
 				// move the existing id to original link if it's external
-				intermediate = moveIdToOriginalLink(intermediate, origId)
+				intermediate = moveIdToOriginalLink(ctx, intermediate, origId)
 			} else {
 				// ParseTMID returned unexpected error. better stop here
 				return nil, model.TMID{}, err
@@ -90,7 +84,8 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 		finalId = generatedId
 	}
 	if len(finalId.Name) > maxNameLength {
-		return nil, model.TMID{}, fmt.Errorf("%w: %s", ErrTMNameTooLong, finalId.Name)
+		err := fmt.Errorf("%w: %s", ErrTMNameTooLong, finalId.Name)
+		return nil, model.TMID{}, err
 	}
 	idString, _ := json.Marshal(finalId.String())
 	final, err := jsonparser.Set(normalized, idString, "id")
@@ -100,7 +95,7 @@ func prepareToImport(now Now, tm *model.ThingModel, raw []byte, optPath string) 
 	return final, finalId, nil
 }
 
-func moveIdToOriginalLink(raw []byte, id string) []byte {
+func moveIdToOriginalLink(ctx context.Context, raw []byte, id string) []byte {
 	linksValue, dataType, _, err := jsonparser.Get(raw, "links")
 	if err != nil && dataType != jsonparser.NotExist {
 		return raw
@@ -116,7 +111,7 @@ func moveIdToOriginalLink(raw []byte, id string) []byte {
 	case jsonparser.Array:
 		err := json.Unmarshal(linksValue, &linksArray)
 		if err != nil {
-			slog.Default().Error("error unmarshalling links", "error", err)
+			utils.GetLogger(ctx, "ImportCommand").Debug("error unmarshalling links", "error", err)
 			return raw
 		}
 		for _, eLink := range linksArray {
@@ -129,16 +124,20 @@ func moveIdToOriginalLink(raw []byte, id string) []byte {
 
 	default:
 		// unexpected type of "links"
-		slog.Default().Warn(fmt.Sprintf("unexpected type of links %v", dataType))
+		utils.GetLogger(ctx, "ImportCommand").Debug(fmt.Sprintf("unexpected type of links %v", dataType))
 		return raw
 	}
 
 	linksBytes, err := json.Marshal(linksArray)
 	if err != nil {
-		slog.Default().Error("unexpected marshal error", "error", err)
+		utils.GetLogger(ctx, "ImportCommand").Error("unexpected marshal error", "error", err)
 		return raw
 	}
 	raw, err = jsonparser.Set(raw, linksBytes, "links")
+	if err != nil {
+		utils.GetLogger(ctx, "ImportCommand").Error("failed to set links", "error", err)
+		return raw
+	}
 
 	return raw
 }

@@ -74,7 +74,7 @@ func TestMoveIdToOriginalLink(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		res := moveIdToOriginalLink([]byte(test.json), test.id)
+		res := moveIdToOriginalLink(context.Background(), []byte(test.json), test.id)
 		var js map[string]any
 		err := json.Unmarshal(res, &js)
 		assert.NoError(t, err)
@@ -118,7 +118,7 @@ func TestPrepareToImport(t *testing.T) {
 		return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC)
 	}
 	t.Run("no id in original", func(t *testing.T) {
-		b, _, err := prepareToImport(now, &model.ThingModel{
+		b, _, err := prepareToImport(context.Background(), now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
@@ -129,7 +129,7 @@ func TestPrepareToImport(t *testing.T) {
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
 	})
 	t.Run("too long name", func(t *testing.T) {
-		_, _, err := prepareToImport(now, &model.ThingModel{
+		_, _, err := prepareToImport(context.Background(), now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: strings.Repeat("omnicorpus", 10)}, // 100 chars
 			Mpn:          strings.Repeat("senseall", 10),                                   // 80 chars
 			Author:       model.SchemaAuthor{Name: strings.Repeat("author", 10)},           // 60 chars
@@ -138,7 +138,7 @@ func TestPrepareToImport(t *testing.T) {
 		assert.ErrorIs(t, err, ErrTMNameTooLong) // 100 + 80 + 60 + 13 + 3 slashes in between = 256 chars
 	})
 	t.Run("foreign string id in original", func(t *testing.T) {
-		b, _, err := prepareToImport(now, &model.ThingModel{
+		b, _, err := prepareToImport(context.Background(), now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
@@ -149,7 +149,7 @@ func TestPrepareToImport(t *testing.T) {
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-e7dac5728be6.tm.json")))
 	})
 	t.Run("our string id in original/correct hash", func(t *testing.T) {
-		b, _, err := prepareToImport(now, &model.ThingModel{
+		b, _, err := prepareToImport(context.Background(), now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
@@ -160,7 +160,7 @@ func TestPrepareToImport(t *testing.T) {
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20221010123243-7ae21a619c71.tm.json")))
 	})
 	t.Run("our string id in original/incorrect author", func(t *testing.T) {
-		b, _, err := prepareToImport(now, &model.ThingModel{
+		b, _, err := prepareToImport(context.Background(), now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
@@ -171,7 +171,7 @@ func TestPrepareToImport(t *testing.T) {
 		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-7ae21a619c71.tm.json")))
 	})
 	t.Run("our string id in original/incorrect hash", func(t *testing.T) {
-		b, _, err := prepareToImport(now, &model.ThingModel{
+		b, _, err := prepareToImport(context.Background(), now, &model.ThingModel{
 			Manufacturer: model.SchemaManufacturer{Name: "omnicorp"},
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},

@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -40,7 +41,7 @@ the config may be a simple string, like directory path or a URL, or a json file.
 
 		descr, _ := cmd.Flags().GetString("description")
 
-		err = cli.RepoAdd(name, typ, confStr, confFile, descr)
+		err = cli.RepoAdd(context.Background(), name, typ, confStr, confFile, descr)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
