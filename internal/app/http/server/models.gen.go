@@ -88,6 +88,7 @@ type InventoryEntryVersion struct {
 	Digest      string                      `json:"digest"`
 	ExternalID  string                      `json:"externalID"`
 	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
+	Protocols   *[]string                   `json:"protocols,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
 	// May be left empty when there is only a single repository served by the backend and thus there is not need for
@@ -222,6 +223,11 @@ type GetAuthorsParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
+	// FilterProtocol Filters the authors according to whether they have inventory entries
+	// which support at least one of the given URL protocol schemes  with an exact match.
+	// The filter works additive to other filters.
+	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
+
 	// Search Filters the authors according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
@@ -244,6 +250,10 @@ type GetInventoryParams struct {
 	// FilterMpn Filters the inventory by one ore more mpn (manufacturer part number) having exact match.
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
+
+	// FilterProtocol Filters the inventory by one ore more URL protocol schemes having exact match.
+	// The filter works additive to other filters.
+	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
 
 	// FilterName Filters the inventory by inventory entry name having a prefix match of full path parts.
 	// The filter works additive to other filters.
@@ -283,6 +293,11 @@ type GetManufacturersParams struct {
 	// The filter works additive to other filters.
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
+	// FilterProtocol Filters the manufacturers according to whether they have inventory entries
+	// which support at least one of the given URL protocol schemes  with an exact match.
+	// The filter works additive to other filters.
+	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
+
 	// Search Filters the manufacturers according to whether they have inventory entries
 	// where their content matches the given search.
 	// The search works additive to other filters.
@@ -298,6 +313,11 @@ type GetMpnsParams struct {
 	// FilterManufacturer Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.
 	// The filter works additive to other filters.
 	FilterManufacturer *string `form:"filter.manufacturer,omitempty" json:"filter.manufacturer,omitempty"`
+
+	// FilterProtocol Filters the mpns according to whether they have inventory entries
+	// which support at least one of the given URL protocol schemes  with an exact match.
+	// The filter works additive to other filters.
+	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
 
 	// Search Filters the mpns according to whether their inventory entry content matches the given search.
 	// The search works additive to other filters.
@@ -339,7 +359,7 @@ type GetTMNameAttachmentParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 
-	// Concat Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same
+	// Concat Fetch a concatenation of the attachment to a TM name and homonymous attachments to all of its versions
 	Concat *bool `form:"concat,omitempty" json:"concat,omitempty"`
 }
 

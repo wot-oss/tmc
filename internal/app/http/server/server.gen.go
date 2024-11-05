@@ -167,6 +167,14 @@ func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// ------------- Optional query parameter "filter.protocol" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.protocol", r.URL.Query(), &params.FilterProtocol)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.protocol", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
@@ -286,6 +294,14 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 	err = runtime.BindQueryParameter("form", true, false, "filter.mpn", r.URL.Query(), &params.FilterMpn)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.mpn", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "filter.protocol" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.protocol", r.URL.Query(), &params.FilterProtocol)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.protocol", Err: err})
 		return
 	}
 
@@ -460,6 +476,14 @@ func (siw *ServerInterfaceWrapper) GetManufacturers(w http.ResponseWriter, r *ht
 		return
 	}
 
+	// ------------- Optional query parameter "filter.protocol" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.protocol", r.URL.Query(), &params.FilterProtocol)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.protocol", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
@@ -503,6 +527,14 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 	err = runtime.BindQueryParameter("form", true, false, "filter.manufacturer", r.URL.Query(), &params.FilterManufacturer)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.manufacturer", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "filter.protocol" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.protocol", r.URL.Query(), &params.FilterProtocol)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.protocol", Err: err})
 		return
 	}
 

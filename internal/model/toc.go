@@ -141,6 +141,7 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
+	Protocols   []string          `json:"protocols,omitempty"`
 	AttachmentContainer
 }
 
@@ -192,6 +193,10 @@ func (idx *Index) Filter(search *SearchParams) {
 			return true
 		}
 
+		if !matchesProtocolFilter(search.Protocol, entry) {
+			return true
+		}
+
 		return false
 	}
 	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
@@ -202,6 +207,20 @@ func (idx *Index) Filter(search *SearchParams) {
 		return e
 	})
 
+}
+
+func matchesProtocolFilter(protos []string, entry *IndexEntry) bool {
+	if len(protos) == 0 {
+		return true
+	}
+	for _, v := range entry.Versions {
+		for _, p := range protos {
+			if slices.Contains(v.Protocols, p) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
@@ -292,6 +311,7 @@ func (idx *Index) Insert(ctm *ThingModel) error {
 		TMID:        ctm.ID,
 		ExternalID:  externalID,
 		Digest:      tmid.Version.Hash,
+		Protocols:   ctm.protocols,
 		Links:       map[string]string{"content": tmid.String()},
 	}
 	if idx := slices.IndexFunc(idxEntry.Versions, func(version *IndexVersion) bool {

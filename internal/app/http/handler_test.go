@@ -225,12 +225,13 @@ func Test_Inventory(t *testing.T) {
 		fAuthors := "a1,a2"
 		fMan := "man1,man2"
 		fMpn := "mpn1,mpn2"
+		fProtos := "coap,https"
 		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&search=%s",
-			route, fAuthors, fMan, fMpn, search)
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s&search=%s",
+			route, fAuthors, fMan, fMpn, fProtos, search)
 		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := model.ToSearchParams(&fAuthors, &fMan, &fMpn, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
+		expectedSearchParams := model.ToSearchParams(&fAuthors, &fMan, &fMpn, &fProtos, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListInventory", mock.Anything, "", expectedSearchParams).Return(&listResult1, nil).Once()
 
@@ -332,7 +333,7 @@ func Test_Authors(t *testing.T) {
 			route, fMan, fMpn, search)
 
 		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := model.ToSearchParams(nil, &fMan, &fMpn, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
+		expectedSearchParams := model.ToSearchParams(nil, &fMan, &fMpn, nil, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListAuthors", mock.Anything, expectedSearchParams).Return(authors, nil).Once()
 
@@ -1471,6 +1472,7 @@ var (
 							Digest:      "234d1b462fff",
 							TimeStamp:   "20240107123001",
 							ExternalID:  "ext-4",
+							Protocols:   []string{"coaps", "https"},
 							AttachmentContainer: model.AttachmentContainer{
 								Attachments: []model.Attachment{
 									{

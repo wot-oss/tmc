@@ -228,6 +228,7 @@ func convertParams(params any) *model.SearchParams {
 	var filterAuthor *string
 	var filterManufacturer *string
 	var filterMpn *string
+	var filterProtocol *string
 	var filterName *string
 	var search *string
 
@@ -235,23 +236,27 @@ func convertParams(params any) *model.SearchParams {
 		filterAuthor = invParams.FilterAuthor
 		filterManufacturer = invParams.FilterManufacturer
 		filterMpn = invParams.FilterMpn
+		filterProtocol = invParams.FilterProtocol
 		filterName = invParams.FilterName
 		search = invParams.Search
 	} else if authorsParams, ok := params.(server.GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
+		filterProtocol = authorsParams.FilterProtocol
 		search = authorsParams.Search
 	} else if manParams, ok := params.(server.GetManufacturersParams); ok {
 		filterAuthor = manParams.FilterAuthor
 		filterMpn = manParams.FilterMpn
+		filterProtocol = manParams.FilterProtocol
 		search = manParams.Search
 	} else if mpnsParams, ok := params.(server.GetMpnsParams); ok {
 		filterAuthor = mpnsParams.FilterAuthor
 		filterManufacturer = mpnsParams.FilterManufacturer
+		filterProtocol = mpnsParams.FilterProtocol
 		search = mpnsParams.Search
 	}
 
-	return model.ToSearchParams(filterAuthor, filterManufacturer, filterMpn, filterName, search,
+	return model.ToSearchParams(filterAuthor, filterManufacturer, filterMpn, filterProtocol, filterName, search,
 		&model.SearchOptions{NameFilterType: model.PrefixMatch})
 }
 
