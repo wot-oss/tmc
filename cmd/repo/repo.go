@@ -28,7 +28,7 @@ func init() {
 	repoCmd.AddCommand(repoListCmd)
 }
 
-func repoList(cmd *cobra.Command, args []string) {
+func repoList(_ *cobra.Command, _ []string) {
 	err := cli.RepoList()
 	if err != nil {
 		os.Exit(1)

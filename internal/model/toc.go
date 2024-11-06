@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -130,8 +129,6 @@ func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
 	return false
 
 }
-
-const TMLinkRel = "content"
 
 type IndexVersion struct {
 	Description string            `json:"description"`
@@ -406,17 +403,15 @@ func RelAttachmentsDir(ref AttachmentContainerRef) (string, error) {
 	var attDir string
 	switch ref.Kind() {
 	case AttachmentContainerKindInvalid:
-		return "", fmt.Errorf("%w: %v", ErrInvalidIdOrName, ref)
+		return "", fmt.Errorf("invalid attachment container reference: %w: %v", ErrInvalidIdOrName, ref)
 	case AttachmentContainerKindTMID:
 		id, err := ParseTMID(ref.TMID)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("invalid attachment container reference: %w: %v", err, ref)
 		}
 		attDir = fmt.Sprintf("%s/%s/%s", id.Name, AttachmentsDir, id.Version.String())
 	case AttachmentContainerKindTMName:
 		attDir = fmt.Sprintf("%s/%s", ref.TMName, AttachmentsDir)
 	}
-	slog.Default().Debug("attachments dir for ref calculated", "container", ref, "attDir", attDir)
 	return attDir, nil
-
 }

@@ -1,14 +1,14 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/wot-oss/tmc/internal/commands/validate"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func ValidateFile(filename string) error {
-
+func ValidateFile(ctx context.Context, filename string) error {
 	_, raw, err := utils.ReadRequiredFile(filename)
 	if err != nil {
 		Stderrf("could not read file: %v\n", err)

@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -24,11 +22,8 @@ func init() {
 	AddRepoDisambiguatorFlags(indexCmd)
 }
 
-func executeRefreshIndex(cmd *cobra.Command, args []string) {
-	var log = slog.Default()
-
+func executeRefreshIndex(cmd *cobra.Command, _ []string) {
 	spec := RepoSpecFromFlags(cmd)
-	log.Debug(fmt.Sprintf("Refreshing index for repository %s", spec))
 
 	err := cli.Index(context.Background(), spec)
 	if err != nil {
