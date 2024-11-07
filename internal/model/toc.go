@@ -103,7 +103,6 @@ func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
 	return AttachmentContainerKindTMID
 }
 
-const TMLinkRel = "content"
 
 type IndexVersion struct {
 	Description string            `json:"description"`
@@ -180,6 +179,12 @@ func (idx *Index) Filter(search *SearchParams) error {
 		if del != nil {
 			idx.Data = slices.DeleteFunc(idx.Data, del)
 		}
+		del, err := excludeBySimpleContentSearch(search.Query)
+		if err != nil {
+			return err
+		}
+
+		idx.Data = slices.DeleteFunc(idx.Data, del)
 	}
 	return nil
 }
@@ -212,7 +217,7 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-func excludeBySimpleContentSearch(searchQuery string) func(e *IndexEntry) bool {
+func excludeBySimpleContentSearch(searchQuery string) (func(e *IndexEntry) bool, error) {
 	return func(e *IndexEntry) bool {
 		if e == nil {
 			return true
@@ -239,7 +244,7 @@ func excludeBySimpleContentSearch(searchQuery string) func(e *IndexEntry) bool {
 			}
 		}
 		return true
-	}
+	}, nil
 }
 
 func excludeByContentSearch(query string) func(e *IndexEntry) bool {
@@ -453,17 +458,15 @@ func RelAttachmentsDir(ref AttachmentContainerRef) (string, error) {
 	var attDir string
 	switch ref.Kind() {
 	case AttachmentContainerKindInvalid:
-		return "", fmt.Errorf("%w: %v", ErrInvalidIdOrName, ref)
+		return "", fmt.Errorf("invalid attachment container reference: %w: %v", ErrInvalidIdOrName, ref)
 	case AttachmentContainerKindTMID:
 		id, err := ParseTMID(ref.TMID)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("invalid attachment container reference: %w: %v", err, ref)
 		}
 		attDir = fmt.Sprintf("%s/%s/%s", id.Name, AttachmentsDir, id.Version.String())
 	case AttachmentContainerKindTMName:
 		attDir = fmt.Sprintf("%s/%s", ref.TMName, AttachmentsDir)
 	}
-	slog.Default().Debug("attachments dir for ref calculated", "container", ref, "attDir", attDir)
 	return attDir, nil
-
 }

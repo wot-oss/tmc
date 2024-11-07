@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"context"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -16,7 +17,7 @@ var repoSetAuthCmd = &cobra.Command{
 	Example: "set-auth http-repo bearer qfdhjf83cblkju",
 	Args:    cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cli.RepoSetAuth(args[0], args[1], args[2])
+		err := cli.RepoSetAuth(context.Background(), args[0], args[1], args[2])
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)

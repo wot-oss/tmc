@@ -15,7 +15,6 @@ var (
 	ErrInvalidPseudoVersion = errors.New("no valid pseudo-version found")
 	ErrInvalidId            = errors.New("TM id invalid")
 	ErrInvalidIdOrName      = errors.New("id or name invalid")
-	ErrVersionDiffers       = errors.New("id has a differing version from given ThingModel")
 )
 
 type TMID struct {
