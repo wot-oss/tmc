@@ -177,8 +177,9 @@ func (idx *Index) Filter(search *SearchParams) error {
 		if err != nil {
 			return err
 		}
-
-		idx.Data = slices.DeleteFunc(idx.Data, del)
+		if del != nil {
+			idx.Data = slices.DeleteFunc(idx.Data, del)
+		}
 	}
 	return nil
 }
