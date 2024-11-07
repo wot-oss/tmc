@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -18,31 +19,23 @@ import (
 // ReadRequiredFile reads the file. Returns expanded absolute representation of the filename and file contents.
 // Removes Byte-Order-Mark from the content
 func ReadRequiredFile(name string) (string, []byte, error) {
-	var log = slog.Default()
-
 	abs, err := filepath.Abs(name)
 	if err != nil {
-		log.Error("error expanding file name", "filename", name, "error", err)
-		return "", nil, err
+		return "", nil, fmt.Errorf("error expanding file name %s: %w", name, err)
 	}
-	log.Debug("reading file", "filename", abs)
 
 	stat, err := os.Stat(abs)
 	if err != nil {
-		log.Error("error reading file", "filename", abs, "error", err)
-		return "", nil, err
+		return "", nil, fmt.Errorf("error reading file %s: %w", abs, err)
 	}
 	if stat.IsDir() {
-		err = errors.New("not a file")
-		return "", nil, err
+		return "", nil, fmt.Errorf("%s is not a file", abs)
 	}
 	raw, err := os.ReadFile(abs)
 	if err != nil {
-		log.Error("error reading file", "filename", abs, "error", err)
-		return "", nil, err
+		return "", nil, fmt.Errorf("error reading file %s: %w", abs, err)
 	}
 	raw = removeBOM(raw)
-	log.Debug(fmt.Sprintf("read %d bytes from %s beginning with %s", len(raw), abs, string(raw[:100])))
 	return abs, raw, nil
 }
 
@@ -61,7 +54,6 @@ func ExpandHome(path string) (string, error) {
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
-		slog.Default().Error("cannot expand user home directory", "error", err)
 		return "", fmt.Errorf("cannot expand user home directory: %w", err)
 	}
 	_, rest, found := strings.Cut(path, "~")
@@ -296,4 +288,20 @@ func DetectMediaType(userGivenType string, filename string, getReader ReadCloser
 		return ct
 	}
 	return mediaOctetStream
+}
+
+const CtxKeyLogger = "logger"
+
+// GetLogger returns the logger that is valid in the context
+// If component is not empty, the logger is extended with the field "where" having that value.
+func GetLogger(ctx context.Context, component string) *slog.Logger {
+	cv := ctx.Value(CtxKeyLogger)
+	l, ok := cv.(*slog.Logger)
+	if !ok || l == nil {
+		l = slog.Default()
+	}
+	if component != "" {
+		l = l.With("where", component)
+	}
+	return l
 }

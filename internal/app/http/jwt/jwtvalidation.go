@@ -2,13 +2,13 @@ package jwt
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 var jwksKeyFunc jwt.Keyfunc
@@ -28,22 +28,26 @@ func jwtValidationMiddleware(h http.Handler) http.Handler {
 		// existing scopes in ctx is the only hint for a protected endpoint
 		scopes := extractAuthScopes(r)
 		if scopes != nil {
-			slog.Default().Debug("jwt: protected endpoint:", "path", r.URL)
+			log := utils.GetLogger(r.Context(), "jwt.validation.middleware").With("authentication", true)
+			log.Debug("jwt: protected endpoint:", "path", r.URL)
 			// protected endpoint, check for bearer tokenString in header
 			tokenString, err := extractBearerToken(r)
 			if err != nil {
+				log.Warn("failed to extract token", "error", err)
 				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
 			// got token, validate it
 			var token *jwt.Token
 			if token, err = jwt.Parse(tokenString, jwksKeyFunc); err != nil {
+				log.Warn("token validation failed", "error", err)
 				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
 			// valid token, identify our service in the "aud" claim
 			// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
 			if err := validateAudClaim(token); err != nil {
+				log.Warn("failed to validate 'aud' claim", "error", err)
 				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
@@ -56,7 +60,7 @@ var extractAuthScopes = func(r *http.Request) any {
 	return r.Context().Value(server.BearerAuthScopes)
 }
 
-var TokenNotFoundError = errors.New("Authorization header does not contain a bearer token")
+var TokenNotFoundError = errors.New("'Authorization' header does not contain a bearer token")
 
 var extractBearerToken = func(r *http.Request) (string, error) {
 	// get header and extract token string
@@ -71,7 +75,7 @@ var extractBearerToken = func(r *http.Request) (string, error) {
 	return token, nil
 }
 
-var InvalidAudClaimError = errors.New("Claim 'aud' did not contain valid service id")
+var InvalidAudClaimError = errors.New("claim 'aud' did not contain valid service id")
 
 func validateAudClaim(token *jwt.Token) error {
 	audClaims, err := token.Claims.GetAudience()

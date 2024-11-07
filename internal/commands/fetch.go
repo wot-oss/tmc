@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
 	"slices"
 	"strings"
 
@@ -34,12 +33,12 @@ func FetchByTMID(ctx context.Context, spec model.RepoSpec, tmid string, restoreI
 
 	fetch, bytes, err, accessErrors := u.Fetch(ctx, tmid)
 	if err == nil && restoreId {
-		bytes = restoreExternalId(bytes)
+		bytes = restoreExternalId(ctx, bytes)
 	}
 	return fetch, bytes, err, accessErrors
 }
 
-func restoreExternalId(raw []byte) []byte {
+func restoreExternalId(ctx context.Context, raw []byte) []byte {
 	linksValue, dataType, _, err := jsonparser.Get(raw, "links")
 	if err != nil && dataType != jsonparser.NotExist {
 		return raw
@@ -54,7 +53,7 @@ func restoreExternalId(raw []byte) []byte {
 
 	err = json.Unmarshal(linksValue, &linksArray)
 	if err != nil {
-		slog.Default().Error("error unmarshalling links", "error", err)
+		utils.GetLogger(ctx, "commands.restoreExternalId").Error("error unmarshalling links", "error", err)
 		return raw
 	}
 	var newLinks []map[string]any
@@ -72,12 +71,12 @@ func restoreExternalId(raw []byte) []byte {
 		if len(newLinks) > 0 {
 			linksBytes, err := json.Marshal(newLinks)
 			if err != nil {
-				slog.Default().Error("unexpected marshal error", "error", err)
+				utils.GetLogger(ctx, "commands.restoreExternalId").Error("unexpected marshal error", "error", err)
 				return raw
 			}
 			withLinks, err = jsonparser.Set(raw, linksBytes, "links")
 			if err != nil {
-				slog.Default().Error("unexpected json set value error", "error", err)
+				utils.GetLogger(ctx, "commands.restoreExternalId").Error("unexpected json set value error", "error", err)
 				return raw
 			}
 		} else {
@@ -87,7 +86,7 @@ func restoreExternalId(raw []byte) []byte {
 
 		withId, err := jsonparser.Set(withLinks, idBytes, "id")
 		if err != nil {
-			slog.Default().Error("unexpected json set value error", "error", err)
+			utils.GetLogger(ctx, "commands.restoreExternalId").Error("unexpected json set value error", "error", err)
 			return raw
 		}
 		return withId
@@ -98,13 +97,12 @@ func restoreExternalId(raw []byte) []byte {
 }
 
 func FetchByName(ctx context.Context, spec model.RepoSpec, fn model.FetchName, restoreId bool) (string, []byte, error, []*repos.RepoAccessError) {
-	log := slog.Default()
 	id, foundIn, err, errs := ResolveFetchName(ctx, spec, fn)
 	if err != nil {
 		return "", nil, err, errs
 	}
 
-	log.Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
+	utils.GetLogger(ctx, "commands.FetchByName").Debug(fmt.Sprintf("fetching %v from %s", id, foundIn))
 	tmid, bytes, err, _ := FetchByTMID(ctx, foundIn, id, restoreId)
 	return tmid, bytes, err, errs
 }
@@ -127,7 +125,7 @@ func ResolveFetchName(ctx context.Context, spec model.RepoSpec, fn model.FetchNa
 		}
 	} else {
 		if _, err := semver.NewVersion(fn.Semver); err == nil {
-			id, foundIn, err = findMostRecentMatchingVersion(versions, fn.Semver)
+			id, foundIn, err = findMostRecentMatchingVersion(ctx, versions, fn.Semver)
 			if err != nil {
 				return id, foundIn, err, errs
 			}
@@ -139,19 +137,15 @@ func ResolveFetchName(ctx context.Context, spec model.RepoSpec, fn model.FetchNa
 }
 
 func findMostRecentVersion(versions []model.FoundVersion) (string, model.RepoSpec, error) {
-	log := slog.Default()
 	if len(versions) == 0 {
-		err := fmt.Errorf("%w: no versions found", model.ErrTMNameNotFound)
-		log.Error(err.Error())
-		return "", model.EmptySpec, err
+		return "", model.EmptySpec, fmt.Errorf("%w: no versions found", model.ErrTMNameNotFound)
 	}
 
 	v := versions[0]
 	return v.TMID, model.NewSpecFromFoundSource(v.FoundIn), nil
 }
 
-func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (id string, source model.RepoSpec, err error) {
-	log := slog.Default()
+func findMostRecentMatchingVersion(ctx context.Context, versions []model.FoundVersion, ver string) (id string, source model.RepoSpec, err error) {
 	ver, _ = strings.CutPrefix(ver, "v")
 
 	// figure out how to match versions with ver
@@ -163,8 +157,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 	} else { // at least one semver part is missing in ver
 		c, err := semver.NewConstraint(fmt.Sprintf("~%s", ver))
 		if err != nil {
-			log.Error("couldn't parse semver constraint", "error", err)
-			return "", model.EmptySpec, err
+			return "", model.EmptySpec, fmt.Errorf("couldn't parse semver constraint: %w", err)
 		}
 		matcher = c.Check
 	}
@@ -173,7 +166,8 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 	versions = slices.DeleteFunc(versions, func(version model.FoundVersion) bool {
 		semVersion, err := semver.NewVersion(version.Version.Model)
 		if err != nil {
-			log.Error(err.Error())
+			log := utils.GetLogger(ctx, "commands.findMostRecentMatchingVersion")
+			log.Warn(err.Error())
 			return false
 		}
 		matches := matcher(semVersion)
@@ -182,9 +176,7 @@ func findMostRecentMatchingVersion(versions []model.FoundVersion, ver string) (i
 
 	// see if anything remained
 	if len(versions) == 0 {
-		err := fmt.Errorf("%w: no version %s found", model.ErrTMNotFound, ver)
-		log.Error(err.Error())
-		return "", model.EmptySpec, err
+		return "", model.EmptySpec, fmt.Errorf("%w: no version %s found", model.ErrTMNotFound, ver)
 	}
 
 	// and here's our winner

@@ -20,7 +20,7 @@ import (
 
 func NewHttpHandler(si server.ServerInterface, mws []server.MiddlewareFunc) http.Handler {
 	r := mux.NewRouter()
-	r.NotFoundHandler = http.HandlerFunc(handleNoRoute)
+	r.NotFoundHandler = WithRequestLogger(http.HandlerFunc(handleNoRoute))
 	options := server.GorillaServerOptions{
 		BaseRouter:       r,
 		ErrorHandlerFunc: HandleErrorResponse,

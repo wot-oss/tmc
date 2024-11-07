@@ -310,7 +310,7 @@ func (dhs *defaultHandlerService) CheckHealthReady(ctx context.Context) error {
 
 	_, err := repos.GetUnion(dhs.serveRepo)
 	if err != nil {
-		return errors.New("invalid repo configuration or ")
+		return errors.New("invalid repo configuration or named repo not found")
 	}
 	return nil
 }
@@ -324,7 +324,7 @@ func (dhs *defaultHandlerService) inferTargetRepo(ctx context.Context, repo stri
 	if repo == "" {
 		return dhs.serveRepo, nil
 	}
-	if dhs.serveRepo.Dir() != "" { // never override an ad-hoc repo
+	if dhs.serveRepo.Dir() != "" { // never override a local repo
 		return model.RepoSpec{}, repos.ErrRepoNotFound
 	}
 	if servedRepo := dhs.serveRepo.RepoName(); servedRepo != "" { // if single repo is served, `repo` must be the same or empty [covered above]

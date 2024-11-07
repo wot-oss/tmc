@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,14 +43,14 @@ func RepoList() error {
 	return nil
 }
 
-func RepoAdd(name, typ, confStr, confFile, descr string) error {
-	return repoSaveConfig(name, typ, confStr, confFile, descr, repos.Add)
+func RepoAdd(ctx context.Context, name, typ, confStr, confFile, descr string) error {
+	return repoSaveConfig(ctx, name, typ, confStr, confFile, descr, repos.Add)
 }
-func RepoSetConfig(name, typ, confStr, confFile string, descr string) error {
-	return repoSaveConfig(name, typ, confStr, confFile, descr, repos.SetConfig)
+func RepoSetConfig(ctx context.Context, name, typ, confStr, confFile string, descr string) error {
+	return repoSaveConfig(ctx, name, typ, confStr, confFile, descr, repos.SetConfig)
 }
 
-func repoSaveConfig(name, typ, confStr, confFile, descr string, saver func(name string, typ string, confStr string, confFile []byte, descr string) error) error {
+func repoSaveConfig(ctx context.Context, name, typ, confStr, confFile, descr string, saver func(name string, typ string, confStr string, confFile []byte, descr string) error) error {
 	if !repos.ValidRepoNameRegex.MatchString(name) {
 		Stderrf("invalid name: %v", name)
 		return ErrInvalidArgs
@@ -155,7 +156,7 @@ func RepoRename(oldName, newName string) (err error) {
 	return
 }
 
-func RepoSetAuth(name, kind, data string) error {
+func RepoSetAuth(ctx context.Context, name, kind, data string) error {
 	conf, err := repos.ReadConfig()
 	if err != nil {
 		Stderrf("error setting auth: %v", err)

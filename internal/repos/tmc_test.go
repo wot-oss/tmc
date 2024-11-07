@@ -755,21 +755,21 @@ func TestTmcRepo_Push(t *testing.T) {
 			reqBody:  importBody,
 			respBody: []byte(`{"detail":"bad request"}`),
 			status:   http.StatusBadRequest,
-			expErr:   errors.New("bad request"),
+			expErr:   errors.New("received error response from remote tmc server: 400 Bad Request, bad request"),
 		},
 		{
 			name:     "internal server error",
 			reqBody:  importBody,
 			respBody: []byte(`{"detail":"something bad happened"}`),
 			status:   http.StatusInternalServerError,
-			expErr:   errors.New("something bad happened"),
+			expErr:   errors.New("received error response from remote tmc server: 500 Internal Server Error, something bad happened"),
 		},
 		{
 			name:     "unexpected status",
 			reqBody:  importBody,
 			respBody: []byte(`{"detail":"no coffee for you"}`),
 			status:   http.StatusTeapot,
-			expErr:   errors.New("received unexpected HTTP response from remote TM catalog: 418 I'm a teapot"),
+			expErr:   errors.New("received unexpected HTTP response from remote tmc server: 418 I'm a teapot"),
 		},
 	}
 

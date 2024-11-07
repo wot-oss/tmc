@@ -29,7 +29,7 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 	}
 }
 
-// Get the inventory of the catalog
+// GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 
@@ -96,7 +96,7 @@ func (h *TmcHandler) GetThingModelByFetchName(w http.ResponseWriter, r *http.Req
 	HandleByteResponse(w, r, http.StatusOK, MimeJSON, data)
 }
 
-// GetInventoryById Get the metadata of a single TM by ID
+// GetInventoryByID returns the metadata of a single TM by ID
 // (GET /inventory/{tmID})
 func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tmID server.TMID, params server.GetInventoryByIDParams) {
 	repo := convertRepoName(params.Repo)
@@ -232,14 +232,14 @@ func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params serv
 }
 
 func (h *TmcHandler) GetRepos(w http.ResponseWriter, r *http.Request) {
-	repos, err := h.Service.ListRepos(r.Context())
+	rs, err := h.Service.ListRepos(r.Context())
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
 
-	resp := toReposResponse(repos)
+	resp := toReposResponse(rs)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 

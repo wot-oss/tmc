@@ -3,7 +3,6 @@ package model
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"regexp"
 
 	"github.com/Masterminds/semver/v3"
@@ -49,7 +48,6 @@ func ParseFetchName(fetchName string) (FetchName, error) {
 	// Check if there are enough submatches
 	if len(matches) < 2 {
 		err := fmt.Errorf("%w: %s - must be NAME[:SEMVER]", ErrInvalidFetchName, fetchName)
-		slog.Default().Error(err.Error())
 		return FetchName{}, err
 	}
 
@@ -78,8 +76,7 @@ func ParseAsTMIDOrFetchName(idOrName string) (*TMID, *FetchName, error) {
 		return nil, &fn, nil
 	}
 
-	slog.Default().Info("could not parse as either TMID or fetch name", "idOrName", idOrName)
-	return nil, nil, fmt.Errorf("%w: %w, %w", ErrInvalidIdOrName, err1, err2)
+	return nil, nil, fmt.Errorf("could not parse %s as either TMID or fetch name: %w: %w, %w", idOrName, ErrInvalidIdOrName, err1, err2)
 }
 
 type RepoSpec struct {
