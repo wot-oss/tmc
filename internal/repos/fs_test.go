@@ -525,7 +525,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
-				index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
+				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
 				if assert.Equal(t, 1, len(index.Data)) {
 					assert.Equal(t, 3, len(index.Data[0].Versions))
 				}
@@ -542,7 +542,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
-				index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
+				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
 				if assert.Equal(t, 1, len(index.Data)) {
 					assert.Equal(t, 3, len(index.Data[0].Versions))
 				}
@@ -561,7 +561,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: version is removed from index
-				index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
+				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
 				if assert.Equal(t, 1, len(index.Data)) {
 					assert.Equal(t, 2, len(index.Data[0].Versions))
 				}
@@ -581,7 +581,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: name is removed from index
-				index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp/subfolder"})
+				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp/subfolder"})
 				assert.Equal(t, 0, len(index.Data))
 				names := r.readNamesFile()
 				// then: name is removed from names file

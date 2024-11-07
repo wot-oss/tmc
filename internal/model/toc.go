@@ -101,35 +101,6 @@ func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
 	return AttachmentContainerKindTMID
 }
 
-func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
-	if e == nil {
-		return false
-	}
-	searchQuery = utils.ToTrimmedLower(searchQuery)
-	if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
-		return true
-	}
-	for _, version := range e.Versions {
-		if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
-			return true
-		}
-		if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
-			return true
-		}
-	}
-	return false
-
-}
-
 type IndexVersion struct {
 	Description string            `json:"description"`
 	Version     Version           `json:"version"`
@@ -163,16 +134,12 @@ func (idx *Index) Sort() {
 	})
 }
 
-func (idx *Index) Filter(search *SearchParams) {
+func (idx *Index) Filter(search *SearchParams) error {
 	if search == nil {
-		return
+		return nil
 	}
 	search.Sanitize()
 	exclude := func(entry *IndexEntry) bool {
-		if !entry.MatchesSearchText(search.Query) {
-			return true
-		}
-
 		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
 			return true
 		}
@@ -198,7 +165,20 @@ func (idx *Index) Filter(search *SearchParams) {
 		}
 		return e
 	})
+	if len(idx.Data) == 0 {
+		return nil
+	}
 
+	if len(search.Query) > 0 {
+		del, err := excludeBySimpleContentSearch(search.Query)
+		if err != nil {
+			return err
+		}
+		if del != nil {
+			idx.Data = slices.DeleteFunc(idx.Data, del)
+		}
+	}
+	return nil
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
@@ -227,6 +207,36 @@ func matchesFilter(acceptedValues []string, value string) bool {
 		return true
 	}
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
+}
+
+func excludeBySimpleContentSearch(searchQuery string) (func(e *IndexEntry) bool, error) {
+	return func(e *IndexEntry) bool {
+		if e == nil {
+			return true
+		}
+		searchQuery = utils.ToTrimmedLower(searchQuery)
+		if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
+			return false
+		}
+		for _, version := range e.Versions {
+			if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
+				return false
+			}
+			if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
+				return false
+			}
+		}
+		return true
+	}, nil
 }
 
 // FindByName searches by TM name and returns a pointer to the IndexEntry if found
