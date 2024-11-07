@@ -3,7 +3,6 @@ package model
 import (
 	"fmt"
 	"github.com/blevesearch/bleve/v2"
-	"log/slog"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -103,7 +102,6 @@ func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
 	return AttachmentContainerKindTMID
 }
 
-
 type IndexVersion struct {
 	Description string            `json:"description"`
 	Version     Version           `json:"version"`
@@ -174,12 +172,8 @@ func (idx *Index) Filter(search *SearchParams) error {
 	}
 
 	if len(search.Query) > 0 {
-		//del := excludeBySimpleContentSearch(search.Query)
-		del := excludeByContentSearch(search.Query)
-		if del != nil {
-			idx.Data = slices.DeleteFunc(idx.Data, del)
-		}
-		del, err := excludeBySimpleContentSearch(search.Query)
+		//del, err := excludeBySimpleContentSearch(search.Query)
+		del, err := excludeByContentSearch(search.Query)
 		if err != nil {
 			return err
 		}
@@ -247,12 +241,11 @@ func excludeBySimpleContentSearch(searchQuery string) (func(e *IndexEntry) bool,
 	}, nil
 }
 
-func excludeByContentSearch(query string) func(e *IndexEntry) bool {
+func excludeByContentSearch(query string) (func(e *IndexEntry) bool, error) {
 
 	bleveIdx, errOpen := bleve.Open("../catalog.bleve")
 	if errOpen != nil {
-		return nil
-		//return fmt.Errorf("error opening bleve index: %v", errOpen)
+		return nil, fmt.Errorf("error in content search: %w", errOpen)
 	} else {
 		defer bleveIdx.Close()
 		query := bleve.NewQueryStringQuery(query)
@@ -260,8 +253,7 @@ func excludeByContentSearch(query string) func(e *IndexEntry) bool {
 		sr, err := bleveIdx.Search(req)
 
 		if err != nil {
-			slog.Default().Error(err.Error())
-			return nil
+			return nil, fmt.Errorf("error in content search: %w", err)
 		}
 
 		del := func(e *IndexEntry) bool {
@@ -280,7 +272,7 @@ func excludeByContentSearch(query string) func(e *IndexEntry) bool {
 			}
 			return del
 		}
-		return del
+		return del, nil
 	}
 }
 
