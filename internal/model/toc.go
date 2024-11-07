@@ -101,35 +101,6 @@ func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
 	return AttachmentContainerKindTMID
 }
 
-func (e *IndexEntry) MatchesSearchText(searchQuery string) bool {
-	if e == nil {
-		return false
-	}
-	searchQuery = utils.ToTrimmedLower(searchQuery)
-	if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
-		return true
-	}
-	if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
-		return true
-	}
-	for _, version := range e.Versions {
-		if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
-			return true
-		}
-		if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
-			return true
-		}
-	}
-	return false
-
-}
-
 type IndexVersion struct {
 	Description string            `json:"description"`
 	Version     Version           `json:"version"`
