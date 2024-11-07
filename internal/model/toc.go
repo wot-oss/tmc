@@ -170,7 +170,10 @@ func (idx *Index) Filter(search *SearchParams) error {
 	}
 
 	if len(search.Query) > 0 {
-		del := excludeBySimpleContentSearch(search.Query)
+		del, err := excludeBySimpleContentSearch(search.Query)
+		if err != nil {
+			return err
+		}
 		if del != nil {
 			idx.Data = slices.DeleteFunc(idx.Data, del)
 		}
@@ -206,7 +209,7 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-func excludeBySimpleContentSearch(searchQuery string) func(e *IndexEntry) bool {
+func excludeBySimpleContentSearch(searchQuery string) (func(e *IndexEntry) bool, error) {
 	return func(e *IndexEntry) bool {
 		if e == nil {
 			return true
@@ -233,7 +236,7 @@ func excludeBySimpleContentSearch(searchQuery string) func(e *IndexEntry) bool {
 			}
 		}
 		return true
-	}
+	}, nil
 }
 
 // FindByName searches by TM name and returns a pointer to the IndexEntry if found
