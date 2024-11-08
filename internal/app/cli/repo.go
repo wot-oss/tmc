@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
+	"strings"
 	"text/tabwriter"
 
 	"github.com/wot-oss/tmc/internal/repos"
@@ -43,18 +45,20 @@ func RepoList() error {
 	return nil
 }
 
-func RepoAdd(ctx context.Context, name, typ, confStr, confFile, descr string) error {
-	return repoSaveConfig(ctx, name, typ, confStr, confFile, descr, repos.Add)
-}
-func RepoSetConfig(ctx context.Context, name, typ, confStr, confFile string, descr string) error {
-	return repoSaveConfig(ctx, name, typ, confStr, confFile, descr, repos.SetConfig)
-}
-
-func repoSaveConfig(ctx context.Context, name, typ, confStr, confFile, descr string, saver func(name string, typ string, confStr string, confFile []byte, descr string) error) error {
+func RepoAdd(name, typ, confStr, confFile, descr string) error {
 	if !repos.ValidRepoNameRegex.MatchString(name) {
 		Stderrf("invalid name: %v", name)
 		return ErrInvalidArgs
 	}
+	if confStr != "" && confFile != "" {
+		Stderrf("specify either <config> or --file=<configFileName>, not both")
+		return ErrInvalidArgs
+	}
+	if confStr == "" && confFile == "" {
+		Stderrf("must specify either <config> or --file=<configFileName>")
+		return ErrInvalidArgs
+	}
+
 	var bytes []byte
 	if confFile != "" {
 		var err error
@@ -72,20 +76,40 @@ func repoSaveConfig(ctx context.Context, name, typ, confStr, confFile, descr str
 		return ErrInvalidArgs
 	}
 
-	if confStr != "" && confFile != "" {
-		Stderrf("specify either <config> or --file=<configFileName>, not both")
-		return ErrInvalidArgs
+	rc, err := repos.NewRepoConfig(typ, confStr, bytes, descr)
+	if err != nil {
+		return err
 	}
-	if confStr == "" && confFile == "" {
-		Stderrf("must specify either <config> or --file=<configFileName>")
-		return ErrInvalidArgs
-	}
-	err := saver(name, typ, confStr, bytes, descr)
+
+	err = repos.Add(name, rc)
 	if err != nil {
 		Stderrf("error saving repo config: %v", err)
 	}
 	return err
 }
+
+func RepoSetConfig(name, confStr, confFile string) error {
+	return updateRepoConfig(name, func(conf map[string]any) (map[string]any, error) {
+		var bytes []byte
+		if confFile != "" {
+			var err error
+			_, bytes, err = utils.ReadRequiredFile(confFile)
+			if err != nil {
+				Stderrf("cannot read file: %v", confFile)
+				return nil, err
+			}
+		}
+
+		rs, err := repos.ReadConfig()
+		if err != nil {
+			return nil, err
+		}
+		oldConf := rs[name]
+		newConf, err := repos.NewRepoConfig(utils.JsGetStringOrEmpty(oldConf, repos.KeyRepoType), confStr, bytes, utils.JsGetStringOrEmpty(oldConf, repos.KeyRepoDescription))
+		return newConf, err
+	})
+}
+
 func inferType(typ string, bytes []byte) string {
 	if typ != "" {
 		return typ
@@ -156,10 +180,17 @@ func RepoRename(oldName, newName string) (err error) {
 	return
 }
 
-func RepoSetAuth(ctx context.Context, name, kind, data string) error {
+func RepoSetDescription(ctx context.Context, name, description string) error {
+	return updateRepoConfig(name, func(conf map[string]any) (map[string]any, error) {
+		conf[repos.KeyRepoDescription] = description
+		return conf, nil
+	})
+}
+
+func updateRepoConfig(name string, updater func(conf map[string]any) (map[string]any, error)) error {
 	conf, err := repos.ReadConfig()
 	if err != nil {
-		Stderrf("error setting auth: %v", err)
+		Stderrf("error reading repo config: %v", err)
 		return err
 	}
 
@@ -168,22 +199,119 @@ func RepoSetAuth(ctx context.Context, name, kind, data string) error {
 		Stderrf("repo %s not found", name)
 		return repos.ErrRepoNotFound
 	}
-	switch kind {
-	case "bearer":
-		delete(rc, repos.KeyRepoAuth)
-		rc[repos.KeyRepoAuth] = map[string]any{
-			"bearer": data,
-		}
-	default:
-		Stderrf("unknown auth type: %s", kind)
-		return errors.New("unknown auth type")
-	}
-	rb, _ := json.Marshal(rc)
 
-	err = repos.SetConfig(name, fmt.Sprint(rc[repos.KeyRepoType]), "", rb, fmt.Sprint(rc[repos.KeyRepoDescription]))
+	rc, err = updater(rc)
+	if err != nil {
+		Stderrf("couldn't update repo config: %v", err)
+		return err
+	}
+	err = repos.SetConfig(name, rc)
 	if err != nil {
 		Stderrf("error saving repo config: %v", err)
 		return err
+	}
+	return nil
+
+}
+
+func RepoSetAuth(name, kind string, data []string) error {
+	return updateRepoConfig(name, func(rc map[string]any) (map[string]any, error) {
+		switch kind {
+		case repos.AuthMethodNone:
+			delete(rc, repos.KeyRepoAuth)
+			break
+		case repos.AuthMethodBearerToken:
+			delete(rc, repos.KeyRepoAuth)
+			confValues := parseNamedArgs(data)
+			err := assertNamedArgs(confValues, []string{"token"})
+			if err != nil {
+				rc[repos.KeyRepoAuth] = map[string]any{
+					repos.AuthMethodBearerToken: data,
+				}
+			} else {
+				rc[repos.KeyRepoAuth] = map[string]any{
+					repos.AuthMethodBearerToken: confValues["token"],
+				}
+			}
+		case repos.AuthMethodBasic:
+			delete(rc, repos.KeyRepoAuth)
+			confValues := parseNamedArgs(data)
+			err := assertNamedArgs(confValues, []string{"username", "password"})
+			if err != nil {
+				Stderrf("cannot set auth of type 'basic': %v", err)
+				return nil, err
+			}
+			rc[repos.KeyRepoAuth] = map[string]any{
+				repos.AuthMethodBasic: confValues,
+			}
+		//case repos.AuthMethodOauthClientCredentials:
+		//	delete(rc, repos.KeyRepoAuth)
+		//	confValues := parseNamedArgs(data)
+		//	err := assertNamedArgs(confValues, []string{"client-id", "client-secret", "token-url"}, "scopes")
+		//	if err != nil {
+		//		Stderrf("cannot set auth of type 'oauth-client-credentials': %v", err)
+		//		return nil, err
+		//	}
+		//	rc[repos.KeyRepoAuth] = map[string]any{
+		//		repos.AuthMethodOauthClientCredentials: confValues,
+		//	}
+		default:
+			Stderrf("unknown auth type: %s", kind)
+			return nil, errors.New("unknown auth type")
+		}
+		return rc, nil
+	})
+}
+
+func RepoSetHeaders(name string, data []string) error {
+	return updateRepoConfig(name, func(rc map[string]any) (map[string]any, error) {
+		delete(rc, repos.KeyRepoHeaders)
+		m := make(map[string][]string)
+		for _, item := range data {
+			key, value, _ := strings.Cut(item, "=")
+			if arr, ok := m[key]; ok {
+				arr = append(arr, value)
+				m[key] = arr
+			} else {
+				m[key] = []string{value}
+			}
+		}
+
+		rc[repos.KeyRepoHeaders] = m
+		return rc, nil
+	})
+}
+
+func parseNamedArgs(namedArgs []string) map[string]string {
+	m := make(map[string]string)
+	for _, item := range namedArgs {
+		key, value, _ := strings.Cut(item, "=")
+		m[key] = value
+	}
+	return m
+}
+
+func assertNamedArgs(pairs map[string]string, mandatory []string, allowed ...string) error {
+	mnd := make([]string, len(mandatory))
+	copy(mnd, mandatory)
+	for name, _ := range pairs {
+		mi := slices.Index(mnd, name)
+		ai := slices.Index(allowed, name)
+		if mi != -1 || ai != -1 {
+			if mi != -1 {
+				mnd = slices.Delete(mnd, mi, mi+1)
+			}
+		} else {
+			allKeys := []string{}
+			allKeys = append(allKeys, mandatory...)
+			allKeys = append(allKeys, allowed...)
+			slices.Sort(allKeys)
+			allKeys = slices.Compact(allKeys)
+			return fmt.Errorf("key is not allowed: %s. allowed keys are: %v", name, strings.Join(allKeys, ", "))
+		}
+	}
+	if len(mnd) > 0 {
+		return fmt.Errorf("missing mandatory keys: %v", strings.Join(mnd, ", "))
 	}
 	return nil
 }

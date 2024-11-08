@@ -46,8 +46,8 @@ the requested file's path anywhere other than at the end of the URL, you can use
 E.g. for an HTTP repo served by a GitLab installation, you may use ```https://example.com/api/v4/projects/<project-id>/repository/files/{% raw %}{{ID}}{% endraw %}?ref=main``` 
 as the URL.
 
-HTTP repos can have a Bearer authentication token configured in an 'auth' field taking the following form: `"auth": {"bearer": "<TOKEN>"}`. 
-You can also use `repo set-auth` command to set the token after the repo has been created. 
+HTTP and TMC repositories can have authentication configured in an 'auth' field. The exact value of the field depends on the chosed authentication scheme.  
+Use `repo config auth` command to set the authentication parameters after a repo has been created. 
 
 ### TMC Repositories
 

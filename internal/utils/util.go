@@ -104,6 +104,15 @@ func JsGetString(js map[string]any, key string) *string {
 	}
 	return nil
 }
+
+func JsGetStringOrEmpty(js map[string]any, key string) string {
+	v := JsGetString(js, key)
+	if v == nil {
+		return ""
+	}
+	return *v
+}
+
 func JsGetMap(js map[string]any, key string) map[string]any {
 	if v, ok := js[key]; ok {
 		if m, ok := v.(map[string]any); ok {
