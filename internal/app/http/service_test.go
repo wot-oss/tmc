@@ -23,7 +23,7 @@ func Test_CheckHealthLive(t *testing.T) {
 	// given: a service under test
 	underTest, _ := NewDefaultHandlerService(model.EmptySpec)
 	// when: check health live
-	err := underTest.CheckHealthLive(nil)
+	err := underTest.CheckHealthLive(context.Background())
 	// then: there is no error
 	assert.NoError(t, err)
 }
@@ -38,7 +38,7 @@ func Test_CheckHealthReady(t *testing.T) {
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 
 		// when check health ready
-		err := underTest.CheckHealthReady(nil)
+		err := underTest.CheckHealthReady(context.Background())
 		// then: no error is thrown
 		assert.NoError(t, err)
 	})
@@ -47,7 +47,7 @@ func Test_CheckHealthReady(t *testing.T) {
 		// given: the repo cannot be found
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, errors.New("invalid repo name")))
 		// when check health ready
-		err := underTest.CheckHealthReady(nil)
+		err := underTest.CheckHealthReady(context.Background())
 		// then: an error is thrown
 		assert.Error(t, err)
 	})
@@ -62,7 +62,7 @@ func Test_CheckHealthStartup(t *testing.T) {
 		// given: the repo can be found
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 		// when check health startup
-		err := underTest.CheckHealthStartup(nil)
+		err := underTest.CheckHealthStartup(context.Background())
 		// then: no error is thrown
 		assert.NoError(t, err)
 	})
@@ -71,7 +71,7 @@ func Test_CheckHealthStartup(t *testing.T) {
 		// given: the repo cannot be found
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, errors.New("invalid repo name")))
 		// when check health startup
-		err := underTest.CheckHealthStartup(nil)
+		err := underTest.CheckHealthStartup(context.Background())
 		// then: an error is thrown
 		assert.Error(t, err)
 	})
@@ -87,7 +87,7 @@ func Test_CheckHealth(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 
 		// when check health
-		err := underTest.CheckHealth(nil)
+		err := underTest.CheckHealth(context.Background())
 		// then: no error is thrown
 		assert.NoError(t, err)
 	})
@@ -96,7 +96,7 @@ func Test_CheckHealth(t *testing.T) {
 		// given: the repo cannot be found
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, errors.New("invalid repo name")))
 		// when check health
-		err := underTest.CheckHealth(nil)
+		err := underTest.CheckHealth(context.Background())
 		// then: an error is thrown
 		assert.Error(t, err)
 	})
@@ -409,7 +409,7 @@ func TestService_FetchLatestThingModel(t *testing.T) {
 
 	t.Run("with invalid fetch name", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.FetchLatestThingModel(nil, "", "b-corp\\eagle/PM20", false)
+		res, err := underTest.FetchLatestThingModel(context.Background(), "", "b-corp\\eagle/PM20", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidFetchName
@@ -418,7 +418,7 @@ func TestService_FetchLatestThingModel(t *testing.T) {
 
 	t.Run("with invalid semantic version", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.FetchLatestThingModel(nil, "", "b-corp/eagle/PM20:v1.", false)
+		res, err := underTest.FetchLatestThingModel(context.Background(), "", "b-corp/eagle/PM20:v1.", false)
 		// then: it returns nil result
 		assert.Nil(t, res)
 		// and then: error is ErrInvalidIdOrName
@@ -461,7 +461,7 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 
 	t.Run("with invalid fetch name", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.GetLatestTMMetadata(nil, "", "b-corp\\eagle/PM20")
+		res, err := underTest.GetLatestTMMetadata(context.Background(), "", "b-corp\\eagle/PM20")
 		// then: it returns nil result
 		assert.Equal(t, model.FoundVersion{}, res)
 		// and then: error is ErrInvalidFetchName
@@ -470,7 +470,7 @@ func TestService_GetLatestTMMetadata(t *testing.T) {
 
 	t.Run("with invalid semantic version", func(t *testing.T) {
 		// when: fetching ThingModel
-		res, err := underTest.GetLatestTMMetadata(nil, "", "b-corp/eagle/PM20:v1.")
+		res, err := underTest.GetLatestTMMetadata(context.Background(), "", "b-corp/eagle/PM20:v1.")
 		// then: it returns empty result
 		assert.Equal(t, model.FoundVersion{}, res)
 		// and then: error is ErrInvalidFetchName
@@ -541,7 +541,7 @@ func TestService_ImportThingModel(t *testing.T) {
 		invalidContent := []byte("invalid content")
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 		// when: importing ThingModel
-		res, err := underTest.ImportThingModel(nil, "someRepo", invalidContent, repos.ImportOptions{})
+		res, err := underTest.ImportThingModel(context.Background(), "someRepo", invalidContent, repos.ImportOptions{})
 		// then: it returns an error ImportResult
 		assert.Equal(t, repos.ImportResultError, res.Type)
 		assert.Equal(t, err, res.Err)
@@ -553,7 +553,7 @@ func TestService_ImportThingModel(t *testing.T) {
 		// given: invalid importTarget
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, nil, repos.ErrRepoNotFound))
 		// when: importing ThingModel
-		res, err := underTest.ImportThingModel(nil, "someRepo", []byte("some TM content"), repos.ImportOptions{})
+		res, err := underTest.ImportThingModel(context.Background(), "someRepo", []byte("some TM content"), repos.ImportOptions{})
 		// then: it returns an error import result
 		assert.Equal(t, repos.ImportResultError, res.Type)
 		assert.Equal(t, err, res.Err)
@@ -576,7 +576,7 @@ func TestService_ImportThingModel(t *testing.T) {
 		}
 		r.On("Import", mock.Anything, mock.Anything, mock.Anything, repos.ImportOptions{}).Return(expRes, nil).Once()
 		// when: importing ThingModel
-		res, err := underTest.ImportThingModel(nil, "", tmContent, repos.ImportOptions{})
+		res, err := underTest.ImportThingModel(context.Background(), "", tmContent, repos.ImportOptions{})
 		// then: it returns empty tmID
 		assert.Equal(t, expRes, res)
 		// and then: there is no error
@@ -600,7 +600,7 @@ func TestService_ImportThingModel(t *testing.T) {
 		r.On("Import", mock.Anything, mock.Anything, mock.Anything, repos.ImportOptions{}).Return(expRes, nil).Once()
 		r.On("Index", mock.Anything, "new-id").Return(nil)
 		// when: importing ThingModel
-		res, err := underTest.ImportThingModel(nil, "", tmContent, repos.ImportOptions{})
+		res, err := underTest.ImportThingModel(context.Background(), "", tmContent, repos.ImportOptions{})
 		// then: it returns expected warning result
 		assert.Equal(t, expRes, res)
 		// and then: there is no error

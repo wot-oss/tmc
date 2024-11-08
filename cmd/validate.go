@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -13,7 +14,7 @@ var validateCmd = &cobra.Command{
 	Long:  `Validate a ThingModel to ensure it is ready to be imported into TM catalog`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cli.ValidateFile(args[0])
+		err := cli.ValidateFile(context.Background(), args[0])
 		if err != nil {
 			os.Exit(1)
 		}

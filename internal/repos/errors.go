@@ -16,7 +16,6 @@ var (
 	ErrInvalidErrorCode        = errors.New("invalid error code")
 	ErrInvalidCompletionParams = errors.New("invalid completion parameters")
 	ErrNotSupported            = errors.New("method not supported")
-	ErrIndexMismatch           = errors.New("index does not reflect repository content, maybe needs rebuild")
 	ErrNoIndex                 = errors.New("no table of contents found. Run `index` for this repo")
 )
 

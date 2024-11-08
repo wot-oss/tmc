@@ -310,7 +310,7 @@ func (dhs *defaultHandlerService) CheckHealthReady(ctx context.Context) error {
 
 	_, err := repos.GetUnion(dhs.serveRepo)
 	if err != nil {
-		return errors.New("invalid repo configuration or ")
+		return errors.New("invalid repo configuration or named repo not found")
 	}
 	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"log/slog"
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -108,8 +107,6 @@ func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) 
 // ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.
 // Returns parsed *model.ThingModel, where the author name, manufacturer name, and mpn have been sanitized for use in filenames
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
-	log := slog.Default()
-
 	var parsed any
 	err := json.Unmarshal(raw, &parsed)
 	if err != nil {
@@ -120,20 +117,16 @@ func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
 	if err != nil {
 		return nil, err
 	}
-	log.Info("required Thing Model metadata is present")
 
 	err = ValidateAsTM(raw, parsed)
 	if err != nil {
 		return tm, err
 	}
-	log.Info("passed validation against JSON schema for Thing Models")
 
 	validated, err := ValidateAsModbus(raw, parsed)
 	if validated {
 		if err != nil {
 			return tm, err
-		} else {
-			log.Info("passed validation against JSON schema for Modbus protocol binding")
 		}
 	}
 
