@@ -110,26 +110,28 @@ func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath stri
 		finalOutput := filepath.Join(attDir, att.Name)
 		bytes, aErr = commands.AttachmentFetch(ctx, spec, ref, att.Name, false)
 		if aErr != nil {
-			if err == nil {
-				err = aErr
-			}
+			aErr = fmt.Errorf("could not fetch attachment %s to %v: %w", att.Name, ref, aErr)
 			results = append(results, operationResult{
 				typ:        opResultErr,
 				resourceId: resName,
-				text:       fmt.Errorf("could not fetch attachment %s to %v: %w", att.Name, ref, err).Error(),
+				text:       aErr.Error(),
 			})
+			if err == nil {
+				err = aErr
+			}
 			continue
 		}
 		wErr := os.WriteFile(finalOutput, bytes, 0660)
 		if wErr != nil {
-			if err == nil {
-				err = wErr
-			}
+			wErr = fmt.Errorf("could not write attachment %s to %v: %w", att.Name, ref, wErr)
 			results = append(results, operationResult{
 				typ:        opResultErr,
 				resourceId: resName,
-				text:       fmt.Errorf("could not write attachment %s to %v: %w", att.Name, ref, err).Error(),
+				text:       wErr.Error(),
 			})
+			if err == nil {
+				err = wErr
+			}
 			continue
 		}
 		results = append(results, operationResult{

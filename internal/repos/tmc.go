@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -249,6 +248,8 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
+		err := fmt.Errorf("could not read response body: %w", err)
+		utils.GetLogger(ctx, "TmcRepo.Import").Warn(err.Error())
 		return ImportResultFromError(err)
 	}
 
@@ -257,6 +258,8 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 		var res server.ImportThingModelResponse
 		err = json.Unmarshal(b, &res)
 		if err != nil {
+			err := fmt.Errorf("could not unmarshal response from remote tmc: %w", err)
+			utils.GetLogger(ctx, "TmcRepo.Import").Warn(err.Error())
 			return ImportResultFromError(err)
 		}
 		msg := ""
@@ -266,6 +269,8 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 		if res.Data.Code != nil && *res.Data.Code != "" {
 			cErr, err := ParseErrTMIDConflict(*res.Data.Code)
 			if err != nil {
+				err := fmt.Errorf("failed to parse returned conflict error code %s: %w", *res.Data.Code, err)
+				utils.GetLogger(ctx, "TmcRepo.Import").Warn(err.Error())
 				return ImportResultFromError(err)
 			}
 			return ImportResult{Type: ImportResultWarning, TmID: res.Data.TmID, Message: msg, Err: cErr}, nil
@@ -275,6 +280,8 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 		var e server.ErrorResponse
 		err = json.Unmarshal(b, &e)
 		if err != nil {
+			err := fmt.Errorf("could not unmarshal error response from remote tmc: %w", err)
+			utils.GetLogger(ctx, "TmcRepo.Import").Warn(err.Error())
 			return ImportResultFromError(err)
 		}
 		detail := e.Title
@@ -289,18 +296,21 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 			}
 			cErr, err := ParseErrTMIDConflict(eCode)
 			if err != nil {
+				err := fmt.Errorf("failed to parse returned conflict error code %s: %w", eCode, err)
+				utils.GetLogger(ctx, "TmcRepo.Import").Warn(err.Error())
 				return ImportResultFromError(err)
 			}
 			return ImportResultFromError(cErr)
 		case http.StatusInternalServerError, http.StatusUnauthorized, http.StatusBadRequest:
-			err := errors.New(detail)
+			err := fmt.Errorf("received error response from remote tmc server: %v, %s", resp.Status, detail)
+			utils.GetLogger(ctx, "TmcRepo.Import").Debug(err.Error())
 			return ImportResultFromError(err)
 		default:
-			err := errors.New("unexpected status not handled correctly")
-			return ImportResultFromError(err)
+			panic(fmt.Errorf("unhandled response status code: %v", resp.StatusCode))
 		}
 	default:
-		err := errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+		err := fmt.Errorf("received unexpected HTTP response from remote tmc server: %v", resp.Status)
+		utils.GetLogger(ctx, "TmcRepo.Import").Error(err.Error())
 		return ImportResultFromError(err)
 	}
 }
@@ -335,9 +345,13 @@ func (t *TmcRepo) Delete(ctx context.Context, id string) error {
 	case http.StatusNotFound:
 		return model.ErrTMNotFound
 	case http.StatusInternalServerError, http.StatusUnauthorized:
-		return newErrorFromResponse(b)
+		err := newErrorFromResponse(b)
+		utils.GetLogger(ctx, "TmcRepo.Delete").Error(err.Error())
+		return err
 	default:
-		return errors.New(fmt.Sprintf("received unexpected HTTP response from remote TM catalog: %s", resp.Status))
+		err := fmt.Errorf("received unexpected HTTP response from remote TM catalog: %s", resp.Status)
+		utils.GetLogger(ctx, "TmcRepo.Delete").Error(err.Error())
+		return err
 	}
 }
 
@@ -452,7 +466,7 @@ func appendQueryArray(u *url.URL, key string, values []string) {
 }
 
 func (t *TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
-	log := slog.Default()
+	log := utils.GetLogger(ctx, "TmcRepo")
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
 		log.Error("cannot show versions for empty TM name.")

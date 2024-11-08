@@ -49,7 +49,7 @@ func init() {
 	_ = viper.BindPFlag(config.KeyConfigPath, RootCmd.PersistentFlags().Lookup("config"))
 }
 
-func preRunAll(cmd *cobra.Command, args []string) {
+func preRunAll(cmd *cobra.Command, _ []string) {
 	config.ReadInConfig()
 	// set default loglevel depending on subcommand
 	logDefault := cmd != nil && slices.Contains(logEnabledDefaultCmd, cmd.CalledAs())

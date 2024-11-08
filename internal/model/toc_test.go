@@ -10,56 +10,56 @@ import (
 func TestIndex_Filter(t *testing.T) {
 	t.Run("filter by name", func(t *testing.T) {
 		idx := prepareIndex()
-		idx.Filter(&SearchParams{Name: "man/mpn"})
+		_ = idx.Filter(&SearchParams{Name: "man/mpn"})
 		assert.Len(t, idx.Data, 1)
 		assert.NotNil(t, idx.FindByName("man/mpn"))
 		assert.Nil(t, idx.FindByName("aut/man/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Name: "aut/man/mpn"})
+		_ = idx.Filter(&SearchParams{Name: "aut/man/mpn"})
 		assert.Len(t, idx.Data, 1)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.Nil(t, idx.FindByName("man/mpn"))
 	})
 	t.Run("filter by name with prefix match", func(t *testing.T) {
 		idx := prepareIndex()
-		idx.Filter(&SearchParams{Name: "man", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		_ = idx.Filter(&SearchParams{Name: "man", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 1)
 		assert.NotNil(t, idx.FindByName("man/mpn"))
 		assert.Nil(t, idx.FindByName("aut/man/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Name: "aut/man/mpn", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		_ = idx.Filter(&SearchParams{Name: "aut/man/mpn", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 1)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.Nil(t, idx.FindByName("aut/man/mpn2"))
 		assert.Nil(t, idx.FindByName("man/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Name: "aut/man", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		_ = idx.Filter(&SearchParams{Name: "aut/man", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 2)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Name: "aut/man/", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		_ = idx.Filter(&SearchParams{Name: "aut/man/", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 2)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Name: "aut/man/mpn/sub", Options: SearchOptions{NameFilterType: PrefixMatch}})
+		_ = idx.Filter(&SearchParams{Name: "aut/man/mpn/sub", Options: SearchOptions{NameFilterType: PrefixMatch}})
 		assert.Len(t, idx.Data, 0)
 	})
 	t.Run("filter by mpn", func(t *testing.T) {
 		idx := prepareIndex()
-		idx.Filter(&SearchParams{Mpn: []string{"mpn2"}})
+		_ = idx.Filter(&SearchParams{Mpn: []string{"mpn2"}})
 		assert.Len(t, idx.Data, 1)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 		assert.Nil(t, idx.FindByName("aut/man/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Mpn: []string{"mpn", "mpn2", "mpn45"}})
+		_ = idx.Filter(&SearchParams{Mpn: []string{"mpn", "mpn2", "mpn45"}})
 		assert.Len(t, idx.Data, 4)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
@@ -67,14 +67,14 @@ func TestIndex_Filter(t *testing.T) {
 	})
 	t.Run("filter by manufacturer", func(t *testing.T) {
 		idx := prepareIndex()
-		idx.Filter(&SearchParams{Manufacturer: []string{"man"}})
+		_ = idx.Filter(&SearchParams{Manufacturer: []string{"man"}})
 		assert.Len(t, idx.Data, 3)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.Nil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Manufacturer: []string{"man", "man2", "mpn45"}})
+		_ = idx.Filter(&SearchParams{Manufacturer: []string{"man", "man2", "mpn45"}})
 		assert.Len(t, idx.Data, 4)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
@@ -83,7 +83,7 @@ func TestIndex_Filter(t *testing.T) {
 	})
 	t.Run("filter by author", func(t *testing.T) {
 		idx := prepareIndex()
-		idx.Filter(&SearchParams{Author: []string{"man"}})
+		_ = idx.Filter(&SearchParams{Author: []string{"man"}})
 		assert.Len(t, idx.Data, 1)
 		assert.NotNil(t, idx.FindByName("man/mpn"))
 		assert.Nil(t, idx.FindByName("aut/man/mpn2"))
@@ -91,7 +91,7 @@ func TestIndex_Filter(t *testing.T) {
 		assert.Nil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Author: []string{"aut"}})
+		_ = idx.Filter(&SearchParams{Author: []string{"aut"}})
 		assert.Len(t, idx.Data, 3)
 		assert.Nil(t, idx.FindByName("man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
@@ -99,7 +99,7 @@ func TestIndex_Filter(t *testing.T) {
 		assert.NotNil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Author: []string{"man", "aut"}})
+		_ = idx.Filter(&SearchParams{Author: []string{"man", "aut"}})
 		assert.Len(t, idx.Data, 4)
 		assert.NotNil(t, idx.FindByName("man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
@@ -119,38 +119,38 @@ func TestIndex_Filter(t *testing.T) {
 	})
 	t.Run("filter by query", func(t *testing.T) {
 		idx := prepareIndex()
-		idx.Filter(&SearchParams{Query: ""})
+		_ = idx.Filter(&SearchParams{Query: ""})
 		assert.Len(t, idx.Data, 4)
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "z"})
+		_ = idx.Filter(&SearchParams{Query: "z"})
 		assert.Len(t, idx.Data, 0)
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "a"})
+		_ = idx.Filter(&SearchParams{Query: "a"})
 		assert.Len(t, idx.Data, 4)
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "d1"})
+		_ = idx.Filter(&SearchParams{Query: "d1"})
 		assert.Len(t, idx.Data, 1)
 		assert.Len(t, idx.Data[0].Versions, 2)
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Query: "d5"})
+		_ = idx.Filter(&SearchParams{Query: "d5"})
 		assert.Len(t, idx.Data, 2)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 		assert.NotNil(t, idx.FindByName("aut/man2/mpn"))
 	})
 	t.Run("filter by author and manufacturer", func(t *testing.T) {
 		idx := prepareIndex()
-		idx.Filter(&SearchParams{Manufacturer: []string{"man"}, Author: []string{"aut"}})
+		_ = idx.Filter(&SearchParams{Manufacturer: []string{"man"}, Author: []string{"aut"}})
 		assert.Len(t, idx.Data, 2)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.Nil(t, idx.FindByName("aut/man2/mpn"))
 
 		idx = prepareIndex()
-		idx.Filter(&SearchParams{Manufacturer: []string{"man"}, Author: []string{"man", "aut"}})
+		_ = idx.Filter(&SearchParams{Manufacturer: []string{"man"}, Author: []string{"man", "aut"}})
 		assert.Len(t, idx.Data, 3)
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man/mpn2"))
@@ -180,13 +180,13 @@ func TestIndex_Filter(t *testing.T) {
 		author := "aut^hor"
 		manuf := "Man&ufacturer"
 		mpn := "M/PN"
-		idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil, nil))
+		_ = idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil, nil))
 		assert.Len(t, idx.Data, 1)
 
 		author = "Aut%hor"
 		manuf = "Man-ufacturer"
 		mpn = "M&pN"
-		idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil, nil))
+		_ = idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil, nil))
 		assert.Len(t, idx.Data, 1)
 	})
 }

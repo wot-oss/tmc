@@ -129,13 +129,13 @@ type ImportOptions struct {
 var Get = func(spec model.RepoSpec) (Repo, error) {
 	if spec.Dir() != "" {
 		if spec.RepoName() != "" {
-			return nil, model.ErrInvalidSpec
+			return nil, fmt.Errorf("could not initialize a repo instance for %s: %w\ncheck config", spec, model.ErrInvalidSpec)
 		}
 		return NewFileRepo(map[string]any{KeyRepoType: "file", KeyRepoLoc: spec.Dir()}, spec)
 	}
 	repos, err := ReadConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not initialize a repo instance for %s: could not read config: %w", spec, err)
 	}
 	repos = filterEnabled(repos)
 	parent, child := splitRepoName(spec.RepoName())
@@ -144,24 +144,28 @@ var Get = func(spec model.RepoSpec) (Repo, error) {
 	if parent == "" {
 		switch len(repos) {
 		case 0:
-			return nil, ErrRepoNotFound
+			return nil, fmt.Errorf("could not initialize a repo instance for %s: %w\ncheck config", spec, ErrRepoNotFound)
 		case 1:
 			for n, v := range repos {
 				rc = v
 				spec = model.NewRepoSpec(n)
 			}
 		default:
-			return nil, ErrAmbiguous
+			return nil, fmt.Errorf("could not initialize a repo instance for %s: %w\ncheck config", spec, ErrAmbiguous)
 		}
 	} else {
 		if !ok {
-			return nil, ErrRepoNotFound
+			return nil, fmt.Errorf("could not initialize a repo instance for %s: %w\ncheck config", spec, ErrRepoNotFound)
 		}
 	}
 	if child != "" {
 		rc[keySubRepo] = child
 	}
-	return createRepo(rc, spec)
+	repo, err := createRepo(rc, spec)
+	if err != nil {
+		return nil, fmt.Errorf("could not initialize a repo instance for %s: %w\ncheck config", spec, err)
+	}
+	return repo, err
 }
 
 func splitRepoName(name string) (string, string) {

@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const (
@@ -69,12 +72,6 @@ func HandleHealthyResponse(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-
-	if err != nil {
-		//todo: log
-		fmt.Println(err)
-	}
-
 	errTitle := Error500Title
 	errDetail := Error500Detail
 	errStatus := http.StatusInternalServerError
@@ -140,6 +137,16 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errDetail = err.Error()
 		errStatus = http.StatusBadRequest
 	default:
+	}
+
+	if err != nil {
+		log := utils.GetLogger(r.Context(), "http.HandleErrorResponse")
+		log = log.With("title", errTitle, "status", errStatus)
+		if errStatus < http.StatusInternalServerError {
+			log.Info(errDetail)
+		} else {
+			log.Error(errDetail)
+		}
 	}
 
 	problem := server.ErrorResponse{
@@ -359,4 +366,40 @@ func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelR
 	return server.ImportThingModelResponse{
 		Data: data,
 	}
+}
+
+func WithRequestLogger(handler http.Handler) http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			log := loggerForRequest(r)
+			ctx := context.WithValue(r.Context(), utils.CtxKeyLogger, log)
+			utils.GetLogger(ctx, "http.serve").Info("received request")
+			r = r.WithContext(ctx)
+			handler.ServeHTTP(w, r)
+		})
+}
+
+func WithLogAfterRequestProcessing(handler http.Handler) http.Handler {
+	return http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				utils.GetLogger(r.Context(), "http.serve").Info("processed request")
+			}()
+			handler.ServeHTTP(w, r)
+		})
+}
+
+func loggerForRequest(r *http.Request) *slog.Logger {
+	requestID := r.Header.Get("X-Request-Id")
+	if requestID == "" {
+		requestID = newRequestID()
+		r.Header.Set("X-Request-Id", requestID)
+	}
+	log := slog.Default().With("request-id", requestID, "method", r.Method, "path", r.URL.Path)
+	return log
+}
+
+func newRequestID() string {
+	rId, _ := uuid.NewRandom()
+	return rId.String()
 }
