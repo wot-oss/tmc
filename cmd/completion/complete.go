@@ -9,25 +9,25 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-func CompleteRepoNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompleteRepoNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	config, err := repos.ReadConfig()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
 
 	var rNames []string
-	for k, _ := range config {
+	for k := range config {
 		rNames = append(rNames, k)
 	}
 
 	return rNames, cobra.ShellCompDirectiveNoFileComp
 }
 
-func CompleteRepoTypes(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompleteRepoTypes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return repos.SupportedTypes, cobra.ShellCompDirectiveNoFileComp
 }
 
-func NoCompletionNoFile(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func NoCompletionNoFile(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -65,7 +65,7 @@ func getRepo(cmd *cobra.Command) (*repos.Union, error) {
 	}
 	return u, nil
 }
-func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompleteTMNames(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	rs, err := getRepo(cmd)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
@@ -75,7 +75,7 @@ func CompleteTMNames(cmd *cobra.Command, args []string, toComplete string) ([]st
 	return cs, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveNoSpace
 }
 
-func CompleteTMNamesOrIds(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompleteTMNamesOrIds(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	rs, err := getRepo(cmd)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
@@ -85,7 +85,7 @@ func CompleteTMNamesOrIds(cmd *cobra.Command, args []string, toComplete string) 
 
 }
 
-func CompleteAttachmentNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func CompleteAttachmentNames(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	rs, err := getRepo(cmd)
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError

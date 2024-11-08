@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -30,6 +29,10 @@ var once sync.Once
 
 func getHttpClient() *http.Client {
 	once.Do(func() {
+		if config.ConfigDir == "" { // this is probably a test run, but even if it isn't, we don't want to write the cache in the working directory
+			httpClient = http.DefaultClient
+			return
+		}
 		cacheDir := filepath.Join(config.ConfigDir, ".http-cache")
 		err := os.MkdirAll(cacheDir, 0770)
 		if err != nil {
@@ -170,7 +173,10 @@ func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	idx.Filter(search)
+	err = idx.Filter(search)
+	if err != nil {
+		return model.SearchResult{}, err
+	}
 	return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx), nil
 }
 
@@ -189,7 +195,7 @@ func (h *HttpRepo) getIndex(ctx context.Context) (*model.Index, error) {
 	case http.StatusOK:
 		var idx model.Index
 		err = json.Unmarshal(data, &idx)
-		return &idx, nil
+		return &idx, err
 	default:
 		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
 	}
@@ -211,24 +217,24 @@ func doHttp(req *http.Request, auth map[string]any) (*http.Response, error) {
 		}
 	}
 	resp, err := getHttpClient().Do(req)
+	if err != nil {
+		utils.GetLogger(req.Context(), "HttpRepo").Error(err.Error())
+	}
 	return resp, err
 }
 
 func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
-	log := slog.Default()
 	if len(name) == 0 {
-		log.Error("Please specify a name to show the TM.")
-		return nil, errors.New("please specify a name to show the TM")
+		return nil, errors.New("cannot list versions for empty TM name")
 	}
 	name = strings.TrimSpace(name)
 	idx, err := h.List(ctx, &model.SearchParams{Name: name})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", name, model.ErrTMNameNotFound)
 	}
 
 	if len(idx.Entries) != 1 {
-		log.Error(fmt.Sprintf("No TM found with name: %s", name))
-		return nil, model.ErrTMNameNotFound
+		return nil, fmt.Errorf("%s: %w", name, model.ErrTMNameNotFound)
 	}
 
 	return idx.Entries[0].Versions, nil

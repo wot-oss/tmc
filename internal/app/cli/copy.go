@@ -65,7 +65,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 				}
 			} else {
 				if cErr != nil {
-					cErr = fmt.Errorf("error copying TM %s: %w", version.TMID, cErr)
+					cErr = fmt.Errorf("couldn't copy TM %s: %w", version.TMID, cErr)
 					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("%v", cErr)})
 					if err == nil {
 						err = cErr
@@ -142,22 +142,24 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 		resName := fmt.Sprintf("%s/%s", relDir, att.Name)
 		bytes, aErr = commands.AttachmentFetch(ctx, spec, ref, att.Name, false)
 		if aErr != nil {
-			if err == nil {
-				err = aErr
-			}
+			aErr = fmt.Errorf("could not fetch attachment %s to %v: %w", att.Name, ref, aErr)
 			results = append(results, operationResult{
 				typ:        opResultErr,
 				resourceId: resName,
-				text:       fmt.Errorf("could not fetch attachment %s to %v: %w", att.Name, ref, err).Error(),
+				text:       aErr.Error(),
 			})
+			if err == nil {
+				err = aErr
+			}
 			continue
 		}
 		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes, force)
 		if wErr != nil {
+			wErr = fmt.Errorf("could not import attachment %s to %v: %w", att.Name, ref, wErr)
 			results = append(results, operationResult{
 				typ:        opResultErr,
 				resourceId: resName,
-				text:       fmt.Errorf("could not import attachment %s to %v: %w", att.Name, ref, wErr).Error(),
+				text:       wErr.Error(),
 			})
 			doIgnore := ignoreExisting && errors.Is(wErr, repos.ErrAttachmentExists)
 			if err == nil && !doIgnore {
@@ -180,8 +182,8 @@ func copyThingModel(ctx context.Context, version model.FoundVersion, target repo
 		err = errs[0]
 	}
 	if err != nil {
-		Stderrf("Error fetching %s: %v", version.TMID, err)
 		e := fmt.Errorf("cannot fetch %s from repo %s: %w", version.TMID, version.FoundIn, err)
+		Stderrf("Error fetching %s: %v", version.TMID, err)
 		return repos.ImportResultFromError(e)
 	}
 
