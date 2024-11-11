@@ -3,7 +3,7 @@
     "https://www.w3.org/2019/wot/td/v1",
     {
       "schema": "https://schema.org/",
-      "modbus": "https://www.w3.org/2019/wot/modbus"
+      "modv": "https://www.w3.org/2019/wot/modbus"
     }
   ],
   "@type": "tm:ThingModel",
@@ -36,12 +36,12 @@
             "readproperty"
           ],
           "href": "/",
-          "modbus:unitID": "42",
-          "modbus:quantity": 1,
-          "modbus:address": 2,
-          "modbus:type": "integer",
-          "modbus:entity": "HoldingRegister",
-          "modbus:zeroBasedAddressing": false
+          "modv:unitID": "42",
+          "modv:quantity": 1,
+          "modv:address": 2,
+          "modv:type": "xsd:integer",
+          "modv:entity": "HoldingRegister",
+          "modv:zeroBasedAddressing": false
         }
       ]
     },
@@ -57,12 +57,12 @@
             "readproperty"
           ],
           "href": "/",
-          "modbus:unitID": 42,
-          "modbus:quantity": 10,
-          "modbus:address": 3,
-          "modbus:type": "string",
-          "modbus:entity": "HoldingRegister",
-          "modbus:zeroBasedAddressing": false
+          "modv:unitID": 42,
+          "modv:quantity": 10,
+          "modv:address": 3,
+          "modv:type": "xsd:string",
+          "modv:entity": "HoldingRegister",
+          "modv:zeroBasedAddressing": false
         }
       ]
     },
@@ -78,12 +78,12 @@
             "readproperty"
           ],
           "href": "/",
-          "modbus:unitID": 42,
-          "modbus:quantity": 8,
-          "modbus:address": 13,
-          "modbus:type": "string",
-          "modbus:entity": "HoldingRegister",
-          "modbus:zeroBasedAddressing": false
+          "modv:unitID": 42,
+          "modv:quantity": 8,
+          "modv:address": 13,
+          "modv:type": "xsd:string",
+          "modv:entity": "HoldingRegister",
+          "modv:zeroBasedAddressing": false
         }
       ]
     },
@@ -99,12 +99,12 @@
             "readproperty"
           ],
           "href": "/",
-          "modbus:unitID": 42,
-          "modbus:quantity": 1,
-          "modbus:address": 21,
-          "modbus:type": "integer",
-          "modbus:entity": "HoldingRegister",
-          "modbus:zeroBasedAddressing": false
+          "modv:unitID": 42,
+          "modv:quantity": 1,
+          "modv:address": 21,
+          "modv:type": "xsd:integer",
+          "modv:entity": "HoldingRegister",
+          "modv:zeroBasedAddressing": false
         }
       ]
     },
@@ -120,12 +120,12 @@
             "readproperty"
           ],
           "href": "/",
-          "modbus:unitID": 42,
-          "modbus:quantity": 2,
-          "modbus:address": 22,
-          "modbus:type": "string",
-          "modbus:entity": "HoldingRegister",
-          "modbus:zeroBasedAddressing": false
+          "modv:unitID": 42,
+          "modv:quantity": 2,
+          "modv:address": 22,
+          "modv:type": "xsd:string",
+          "modv:entity": "HoldingRegister",
+          "modv:zeroBasedAddressing": false
         }
       ]
     },
@@ -141,12 +141,12 @@
             "readproperty"
           ],
           "href": "/",
-          "modbus:unitID": 42,
-          "modbus:quantity": 1,
-          "modbus:address": 24,
-          "modbus:type": "integer",
-          "modbus:entity": "HoldingRegister",
-          "modbus:zeroBasedAddressing": false
+          "modv:unitID": 42,
+          "modv:quantity": 1,
+          "modv:address": 24,
+          "modv:type": "xsd:integer",
+          "modv:entity": "HoldingRegister",
+          "modv:zeroBasedAddressing": false
         }
       ]
     }
