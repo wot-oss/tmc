@@ -9,8 +9,8 @@
         "modbusForm": {
             "type": "object",
             "properties": {
-                "modv:pollingTime": {"type": "number", "minimum": 0},
-                "modv:entity": {
+                "modbus:pollingTime": {"type": "number", "minimum": 0},
+                "modbus:entity": {
                     "type":"string",
                     "enum": [
                         "Coil",
@@ -19,43 +19,21 @@
                         "InputRegister"
                     ]
                 },
-                "modv:function": {
+                "modbus:function": {
                     "type": "string",
                     "enum": [
                         "readCoil",
                         "readDiscreteInput",
                         "readHoldingRegisters",
-                        "readInputRegisters",
+                        "readInputRegister",
                         "writeSingleCoil",
                         "writeMultipleCoils",
                         "writeMultipleHoldingRegisters",
                         "writeSingleHoldingRegister"
                     ]
                 },
-                "modv:type": {
-                    "type": "string",
-                    "enum": [
-                        "xsd:integer",
-                        "xsd:boolean",
-                        "xsd:string",
-                        "xsd:float",
-                        "xsd:decimal",
-                        "xsd:byte",
-                        "xsd:short",
-                        "xsd:int",
-                        "xsd:long",
-                        "xsd:unsignedByte",
-                        "xsd:unsignedShort",
-                        "xsd:unsignedInt",
-                        "xsd:unsignedLong",
-                        "xsd:double",
-                        "xsd:hexBinary"
-                    ]
-                },
-                "modv:mostSignificantByte" : { "type" : "boolean"},
-                "modv:mostSignificantWord" : { "type" : "boolean"},
-                "modv:zeroBasedAddressing" : { "type" : "boolean"},
-                "modv:timeout" : { "type": "number", "minimum": 0}
+                "modbus:zeroBasedAddressing" : { "type" : "boolean"},
+                "modbus:timeout" : { "type": "number", "minimum": 0}
             }
         },
         "affordance": {
@@ -80,7 +58,7 @@
             "contains": {
                 "type": "object",
                 "properties": {
-                    "modv": {
+                    "modbus": {
                         "type": "string",
                         "enum": [
                             "https://www.w3.org/2019/wot/modbus"
