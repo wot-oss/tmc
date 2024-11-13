@@ -45,39 +45,59 @@ func RepoList() error {
 	return nil
 }
 
-func RepoAdd(name, typ, confStr, confFile, descr string) error {
+func RepoAdd(name, typ string, locStr, descr, jsonConf, confFile string) error {
 	if !repos.ValidRepoNameRegex.MatchString(name) {
 		Stderrf("invalid name: %v", name)
 		return ErrInvalidArgs
 	}
-	if confStr != "" && confFile != "" {
-		Stderrf("specify either <config> or --file=<configFileName>, not both")
-		return ErrInvalidArgs
+	var config []byte
+	if locStr != "" {
+		if confFile != "" || jsonConf != "" {
+			Stderrf("<location>, --file=<config-file>, and --json=<config-json> are mutually exclusive")
+			return ErrInvalidArgs
+		}
+		cm := map[string]string{
+			repos.KeyRepoType:        typ,
+			repos.KeyRepoLoc:         locStr,
+			repos.KeyRepoDescription: descr,
+		}
+		config, _ = json.Marshal(cm)
 	}
-	if confStr == "" && confFile == "" {
-		Stderrf("must specify either <config> or --file=<configFileName>")
-		return ErrInvalidArgs
-	}
-
-	var bytes []byte
 	if confFile != "" {
+		if locStr != "" || jsonConf != "" {
+			Stderrf("<location>, --file=<config-file>, and --json=<config-json> are mutually exclusive")
+			return ErrInvalidArgs
+		}
 		var err error
-		_, bytes, err = utils.ReadRequiredFile(confFile)
+		_, config, err = utils.ReadRequiredFile(confFile)
 		if err != nil {
 			Stderrf("cannot read file: %v", confFile)
 			return err
 		}
 	}
+	if jsonConf != "" {
+		if locStr != "" || confFile != "" {
+			Stderrf("<location>, --file=<config-file>, and --json=<config-json> are mutually exclusive")
+			return ErrInvalidArgs
+		}
+		config = []byte(jsonConf)
+	}
 
-	typ = inferType(typ, bytes)
+	if config == nil {
+		Stderrf("must specify one of: <location>, --file=<config-file>, or --json=<config-json>")
+		return ErrInvalidArgs
+	}
+
+	typ = inferType(typ, config)
 
 	if !isValidType(typ) {
 		Stderrf("invalid type: %v. Valid types are: %v", typ, repos.SupportedTypes)
 		return ErrInvalidArgs
 	}
 
-	rc, err := repos.NewRepoConfig(typ, confStr, bytes, descr)
+	rc, err := repos.NewRepoConfig(typ, config)
 	if err != nil {
+		Stderrf("cannot create repo config: %v", err)
 		return err
 	}
 
@@ -88,24 +108,43 @@ func RepoAdd(name, typ, confStr, confFile, descr string) error {
 	return err
 }
 
-func RepoSetConfig(name, confStr, confFile string) error {
+func RepoSetConfig(name, locStr, jsonConf, confFile string) error {
 	return updateRepoConfig(name, func(conf map[string]any) (map[string]any, error) {
-		var bytes []byte
+		var configBytes []byte
+		if locStr != "" {
+			if confFile != "" || jsonConf != "" {
+				Stderrf("<location>, --file=<config-file>, and --json=<config-json> are mutually exclusive")
+				return nil, ErrInvalidArgs
+			}
+			conf[repos.KeyRepoLoc] = locStr
+			configBytes, _ = json.Marshal(conf)
+		}
 		if confFile != "" {
+			if locStr != "" || jsonConf != "" {
+				Stderrf("<location>, --file=<config-file>, and --json=<config-json> are mutually exclusive")
+				return nil, ErrInvalidArgs
+			}
 			var err error
-			_, bytes, err = utils.ReadRequiredFile(confFile)
+			_, configBytes, err = utils.ReadRequiredFile(confFile)
 			if err != nil {
 				Stderrf("cannot read file: %v", confFile)
 				return nil, err
 			}
 		}
-
-		rs, err := repos.ReadConfig()
-		if err != nil {
-			return nil, err
+		if jsonConf != "" {
+			if locStr != "" || confFile != "" {
+				Stderrf("<location>, --file=<config-file>, and --json=<config-json> are mutually exclusive")
+				return nil, ErrInvalidArgs
+			}
+			configBytes = []byte(jsonConf)
 		}
-		oldConf := rs[name]
-		newConf, err := repos.NewRepoConfig(utils.JsGetStringOrEmpty(oldConf, repos.KeyRepoType), confStr, bytes, utils.JsGetStringOrEmpty(oldConf, repos.KeyRepoDescription))
+
+		if configBytes == nil {
+			Stderrf("must specify one of: <location>, --file=<config-file>, or --json=<config-json>")
+			return nil, ErrInvalidArgs
+		}
+		typ := utils.JsGetStringOrEmpty(conf, repos.KeyRepoType)
+		newConf, err := repos.NewRepoConfig(typ, configBytes)
 		return newConf, err
 	})
 }

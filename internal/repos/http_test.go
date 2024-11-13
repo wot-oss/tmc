@@ -27,31 +27,29 @@ func TestNewHttpRepo(t *testing.T) {
 
 func TestCreateHttpRepoConfig(t *testing.T) {
 	tests := []struct {
-		strConf  string
 		fileConf string
 		expRoot  string
 		expErr   bool
 	}{
-		{"http://localhost:8000/", "", "http://localhost:8000/", false},
-		{"", ``, "", true},
-		{"", `[]`, "", true},
-		{"", `{}`, "", true},
-		{"", `{"loc":{}}`, "", true},
-		{"", `{"loc":"http://localhost:8000/"}`, "http://localhost:8000/", false},
-		{"", `{"loc":"http://localhost:8000/", "type":"http"}`, "http://localhost:8000/", false},
-		{"", `{"loc":"http://localhost:8000/", "type":"file"}`, "", true},
+		{``, "", true},
+		{`[]`, "", true},
+		{`{}`, "", true},
+		{`{"loc":{}}`, "", true},
+		{`{"loc":"http://localhost:8000/"}`, "http://localhost:8000/", false},
+		{`{"loc":"http://localhost:8000/", "type":"http"}`, "http://localhost:8000/", false},
+		{`{"loc":"http://localhost:8000/", "type":"file"}`, "", true},
 	}
 
 	for i, test := range tests {
-		cf, err := createHttpRepoConfig(test.strConf, []byte(test.fileConf), "")
+		cf, err := createHttpRepoConfig([]byte(test.fileConf))
 		if test.expErr {
-			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.Error(t, err, "error expected in test %d for %s", i, test.fileConf)
 			continue
 		} else {
-			assert.NoError(t, err, "no error expected in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.NoError(t, err, "no error expected in test %d for %s", i, test.fileConf)
 		}
-		assert.Equalf(t, "http", cf[KeyRepoType], "in test %d for %s %s", i, test.strConf, test.fileConf)
-		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRepoLoc]), "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, "http", cf[KeyRepoType], "in test %d for %s", i, test.fileConf)
+		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRepoLoc]), "in test %d for %s", i, test.fileConf)
 
 	}
 }
@@ -66,7 +64,7 @@ func TestHttpRepo_Fetch(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http"}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http"}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -88,7 +86,7 @@ func TestHttpRepo_FixedHeaders(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http"}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http"}`))
 		assert.NoError(t, err)
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)
@@ -106,7 +104,7 @@ func TestHttpRepo_FixedHeaders(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "headers": {"X-Single": "single", "X-Multiple": ["first", "second"]}}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "headers": {"X-Single": "single", "X-Multiple": ["first", "second"]}}`))
 		assert.NoError(t, err)
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)
@@ -126,7 +124,7 @@ func TestHttpRepo_Authentication(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":null}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":null}`))
 		assert.NoError(t, err)
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)
@@ -141,7 +139,7 @@ func TestHttpRepo_Authentication(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
 		assert.NoError(t, err)
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)
@@ -156,7 +154,7 @@ func TestHttpRepo_Authentication(t *testing.T) {
 		}))
 		defer srv.Close()
 
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"basic":{"username": "thatsme", "password": "secret"}}}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"basic":{"username": "thatsme", "password": "secret"}}}`))
 		assert.NoError(t, err)
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)
@@ -178,7 +176,7 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 			_, _ = w.Write([]byte(attContent))
 		}))
 		defer srv.Close()
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`"}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `"}`))
 		assert.NoError(t, err)
 
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
@@ -194,7 +192,7 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 			_, _ = w.Write([]byte(attContent))
 		}))
 		defer srv.Close()
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`"}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `"}`))
 		assert.NoError(t, err)
 
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
@@ -215,7 +213,7 @@ func TestHttpRepo_GetTMMetadata(t *testing.T) {
 		_, _ = w.Write(idx)
 	}))
 	defer srv.Close()
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -238,7 +236,7 @@ func TestHttpRepo_ListByName(t *testing.T) {
 		_, _ = w.Write(idx)
 	}))
 	defer srv.Close()
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -261,7 +259,7 @@ func TestHttpRepo_ListCompletions(t *testing.T) {
 		_, _ = w.Write(idx)
 	}))
 	defer srv.Close()
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -331,7 +329,7 @@ func TestHttpRepo_ListCompletions(t *testing.T) {
 
 func TestHttpRepo_CheckIntegrity(t *testing.T) {
 	// given: a Http Repo
-	config, err := createHttpRepoConfig("http://example.com", nil, "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"http://example.com"}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)

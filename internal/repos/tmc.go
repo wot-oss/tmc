@@ -542,29 +542,21 @@ func (t *TmcRepo) GetSubRepos(ctx context.Context) ([]model.RepoDescription, err
 	}
 }
 
-func createTmcRepoConfig(loc string, bytes []byte, descr string) (map[string]any, error) {
-	if loc != "" {
-		return map[string]any{
-			KeyRepoType:        RepoTypeTmc,
-			KeyRepoLoc:         loc,
-			KeyRepoDescription: descr,
-		}, nil
-	} else {
-		rc, err := AsRepoConfig(bytes)
-		if err != nil {
-			return nil, err
-		}
-		if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
-			if *rType != RepoTypeTmc {
-				return nil, fmt.Errorf("invalid json config. type must be \"tmc\" or absent")
-			}
-		}
-		rc[KeyRepoType] = RepoTypeTmc
-		l := utils.JsGetString(rc, KeyRepoLoc)
-		if l == nil {
-			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
-		}
-		rc[KeyRepoLoc] = *l
-		return rc, nil
+func createTmcRepoConfig(bytes []byte) (map[string]any, error) {
+	rc, err := AsRepoConfig(bytes)
+	if err != nil {
+		return nil, err
 	}
+	if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
+		if *rType != RepoTypeTmc {
+			return nil, fmt.Errorf("invalid json config. type must be \"tmc\" or absent")
+		}
+	}
+	rc[KeyRepoType] = RepoTypeTmc
+	l := utils.JsGetString(rc, KeyRepoLoc)
+	if l == nil {
+		return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
+	}
+	rc[KeyRepoLoc] = *l
+	return rc, nil
 }

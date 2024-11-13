@@ -372,22 +372,22 @@ func SetConfig(name string, repoConf map[string]any) error {
 	return setRepoConfig(name, repoConf)
 }
 
-func NewRepoConfig(typ string, confStr string, confFile []byte, descr string) (map[string]any, error) {
+func NewRepoConfig(typ string, confFile []byte) (map[string]any, error) {
 	var rc map[string]any
 	var err error
 	switch typ {
 	case RepoTypeFile:
-		rc, err = createFileRepoConfig(confStr, confFile, descr)
+		rc, err = createFileRepoConfig(confFile)
 		if err != nil {
 			return nil, err
 		}
 	case RepoTypeHttp:
-		rc, err = createHttpRepoConfig(confStr, confFile, descr)
+		rc, err = createHttpRepoConfig(confFile)
 		if err != nil {
 			return nil, err
 		}
 	case RepoTypeTmc:
-		rc, err = createTmcRepoConfig(confStr, confFile, descr)
+		rc, err = createTmcRepoConfig(confFile)
 		if err != nil {
 			return nil, err
 		}

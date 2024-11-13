@@ -12,15 +12,17 @@ all the necessary information.
 ## `repo add`
 
 > Usage:
-> 
->   tmc repo add [--type &lt;type>] <name> (&lt;config> | --file &lt;config-file-name>)
+>
+>   tmc repo add <name> [--type &lt;type>] ((&lt;location> [--description &lt;description>]) | --file &lt;config-file> |
+> --json &lt;config-json>)
 > 
 
-All repos have two mandatory fields: 'type' and 'loc' (short for location), and an optional 'description' field. 
-The 'type' is assigned from '--type' flag and the 'loc' is assigned from \<config> argument.
+All repos have two mandatory fields: 'type' and 'loc' (short for location), and an optional 'description' field.
+The 'type' is assigned from '--type' flag and the 'loc' is assigned from \<location> argument.
 Depending on the repo type, the exact meaning of 'loc' field is different and also other fields may be provided or may be mandatory.
 
-When adding a repository, the entire config may be passed in form of a JSON file. See `repo show` for example.
+When adding a repository, the entire config may be provided in JSON form, either by giving a file name in
+\<config-file> or the entire JSON as string in \<config-json. See `repo show` for example.
 
 ### File Repositories
 
@@ -45,9 +47,6 @@ the requested file's path anywhere other than at the end of the URL, you can use
 
 E.g. for an HTTP repo served by a GitLab installation, you may use ```https://example.com/api/v4/projects/<project-id>/repository/files/{% raw %}{{ID}}{% endraw %}?ref=main``` 
 as the URL.
-
-HTTP and TMC repositories can have authentication configured in an 'auth' field. The exact value of the field depends on the chosed authentication scheme.  
-Use `repo config auth` command to set the authentication parameters after a repo has been created. 
 
 ### TMC Repositories
 

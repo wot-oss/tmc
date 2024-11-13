@@ -13,34 +13,28 @@ import (
 
 // repoAddCmd represents the 'repo add' command
 var repoAddCmd = &cobra.Command{
-	Use:   "add [--type <type>] <name> (<config> | --file <config-file>)",
+	Use:   "add <name> [--type <type>] ((<location> [--description <description>]) | --file <config-file> | --json <config-json>)",
 	Short: "Add a named repository",
-	Long: `Add a named repository to the tmc configuration file. Depending on the repository type,
-the config may be a simple string, like directory path or a URL, or a json file. See online user documentation for details on json config file format.
---type is optional only if --file is used and the type is specified in the config file.
+	Long: `Add a named repository to the tmc configuration file. Using <location> is equivalent to passing a json config file with the following content:
+{"type": "<type>", "loc": "<location>", "description": "<description>"}. See online user documentation for details on json config file format.
+--type is optional only if --file or --json is used and the type is specified in the config file.
+--file and --json override --description.
 `,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
-		typ, err := cmd.Flags().GetString("type")
-		if err != nil {
-			cli.Stderrf("internal error: %v", err)
-			os.Exit(1)
-		}
+		typ := cmd.Flag("type").Value.String()
 		name := args[0]
-		confStr := ""
+
+		confFile := cmd.Flag("file").Value.String()
+		jsonConf := cmd.Flag("json").Value.String()
+		descr := cmd.Flag("description").Value.String()
+
+		locStr := ""
 		if len(args) > 1 {
-			confStr = args[1]
+			locStr = args[1]
 		}
 
-		confFile, err := cmd.Flags().GetString("file")
-		if err != nil {
-			cli.Stderrf("internal error: %v", err)
-			os.Exit(1)
-		}
-
-		descr, _ := cmd.Flags().GetString("description")
-
-		err = cli.RepoAdd(name, typ, confStr, confFile, descr)
+		err := cli.RepoAdd(name, typ, locStr, descr, jsonConf, confFile)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -52,6 +46,7 @@ func init() {
 	repoCmd.AddCommand(repoAddCmd)
 	repoAddCmd.Flags().StringP("type", "t", "", fmt.Sprintf("type of repo to add. One of [%s]", strings.Join(repos.SupportedTypes, ", ")))
 	_ = repoAddCmd.RegisterFlagCompletionFunc("type", completion.CompleteRepoTypes)
-	repoAddCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
+	repoAddCmd.Flags().StringP("file", "f", "", "name of the file containing the repo config")
+	repoAddCmd.Flags().StringP("json", "j", "", "repo config in json format")
 	repoAddCmd.Flags().StringP("description", "d", "", "description of the repo")
 }
