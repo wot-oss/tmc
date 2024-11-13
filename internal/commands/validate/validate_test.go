@@ -54,6 +54,19 @@ func TestValidateAsModbus(t *testing.T) {
 	v, err = ValidateAsModbus(raw, parsed)
 	assert.True(t, v)
 	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "/properties/SERIAL_NUMBER/forms/0/modv:zeroBasedAddressing")
+
+	raw, parsed, err = parseJsonFile("../../../test/data/validate/modbus-old-senseall.json")
+	assert.NoError(t, err)
+	v, err = ValidateAsModbus(raw, parsed)
+	assert.True(t, v)
+	assert.NoError(t, err)
+
+	raw, parsed, err = parseJsonFile("../../../test/data/validate/modbus-old-senseall-broken.json")
+	assert.NoError(t, err)
+	v, err = ValidateAsModbus(raw, parsed)
+	assert.True(t, v)
+	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "/properties/SERIAL_NUMBER/forms/0/modbus:zeroBasedAddressing")
 
 }
