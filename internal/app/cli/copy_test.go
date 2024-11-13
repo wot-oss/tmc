@@ -2,9 +2,11 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 
+	"github.com/wot-oss/tmc/internal/testutils"
 	"github.com/wot-oss/tmc/internal/utils"
 
 	"github.com/wot-oss/tmc/internal/repos"
@@ -143,7 +145,7 @@ func TestCopy(t *testing.T) {
 		target.On("Index", mock.Anything, tmID_3).Return(nil)
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{Force: true})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{Force: true}, OutputFormatPlain)
 
 		// then: there is no error
 		assert.NoError(t, err)
@@ -184,7 +186,7 @@ func TestCopy(t *testing.T) {
 		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), model.Attachment{Name: "CHANGELOG.md"}, changelogContent, true).Return(nil).Once()
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{Force: true})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{Force: true}, OutputFormatPlain)
 
 		// then: there is a total error equal to the first failure
 		assert.ErrorIs(t, err, impErr)
@@ -225,7 +227,7 @@ func TestCopy(t *testing.T) {
 		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), model.Attachment{Name: "CHANGELOG.md"}, changelogContent, false).Return(repos.ErrAttachmentExists).Once()
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{IgnoreExisting: true})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{IgnoreExisting: true}, OutputFormatPlain)
 
 		// then: there is no error
 		assert.NoError(t, err)
@@ -239,12 +241,12 @@ func TestCopy(t *testing.T) {
 		source := mocks.NewRepo(t)
 		target := mocks.NewRepo(t)
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec, model.EmptySpec}, []repos.Repo{source, target, nil}, []error{nil, nil, repos.ErrAmbiguous}))
-		err := Copy(context.Background(), model.EmptySpec, model.NewRepoSpec("r1"), nil, repos.ImportOptions{})
+		err := Copy(context.Background(), model.EmptySpec, model.NewRepoSpec("r1"), nil, repos.ImportOptions{}, OutputFormatPlain)
 		assert.ErrorIs(t, err, repos.ErrAmbiguous)
 	})
 
 	t.Run("with same source and target", func(t *testing.T) {
-		err := Copy(context.Background(), model.EmptySpec, model.EmptySpec, nil, repos.ImportOptions{})
+		err := Copy(context.Background(), model.EmptySpec, model.EmptySpec, nil, repos.ImportOptions{}, OutputFormatPlain)
 		assert.ErrorIs(t, err, ErrInvalidArgs)
 	})
 
@@ -262,10 +264,39 @@ func TestCopy(t *testing.T) {
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, nil, model.ErrTMNotFound).Once()
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{}, OutputFormatPlain)
 
 		// then: there is a total error
 		assert.ErrorIs(t, err, model.ErrTMNotFound)
+		// and then: all expectations on target mock are met
+	})
+	t.Run("with error fetching a ThingModel with json output", func(t *testing.T) {
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		// given: a repo having 1 ThingModel and 1 attachments and a target repo
+		sourceSpec := model.NewRepoSpec("r1")
+		targetSpec := model.NewRepoSpec("target")
+		source := mocks.NewRepo(t)
+		target := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec}, []repos.Repo{source, target}, []error{nil, nil}))
+
+		tmid := copySingleListRes.Entries[0].Versions[0].TMID
+		var sp *model.SearchParams
+		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
+		source.On("Fetch", mock.Anything, tmid).Return(tmid, nil, model.ErrTMNotFound).Once()
+
+		// when: copying from repo
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{}, OutputFormatJSON)
+
+		// then: there is a total error
+		assert.ErrorIs(t, err, model.ErrTMNotFound)
+		// and then: stdout contains the correct json
+		stdout := getStdout()
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.NoError(t, err)
+		expected := []any{map[string]any{"resourceId": "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json", "text": "couldn't copy TM omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json: cannot fetch omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json from repo r1: TM not found", "type": "error"}}
+		assert.Equal(t, expected, actual)
 		// and then: all expectations on target mock are met
 	})
 
@@ -288,7 +319,7 @@ func TestCopy(t *testing.T) {
 		target.On("Index", mock.Anything, tmid).Return(nil).Twice()
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{}, OutputFormatPlain)
 
 		// then: there is a total error
 		assert.ErrorIs(t, err, model.ErrAttachmentNotFound)
@@ -313,7 +344,7 @@ func TestCopy(t *testing.T) {
 			Return(res, resErr).Once()
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{}, OutputFormatPlain)
 
 		// then: there is a total error
 		assert.ErrorIs(t, err, repos.ErrNotSupported)
@@ -341,7 +372,7 @@ func TestCopy(t *testing.T) {
 		target.On("Index", mock.Anything, tmid).Return(nil).Twice()
 
 		// when: copying from repo
-		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{})
+		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{}, OutputFormatPlain)
 
 		// then: there is a total error
 		assert.ErrorIs(t, err, os.ErrPermission)

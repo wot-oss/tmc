@@ -127,14 +127,9 @@ func RepoShow(name string) error {
 		return err
 	}
 	if rc, ok := config[name]; ok {
-		bytes, err := json.MarshalIndent(rc, "", "  ")
-		if err != nil {
-			Stderrf("couldn't print config: %v", err)
-			return err
-		}
-		fmt.Println(string(bytes))
+		printJSON(rc)
 	} else {
-		fmt.Printf("no repo named %s\n", name)
+		Stderrf("no repo named %s\n", name)
 		return repos.ErrRepoNotFound
 	}
 	return nil

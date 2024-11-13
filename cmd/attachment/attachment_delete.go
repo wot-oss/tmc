@@ -35,6 +35,7 @@ func attachmentDelete(command *cobra.Command, args []string) {
 
 	err := cli.AttachmentDelete(context.Background(), spec, args[0], args[1])
 	if err != nil {
+		cli.Stderrf("attachment delete failed")
 		os.Exit(1)
 	}
 }

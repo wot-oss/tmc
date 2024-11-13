@@ -4,13 +4,23 @@
 package cli
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
 const DefaultListSeparator = ","
+
+const (
+	OutputFormatJSON  = "json"
+	OutputFormatPlain = "plain"
+)
+
+var ErrInvalidOutputFormat = errors.New("invalid output format")
 
 var TmcVersion = "n/a"
 
@@ -30,15 +40,37 @@ func printErrs(hdr string, errs []*repos.RepoAccessError) {
 	}
 }
 
+func printJSON(js any) {
+	v := reflect.ValueOf(js)
+	if (v.Kind() == reflect.Array || v.Kind() == reflect.Slice) && v.Len() == 0 {
+		fmt.Println("[]")
+		return
+	}
+	if v.Kind() == reflect.Map && v.Len() == 0 {
+		fmt.Println("{}")
+		return
+	}
+	b, _ := json.MarshalIndent(js, "", "  ")
+	fmt.Println(string(b))
+}
+
+func IsValidOutputFormat(format string) bool {
+	switch format {
+	case OutputFormatJSON, OutputFormatPlain:
+		return true
+	}
+	return false
+}
+
 const (
-	opResultOK = opResultType(iota)
+	opResultOK = OpResultType(iota)
 	opResultWarn
 	opResultErr
 )
 
-type opResultType int
+type OpResultType int
 
-func (t opResultType) String() string {
+func (t OpResultType) String() string {
 	switch t {
 	case opResultOK:
 		return "OK"
@@ -51,12 +83,16 @@ func (t opResultType) String() string {
 	}
 }
 
-type operationResult struct {
-	typ        opResultType
-	resourceId string
-	text       string
+func (t OpResultType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
 }
 
-func (r operationResult) String() string {
-	return fmt.Sprintf("%v\t %s %s", r.typ, r.resourceId, r.text)
+type OperationResult struct {
+	Type       OpResultType `json:"type"`
+	ResourceId string       `json:"resourceId"`
+	Text       string       `json:"text,omitempty"`
+}
+
+func (r OperationResult) String() string {
+	return fmt.Sprintf("%v\t %s %s", r.Type, r.ResourceId, r.Text)
 }
