@@ -3,6 +3,7 @@ package repos
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -21,68 +22,54 @@ import (
 )
 
 func TestNewFileRepo(t *testing.T) {
-	root := "/tmp/tm-catalog1157316148"
-	repo, err := NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, root, repo.root)
+	t.Run("absolute path", func(t *testing.T) {
+		root := "/tmp/tm-catalog1157316148"
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  root,
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		assert.Equal(t, root, repo.root)
+	})
 
-	root = "/tmp/tm-catalog1157316148"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, root, repo.root)
+	t.Run("relative to home", func(t *testing.T) {
+		root := "~/tm-catalog"
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  root,
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		home, _ := os.UserHomeDir()
+		assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
+	})
 
-	root = "~/tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	home, _ := os.UserHomeDir()
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
+	t.Run("abs windows path", func(t *testing.T) {
+		root := "C:\\Users\\user\\Desktop\\tm-catalog"
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  root,
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
+	})
 
-	root = "~/tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
-
-	root = "~/tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
-
-	root = "c:\\Users\\user\\Desktop\\tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.ToSlash("c:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
-
-	root = "C:\\Users\\user\\Desktop\\tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
+	t.Run("env var path", func(t *testing.T) {
+		os.Setenv("TMC_TEST_ENV_VAR_PATH", "/some/path")
+		defer os.Unsetenv("TMC_TEST_ENV_VAR_PATH")
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  "$TMC_TEST_ENV_VAR_PATH",
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		assert.Equal(t, "/some/path", repo.root)
+	})
 
 }
 
 func TestCreateFileRepoConfig(t *testing.T) {
 	wd, _ := os.Getwd()
 
+	relPathJson, _ := json.Marshal(filepath.Join(wd, "dir/repoName"))
 	tests := []struct {
 		fileConf string
 		expRoot  string
@@ -93,8 +80,9 @@ func TestCreateFileRepoConfig(t *testing.T) {
 		{`{"loc":"./dir/repoName"}`, filepath.Join(wd, "dir/repoName"), false, ""},
 		{`{"loc":"/dir/repoName"}`, filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false, ""},
 		{`{"loc":"."}`, filepath.Join(wd), false, ""},
-		{`{"loc":"` + filepath.Join(wd, "dir/repoName") + `"}`, filepath.Join(wd, "dir/repoName"), false, ""},
+		{`{"loc":` + string(relPathJson) + `}`, filepath.Join(wd, "dir/repoName"), false, ""},
 		{`{"loc":"~/dir/repoName"}`, "~/dir/repoName", false, ""},
+		{`{"loc":"$TMC_TEST_SOME_REPO_ROOT"}`, "$TMC_TEST_SOME_REPO_ROOT", false, ""},
 		{``, "", true, ""},
 		{`[]`, "", true, ""},
 		{`{}`, "", true, ""},

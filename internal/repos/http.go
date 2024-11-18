@@ -252,21 +252,20 @@ func cutToNSegments(s string, n int) string {
 	return strings.Join(segments[0:n], "/")
 }
 
-func createHttpRepoConfig(bytes []byte) (map[string]any, error) {
+func createHttpRepoConfig(bytes []byte) (ConfigMap, error) {
 	rc, err := AsRepoConfig(bytes)
 	if err != nil {
 		return nil, err
 	}
-	if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
-		if *rType != RepoTypeHttp {
+	if rType, found := utils.JsGetString(rc, KeyRepoType); found {
+		if rType != RepoTypeHttp {
 			return nil, fmt.Errorf("invalid json config. type must be \"http\" or absent")
 		}
 	}
 	rc[KeyRepoType] = RepoTypeHttp
-	l := utils.JsGetString(rc, KeyRepoLoc)
-	if l == nil {
+	_, found := utils.JsGetString(rc, KeyRepoLoc)
+	if !found {
 		return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
 	}
-	rc[KeyRepoLoc] = *l
 	return rc, nil
 }
