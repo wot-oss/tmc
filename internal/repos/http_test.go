@@ -141,12 +141,16 @@ func TestHttpRepo_FixedHeaders(t *testing.T) {
 
 		os.Setenv("TMC_TEST_HEADER_SINGLE", "single")
 		defer os.Unsetenv("TMC_TEST_HEADER_SINGLE")
+		os.Setenv("TMC_TEST_HEADER_X_SINGLE", "X-Single")
+		defer os.Unsetenv("TMC_TEST_HEADER_X_SINGLE")
+		os.Setenv("TMC_TEST_HEADER_X_MULTIPLE", "X-Multiple")
+		defer os.Unsetenv("TMC_TEST_HEADER_X_MULTIPLE")
 		os.Setenv("TMC_TEST_HEADER_FIRST", "first")
 		defer os.Unsetenv("TMC_TEST_HEADER_FIRST")
 		os.Setenv("TMC_TEST_HEADER_SECOND", "second")
 		defer os.Unsetenv("TMC_TEST_HEADER_SECOND")
 
-		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "headers": {"X-Single": "$TMC_TEST_HEADER_SINGLE", "X-Multiple": ["$TMC_TEST_HEADER_FIRST", "$TMC_TEST_HEADER_SECOND"]}}`))
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "headers": {"$TMC_TEST_HEADER_X_SINGLE": "$TMC_TEST_HEADER_SINGLE", "$TMC_TEST_HEADER_X_MULTIPLE": ["$TMC_TEST_HEADER_FIRST", "$TMC_TEST_HEADER_SECOND"]}}`))
 		assert.NoError(t, err)
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 		assert.NoError(t, err)

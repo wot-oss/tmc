@@ -126,10 +126,10 @@ func (b *baseHttpRepo) doHttp(req *http.Request) (*http.Response, error) {
 	}
 	for h, v := range b.headers {
 		if vs, ok := v.(string); ok {
-			req.Header.Add(h, expandVar(vs))
+			req.Header.Add(expandVar(h), expandVar(vs))
 		} else if varr, ok := v.([]any); ok {
 			for _, vv := range varr {
-				req.Header.Add(h, expandVar(fmt.Sprintf("%v", vv)))
+				req.Header.Add(expandVar(h), expandVar(fmt.Sprintf("%v", vv)))
 			}
 		}
 	}

@@ -24,6 +24,11 @@ Depending on the repo type, the exact meaning of 'loc' field is different and al
 When adding a repository, the entire config may be provided in JSON form, either by giving a file name in
 \<config-file> or the entire JSON as string in \<config-json. See `repo show` for example.
 
+Some configuration parameters can be defined by environment variables. To refer to an environment variable, set the
+value of a parameter to the variable's name prefixed by a '\$', e.g. '\$PROD_TOKEN'. This expansion of env variables is
+supported in the following fields of repository config: 'enabled', 'loc', 'auth' (leaf fields, like 'username'), 
+'headers' (both header names and values).
+
 ### File Repositories
 
 File repo is the primary repo type.
