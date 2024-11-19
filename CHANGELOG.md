@@ -8,13 +8,14 @@
 - Added possibility to import file attachments to TMs and TM names
 - `export`: added flag to export attachments together with TMs
 - added setting/storing/detecting of attachment media types
-- `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check` 
+- `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check`
+- added HTTP Basic auth to tmc and file repos
 
 ### Changed
 
 - return error on attachment import when it already exists and add a flag to override
 - `check`: removed subcommands of `check` command, unifying both into the parent command
-
+- `repo`: reorganized commands that change repo config: renamed/created `config auth`, `config description`, and `config headers` commands
 
 ## [v0.1.1]
 
