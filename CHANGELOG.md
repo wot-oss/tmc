@@ -8,7 +8,8 @@
 - Added possibility to import file attachments to TMs and TM names
 - `export`: added flag to export attachments together with TMs
 - added setting/storing/detecting of attachment media types
-- `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check` 
+- `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check`
+- added flag to change commands' output format to JSON 
 
 ### Changed
 
