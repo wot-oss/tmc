@@ -9,6 +9,7 @@
 - `export`: added flag to export attachments together with TMs
 - added setting/storing/detecting of attachment media types
 - `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check` 
+- `list`, `copy`, `export`: add filtering by protocols supported by TMs
 
 ### Changed
 
