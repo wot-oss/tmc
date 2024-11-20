@@ -14,6 +14,9 @@ import (
 //go:embed tm-json-schema-validation.json
 var tmValidationSchema string
 
+//go:embed modbus-old.schema.json
+var modbusOldValidationSchema string
+
 //go:embed modbus.schema.json
 var modbusValidationSchema string
 
@@ -22,20 +25,34 @@ var tmcMandatorySchema string
 
 var tmcMandatoryValidator *jsonschema.Schema
 var tmValidator *jsonschema.Schema
+var modbusOldValidator *jsonschema.Schema
 var modbusValidator *jsonschema.Schema
 
 const (
 	tmcMandatorySchemaUrl = "resource://tmc-mandatory.schema.json"
-	tmSchemaUrl           = "https://raw.githubusercontent.com/w3c/wot-thing-description/main/validation/tm-json-schema-validation.json"
-	modbusSchemaUrl       = "resource://modbus.schema.json"
+
+	tmSchemaUrl        = "https://raw.githubusercontent.com/w3c/wot-thing-description/main/validation/tm-json-schema-validation.json"
+	modbusOldSchemaUrl = "resource://modbus-old.schema.json"
+	modbusSchemaUrl    = "resource://modbus.schema.json" // https://w3c.github.io/wot-binding-templates/bindings/protocols/modbus/modbus.schema.json
 )
 
 func init() {
 	tmcMandatoryValidator = jsonschema.MustCompileString(tmcMandatorySchemaUrl, tmcMandatorySchema)
 	tmValidator = jsonschema.MustCompileString(tmSchemaUrl, tmValidationSchema)
 
+	modbusOldCompiler := jsonschema.NewCompiler()
+	err := modbusOldCompiler.AddResource(tmSchemaUrl, strings.NewReader(tmValidationSchema))
+	if err != nil {
+		panic(err)
+	}
+	err = modbusOldCompiler.AddResource(modbusOldSchemaUrl, strings.NewReader(modbusOldValidationSchema))
+	if err != nil {
+		panic(err)
+	}
+	modbusOldValidator = modbusOldCompiler.MustCompile(modbusOldSchemaUrl)
+
 	modbusCompiler := jsonschema.NewCompiler()
-	err := modbusCompiler.AddResource(tmSchemaUrl, strings.NewReader(tmValidationSchema))
+	err = modbusCompiler.AddResource(tmSchemaUrl, strings.NewReader(tmValidationSchema))
 	if err != nil {
 		panic(err)
 	}
@@ -58,10 +75,17 @@ func ValidateAsModbus(raw []byte, parsed any) (bool, error) {
 	if shouldTryModbus(raw) {
 		return true, modbusValidator.Validate(parsed)
 	}
+	if shouldTryOldModbus(raw) {
+		return true, modbusOldValidator.Validate(parsed)
+	}
 	return false, nil
 }
-func shouldTryModbus(raw []byte) bool {
+func shouldTryOldModbus(raw []byte) bool {
+	// modv is the main prefix, modbus prefix and the respective schema are kept for backwards compatibility
 	return bytes.Index(raw, []byte("\"modbus:")) != -1
+}
+func shouldTryModbus(raw []byte) bool {
+	return bytes.Index(raw, []byte("\"modv:")) != -1
 }
 
 func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) {
