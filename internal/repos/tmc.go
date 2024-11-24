@@ -42,7 +42,7 @@ func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
 func (t *TmcRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
 	t.addRepoParam(reqUrl)
-	return fetchAttachment(ctx, reqUrl.String(), t.auth)
+	return t.fetchAttachment(ctx, reqUrl.String())
 }
 
 func (t *TmcRepo) addRepoParam(u *url.URL) {
@@ -65,48 +65,6 @@ func getContainerPath(ref model.AttachmentContainerRef) string {
 	}
 }
 
-func fetchAttachment(ctx context.Context, reqUrl string, auth map[string]any) ([]byte, error) {
-	resp, err := doGet(ctx, reqUrl, auth)
-	if err != nil {
-		return nil, err
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	switch resp.StatusCode {
-	case http.StatusOK:
-		return b, nil
-	case http.StatusNotFound:
-		var e server.ErrorResponse
-		err := json.Unmarshal(b, &e)
-		code := ""
-		if err == nil && e.Code != nil {
-			code = *e.Code
-		}
-		return nil, model.NewErrNotFound(code)
-	case http.StatusBadRequest:
-		return nil, model.ErrInvalidIdOrName
-	case http.StatusInternalServerError, http.StatusUnauthorized:
-		return nil, newErrorFromResponse(b)
-	default:
-		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
-	}
-}
-
-func newErrorFromResponse(b []byte) error {
-	var e server.ErrorResponse
-	err := json.Unmarshal(b, &e)
-	if err != nil {
-		return err
-	}
-	detail := e.Title
-	if e.Detail != nil {
-		detail = *e.Detail
-	}
-	return errors.New(detail)
-}
-
 func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
 	t.addRepoParam(reqUrl)
@@ -114,7 +72,7 @@ func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.Attachme
 	if err != nil {
 		return err
 	}
-	resp, err := doHttp(req, t.auth)
+	resp, err := t.doHttp(req)
 	if err != nil {
 		return err
 	}
@@ -147,7 +105,7 @@ func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.Attachme
 func (t *TmcRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory", tmID)
 	t.addRepoParam(reqUrl)
-	resp, err := doGet(ctx, reqUrl.String(), t.auth)
+	resp, err := t.doGet(ctx, reqUrl.String())
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +153,7 @@ func (t *TmcRepo) ImportAttachment(ctx context.Context, container model.Attachme
 		return err
 	}
 	req.Header.Set("Content-Type", attachment.MediaType)
-	resp, err := doHttp(req, t.auth)
+	resp, err := t.doHttp(req)
 	if err != nil {
 		return err
 	}
@@ -242,7 +200,7 @@ func (t *TmcRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts Im
 		return ImportResultFromError(err)
 	}
 	req.Header.Add(headerContentType, mimeJSON)
-	resp, err := doHttp(req, t.auth)
+	resp, err := t.doHttp(req)
 	if err != nil {
 		return ImportResultFromError(err)
 	}
@@ -326,7 +284,7 @@ func (t *TmcRepo) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	resp, err := doHttp(req, t.auth)
+	resp, err := t.doHttp(req)
 	if err != nil {
 		return err
 	}
@@ -361,7 +319,7 @@ func (t *TmcRepo) Spec() model.RepoSpec {
 func (t *TmcRepo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", id)
 	t.addRepoParam(reqUrl)
-	return fetchTM(ctx, reqUrl.String(), t.auth)
+	return t.fetchTM(ctx, reqUrl.String())
 }
 
 func (t *TmcRepo) Index(context.Context, ...string) error {
@@ -384,7 +342,7 @@ func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.S
 		addSearchParams(reqUrl, search)
 	}
 
-	resp, err := doGet(ctx, reqUrl.String(), t.auth)
+	resp, err := t.doGet(ctx, reqUrl.String())
 	if err != nil {
 		return model.SearchResult{}, err
 	}
@@ -474,7 +432,7 @@ func (t *TmcRepo) Versions(ctx context.Context, name string) ([]model.FoundVersi
 	}
 	reqUrl := t.parsedRoot.JoinPath("inventory", tmNamePath, url.PathEscape(name))
 	t.addRepoParam(reqUrl)
-	resp, err := doGet(ctx, reqUrl.String(), t.auth)
+	resp, err := t.doGet(ctx, reqUrl.String())
 	if err != nil {
 		return nil, err
 	}
@@ -521,7 +479,7 @@ func (t *TmcRepo) ListCompletions(ctx context.Context, kind string, args []strin
 	vals.Set("toComplete", toComplete)
 	u.RawQuery = vals.Encode()
 
-	resp, err := doGet(ctx, u.String(), t.auth)
+	resp, err := t.doGet(ctx, u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +507,7 @@ func (t *TmcRepo) ListCompletions(ctx context.Context, kind string, args []strin
 
 func (t *TmcRepo) GetSubRepos(ctx context.Context) ([]model.RepoDescription, error) {
 	u := t.parsedRoot.JoinPath("repos")
-	resp, err := doGet(ctx, u.String(), t.auth)
+	resp, err := t.doGet(ctx, u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -584,29 +542,21 @@ func (t *TmcRepo) GetSubRepos(ctx context.Context) ([]model.RepoDescription, err
 	}
 }
 
-func createTmcRepoConfig(loc string, bytes []byte, descr string) (map[string]any, error) {
-	if loc != "" {
-		return map[string]any{
-			KeyRepoType:        RepoTypeTmc,
-			KeyRepoLoc:         loc,
-			KeyRepoDescription: descr,
-		}, nil
-	} else {
-		rc, err := AsRepoConfig(bytes)
-		if err != nil {
-			return nil, err
-		}
-		if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
-			if *rType != RepoTypeTmc {
-				return nil, fmt.Errorf("invalid json config. type must be \"tmc\" or absent")
-			}
-		}
-		rc[KeyRepoType] = RepoTypeTmc
-		l := utils.JsGetString(rc, KeyRepoLoc)
-		if l == nil {
-			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
-		}
-		rc[KeyRepoLoc] = *l
-		return rc, nil
+func createTmcRepoConfig(bytes []byte) (map[string]any, error) {
+	rc, err := AsRepoConfig(bytes)
+	if err != nil {
+		return nil, err
 	}
+	if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
+		if *rType != RepoTypeTmc {
+			return nil, fmt.Errorf("invalid json config. type must be \"tmc\" or absent")
+		}
+	}
+	rc[KeyRepoType] = RepoTypeTmc
+	l := utils.JsGetString(rc, KeyRepoLoc)
+	if l == nil {
+		return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
+	}
+	rc[KeyRepoLoc] = *l
+	return rc, nil
 }

@@ -15,14 +15,19 @@ import (
 )
 
 const (
-	KeyRepos           = "repos"
-	keyRemotes         = "remotes" // left for compatibility
-	KeyRepoType        = "type"
-	KeyRepoLoc         = "loc"
-	KeyRepoAuth        = "auth"
-	KeyRepoEnabled     = "enabled"
-	KeyRepoDescription = "description"
-	keySubRepo         = "keySubRepo"
+	KeyRepos              = "repos"
+	keyRemotes            = "remotes" // left for compatibility
+	KeyRepoType           = "type"
+	KeyRepoLoc            = "loc"
+	KeyRepoAuth           = "auth"
+	KeyRepoHeaders        = "headers"
+	KeyRepoEnabled        = "enabled"
+	KeyRepoDescription    = "description"
+	keySubRepo            = "keySubRepo"
+	AuthMethodNone        = "none"
+	AuthMethodBearerToken = "bearer"
+	AuthMethodBasic       = "basic"
+	//AuthMethodOauthClientCredentials = "oauth-client-credentials"
 
 	RepoTypeFile              = "file"
 	RepoTypeHttp              = "http"
@@ -349,46 +354,50 @@ func Remove(name string) error {
 	return saveConfig(conf)
 }
 
-func Add(name, typ, confStr string, confFile []byte, descr string) error {
+func Add(name string, repoConf map[string]any) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err == nil || !errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoExists
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err, descr)
+	return setRepoConfig(name, repoConf)
 }
 
-func SetConfig(name, typ, confStr string, confFile []byte, descr string) error {
+func SetConfig(name string, repoConf map[string]any) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err != nil && errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoNotFound
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err, descr)
+	return setRepoConfig(name, repoConf)
 }
 
-func setRepoConfig(name string, typ string, confStr string, confFile []byte, err error, descr string) error {
+func NewRepoConfig(typ string, confFile []byte) (map[string]any, error) {
 	var rc map[string]any
+	var err error
 	switch typ {
 	case RepoTypeFile:
-		rc, err = createFileRepoConfig(confStr, confFile, descr)
+		rc, err = createFileRepoConfig(confFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	case RepoTypeHttp:
-		rc, err = createHttpRepoConfig(confStr, confFile, descr)
+		rc, err = createHttpRepoConfig(confFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	case RepoTypeTmc:
-		rc, err = createTmcRepoConfig(confStr, confFile, descr)
+		rc, err = createTmcRepoConfig(confFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	default:
-		return fmt.Errorf("unsupported repo type: %v. Supported types are %v", typ, SupportedTypes)
+		return nil, fmt.Errorf("unsupported repo type: %v. Supported types are %v", typ, SupportedTypes)
 	}
+	return rc, nil
+}
 
+func setRepoConfig(name string, rc map[string]any) error {
 	conf, err := ReadConfig()
 	if err != nil {
 		return err
