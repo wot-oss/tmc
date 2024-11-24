@@ -45,30 +45,31 @@ type baseHttpRepo struct {
 	root       string
 	parsedRoot *url.URL
 	spec       model.RepoSpec
-	auth       map[string]any
-	headers    map[string]any
+	auth       ConfigMap
+	headers    ConfigMap
 	client     *http.Client
 }
 
-func newBaseHttpRepo(config map[string]any, spec model.RepoSpec) (baseHttpRepo, error) {
-	loc := utils.JsGetString(config, KeyRepoLoc)
-	if loc == nil {
+func newBaseHttpRepo(config ConfigMap, spec model.RepoSpec) (baseHttpRepo, error) {
+	loc, found := config.GetString(KeyRepoLoc)
+	if !found {
 		return baseHttpRepo{}, fmt.Errorf("invalid http repo config. loc is either not found or not a string")
 	}
-	u, err := url.Parse(*loc)
+	u, err := url.Parse(loc)
 	if err != nil {
 		return baseHttpRepo{}, err
 	}
-	auth := utils.JsGetMap(config, KeyRepoAuth)
+	auth, _ := utils.JsGetMap(config, KeyRepoAuth)
 	client, err := getHttpClient(auth)
 	if err != nil {
 		return baseHttpRepo{}, fmt.Errorf("invalid http repo config: %v", err)
 	}
+	headers, _ := utils.JsGetMap(config, KeyRepoHeaders)
 	base := baseHttpRepo{
-		root:       *loc,
+		root:       loc,
 		spec:       spec,
 		auth:       auth,
-		headers:    utils.JsGetMap(config, KeyRepoHeaders),
+		headers:    headers,
 		client:     client,
 		parsedRoot: u,
 	}
@@ -109,31 +110,26 @@ func (b *baseHttpRepo) doGet(ctx context.Context, reqUrl string) (*http.Response
 
 func (b *baseHttpRepo) doHttp(req *http.Request) (*http.Response, error) {
 	if b.auth != nil {
-		basicAuth := utils.JsGetMap(b.auth, AuthMethodBasic)
-		if basicAuth != nil {
-			empty := ""
-			username := utils.JsGetString(basicAuth, "username")
-			if username == nil {
-				username = &empty
-			}
-			password := utils.JsGetString(basicAuth, "password")
-			if password == nil {
-				password = &empty
-			}
-			req.SetBasicAuth(*username, *password)
+		basicAuth, found := utils.JsGetMap(b.auth, AuthMethodBasic)
+		if found {
+			ba := ConfigMap(basicAuth)
+			username, _ := ba.GetString("username")
+			password, _ := ba.GetString("password")
+			req.SetBasicAuth(username, password)
 		} else {
-			bearerToken := utils.JsGetString(b.auth, AuthMethodBearerToken)
-			if bearerToken != nil {
-				req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", *bearerToken))
+
+			bearerToken, tf := b.auth.GetString(AuthMethodBearerToken)
+			if tf {
+				req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", bearerToken))
 			}
 		}
 	}
 	for h, v := range b.headers {
 		if vs, ok := v.(string); ok {
-			req.Header.Add(h, vs)
+			req.Header.Add(expandVar(h), expandVar(vs))
 		} else if varr, ok := v.([]any); ok {
 			for _, vv := range varr {
-				req.Header.Add(h, fmt.Sprintf("%v", vv))
+				req.Header.Add(expandVar(h), expandVar(fmt.Sprintf("%v", vv)))
 			}
 		}
 	}

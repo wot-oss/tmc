@@ -88,38 +88,30 @@ func NormalizeLineEndings(bytes []byte) []byte {
 	return res
 }
 
-func JsGetBool(js map[string]any, key string) *bool {
+func JsGetBool(js map[string]any, key string) (val bool, found bool) {
 	if v, ok := js[key]; ok {
 		if b, ok := v.(bool); ok {
-			return &b
+			return b, true
 		}
 	}
-	return nil
+	return false, false
 }
-func JsGetString(js map[string]any, key string) *string {
+func JsGetString(js map[string]any, key string) (val string, found bool) {
 	if v, ok := js[key]; ok {
 		if s, ok := v.(string); ok {
-			return &s
+			return s, true
 		}
 	}
-	return nil
+	return "", false
 }
 
-func JsGetStringOrEmpty(js map[string]any, key string) string {
-	v := JsGetString(js, key)
-	if v == nil {
-		return ""
-	}
-	return *v
-}
-
-func JsGetMap(js map[string]any, key string) map[string]any {
+func JsGetMap(js map[string]any, key string) (val map[string]any, found bool) {
 	if v, ok := js[key]; ok {
 		if m, ok := v.(map[string]any); ok {
-			return m
+			return m, true
 		}
 	}
-	return nil
+	return nil, false
 }
 func JsGetArray(js map[string]any, key string) []any {
 	if v, ok := js[key]; ok {

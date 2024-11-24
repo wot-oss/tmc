@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,15 +17,30 @@ import (
 )
 
 func TestNewTmcRepo(t *testing.T) {
-	root := "http://localhost:8000/"
-	repo, err := NewTmcRepo(
-		map[string]any{
-			"type": "tmc",
-			"loc":  root,
-		}, model.NewRepoSpec("repoName"))
-	assert.NoError(t, err)
-	assert.Equal(t, root, repo.root)
-	assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
+	t.Run("with url", func(t *testing.T) {
+		root := "http://localhost:8000/"
+		repo, err := NewTmcRepo(
+			map[string]any{
+				"type": "tmc",
+				"loc":  root,
+			}, model.NewRepoSpec("repoName"))
+		assert.NoError(t, err)
+		assert.Equal(t, root, repo.root)
+		assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
+	})
+	t.Run("with env var", func(t *testing.T) {
+		root := "http://localhost:8000/"
+		os.Setenv("TMC_TEST_ENV_VAR_URL", root)
+		defer os.Unsetenv("TMC_TEST_ENV_VAR_URL")
+		repo, err := NewTmcRepo(
+			map[string]any{
+				"type": "tmc",
+				"loc":  "$TMC_TEST_ENV_VAR_URL",
+			}, model.NewRepoSpec("repoName"))
+		assert.NoError(t, err)
+		assert.Equal(t, root, repo.root)
+		assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
+	})
 }
 
 func TestCreateTmcRepoConfig(t *testing.T) {
@@ -39,6 +55,7 @@ func TestCreateTmcRepoConfig(t *testing.T) {
 		{`{"loc":{}}`, "", true},
 		{`{"loc":"http://localhost:8000/"}`, "http://localhost:8000/", false},
 		{`{"loc":"http://localhost:8000/", "type":"tmc"}`, "http://localhost:8000/", false},
+		{`{"loc":"$TMC_TEST_REPO_URL", "type":"tmc"}`, "$TMC_TEST_REPO_URL", false},
 		{`{"loc":"http://localhost:8000/", "type":"file"}`, "", true},
 	}
 

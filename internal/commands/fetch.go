@@ -58,10 +58,10 @@ func restoreExternalId(ctx context.Context, raw []byte) []byte {
 	}
 	var newLinks []map[string]any
 	for _, eLink := range linksArray {
-		rel, relOk := eLink["rel"]
-		href := utils.JsGetString(eLink, "href")
-		if relOk && rel == "original" && href != nil {
-			originalId = *href
+		rel, relFound := utils.JsGetString(eLink, "rel")
+		href, hrefFound := utils.JsGetString(eLink, "href")
+		if relFound && rel == "original" && hrefFound {
+			originalId = href
 		} else {
 			newLinks = append(newLinks, eLink)
 		}

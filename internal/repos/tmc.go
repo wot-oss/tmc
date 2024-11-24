@@ -542,21 +542,20 @@ func (t *TmcRepo) GetSubRepos(ctx context.Context) ([]model.RepoDescription, err
 	}
 }
 
-func createTmcRepoConfig(bytes []byte) (map[string]any, error) {
+func createTmcRepoConfig(bytes []byte) (ConfigMap, error) {
 	rc, err := AsRepoConfig(bytes)
 	if err != nil {
 		return nil, err
 	}
-	if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
-		if *rType != RepoTypeTmc {
+	if rType, found := utils.JsGetString(rc, KeyRepoType); found {
+		if rType != RepoTypeTmc {
 			return nil, fmt.Errorf("invalid json config. type must be \"tmc\" or absent")
 		}
 	}
 	rc[KeyRepoType] = RepoTypeTmc
-	l := utils.JsGetString(rc, KeyRepoLoc)
-	if l == nil {
+	_, found := utils.JsGetString(rc, KeyRepoLoc)
+	if !found {
 		return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
 	}
-	rc[KeyRepoLoc] = *l
 	return rc, nil
 }

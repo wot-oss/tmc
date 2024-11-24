@@ -28,8 +28,8 @@ func RepoList() error {
 	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tENBL\tLOCATION\tDESCRIPTION\n")
 	for name, value := range config {
 		typ := fmt.Sprintf("%v", value[repos.KeyRepoType])
-		e := utils.JsGetBool(value, repos.KeyRepoEnabled)
-		enbl := e == nil || *e
+		e, found := utils.JsGetBool(value, repos.KeyRepoEnabled)
+		enbl := !found || e
 		var enblS string
 		if enbl {
 			enblS = "Y"
@@ -143,7 +143,7 @@ func RepoSetConfig(name, locStr, jsonConf, confFile string) error {
 			Stderrf("must specify one of: <location>, --file=<config-file>, or --json=<config-json>")
 			return nil, ErrInvalidArgs
 		}
-		typ := utils.JsGetStringOrEmpty(conf, repos.KeyRepoType)
+		typ, _ := utils.JsGetString(conf, repos.KeyRepoType)
 		newConf, err := repos.NewRepoConfig(typ, configBytes)
 		return newConf, err
 	})
