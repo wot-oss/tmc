@@ -252,29 +252,20 @@ func cutToNSegments(s string, n int) string {
 	return strings.Join(segments[0:n], "/")
 }
 
-func createHttpRepoConfig(loc string, bytes []byte, descr string) (map[string]any, error) {
-	if loc != "" {
-		return map[string]any{
-			KeyRepoType:        RepoTypeHttp,
-			KeyRepoLoc:         loc,
-			KeyRepoDescription: descr,
-		}, nil
-	} else {
-		rc, err := AsRepoConfig(bytes)
-		if err != nil {
-			return nil, err
-		}
-		if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
-			if *rType != RepoTypeHttp {
-				return nil, fmt.Errorf("invalid json config. type must be \"http\" or absent")
-			}
-		}
-		rc[KeyRepoType] = RepoTypeHttp
-		l := utils.JsGetString(rc, KeyRepoLoc)
-		if l == nil {
-			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
-		}
-		rc[KeyRepoLoc] = *l
-		return rc, nil
+func createHttpRepoConfig(bytes []byte) (ConfigMap, error) {
+	rc, err := AsRepoConfig(bytes)
+	if err != nil {
+		return nil, err
 	}
+	if rType, found := utils.JsGetString(rc, KeyRepoType); found {
+		if rType != RepoTypeHttp {
+			return nil, fmt.Errorf("invalid json config. type must be \"http\" or absent")
+		}
+	}
+	rc[KeyRepoType] = RepoTypeHttp
+	_, found := utils.JsGetString(rc, KeyRepoLoc)
+	if !found {
+		return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
+	}
+	return rc, nil
 }

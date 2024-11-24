@@ -10,6 +10,8 @@
 - added setting/storing/detecting of attachment media types
 - `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check`
 - added HTTP Basic auth to tmc and file repos
+- `repo add`, `repo config set`: added flag to pass repo config json as string
+- added possibility to define configuration parameters of repositories by referencing environment variables
 
 ### Changed
 

@@ -10,25 +10,22 @@ import (
 
 // repoConfigSetCmd represents the 'repo config set' command
 var repoConfigSetCmd = &cobra.Command{
-	Use:   "set <name> (<config> | --file <config-file>)",
+	Use:   "set <name> (<location> | --file <config-file> | --json <config-json>)",
 	Short: "Set config for a repository",
-	Long: `Set config of a repository. Depending on the repository type, overrides either the location string, 
-or the complete config in JSON format as displayed by 'repo show''.`,
+	Long: `Set config of a repository. Overrides either just the location string, or the entire config in JSON format as displayed by 'repo show'', except type.
+The repository's type cannot be changed.`,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		name := args[0]
-		confStr := ""
+		locStr := ""
 		if len(args) > 1 {
-			confStr = args[1]
+			locStr = args[1]
 		}
 
-		confFile, err := cmd.Flags().GetString("file")
-		if err != nil {
-			cli.Stderrf("internal error: %v", err)
-			os.Exit(1)
-		}
+		confFile := cmd.Flag("file").Value.String()
+		jsonConf := cmd.Flag("json").Value.String()
 
-		err = cli.RepoSetConfig(name, confStr, confFile)
+		err := cli.RepoSetConfig(name, locStr, jsonConf, confFile)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -44,5 +41,6 @@ or the complete config in JSON format as displayed by 'repo show''.`,
 
 func init() {
 	repoConfigCmd.AddCommand(repoConfigSetCmd)
-	repoConfigSetCmd.Flags().StringP("file", "f", "", "name of the file to read repo config from")
+	repoConfigSetCmd.Flags().StringP("file", "f", "", "name of the file containing repo config")
+	repoConfigSetCmd.Flags().StringP("json", "j", "", "repo config in json format")
 }
