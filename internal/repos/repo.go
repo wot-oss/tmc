@@ -17,23 +17,28 @@ import (
 )
 
 const (
-	KeyRepos              = "repos"
-	keyRemotes            = "remotes" // left for compatibility
-	KeyRepoType           = "type"
-	KeyRepoLoc            = "loc"
-	KeyRepoAuth           = "auth"
-	KeyRepoHeaders        = "headers"
-	KeyRepoEnabled        = "enabled"
-	KeyRepoDescription    = "description"
-	keySubRepo            = "keySubRepo"
-	AuthMethodNone        = "none"
-	AuthMethodBearerToken = "bearer"
-	AuthMethodBasic       = "basic"
+	KeyRepos                  = "repos"
+	keyRemotes                = "remotes" // left for compatibility
+	KeyRepoType               = "type"
+	KeyRepoLoc                = "loc"
+	KeyRepoAuth               = "auth"
+	KeyRepoHeaders            = "headers"
+	KeyRepoEnabled            = "enabled"
+	KeyRepoDescription        = "description"
+	keySubRepo                = "keySubRepo"
+	KeyRepoAWSRegion          = "aws_region"
+	KeyRepoAWSBucket          = "aws_bucket"
+	KeyRepoAWSAccessKeyId     = "aws_access_key_id"
+	KeyRepoAWSSecretAccessKey = "aws_secret_access_key"
+	AuthMethodNone            = "none"
+	AuthMethodBearerToken     = "bearer"
+	AuthMethodBasic           = "basic"
 	//AuthMethodOauthClientCredentials = "oauth-client-credentials"
 
 	RepoTypeFile              = "file"
 	RepoTypeHttp              = "http"
 	RepoTypeTmc               = "tmc"
+	RepoTypeS3                = "s3"
 	CompletionKindNames       = "names"
 	CompletionKindFetchNames  = "fetchNames"
 	CompletionKindNamesOrIds  = "namesOrIds"
@@ -48,7 +53,7 @@ var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
 type Config map[string]map[string]any
 
-var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc}
+var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc, RepoTypeS3}
 
 type ImportResultType int
 
@@ -200,6 +205,8 @@ func createRepo(rc map[string]any, spec model.RepoSpec) (Repo, error) {
 		return NewHttpRepo(rc, spec)
 	case RepoTypeTmc:
 		return NewTmcRepo(rc, spec)
+	case RepoTypeS3:
+		return NewS3Repo(rc, spec)
 	default:
 		return nil, fmt.Errorf("unsupported repo type: %v. Supported types are %v", t, SupportedTypes)
 	}
@@ -384,6 +391,11 @@ func NewRepoConfig(typ string, confFile []byte) (ConfigMap, error) {
 		}
 	case RepoTypeTmc:
 		rc, err = createTmcRepoConfig(confFile)
+		if err != nil {
+			return nil, err
+		}
+	case RepoTypeS3:
+		rc, err = createS3RepoConfig(confFile)
 		if err != nil {
 			return nil, err
 		}
