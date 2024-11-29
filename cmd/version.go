@@ -3,8 +3,9 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/wot-oss/tmc/internal/utils"
+
 	"github.com/spf13/viper"
-	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/config"
 
 	"github.com/spf13/cobra"
@@ -16,7 +17,7 @@ var versionCmd = &cobra.Command{
 	Long:  `Show tmc version information`,
 	Args:  cobra.MaximumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("tmc version %s\n", cli.TmcVersion)
+		fmt.Printf("tmc version %s\n", utils.GetTmcVersion())
 		cf := viper.ConfigFileUsed()
 		if cf == "" {
 			cf = fmt.Sprintf("No config.json file found in '%s'. Using default settings", config.ConfigDir)

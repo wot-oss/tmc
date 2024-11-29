@@ -363,6 +363,16 @@ func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelR
 	}
 }
 
+func toInfoResponse() server.InfoResponse {
+	return server.InfoResponse{
+		Name: "tmc",
+		Version: server.InfoVersion{
+			Implementation: utils.GetTmcVersion(),
+		},
+		Details: &[]string{},
+	}
+}
+
 func WithRequestLogger(handler http.Handler) http.Handler {
 	return http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
