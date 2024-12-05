@@ -294,7 +294,7 @@ func (h *TmcHandler) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
 // GetInfo Returns some static information about the Thing Model Catalog API
 // (GET /info)
 func (h *TmcHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
-	resp := toInfoResponse()
+	resp := infoResponse()
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
