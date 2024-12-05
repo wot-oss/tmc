@@ -14,7 +14,19 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/Masterminds/semver/v3"
 )
+
+var TmcVersion = "n/a"
+
+func GetTmcVersion() string {
+	v, err := semver.NewVersion(TmcVersion)
+	if err != nil {
+		return TmcVersion
+	}
+	return strings.TrimPrefix(v.Original(), "v")
+}
 
 // ReadRequiredFile reads the file. Returns expanded absolute representation of the filename and file contents.
 // Removes Byte-Order-Mark from the content
