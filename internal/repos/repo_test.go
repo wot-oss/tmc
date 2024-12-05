@@ -165,15 +165,14 @@ func TestRepoManager_All_And_Get(t *testing.T) {
 			hr, err := Get(model.NewRepoSpec("r2"))
 			assert.NoError(t, err)
 			u, _ := url.Parse(ur)
-			assert.Equal(t, &HttpRepo{
-				templatedPath:  true,
-				templatedQuery: false,
-				baseHttpRepo: baseHttpRepo{
-					root:       ur,
-					parsedRoot: u,
-					spec:       model.NewRepoSpec("r2"),
-				},
-			}, hr)
+			h, ok := hr.(*HttpRepo)
+			if assert.True(t, ok) {
+				assert.Equal(t, true, h.templatedPath)
+				assert.Equal(t, false, h.templatedQuery)
+				assert.Equal(t, ur, h.root)
+				assert.Equal(t, u, h.parsedRoot)
+				assert.Equal(t, model.NewRepoSpec("r2"), h.spec)
+			}
 		})
 		t.Run("local repo", func(t *testing.T) {
 			ar, err := Get(model.NewDirSpec("directory"))

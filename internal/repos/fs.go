@@ -39,12 +39,12 @@ type FileRepo struct {
 	idx *model.Index
 }
 
-func NewFileRepo(config map[string]any, spec model.RepoSpec) (*FileRepo, error) {
-	loc := utils.JsGetString(config, KeyRepoLoc)
-	if loc == nil {
+func NewFileRepo(config ConfigMap, spec model.RepoSpec) (*FileRepo, error) {
+	loc, found := config.GetString(KeyRepoLoc)
+	if !found {
 		return nil, fmt.Errorf("cannot create a file repo from spec %v. Invalid config. loc is either not found or not a string", spec)
 	}
-	rootPath, err := utils.ExpandHome(*loc)
+	rootPath, err := utils.ExpandHome(loc)
 	if err != nil {
 		return nil, err
 	}
@@ -608,42 +608,33 @@ func (f *FileRepo) checkRootValid() error {
 	return nil
 }
 
-func createFileRepoConfig(dirName string, bytes []byte, descr string) (map[string]any, error) {
-	if dirName != "" {
-		absDir, err := makeAbs(dirName)
-		if err != nil {
-			return nil, err
-		}
-		return map[string]any{
-			KeyRepoType:        RepoTypeFile,
-			KeyRepoLoc:         absDir,
-			KeyRepoDescription: descr,
-		}, nil
-	} else {
-		rc, err := AsRepoConfig(bytes)
-		if err != nil {
-			return nil, err
-		}
-		if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
-			if *rType != RepoTypeFile {
-				return nil, fmt.Errorf("invalid json config. type must be \"file\" or absent")
-			}
-		}
-		rc[KeyRepoType] = RepoTypeFile
-		l := utils.JsGetString(rc, KeyRepoLoc)
-		if l == nil {
-			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
-		}
-		la, err := makeAbs(*l)
-		if err != nil {
-			return nil, err
-		}
-		rc[KeyRepoLoc] = la
-		return rc, nil
+func createFileRepoConfig(bytes []byte) (ConfigMap, error) {
+	rc, err := AsRepoConfig(bytes)
+	if err != nil {
+		return nil, err
 	}
+	if rType, found := utils.JsGetString(rc, KeyRepoType); found {
+		if rType != RepoTypeFile {
+			return nil, fmt.Errorf("invalid json config. type must be \"file\" or absent")
+		}
+	}
+	rc[KeyRepoType] = RepoTypeFile
+	l, found := utils.JsGetString(rc, KeyRepoLoc)
+	if !found {
+		return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
+	}
+	la, err := makeAbs(l)
+	if err != nil {
+		return nil, err
+	}
+	rc[KeyRepoLoc] = la
+	return rc, nil
 }
 
 func makeAbs(dir string) (string, error) {
+	if isEnvReference(dir) {
+		return dir, nil
+	}
 	if filepath.IsAbs(dir) {
 		return dir, nil
 	} else {

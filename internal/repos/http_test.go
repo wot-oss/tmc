@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"slices"
 	"testing"
 
@@ -14,44 +15,58 @@ import (
 )
 
 func TestNewHttpRepo(t *testing.T) {
-	root := "http://localhost:8000/"
-	repo, err := NewHttpRepo(
-		map[string]any{
-			"type": "http",
-			"loc":  root,
-		}, model.NewRepoSpec("repoName"))
-	assert.NoError(t, err)
-	assert.Equal(t, root, repo.root)
-	assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
+	t.Run("with url", func(t *testing.T) {
+		root := "http://localhost:8000/"
+		repo, err := NewHttpRepo(
+			map[string]any{
+				"type": "http",
+				"loc":  root,
+			}, model.NewRepoSpec("repoName"))
+		assert.NoError(t, err)
+		assert.Equal(t, root, repo.root)
+		assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
+	})
+	t.Run("with env var", func(t *testing.T) {
+		root := "http://localhost:8000/"
+		os.Setenv("TMC_TEST_ENV_VAR_URL", root)
+		defer os.Unsetenv("TMC_TEST_ENV_VAR_URL")
+		repo, err := NewHttpRepo(
+			map[string]any{
+				"type": "http",
+				"loc":  "$TMC_TEST_ENV_VAR_URL",
+			}, model.NewRepoSpec("repoName"))
+		assert.NoError(t, err)
+		assert.Equal(t, root, repo.root)
+		assert.Equal(t, model.NewRepoSpec("repoName"), repo.Spec())
+	})
 }
 
 func TestCreateHttpRepoConfig(t *testing.T) {
 	tests := []struct {
-		strConf  string
 		fileConf string
 		expRoot  string
 		expErr   bool
 	}{
-		{"http://localhost:8000/", "", "http://localhost:8000/", false},
-		{"", ``, "", true},
-		{"", `[]`, "", true},
-		{"", `{}`, "", true},
-		{"", `{"loc":{}}`, "", true},
-		{"", `{"loc":"http://localhost:8000/"}`, "http://localhost:8000/", false},
-		{"", `{"loc":"http://localhost:8000/", "type":"http"}`, "http://localhost:8000/", false},
-		{"", `{"loc":"http://localhost:8000/", "type":"file"}`, "", true},
+		{``, "", true},
+		{`[]`, "", true},
+		{`{}`, "", true},
+		{`{"loc":{}}`, "", true},
+		{`{"loc":"http://localhost:8000/"}`, "http://localhost:8000/", false},
+		{`{"loc":"http://localhost:8000/", "type":"http"}`, "http://localhost:8000/", false},
+		{`{"loc":"$TMC_TEST_SOME_REPO_ROOT", "type":"http"}`, "$TMC_TEST_SOME_REPO_ROOT", false},
+		{`{"loc":"http://localhost:8000/", "type":"file"}`, "", true},
 	}
 
 	for i, test := range tests {
-		cf, err := createHttpRepoConfig(test.strConf, []byte(test.fileConf), "")
+		cf, err := createHttpRepoConfig([]byte(test.fileConf))
 		if test.expErr {
-			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.Error(t, err, "error expected in test %d for %s", i, test.fileConf)
 			continue
 		} else {
-			assert.NoError(t, err, "no error expected in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.NoError(t, err, "no error expected in test %d for %s", i, test.fileConf)
 		}
-		assert.Equalf(t, "http", cf[KeyRepoType], "in test %d for %s %s", i, test.strConf, test.fileConf)
-		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRepoLoc]), "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, "http", cf[KeyRepoType], "in test %d for %s", i, test.fileConf)
+		assert.Equalf(t, test.expRoot, fmt.Sprintf("%v", cf[KeyRepoLoc]), "in test %d for %s", i, test.fileConf)
 
 	}
 }
@@ -62,12 +77,11 @@ func TestHttpRepo_Fetch(t *testing.T) {
 	const tm = "{\"id\":\"manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json\"}"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/"+tmid, r.URL.Path)
-		assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 		_, _ = w.Write([]byte(tm))
 	}))
 	defer srv.Close()
 
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http"}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -76,6 +90,162 @@ func TestHttpRepo_Fetch(t *testing.T) {
 	assert.Equal(t, aid, actId)
 	assert.Equal(t, []byte(tm), b)
 }
+
+func TestHttpRepo_FixedHeaders(t *testing.T) {
+	const tmid = "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json"
+	const tm = "{\"id\":\"manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json\"}"
+
+	t.Run("with no fixed headers", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, "", r.Header.Get("X-Fixed"))
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http"}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+	t.Run("with fixed headers", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, []string{"single"}, r.Header.Values("X-Single"))
+			multiple := r.Header.Values("X-Multiple")
+			slices.Sort(multiple)
+			assert.Equal(t, []string{"first", "second"}, multiple)
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "headers": {"X-Single": "single", "X-Multiple": ["first", "second"]}}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+	t.Run("with fixed headers from env", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, []string{"single"}, r.Header.Values("X-Single"))
+			multiple := r.Header.Values("X-Multiple")
+			slices.Sort(multiple)
+			assert.Equal(t, []string{"first", "second"}, multiple)
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+
+		os.Setenv("TMC_TEST_HEADER_SINGLE", "single")
+		defer os.Unsetenv("TMC_TEST_HEADER_SINGLE")
+		os.Setenv("TMC_TEST_HEADER_X_SINGLE", "X-Single")
+		defer os.Unsetenv("TMC_TEST_HEADER_X_SINGLE")
+		os.Setenv("TMC_TEST_HEADER_X_MULTIPLE", "X-Multiple")
+		defer os.Unsetenv("TMC_TEST_HEADER_X_MULTIPLE")
+		os.Setenv("TMC_TEST_HEADER_FIRST", "first")
+		defer os.Unsetenv("TMC_TEST_HEADER_FIRST")
+		os.Setenv("TMC_TEST_HEADER_SECOND", "second")
+		defer os.Unsetenv("TMC_TEST_HEADER_SECOND")
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "headers": {"$TMC_TEST_HEADER_X_SINGLE": "$TMC_TEST_HEADER_SINGLE", "$TMC_TEST_HEADER_X_MULTIPLE": ["$TMC_TEST_HEADER_FIRST", "$TMC_TEST_HEADER_SECOND"]}}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+}
+func TestHttpRepo_Authentication(t *testing.T) {
+	const tmid = "manufacturer/mpn/v1.0.0-20231205123243-c49617d2e4fc.tm.json"
+	const tm = "{\"id\":\"manufacturer/mpn/v1.0.0-20201205123243-c49617d2e4fc.tm.json\"}"
+
+	t.Run("with no auth", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, "", r.Header.Get("Authorization"))
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":null}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+	t.Run("with bearer auth", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+	t.Run("with basic auth", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, "Basic dGhhdHNtZTpzZWNyZXQ=", r.Header.Get("Authorization"))
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"basic":{"username": "thatsme", "password": "secret"}}}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+	t.Run("with bearer auth in env var", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+		os.Setenv("TMC_TEST_AUTH_TOKEN", "token123")
+		defer os.Unsetenv("TMC_TEST_AUTH_TOKEN")
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"$TMC_TEST_AUTH_TOKEN"}}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+	t.Run("with basic auth in env vars", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/"+tmid, r.URL.Path)
+			assert.Equal(t, "Basic dGhhdHNtZTpzZWNyZXQ=", r.Header.Get("Authorization"))
+			_, _ = w.Write([]byte(tm))
+		}))
+		defer srv.Close()
+
+		os.Setenv("TMC_TEST_AUTH_USER", "thatsme")
+		defer os.Unsetenv("TMC_TEST_AUTH_USER")
+		os.Setenv("TMC_TEST_AUTH_PASSWORD", "secret")
+		defer os.Unsetenv("TMC_TEST_AUTH_PASSWORD")
+
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"basic":{"username": "$TMC_TEST_AUTH_USER", "password": "$TMC_TEST_AUTH_PASSWORD"}}}`))
+		assert.NoError(t, err)
+		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+		assert.NoError(t, err)
+		_, _, err = r.Fetch(context.Background(), tmid)
+		assert.NoError(t, err)
+	})
+}
+
 func TestHttpRepo_FetchAttachment(t *testing.T) {
 	const tmName = "author/manufacturer/mpn"
 	const ver = "v1.0.0-20231205123243-c49617d2e4fc"
@@ -86,11 +256,10 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 	t.Run("tm name attachment", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, fmt.Sprintf("/%s/%s/%s", tmName, model.AttachmentsDir, fName), r.URL.Path)
-			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 			_, _ = w.Write([]byte(attContent))
 		}))
 		defer srv.Close()
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `"}`))
 		assert.NoError(t, err)
 
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
@@ -103,11 +272,10 @@ func TestHttpRepo_FetchAttachment(t *testing.T) {
 	t.Run("tm id attachment", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, fmt.Sprintf("/%s/%s/%s/%s", tmName, model.AttachmentsDir, ver, fName), r.URL.Path)
-			assert.Equal(t, "Bearer token123", r.Header.Get("Authorization"))
 			_, _ = w.Write([]byte(attContent))
 		}))
 		defer srv.Close()
-		config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+		config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `"}`))
 		assert.NoError(t, err)
 
 		r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
@@ -128,7 +296,7 @@ func TestHttpRepo_GetTMMetadata(t *testing.T) {
 		_, _ = w.Write(idx)
 	}))
 	defer srv.Close()
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -151,7 +319,7 @@ func TestHttpRepo_ListByName(t *testing.T) {
 		_, _ = w.Write(idx)
 	}))
 	defer srv.Close()
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -174,7 +342,7 @@ func TestHttpRepo_ListCompletions(t *testing.T) {
 		_, _ = w.Write(idx)
 	}))
 	defer srv.Close()
-	config, err := createHttpRepoConfig("", []byte(`{"loc":"`+srv.URL+`", "type":"http", "auth":{"bearer":"token123"}}`), "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http", "auth":{"bearer":"token123"}}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
@@ -244,7 +412,7 @@ func TestHttpRepo_ListCompletions(t *testing.T) {
 
 func TestHttpRepo_CheckIntegrity(t *testing.T) {
 	// given: a Http Repo
-	config, err := createHttpRepoConfig("http://example.com", nil, "")
+	config, err := createHttpRepoConfig([]byte(`{"loc":"http://example.com"}`))
 	assert.NoError(t, err)
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)

@@ -63,12 +63,13 @@ func collectProtocols(data []byte) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	properties := utils.JsGetMap(tm, "properties")
-	actions := utils.JsGetMap(tm, "actions")
-	events := utils.JsGetMap(tm, "events")
+	properties, _ := utils.JsGetMap(tm, "properties")
+	actions, _ := utils.JsGetMap(tm, "actions")
+	events, _ := utils.JsGetMap(tm, "events")
 
 	var protos []string
-	baseProto := extractProtocol(utils.JsGetString(tm, "base"))
+	base, _ := utils.JsGetString(tm, "base")
+	baseProto := extractProtocol(base)
 	if baseProto != "" {
 		protos = append(protos, baseProto)
 	}
@@ -84,7 +85,7 @@ func collectProtocols(data []byte) ([]string, error) {
 func extractAffordancesFormsProtocols(affs map[string]any) []string {
 	var protos []string
 	for k, _ := range affs {
-		aff := utils.JsGetMap(affs, k)
+		aff, _ := utils.JsGetMap(affs, k)
 		protos = append(protos, extractFormsProtocols(aff)...)
 	}
 	return protos
@@ -95,7 +96,7 @@ func extractFormsProtocols(m map[string]any) []string {
 	forms := utils.JsGetArray(m, "forms")
 	for _, f := range forms {
 		form, _ := f.(map[string]interface{})
-		href := utils.JsGetString(form, "href")
+		href, _ := utils.JsGetString(form, "href")
 		proto := extractProtocol(href)
 		if proto != "" {
 			protos = append(protos, proto)
@@ -104,11 +105,11 @@ func extractFormsProtocols(m map[string]any) []string {
 	return protos
 }
 
-func extractProtocol(uri *string) string {
-	if uri == nil || *uri == "" {
+func extractProtocol(uri string) string {
+	if uri == "" {
 		return ""
 	}
-	u, err := url.Parse(*uri)
+	u, err := url.Parse(uri)
 	if err != nil { //skip unparseable hrefs
 		return ""
 	}

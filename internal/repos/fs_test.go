@@ -3,6 +3,7 @@ package repos
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -21,106 +22,90 @@ import (
 )
 
 func TestNewFileRepo(t *testing.T) {
-	root := "/tmp/tm-catalog1157316148"
-	repo, err := NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, root, repo.root)
+	t.Run("absolute path", func(t *testing.T) {
+		root := "/tmp/tm-catalog1157316148"
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  root,
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		assert.Equal(t, root, repo.root)
+	})
 
-	root = "/tmp/tm-catalog1157316148"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, root, repo.root)
+	t.Run("relative to home", func(t *testing.T) {
+		root := "~/tm-catalog"
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  root,
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		home, _ := os.UserHomeDir()
+		assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
+	})
 
-	root = "~/tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	home, _ := os.UserHomeDir()
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
+	t.Run("abs windows path", func(t *testing.T) {
+		root := "C:\\Users\\user\\Desktop\\tm-catalog"
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  root,
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
+	})
 
-	root = "~/tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
-
-	root = "~/tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.Join(home, "tm-catalog"), repo.root)
-
-	root = "c:\\Users\\user\\Desktop\\tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.ToSlash("c:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
-
-	root = "C:\\Users\\user\\Desktop\\tm-catalog"
-	repo, err = NewFileRepo(map[string]any{
-		"type": "file",
-		"loc":  root,
-	}, model.EmptySpec)
-	assert.NoError(t, err)
-	assert.Equal(t, filepath.ToSlash("C:\\Users\\user\\Desktop\\tm-catalog"), filepath.ToSlash(repo.root))
+	t.Run("env var path", func(t *testing.T) {
+		os.Setenv("TMC_TEST_ENV_VAR_PATH", "/some/path")
+		defer os.Unsetenv("TMC_TEST_ENV_VAR_PATH")
+		repo, err := NewFileRepo(map[string]any{
+			"type": "file",
+			"loc":  "$TMC_TEST_ENV_VAR_PATH",
+		}, model.EmptySpec)
+		assert.NoError(t, err)
+		assert.Equal(t, "/some/path", repo.root)
+	})
 
 }
 
 func TestCreateFileRepoConfig(t *testing.T) {
 	wd, _ := os.Getwd()
 
-	descr := "test description"
+	relPathJson, _ := json.Marshal(filepath.Join(wd, "dir/repoName"))
 	tests := []struct {
-		strConf  string
 		fileConf string
 		expRoot  string
 		expErr   bool
 		expDescr string
 	}{
-		{"../dir/repoName", "", filepath.Join(filepath.Dir(wd), "/dir/repoName"), false, descr},
-		{"./dir/repoName", "", filepath.Join(wd, "dir/repoName"), false, descr},
-		{"dir/repoName", "", filepath.Join(wd, "dir/repoName"), false, descr},
-		{"/dir/repoName", "", filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false, descr},
-		{".", "", filepath.Join(wd), false, descr},
-		{filepath.Join(wd, "dir/repoName"), "", filepath.Join(wd, "dir/repoName"), false, descr},
-		{"~/dir/repoName", "", "~/dir/repoName", false, descr},
-		{"", ``, "", true, ""},
-		{"", `[]`, "", true, ""},
-		{"", `{}`, "", true, ""},
-		{"", `{"loc":{}}`, "", true, ""},
-		{"", `{"loc":"dir/repoName"}`, filepath.Join(wd, "dir/repoName"), false, ""},
-		{"", `{"loc":"/dir/repoName", "description": "some description"}`, filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false, "some description"},
-		{"", `{"loc":"dir/repoName", "type":"http"}`, "", true, ""},
+		{`{"loc":"../dir/repoName"}`, filepath.Join(filepath.Dir(wd), "/dir/repoName"), false, ""},
+		{`{"loc":"./dir/repoName"}`, filepath.Join(wd, "dir/repoName"), false, ""},
+		{`{"loc":"/dir/repoName"}`, filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false, ""},
+		{`{"loc":"."}`, filepath.Join(wd), false, ""},
+		{`{"loc":` + string(relPathJson) + `}`, filepath.Join(wd, "dir/repoName"), false, ""},
+		{`{"loc":"~/dir/repoName"}`, "~/dir/repoName", false, ""},
+		{`{"loc":"$TMC_TEST_SOME_REPO_ROOT"}`, "$TMC_TEST_SOME_REPO_ROOT", false, ""},
+		{``, "", true, ""},
+		{`[]`, "", true, ""},
+		{`{}`, "", true, ""},
+		{`{"loc":{}}`, "", true, ""},
+		{`{"loc":"dir/repoName"}`, filepath.Join(wd, "dir/repoName"), false, ""},
+		{`{"loc":"/dir/repoName", "description": "some description"}`, filepath.Join(filepath.VolumeName(wd), "/dir/repoName"), false, "some description"},
+		{`{"loc":"dir/repoName", "type":"http"}`, "", true, ""},
 	}
 
 	for i, test := range tests {
-		cf, err := createFileRepoConfig(test.strConf, []byte(test.fileConf), descr)
+		cf, err := createFileRepoConfig([]byte(test.fileConf))
 		if test.expErr {
-			assert.Error(t, err, "error expected in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.Error(t, err, "error expected in test %d for %s", i, test.fileConf)
 			continue
 		} else {
-			assert.NoError(t, err, "no error expected in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.NoError(t, err, "no error expected in test %d for %s", i, test.fileConf)
 		}
-		assert.Equalf(t, "file", cf[KeyRepoType], "in test %d for %s %s", i, test.strConf, test.fileConf)
-		assert.Equalf(t, test.expRoot, cf[KeyRepoLoc], "in test %d for %s %s", i, test.strConf, test.fileConf)
+		assert.Equalf(t, "file", cf[KeyRepoType], "in test %d for %s", i, test.fileConf)
+		assert.Equalf(t, test.expRoot, cf[KeyRepoLoc], "in test %d for %s", i, test.fileConf)
 		if test.expDescr != "" {
-			assert.Equal(t, test.expDescr, cf[KeyRepoDescription], "in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.Equal(t, test.expDescr, cf[KeyRepoDescription], "in test %d for %s", i, test.fileConf)
 		} else {
-			assert.Nil(t, cf[KeyRepoDescription], "in test %d for %s %s", i, test.strConf, test.fileConf)
+			assert.Nil(t, cf[KeyRepoDescription], "in test %d for %s", i, test.fileConf)
 		}
 	}
 }

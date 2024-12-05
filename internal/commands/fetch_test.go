@@ -417,11 +417,11 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 				var js map[string]any
 				err := json.Unmarshal(b, &js)
 				assert.NoError(t, err)
-				jsId := utils.JsGetString(js, "id")
-				if assert.NotNil(t, jsId) {
-					assert.Equal(t, test.expId, *jsId)
-				}
-				assert.Len(t, utils.JsGetArray(js, "links"), test.expLinksLen)
+				jsId, found := utils.JsGetString(js, "id")
+				assert.True(t, found)
+				assert.Equal(t, test.expId, jsId)
+				arr := utils.JsGetArray(js, "links")
+				assert.Len(t, arr, test.expLinksLen)
 			})
 			t.Run("with single repo", func(t *testing.T) {
 				r1.On("Fetch", mock.Anything, "author/manufacturer/mpn/v1.0.0-20231005123243-a49617d2e4fc.tm.json").
@@ -432,11 +432,11 @@ func TestFetchCommand_FetchByTMIDOrName_RestoresId(t *testing.T) {
 				var js map[string]any
 				err := json.Unmarshal(b, &js)
 				assert.NoError(t, err)
-				jsId := utils.JsGetString(js, "id")
-				if assert.NotNil(t, jsId) {
-					assert.Equal(t, test.expId, *jsId)
-				}
-				assert.Len(t, utils.JsGetArray(js, "links"), test.expLinksLen)
+				jsId, found := utils.JsGetString(js, "id")
+				assert.True(t, found)
+				assert.Equal(t, test.expId, jsId)
+				arr := utils.JsGetArray(js, "links")
+				assert.Len(t, arr, test.expLinksLen)
 
 			})
 

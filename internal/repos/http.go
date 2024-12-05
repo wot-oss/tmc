@@ -8,49 +8,14 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 
-	"github.com/buger/jsonparser"
-	"github.com/gregjones/httpcache"
-	"github.com/gregjones/httpcache/diskcache"
-	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
 const RelFileUriPlaceholder = "{{ID}}"
-
-var httpClient *http.Client
-var once sync.Once
-
-func getHttpClient() *http.Client {
-	once.Do(func() {
-		if config.ConfigDir == "" { // this is probably a test run, but even if it isn't, we don't want to write the cache in the working directory
-			httpClient = http.DefaultClient
-			return
-		}
-		cacheDir := filepath.Join(config.ConfigDir, ".http-cache")
-		err := os.MkdirAll(cacheDir, 0770)
-		if err != nil {
-			panic(err)
-		}
-		cache := diskcache.New(cacheDir)
-		transport := httpcache.NewTransport(cache)
-		httpClient = &http.Client{Transport: transport}
-	})
-	return httpClient
-}
-
-type baseHttpRepo struct {
-	root       string
-	parsedRoot *url.URL
-	spec       model.RepoSpec
-	auth       map[string]any
-}
 
 // HttpRepo implements a Repo backed by a http server. It does not allow writing to the repository
 // and is thus a read-only view
@@ -85,25 +50,6 @@ func NewHttpRepo(config map[string]any, spec model.RepoSpec) (*HttpRepo, error) 
 	return h, nil
 }
 
-func newBaseHttpRepo(config map[string]any, spec model.RepoSpec) (baseHttpRepo, error) {
-	loc := utils.JsGetString(config, KeyRepoLoc)
-	if loc == nil {
-		return baseHttpRepo{}, fmt.Errorf("invalid http repo config. loc is either not found or not a string")
-	}
-	u, err := url.Parse(*loc)
-	if err != nil {
-		return baseHttpRepo{}, err
-	}
-	auth := utils.JsGetMap(config, KeyRepoAuth)
-	base := baseHttpRepo{
-		root:       *loc,
-		spec:       spec,
-		auth:       auth,
-		parsedRoot: u,
-	}
-	return base, nil
-}
-
 func (h *HttpRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
 	return ImportResultFromError(ErrNotSupported)
 }
@@ -113,38 +59,7 @@ func (h *HttpRepo) Delete(ctx context.Context, id string) error {
 
 func (h *HttpRepo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	reqUrl := h.buildUrl(id)
-	return fetchTM(ctx, reqUrl, h.auth)
-}
-
-func fetchTM(ctx context.Context, tmUrl string, auth map[string]any) (string, []byte, error) {
-	resp, err := doGet(ctx, tmUrl, auth)
-	if err != nil {
-		return "", nil, err
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", nil, err
-	}
-	switch resp.StatusCode {
-	case http.StatusOK:
-		value, dataType, _, err := jsonparser.Get(b, "id")
-		if err != nil && dataType != jsonparser.NotExist {
-			return "", b, err
-		}
-		switch dataType {
-		case jsonparser.String:
-			return string(value), b, nil
-		default:
-			return fmt.Sprintf("%v", value), b, fmt.Errorf("unexpected type of 'id': %v", value)
-		}
-	case http.StatusNotFound:
-		return "", nil, model.ErrTMNotFound
-	case http.StatusInternalServerError, http.StatusBadRequest:
-		return "", nil, errors.New(string(b))
-	default:
-		return "", nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
-	}
-
+	return h.fetchTM(ctx, reqUrl)
 }
 
 func (h *HttpRepo) buildUrl(fileId string) string {
@@ -182,7 +97,7 @@ func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.
 
 func (h *HttpRepo) getIndex(ctx context.Context) (*model.Index, error) {
 	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", RepoConfDir, IndexFilename))
-	resp, err := doGet(ctx, reqUrl, h.auth)
+	resp, err := h.doGet(ctx, reqUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -199,28 +114,6 @@ func (h *HttpRepo) getIndex(ctx context.Context) (*model.Index, error) {
 	default:
 		return nil, errors.New(fmt.Sprintf("received unexpected HTTP response from remote server: %s", resp.Status))
 	}
-}
-
-func doGet(ctx context.Context, reqUrl string, auth map[string]any) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
-	if err != nil {
-		return nil, err
-	}
-	return doHttp(req, auth)
-}
-
-func doHttp(req *http.Request, auth map[string]any) (*http.Response, error) {
-	if auth != nil {
-		bearerToken := utils.JsGetString(auth, "bearer")
-		if bearerToken != nil {
-			req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", *bearerToken))
-		}
-	}
-	resp, err := getHttpClient().Do(req)
-	if err != nil {
-		utils.GetLogger(req.Context(), "HttpRepo").Error(err.Error())
-	}
-	return resp, err
 }
 
 func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
@@ -272,7 +165,7 @@ func (h *HttpRepo) FetchAttachment(ctx context.Context, container model.Attachme
 		return nil, err
 	}
 	reqUrl := h.buildUrl(fmt.Sprintf("%s/%s", attDir, attachmentName))
-	return fetchAttachment(ctx, reqUrl, h.auth)
+	return h.fetchAttachment(ctx, reqUrl)
 }
 
 func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {
@@ -359,29 +252,20 @@ func cutToNSegments(s string, n int) string {
 	return strings.Join(segments[0:n], "/")
 }
 
-func createHttpRepoConfig(loc string, bytes []byte, descr string) (map[string]any, error) {
-	if loc != "" {
-		return map[string]any{
-			KeyRepoType:        RepoTypeHttp,
-			KeyRepoLoc:         loc,
-			KeyRepoDescription: descr,
-		}, nil
-	} else {
-		rc, err := AsRepoConfig(bytes)
-		if err != nil {
-			return nil, err
-		}
-		if rType := utils.JsGetString(rc, KeyRepoType); rType != nil {
-			if *rType != RepoTypeHttp {
-				return nil, fmt.Errorf("invalid json config. type must be \"http\" or absent")
-			}
-		}
-		rc[KeyRepoType] = RepoTypeHttp
-		l := utils.JsGetString(rc, KeyRepoLoc)
-		if l == nil {
-			return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
-		}
-		rc[KeyRepoLoc] = *l
-		return rc, nil
+func createHttpRepoConfig(bytes []byte) (ConfigMap, error) {
+	rc, err := AsRepoConfig(bytes)
+	if err != nil {
+		return nil, err
 	}
+	if rType, found := utils.JsGetString(rc, KeyRepoType); found {
+		if rType != RepoTypeHttp {
+			return nil, fmt.Errorf("invalid json config. type must be \"http\" or absent")
+		}
+	}
+	rc[KeyRepoType] = RepoTypeHttp
+	_, found := utils.JsGetString(rc, KeyRepoLoc)
+	if !found {
+		return nil, fmt.Errorf("invalid json config. must have string \"loc\"")
+	}
+	return rc, nil
 }
