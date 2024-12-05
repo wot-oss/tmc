@@ -79,3 +79,27 @@ func TestSanitizeName(t *testing.T) {
 		assert.Equal(t, test.exp, out, "failed for %s (test %d)", test.in, i)
 	}
 }
+
+func TestGetTmcVersion(t *testing.T) {
+	tests := []struct {
+		in  string
+		out string
+	}{
+		{"0.1.2", "0.1.2"},
+		{"0.1.2-amd64", "0.1.2-amd64"},
+		{"v0.1.2", "0.1.2"},
+		{"v0.1.2-amd64", "0.1.2-amd64"},
+		{"0.1.2.amd64", "0.1.2.amd64"},
+		{"v.0.1.2", "v.0.1.2"},
+		{"v.0.1.2-amd64", "v.0.1.2-amd64"},
+		{"n/a", "n/a"},
+		{"", ""},
+	}
+
+	tmcVersionOld := TmcVersion
+	for i, test := range tests {
+		TmcVersion = test.in
+		assert.Equal(t, test.out, GetTmcVersion(), "in test %d", i)
+	}
+	TmcVersion = tmcVersionOld
+}
