@@ -363,7 +363,7 @@ func toImportThingModelResponse(res repos.ImportResult) server.ImportThingModelR
 	}
 }
 
-func toInfoResponse() server.InfoResponse {
+func infoResponse() server.InfoResponse {
 	return server.InfoResponse{
 		Name: "tmc",
 		Version: server.InfoVersion{
