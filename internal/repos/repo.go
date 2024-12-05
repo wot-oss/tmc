@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -15,14 +17,19 @@ import (
 )
 
 const (
-	KeyRepos           = "repos"
-	keyRemotes         = "remotes" // left for compatibility
-	KeyRepoType        = "type"
-	KeyRepoLoc         = "loc"
-	KeyRepoAuth        = "auth"
-	KeyRepoEnabled     = "enabled"
-	KeyRepoDescription = "description"
-	keySubRepo         = "keySubRepo"
+	KeyRepos              = "repos"
+	keyRemotes            = "remotes" // left for compatibility
+	KeyRepoType           = "type"
+	KeyRepoLoc            = "loc"
+	KeyRepoAuth           = "auth"
+	KeyRepoHeaders        = "headers"
+	KeyRepoEnabled        = "enabled"
+	KeyRepoDescription    = "description"
+	keySubRepo            = "keySubRepo"
+	AuthMethodNone        = "none"
+	AuthMethodBearerToken = "bearer"
+	AuthMethodBasic       = "basic"
+	//AuthMethodOauthClientCredentials = "oauth-client-credentials"
 
 	RepoTypeFile              = "file"
 	RepoTypeHttp              = "http"
@@ -179,8 +186,8 @@ func splitRepoName(name string) (string, string) {
 func filterEnabled(repos Config) Config {
 	res := make(Config)
 	for n, rc := range repos {
-		enabled := utils.JsGetBool(rc, KeyRepoEnabled)
-		if enabled != nil && !*enabled {
+		enabled, found := utils.JsGetBool(rc, KeyRepoEnabled)
+		if found && !enabled {
 			continue
 		}
 		res[n] = rc
@@ -206,13 +213,10 @@ var All = func() ([]Repo, error) {
 	if err != nil {
 		return nil, err
 	}
+	conf = filterEnabled(conf)
 	var rs []Repo
 
 	for n, rc := range conf {
-		en := utils.JsGetBool(rc, KeyRepoEnabled)
-		if en != nil && !*en {
-			continue
-		}
 		r, err := createRepo(rc, model.NewRepoSpec(n))
 		if err != nil {
 			return rs, err
@@ -232,12 +236,9 @@ var GetDescriptions = func(ctx context.Context, spec model.RepoSpec) ([]model.Re
 	if err != nil {
 		return nil, err
 	}
+	conf = filterEnabled(conf)
 	var rs []model.RepoDescription
 	for n, rc := range conf {
-		en := utils.JsGetBool(rc, KeyRepoEnabled)
-		if en != nil && !*en {
-			continue
-		}
 		if spec.RepoName() == "" || n == spec.RepoName() {
 			ds, _ := rc[KeyRepoDescription].(string)
 			r := model.RepoDescription{
@@ -307,7 +308,7 @@ func ReadConfig() (Config, error) {
 }
 
 func mapToConfig(repos map[string]any) (Config, error) {
-	cp := map[string]map[string]any{}
+	cp := Config{}
 	for k, v := range repos {
 		if cfg, ok := v.(map[string]any); ok {
 			cp[k] = cfg
@@ -352,46 +353,50 @@ func Remove(name string) error {
 	return saveConfig(conf)
 }
 
-func Add(name, typ, confStr string, confFile []byte, descr string) error {
+func Add(name string, repoConf ConfigMap) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err == nil || !errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoExists
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err, descr)
+	return setRepoConfig(name, repoConf)
 }
 
-func SetConfig(name, typ, confStr string, confFile []byte, descr string) error {
+func SetConfig(name string, repoConf ConfigMap) error {
 	_, err := Get(model.NewRepoSpec(name))
 	if err != nil && errors.Is(err, ErrRepoNotFound) {
 		return ErrRepoNotFound
 	}
 
-	return setRepoConfig(name, typ, confStr, confFile, err, descr)
+	return setRepoConfig(name, repoConf)
 }
 
-func setRepoConfig(name string, typ string, confStr string, confFile []byte, err error, descr string) error {
+func NewRepoConfig(typ string, confFile []byte) (ConfigMap, error) {
 	var rc map[string]any
+	var err error
 	switch typ {
 	case RepoTypeFile:
-		rc, err = createFileRepoConfig(confStr, confFile, descr)
+		rc, err = createFileRepoConfig(confFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	case RepoTypeHttp:
-		rc, err = createHttpRepoConfig(confStr, confFile, descr)
+		rc, err = createHttpRepoConfig(confFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	case RepoTypeTmc:
-		rc, err = createTmcRepoConfig(confStr, confFile, descr)
+		rc, err = createTmcRepoConfig(confFile)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	default:
-		return fmt.Errorf("unsupported repo type: %v. Supported types are %v", typ, SupportedTypes)
+		return nil, fmt.Errorf("unsupported repo type: %v. Supported types are %v", typ, SupportedTypes)
 	}
+	return rc, nil
+}
 
+func setRepoConfig(name string, rc ConfigMap) error {
 	conf, err := ReadConfig()
 	if err != nil {
 		return err
@@ -423,7 +428,7 @@ func saveConfig(conf Config) error {
 	return config.Save(KeyRepos, conf)
 }
 
-func AsRepoConfig(bytes []byte) (map[string]any, error) {
+func AsRepoConfig(bytes []byte) (ConfigMap, error) {
 	var js any
 	err := json.Unmarshal(bytes, &js)
 	if err != nil {
@@ -450,4 +455,57 @@ func GetUnion(spec model.RepoSpec) (*Union, error) {
 		return nil, err
 	}
 	return NewUnion(all...), nil
+}
+
+type ConfigMap map[string]any
+
+// GetString reads a string value from the ConfigMap and expands environment variable if necessary
+// It is very similar to util.JsGetString, except the latter does not expand variables
+func (m ConfigMap) GetString(key string) (string, bool) {
+	if m == nil {
+		return "", false
+	}
+	s, found := utils.JsGetString(m, key)
+	if !found {
+		return s, false
+	}
+	return expandVar(s), true
+}
+
+// GetBool reads a bool value from the ConfigMap. If the value in the map is a string, it'll attempt to expand an
+// environment variable and parse the result as bool.
+// It is very similar to util.JsGetBool, except the latter does not expand variables
+func (m ConfigMap) GetBool(key string) (bool, bool) {
+	if m == nil {
+		return false, false
+	}
+	b, found := utils.JsGetBool(m, key)
+	if found {
+		return b, true
+	}
+	s, found := m.GetString(key)
+	if found {
+		b, err := strconv.ParseBool(s)
+		if err != nil {
+			return false, false
+		}
+		return b, true
+	}
+	return false, false
+}
+
+func isEnvReference(s string) bool {
+	return strings.HasPrefix(s, "$")
+}
+
+func expandVar(s string) string {
+	if !isEnvReference(s) {
+		return s
+	}
+	vName, _ := strings.CutPrefix(s, "$")
+	ev, found := os.LookupEnv(vName)
+	if found {
+		return ev
+	}
+	return s
 }
