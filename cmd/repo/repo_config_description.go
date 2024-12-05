@@ -9,15 +9,17 @@ import (
 	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
-// repoSetAuthCmd represents the 'repo add' command
-var repoSetAuthCmd = &cobra.Command{
-	Use:     "set-auth <repo-name> <auth-type> <auth-data>",
-	Short:   "Set authentication config for a repository",
-	Long:    `Overwrite auth config of a repository. <auth-type> must be one of: bearer`,
-	Example: "set-auth http-repo bearer qfdhjf83cblkju",
-	Args:    cobra.ExactArgs(3),
+// repoConfigDescriptionCmd represents the 'repo con' command
+var repoConfigDescriptionCmd = &cobra.Command{
+	Use:     "description <repo-name> <description>",
+	Short:   "Set description of a repository",
+	Long:    `Set description of a repository`,
+	Example: "tmc repo config description myrepo \"my default TM repository\"",
+	Args:    cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := cli.RepoSetAuth(context.Background(), args[0], args[1], args[2])
+		repoName := args[0]
+		description := args[1]
+		err := cli.RepoSetDescription(context.Background(), repoName, description)
 		if err != nil {
 			_ = cmd.Usage()
 			os.Exit(1)
@@ -27,8 +29,6 @@ var repoSetAuthCmd = &cobra.Command{
 		switch len(args) {
 		case 0:
 			return completion.CompleteRepoNames(cmd, args, toComplete)
-		case 1:
-			return []string{"bearer"}, cobra.ShellCompDirectiveNoFileComp
 		default:
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
@@ -36,5 +36,5 @@ var repoSetAuthCmd = &cobra.Command{
 }
 
 func init() {
-	repoCmd.AddCommand(repoSetAuthCmd)
+	repoConfigCmd.AddCommand(repoConfigDescriptionCmd)
 }
