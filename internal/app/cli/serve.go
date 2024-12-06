@@ -61,7 +61,7 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 
 	// valid configuration, we can print the banner and start the server
 	fmt.Println(banner)
-	verMsg := fmt.Sprintf("Version of tmc: %s", TmcVersion)
+	verMsg := fmt.Sprintf("Version of tmc: %s", utils.GetTmcVersion())
 	startMsg := fmt.Sprintf("Starting tmc server on %s:%s", host, port)
 	fmt.Println(verMsg)
 	fmt.Println(startMsg)

@@ -291,6 +291,13 @@ func (h *TmcHandler) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
 	HandleHealthyResponse(w, r)
 }
 
+// GetInfo Returns some static information about the Thing Model Catalog API
+// (GET /info)
+func (h *TmcHandler) GetInfo(w http.ResponseWriter, r *http.Request) {
+	resp := infoResponse()
+	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
 func (h *TmcHandler) GetCompletions(w http.ResponseWriter, r *http.Request, params server.GetCompletionsParams) {
 	kind := ""
 	if params.Kind != nil {

@@ -24,5 +24,5 @@ for os_arch in "${os_arch_array[@]}"; do
   filename="${filename_prefix}-${GOOS}-${GARCH}${EXT}"
   echo "compiling $filename"
   CGO_ENABLED=0 go build -o $filename \
-  -ldflags="-X github.com/wot-oss/tmc/internal/app/cli.TmcVersion=${version}"
+  -ldflags="-X github.com/wot-oss/tmc/internal/utils.TmcVersion=${version}"
 done
