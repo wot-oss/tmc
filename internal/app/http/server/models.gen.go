@@ -62,6 +62,7 @@ type InfoResponse struct {
 	Version InfoVersion `json:"version"`
 }
 
+// InfoVersion defines model for InfoVersion.
 type InfoVersion struct {
 	Implementation string  `json:"implementation"`
 	Specification  *string `json:"specification,omitempty"`
