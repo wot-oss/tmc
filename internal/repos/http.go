@@ -172,7 +172,7 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []stri
 	switch kind {
 	case CompletionKindNames:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, &namePrefix, nil,
+		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, nil, &namePrefix, nil,
 			&model.SearchOptions{NameFilterType: model.PrefixMatch}))
 		if err != nil {
 			return nil, err
@@ -200,7 +200,7 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []stri
 		return vs, nil
 	case CompletionKindNamesOrIds:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, &namePrefix, nil,
+		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, nil, &namePrefix, nil,
 			&model.SearchOptions{NameFilterType: model.PrefixMatch}))
 		if err != nil {
 			return nil, err
