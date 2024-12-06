@@ -160,6 +160,36 @@ func Test_health(t *testing.T) {
 	})
 }
 
+func Test_Info(t *testing.T) {
+
+	route := "/info"
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("with success", func(t *testing.T) {
+		oldTmcVersion := utils.TmcVersion
+		utils.TmcVersion = "v0.1.1"
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assertResponse200(t, rec)
+		// and then: the body is of correct type
+		var response server.InfoResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+		// and then result contains all data
+		assert.Equal(t, server.InfoResponse{
+			Name: "tmc",
+			Version: server.InfoVersion{
+				Implementation: "0.1.1",
+			},
+			Details: &[]string{},
+		}, response)
+
+		utils.TmcVersion = oldTmcVersion
+	})
+}
+
 func Test_Inventory(t *testing.T) {
 
 	route := "/inventory"

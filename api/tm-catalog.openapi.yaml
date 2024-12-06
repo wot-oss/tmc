@@ -1001,6 +1001,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /info:
+    get:
+      tags:
+        - internal
+      summary: Returns some static information about the Thing Model Catalog API
+      security:
+        - { }
+      description: Returns some static information about the Thing Model Catalog API
+      operationId: getInfo
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfoResponse'
+              examples:
+                info:
+                  $ref: '#/components/examples/InfoResponseExample'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /.completions:
     get:
       tags:
@@ -1320,6 +1347,29 @@ components:
           example: "a TM with the same timestamp but different content exists under ID: mycompany/bartech/bazlamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json"
         code:
           type: string
+    InfoResponse:
+      required:
+        - name
+        - version
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          $ref: '#/components/schemas/InfoVersion'
+        details:
+          type: array
+          items:
+            type: string
+    InfoVersion:
+      required:
+        - implementation
+      type: object
+      properties:
+        specification:
+          type: string
+        implementation:
+          type: string
     ErrorResponse:
       required:
         - title
@@ -1633,6 +1683,13 @@ components:
             'description': 'Lamp reaches a critical temperature (overheating)'
             'data':
               'type': 'string'
+    InfoResponseExample:
+      value:
+        'name': 'tmc'
+        'version':
+          'specification': '0.1.2'
+          'implementation': '0.1.0'
+        'details': []
   securitySchemes:
     BearerAuth:
       type: http
