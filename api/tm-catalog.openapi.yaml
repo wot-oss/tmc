@@ -1314,18 +1314,20 @@ components:
         name:
           type: string
         version:
-          required:
-            - implementation
-          type: object
-          properties:
-            specification:
-              type: string
-            implementation:
-              type: string
+          $ref: '#/components/schemas/InfoVersion'
         details:
           type: array
           items:
             type: string
+    InfoVersion:
+      required:
+        - implementation
+      type: object
+      properties:
+        specification:
+          type: string
+        implementation:
+          type: string
     ErrorResponse:
       required:
         - title
