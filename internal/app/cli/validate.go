@@ -2,7 +2,6 @@ package cli
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/wot-oss/tmc/internal/commands/validate"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -20,6 +19,5 @@ func ValidateFile(ctx context.Context, filename string) error {
 		Stderrf("validation error: %v\n", err)
 		return err
 	}
-	fmt.Printf("validated successfully: %s\n", filename)
 	return nil
 }

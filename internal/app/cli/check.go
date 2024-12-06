@@ -15,10 +15,14 @@ import (
 
 var (
 	errCheckFailed = errors.New("integrity check failed")
-	errNotARepo    = errors.New("not a repository")
+	errNotARepo    = errors.New("not a TMC repository")
 )
 
-func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string) error {
+func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string, format string) error {
+	if !IsValidOutputFormat(format) {
+		Stderrf("%v", ErrInvalidOutputFormat)
+		return ErrInvalidOutputFormat
+	}
 
 	repo, err := repos.Get(spec)
 	if err != nil {
@@ -26,12 +30,10 @@ func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string) err
 		return err
 	}
 
-	fmt.Printf("Checking integrity of repository (%s) ...\n", spec)
-
 	resFilter := resourceFilterFromArgs(args)
 	totalRes, err := checkIndexedResourcesAreValid(ctx, repo, resFilter)
 	if errors.Is(err, errNotARepo) {
-		fmt.Printf("(%s) is not a TMC repository\n", spec)
+		Stderrf("(%s) is not a TMC repository\n", spec)
 		return nil
 	}
 	results, iErr := repo.CheckIntegrity(ctx, resFilter)
@@ -39,17 +41,26 @@ func CheckIntegrity(ctx context.Context, spec model.RepoSpec, args []string) err
 		err = iErr
 	}
 	totalRes = append(totalRes, results...)
+	var errRes []model.CheckResult
 	for _, res := range totalRes {
 		if res.Typ != model.CheckOK {
-			fmt.Println(res)
+			errRes = append(errRes, res)
 		}
 		if err == nil && res.Typ == model.CheckErr {
 			err = errCheckFailed
 		}
 	}
-	if err == nil {
-		fmt.Println("OK")
-	} else if !errors.Is(err, errCheckFailed) {
+
+	switch format {
+	case OutputFormatJSON:
+		printJSON(totalRes)
+	case OutputFormatPlain:
+		for _, res := range errRes {
+			fmt.Println(res.String())
+		}
+	}
+
+	if err != nil && !errors.Is(err, errCheckFailed) {
 		Stderrf("%v", err)
 	}
 	return err
@@ -114,7 +125,7 @@ func checkAttachments(ctx context.Context, repo repos.Repo, ref model.Attachment
 			res := model.CheckResult{model.CheckErr, attResourceName, err.Error()}
 			results = append(results, res)
 		} else {
-			res := model.CheckResult{model.CheckOK, attResourceName, "OK"}
+			res := model.CheckResult{model.CheckOK, attResourceName, ""}
 			results = append(results, res)
 		}
 	}
@@ -147,5 +158,5 @@ func checkThingModel(ctx context.Context, repo repos.Repo, tmid string) model.Ch
 		return model.CheckResult{Typ: model.CheckErr, ResourceName: tmid, Message: "file content does not match the digest in ID"}
 	}
 
-	return model.CheckResult{Typ: model.CheckOK, ResourceName: tmid, Message: fmt.Sprintf("OK")}
+	return model.CheckResult{Typ: model.CheckOK, ResourceName: tmid, Message: fmt.Sprintf("")}
 }

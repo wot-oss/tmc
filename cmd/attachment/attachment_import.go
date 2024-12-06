@@ -37,6 +37,7 @@ func attachmentImport(command *cobra.Command, args []string) {
 	force, _ := command.Flags().GetBool("force")
 	err := cli.AttachmentImport(context.Background(), spec, args[0], args[1], name, mediaType, force)
 	if err != nil {
+		cli.Stderrf("attachment import failed")
 		os.Exit(1)
 	}
 }

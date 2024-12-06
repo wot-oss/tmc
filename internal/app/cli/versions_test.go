@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -46,7 +47,7 @@ func TestListVersions(t *testing.T) {
 		r.On("Versions", mock.Anything, tmName).Return(versionsRes, nil).Once()
 
 		// when: list versions from the repo for given ThingModel name
-		err := ListVersions(context.Background(), repoSpec, tmName)
+		err := ListVersions(context.Background(), repoSpec, tmName, OutputFormatPlain)
 		stdout := getStdout()
 		stderr := getStderr()
 
@@ -54,6 +55,37 @@ func TestListVersions(t *testing.T) {
 		assert.NoError(t, err)
 		// and then: stdout outputs the versions of the ThingModel
 		assert.Contains(t, stdout, tmName)
+		// and then: stderr has no outputs
+		assert.Equal(t, "", stderr)
+	})
+	t.Run("with ok json output", func(t *testing.T) {
+		restoreStdout, getStdout := testutils.ReplaceStdout()
+		restoreStderr, getStderr := testutils.ReplaceStderr()
+		defer restoreStdout()
+		defer restoreStderr()
+
+		// given: a RepoManager and a repo
+		repoSpec := model.NewRepoSpec("r1")
+		r := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repoSpec, r, nil))
+
+		r.On("Spec").Return(repoSpec).Maybe()
+		r.On("Versions", mock.Anything, tmName).Return(versionsRes, nil).Once()
+
+		// when: list versions from the repo for given ThingModel name
+		err := ListVersions(context.Background(), repoSpec, tmName, OutputFormatJSON)
+		stdout := getStdout()
+		stderr := getStderr()
+
+		// then: there is no error
+		assert.NoError(t, err)
+		// and then: stdout outputs the versions of the ThingModel
+		assert.Contains(t, stdout, tmName)
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.NoError(t, err)
+		expected := []any{map[string]any{"description": "desc version v1.0.0", "id": "b-corp/frog/bt3000/v1.0.0-20240108140117-743d1b462uuu.tm.json", "name": "b-corp/frog/bt3000", "repo": "r1", "version": "1.0.0"}}
+		assert.Equal(t, expected, actual)
 		// and then: stderr has no outputs
 		assert.Equal(t, "", stderr)
 	})
@@ -86,7 +118,7 @@ func TestListVersions(t *testing.T) {
 		r2.On("Versions", mock.Anything, tmName).Return([]model.FoundVersion{}, accessError).Once()
 
 		// when: list versions from both repos
-		err := ListVersions(context.Background(), model.EmptySpec, tmName)
+		err := ListVersions(context.Background(), model.EmptySpec, tmName, OutputFormatPlain)
 		stdout := getStdout()
 		stderr := getStderr()
 

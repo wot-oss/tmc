@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -88,7 +89,7 @@ func TestList(t *testing.T) {
 		r.On("List", mock.Anything, sp).Return(listRes, nil).Once()
 
 		// when: list from the repo
-		err := List(context.Background(), repoSpec, sp)
+		err := List(context.Background(), repoSpec, sp, OutputFormatPlain)
 		stdout := getStdout()
 		stderr := getStderr()
 
@@ -96,6 +97,36 @@ func TestList(t *testing.T) {
 		assert.NoError(t, err)
 		// and then: stdout outputs the listable ThingModel
 		assert.Contains(t, stdout, listRes.Entries[0].Name)
+		assert.NotContains(t, stdout, "{")
+		// and then: stderr has no outputs
+		assert.Equal(t, "", stderr)
+	})
+	t.Run("with ok output json", func(t *testing.T) {
+		restoreStdout, getStdout := testutils.ReplaceStdout()
+		restoreStderr, getStderr := testutils.ReplaceStderr()
+		defer restoreStdout()
+		defer restoreStderr()
+
+		// given: a RepoManager and a repo having 1 ThingModel
+		repoSpec := model.NewRepoSpec("r1")
+		r := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repoSpec, r, nil))
+
+		var sp *model.SearchParams
+
+		r.On("Spec").Return(repoSpec).Maybe()
+		r.On("List", mock.Anything, sp).Return(listRes, nil).Once()
+
+		// when: list from the repo
+		err := List(context.Background(), repoSpec, sp, OutputFormatJSON)
+		stdout := getStdout()
+		stderr := getStderr()
+
+		// then: there is no error
+		assert.NoError(t, err)
+		// and then: stdout outputs the listable ThingModel
+		assert.Contains(t, stdout, fmt.Sprintf("\"name\": \"%s\"", listRes.Entries[0].Name))
+		assert.Contains(t, stdout, "{")
 		// and then: stderr has no outputs
 		assert.Equal(t, "", stderr)
 	})
@@ -130,7 +161,7 @@ func TestList(t *testing.T) {
 		r2.On("List", mock.Anything, sp).Return(model.SearchResult{}, accessError).Once()
 
 		// when: list from both repos
-		err := List(context.Background(), model.EmptySpec, sp)
+		err := List(context.Background(), model.EmptySpec, sp, OutputFormatPlain)
 		stdout := getStdout()
 		stderr := getStderr()
 

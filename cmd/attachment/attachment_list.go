@@ -30,14 +30,17 @@ var attachmentListCmd = &cobra.Command{
 
 func attachmentList(command *cobra.Command, args []string) {
 	spec := cmd.RepoSpecFromFlags(command)
+	format := command.Flag("format").Value.String()
 
-	err := cli.AttachmentList(context.Background(), spec, args[0])
+	err := cli.AttachmentList(context.Background(), spec, args[0], format)
 	if err != nil {
+		cli.Stderrf("attachment list failed")
 		os.Exit(1)
 	}
 }
 
 func init() {
 	cmd.AddRepoDisambiguatorFlags(attachmentListCmd)
+	cmd.AddOutputFormatFlag(attachmentListCmd)
 	attachmentCmd.AddCommand(attachmentListCmd)
 }

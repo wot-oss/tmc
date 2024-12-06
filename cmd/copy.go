@@ -29,6 +29,7 @@ Use list command with the same parameters to verify beforehand which TMs are goi
 func init() {
 	RootCmd.AddCommand(copyCmd)
 	AddRepoConstraintFlags(copyCmd)
+	AddOutputFormatFlag(copyCmd)
 	copyCmd.Flags().StringP("toRepo", "R", "", "Name of the target repository. Mutually exclusive with --toDirectory. Required, unless --toDirectory is set.")
 	_ = copyCmd.RegisterFlagCompletionFunc("toRepo", completion.CompleteRepoNames)
 	copyCmd.Flags().StringP("toDirectory", "D", "", "Use the specified directory as the target repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --toRepo. Required, unless --toRepo is set.")
@@ -43,6 +44,7 @@ func executeCopy(cmd *cobra.Command, args []string) {
 	toDirName := cmd.Flag("toDirectory").Value.String()
 	force, _ := cmd.Flags().GetBool("force")
 	ie, _ := cmd.Flags().GetBool("ignore-existing")
+	format := cmd.Flag("format").Value.String()
 
 	spec := RepoSpecFromFlags(cmd)
 	toSpec, err := model.NewSpec(toRepoName, toDirName)
@@ -56,7 +58,7 @@ func executeCopy(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	search := CreateSearchParamsFromCLI(copyFilterFlags, name)
-	err = cli.Copy(context.Background(), spec, toSpec, search, repos.ImportOptions{Force: force, IgnoreExisting: ie})
+	err = cli.Copy(context.Background(), spec, toSpec, search, repos.ImportOptions{Force: force, IgnoreExisting: ie}, format)
 
 	if err != nil {
 		cli.Stderrf("copy failed")

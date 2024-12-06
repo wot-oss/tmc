@@ -100,6 +100,11 @@ func AddRepoDisambiguatorFlags(cmd *cobra.Command) {
 	_ = cmd.MarkFlagDirname("directory")
 }
 
+func AddOutputFormatFlag(cmd *cobra.Command) {
+	cmd.Flags().String("format", "plain", "output format")
+	_ = cmd.RegisterFlagCompletionFunc("format", completion.CompleteOutputFomats)
+}
+
 func AddTMFilterFlags(cmd *cobra.Command, flags *FilterFlags) {
 	cmd.Flags().StringVar(&flags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	cmd.Flags().StringVar(&flags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")

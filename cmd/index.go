@@ -27,6 +27,7 @@ func executeRefreshIndex(cmd *cobra.Command, _ []string) {
 
 	err := cli.Index(context.Background(), spec)
 	if err != nil {
+		cli.Stderrf("index failed")
 		os.Exit(1)
 	}
 }

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -31,7 +32,7 @@ func TestAttachmentList(t *testing.T) {
 					},
 				},
 			}, nil).Once()
-		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmName)
+		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmName, OutputFormatPlain)
 		assert.NoError(t, err)
 		stdout := getOutput()
 		assert.Equal(t, "NAME            MEDIATYPE        REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
@@ -49,11 +50,39 @@ func TestAttachmentList(t *testing.T) {
 			},
 			FoundIn: model.FoundSource{},
 		}}, nil).Once()
-		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmId)
+		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmId, OutputFormatPlain)
 		assert.NoError(t, err)
 		stdout := getOutput()
 		assert.Equal(t, "NAME            MEDIATYPE        REPO\nREADME.md       text/markdown    \nUser Guide.pdf  application/pdf  \n", stdout)
 	})
+	t.Run("with json output", func(t *testing.T) {
+		restore, getOutput := testutils.ReplaceStdout()
+		defer restore()
+		tmName := "author/manufacturer/mpn"
+		r.On("List", ctx, &model.SearchParams{Name: tmName}).Return(
+			model.SearchResult{
+				Entries: []model.FoundEntry{
+					{
+						AttachmentContainer: model.AttachmentContainer{[]model.Attachment{
+							{Name: "README.md", MediaType: "text/markdown"},
+							{Name: "User Guide.pdf", MediaType: "application/pdf"},
+						}},
+						FoundIn: model.FoundSource{
+							RepoName: "r1",
+						},
+					},
+				},
+			}, nil).Once()
+		err := AttachmentList(ctx, model.NewDirSpec("somewhere"), tmName, OutputFormatJSON)
+		assert.NoError(t, err)
+		stdout := getOutput()
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.NoError(t, err)
+		expected := []any{map[string]any{"name": "README.md", "mediaType": "text/markdown", "repo": "r1"}, map[string]any{"name": "User Guide.pdf", "mediaType": "application/pdf", "repo": "r1"}}
+		assert.Equal(t, expected, actual)
+	})
+
 }
 
 func TestAttachmentImport(t *testing.T) {

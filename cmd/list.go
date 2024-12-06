@@ -28,6 +28,7 @@ func init() {
 	RootCmd.AddCommand(listCmd)
 	AddRepoConstraintFlags(listCmd)
 	AddTMFilterFlags(listCmd, &listFilterFlags)
+	AddOutputFormatFlag(listCmd)
 }
 
 func executeList(cmd *cobra.Command, args []string) {
@@ -36,9 +37,10 @@ func executeList(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	spec := RepoSpecFromFlags(cmd)
+	format := cmd.Flag("format").Value.String()
 
 	search := CreateSearchParamsFromCLI(listFilterFlags, name)
-	err := cli.List(context.Background(), spec, search)
+	err := cli.List(context.Background(), spec, search, format)
 	if err != nil {
 		cli.Stderrf("list failed")
 		os.Exit(1)
