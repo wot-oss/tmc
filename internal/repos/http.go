@@ -88,11 +88,13 @@ func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	err = idx.Filter(search)
+	sr := model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx)
+	filtered := &sr
+	err = filtered.Filter(search)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx), nil
+	return *filtered, err
 }
 
 func (h *HttpRepo) getIndex(ctx context.Context) (*model.Index, error) {

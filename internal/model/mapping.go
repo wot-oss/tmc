@@ -15,7 +15,14 @@ func NewIndexToFoundMapper(s FoundSource) *IndexToSearchResultMapper {
 }
 
 func (m *IndexToSearchResultMapper) ToSearchResult(idx Index) SearchResult {
-	r := SearchResult{}
+	r := SearchResult{
+		Sources: []DatedSource{
+			{
+				FoundSource: m.foundIn,
+				LastUpdated: idx.Meta.Created,
+			},
+		},
+	}
 	var es []FoundEntry
 	for _, e := range idx.Data {
 		es = append(es, m.ToFoundEntry(e))

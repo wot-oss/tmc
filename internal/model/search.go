@@ -1,9 +1,14 @@
 package model
 
 import (
+	"errors"
+	"fmt"
+	"os"
 	"slices"
 	"strings"
+	"time"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -13,9 +18,18 @@ const (
 )
 const DefaultListSeparator = ","
 
+var ErrSearchIndexNotFound = errors.New("search index not found. Use `tmc create-si` to create")
+
 type SearchResult struct {
-	Entries []FoundEntry
+	Sources   []DatedSource
+	Entries   []FoundEntry
+	indexPath string
 }
+type DatedSource struct {
+	FoundSource
+	LastUpdated time.Time
+}
+
 type FoundEntry struct {
 	Name         string
 	Manufacturer SchemaManufacturer
@@ -25,6 +39,7 @@ type FoundEntry struct {
 	FoundIn      FoundSource
 	AttachmentContainer
 }
+
 type FoundVersion struct {
 	*IndexVersion
 	FoundIn FoundSource
@@ -66,6 +81,7 @@ func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
 }
 
 func (sr *SearchResult) Merge(other *SearchResult) {
+	sr.Sources = append(sr.Sources, other.Sources...)
 	sr.Entries = mergeFoundEntries(sr.Entries, other.Entries)
 }
 
@@ -102,6 +118,157 @@ type SearchOptions struct {
 	// NameFilterType specifies whether SearchParams.Name must match a prefix or the full length of a TM name
 	// Note that using FullMatch effectively limits the search result to at most one FoundEntry
 	NameFilterType FilterType
+	// UseBleve indicates that the search query uses bleve query syntax
+	UseBleve bool
+}
+
+func (sr *SearchResult) Filter(search *SearchParams) error {
+	if search == nil {
+		return nil
+	}
+	search.Sanitize()
+	exclude := func(entry FoundEntry) bool {
+		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
+			return true
+		}
+
+		if !matchesFilter(search.Author, entry.Author.Name) {
+			return true
+		}
+
+		if !matchesFilter(search.Manufacturer, entry.Manufacturer.Name) {
+			return true
+		}
+
+		if !matchesFilter(search.Mpn, entry.Mpn) {
+			return true
+		}
+
+		return false
+	}
+	sr.Entries = slices.DeleteFunc(sr.Entries, func(entry FoundEntry) bool {
+		return exclude(entry)
+	})
+	if len(sr.Entries) == 0 {
+		return nil
+	}
+
+	if len(search.Query) > 0 {
+		del, err := getSearchExclusionFunction(search.Options.UseBleve, search.Query, sr.indexPath)
+		if err != nil {
+			return err
+		}
+		if del != nil {
+			sr.Entries = slices.DeleteFunc(sr.Entries, del)
+		}
+	}
+	return nil
+}
+
+func (sr *SearchResult) WithSearchIndex(indexPath string) *SearchResult {
+	sr.indexPath = indexPath
+	return sr
+}
+
+func getSearchExclusionFunction(useBleve bool, query, indexPath string) (func(e FoundEntry) bool, error) {
+	if useBleve {
+		return excludeByContentSearch(query, indexPath)
+	} else {
+		return excludeBySimpleContentSearch(query)
+	}
+}
+
+func excludeBySimpleContentSearch(searchQuery string) (func(e FoundEntry) bool, error) {
+	return func(e FoundEntry) bool {
+		searchQuery = utils.ToTrimmedLower(searchQuery)
+		if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
+			return false
+		}
+		if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
+			return false
+		}
+		for _, version := range e.Versions {
+			if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
+				return false
+			}
+			if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
+				return false
+			}
+		}
+		return true
+	}, nil
+}
+
+func excludeByContentSearch(query, indexPath string) (func(e FoundEntry) bool, error) {
+	_, err := os.Stat(indexPath)
+	if err != nil {
+		return nil, ErrSearchIndexNotFound
+	}
+	bleveIdx, errOpen := bleve.Open(indexPath)
+	if errOpen != nil {
+		return nil, fmt.Errorf("couldn't open bleve index: %w", errOpen)
+	} else {
+		defer bleveIdx.Close()
+		query := bleve.NewQueryStringQuery(query)
+		req := bleve.NewSearchRequestOptions(query, 100000, 0, true)
+		sr, err := bleveIdx.Search(req)
+
+		if err != nil {
+			return nil, fmt.Errorf("error in content search: %w", err)
+		}
+
+		del := func(e FoundEntry) bool {
+			if sr.Hits.Len() == 0 {
+				return true
+			}
+			del := true
+			for i, v := range e.Versions {
+				for _, hv := range sr.Hits {
+					parts := strings.Split(hv.ID, ":")
+					if v.TMID == parts[0] {
+						del = false
+						e.Versions[i].SearchScore = float32(hv.Score)
+					}
+				}
+			}
+			return del
+		}
+		return del, nil
+	}
+}
+
+func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
+	if len(acceptedValue) == 0 {
+		return true
+	}
+
+	switch options.NameFilterType {
+	case FullMatch:
+		return value == acceptedValue
+	case PrefixMatch:
+		actualPathParts := strings.Split(value, "/")
+		acceptedValue = strings.Trim(acceptedValue, "/")
+		acceptedPathParts := strings.Split(acceptedValue, "/")
+		if len(acceptedPathParts) > len(actualPathParts) {
+			return false
+		}
+		return slices.Equal(actualPathParts[0:len(acceptedPathParts)], acceptedPathParts)
+	default:
+		panic(fmt.Sprintf("unsupported NameFilterType: %d", options.NameFilterType))
+	}
+}
+
+func matchesFilter(acceptedValues []string, value string) bool {
+	if len(acceptedValues) == 0 {
+		return true
+	}
+	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
 func ToSearchParams(author, manufacturer, mpn, name, query *string, opts *SearchOptions) *SearchParams {

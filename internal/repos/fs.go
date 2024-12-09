@@ -323,12 +323,11 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	err = idx.Filter(search)
-	if err != nil {
-		return model.SearchResult{}, err
-	}
 	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
-	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx), nil
+	sr := model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx)
+	filtered := &sr
+	err = filtered.Filter(search)
+	return *filtered, err
 }
 
 // readIndex reads the contents of the index file. Must be called after the lock is acquired with lockIndex()
@@ -354,6 +353,9 @@ func (f *FileRepo) readIndex() (*model.Index, error) {
 
 func (f *FileRepo) indexFilename() string {
 	return filepath.Join(f.root, RepoConfDir, IndexFilename)
+}
+func (f *FileRepo) bleveIndexPath() string {
+	return filepath.Join(f.root, RepoConfDir, "index.bleve")
 }
 
 func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
@@ -668,6 +670,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	}
 
 	newIndex.Sort()
+	newIndex.Meta.Created = time.Now()
 	f.idx = newIndex
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,

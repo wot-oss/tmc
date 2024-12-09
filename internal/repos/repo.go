@@ -2,14 +2,19 @@ package repos
 
 import (
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/blevesearch/bleve/v2"
 	"github.com/spf13/viper"
 	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/model"
@@ -42,6 +47,8 @@ const (
 	IndexFilename             = "tm-catalog.toc.json"
 	TmNamesFile               = "tmnames.txt"
 	TmIgnoreFile              = ".tmcignore"
+
+	maxIndexingBatchSize = math.MaxInt
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
@@ -505,4 +512,101 @@ func expandVar(s string) string {
 		return ev
 	}
 	return s
+}
+
+func BleveIndexPath(spec model.RepoSpec) string {
+	hasher := sha1.New()
+	rName := spec.RepoName()
+	if rName == "" {
+		rName = spec.Dir()
+	}
+	hasher.Write([]byte(rName))
+	hash := hasher.Sum(nil)
+	hashStr := fmt.Sprintf("%x", hash[:6])
+	return filepath.Join(config.ConfigDir, ".search-indexes", hashStr)
+}
+
+func UpdateRepoIndex(ctx context.Context, repo Repo) error {
+	log := utils.GetLogger(ctx, "UpdateRepoIndex")
+	searchResult, err := repo.List(ctx, nil)
+	if err != nil {
+		os.Exit(1)
+	}
+	// try to open index, if it not there create a fresh one
+	indexPath := BleveIndexPath(repo.Spec())
+	index, err := bleve.Open(indexPath)
+
+	if err != nil {
+		_ = os.MkdirAll(filepath.Dir(indexPath), 0755)
+		// open a new index
+		index, err = bleve.New(indexPath, bleve.NewIndexMapping())
+		if err != nil {
+			return err
+		}
+	}
+
+	defer index.Close()
+
+	contents := searchResult.Entries
+	var batch *bleve.Batch
+
+	indexedCount, batchCount, totalCount := 0, 0, 0
+
+	for _, value := range contents {
+		for _, version := range value.Versions {
+			totalCount++
+			// check if document is already indexed
+			doc, _ := index.Document(version.TMID)
+			if doc != nil {
+				// already indexed -> skip
+				continue
+			}
+			// fetch document
+			id, thing, err := repo.Fetch(ctx, version.TMID)
+			_ = id
+			if err != nil {
+				log.Warn("can't fetch TM", "error", err)
+				continue
+			}
+			var data any
+			unmErr := json.Unmarshal(thing, &data)
+			if unmErr != nil {
+				log.Warn("can't unmarshal TM", "error", unmErr)
+				continue
+			}
+
+			if batch == nil {
+				batch = index.NewBatch()
+			}
+			var idxErr error
+			idxErr = batch.Index(version.TMID, data)
+			if idxErr != nil {
+				return fmt.Errorf("can't index TM: %w", idxErr)
+			}
+			batchCount++
+			indexedCount++
+			if batchCount >= maxIndexingBatchSize {
+				batchCount = 0
+				err = index.Batch(batch)
+				if err != nil {
+					return fmt.Errorf("can't run batch: %w", err)
+				}
+				batch = nil
+			}
+		}
+	}
+	if batch != nil {
+		err = index.Batch(batch)
+		if err != nil {
+			return fmt.Errorf("can't run batch: %w", err)
+		}
+	}
+	lu := searchResult.Sources[0].LastUpdated.Format(time.RFC3339)
+	err = utils.WriteFileLines([]string{lu}, filepath.Join(indexPath, "updated"), 0664)
+	if err != nil {
+		return err
+	}
+	utils.GetLogger(ctx, "create-si").Info(fmt.Sprintf("indexed %d new Thing Models out of %d\n", indexedCount, totalCount))
+	return nil
+
 }

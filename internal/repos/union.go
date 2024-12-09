@@ -4,10 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 type Union struct {
@@ -91,8 +95,8 @@ func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []
 
 func (u *Union) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
 	mapper := func(r Repo) mapResult[*model.SearchResult] {
-		idx, err := r.List(ctx, search)
-		return mapResult[*model.SearchResult]{res: &idx, err: newRepoAccessError(r, err)}
+		searchResult, err := listRepoWithDeepSearch(ctx, r, search)
+		return mapResult[*model.SearchResult]{res: &searchResult, err: newRepoAccessError(r, err)}
 	}
 
 	reducer := func(t1, t2 *model.SearchResult) *model.SearchResult {
@@ -103,6 +107,50 @@ func (u *Union) List(ctx context.Context, search *model.SearchParams) (model.Sea
 	results := mapConcurrent(ctx, u.rs, mapper)
 	r, errs := reduce(results, &model.SearchResult{}, reducer)
 	return *r, errs
+}
+
+func listRepoWithDeepSearch(ctx context.Context, r Repo, search *model.SearchParams) (model.SearchResult, error) {
+	if search == nil || search.Query == "" || !search.Options.UseBleve {
+		return r.List(ctx, search)
+	}
+
+	// check local index exists
+	indexPath := BleveIndexPath(r.Spec())
+	_, err := os.Stat(indexPath)
+	if os.IsNotExist(err) {
+		return model.SearchResult{}, model.ErrSearchIndexNotFound
+	}
+	// list without text query
+	query := search.Query
+	search.Query = ""
+	search.Options.UseBleve = false
+	searchResult, err := r.List(ctx, search)
+	if err != nil {
+		return model.SearchResult{}, err
+	}
+	// update index if out of date
+	lines, err := utils.ReadFileLines(filepath.Join(indexPath, "updated"))
+	if err != nil {
+		lines = []string{""}
+	}
+	indexedTime, _ := time.Parse(time.RFC3339, lines[0])
+	if indexedTime.Before(searchResult.Sources[0].LastUpdated) {
+		err := UpdateRepoIndex(ctx, r)
+		if err != nil {
+			return model.SearchResult{}, err
+		}
+	}
+
+	// refine with bleve
+	filtered := &searchResult
+	search.Query = query
+	search.Options.UseBleve = true
+	err = filtered.WithSearchIndex(indexPath).Filter(search)
+	if err != nil {
+		return model.SearchResult{}, err
+	}
+
+	return searchResult, err
 }
 
 func (u *Union) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, []*RepoAccessError) {

@@ -71,7 +71,7 @@ func resourceFilterFromArgs(args []string) model.ResourceFilter {
 
 func checkIndexedResourcesAreValid(ctx context.Context, repo repos.Repo, filter model.ResourceFilter) ([]model.CheckResult, error) {
 	var results []model.CheckResult
-	list, err := repo.List(ctx, &model.SearchParams{})
+	list, err := repo.List(ctx, nil)
 	if err != nil {
 		if errors.Is(err, repos.ErrNoIndex) {
 			return nil, errNotARepo

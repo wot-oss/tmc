@@ -77,11 +77,12 @@ type FilterFlags struct {
 	FilterManufacturer string
 	FilterMpn          string
 	Search             string
+	Deep               bool
 }
 
 func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
 	return model.ToSearchParams(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &name, &flags.Search,
-		&model.SearchOptions{NameFilterType: model.PrefixMatch})
+		&model.SearchOptions{NameFilterType: model.PrefixMatch, UseBleve: flags.Deep})
 }
 
 // AddRepoConstraintFlags adds repo and directory flags for commands that can use multiple repositories (e.g. list)
@@ -105,5 +106,5 @@ func AddTMFilterFlags(cmd *cobra.Command, flags *FilterFlags) {
 	cmd.Flags().StringVar(&flags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	cmd.Flags().StringVar(&flags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
 	cmd.Flags().StringVarP(&flags.Search, "search", "s", "", "search TMs by their content matching the search term")
-
+	cmd.Flags().BoolVar(&flags.Deep, "deep", false, "use bleve query index in search flag for more precise matching")
 }
