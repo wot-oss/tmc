@@ -32,6 +32,9 @@ type ServerInterface interface {
 	// Returns whether the service is initialized
 	// (GET /healthz/startup)
 	GetHealthStartup(w http.ResponseWriter, r *http.Request)
+	// Returns some static information about the Thing Model Catalog API
+	// (GET /info)
+	GetInfo(w http.ResponseWriter, r *http.Request)
 	// Get the inventory of the catalog
 	// (GET /inventory)
 	GetInventory(w http.ResponseWriter, r *http.Request, params GetInventoryParams)
@@ -237,6 +240,21 @@ func (siw *ServerInterfaceWrapper) GetHealthStartup(w http.ResponseWriter, r *ht
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealthStartup(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetInfo operation middleware
+func (siw *ServerInterfaceWrapper) GetInfo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetInfo(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1200,6 +1218,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/manufacturers", wrapper.GetManufacturers).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/inventory", wrapper.GetInventory).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/info", wrapper.GetInfo).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/healthz", wrapper.GetHealth).Methods("GET")
 

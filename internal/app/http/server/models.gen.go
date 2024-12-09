@@ -55,6 +55,19 @@ type ImportThingModelResult struct {
 	TmID    string  `json:"tmID"`
 }
 
+// InfoResponse defines model for InfoResponse.
+type InfoResponse struct {
+	Details *[]string   `json:"details,omitempty"`
+	Name    string      `json:"name"`
+	Version InfoVersion `json:"version"`
+}
+
+// InfoVersion defines model for InfoVersion.
+type InfoVersion struct {
+	Implementation string  `json:"implementation"`
+	Specification  *string `json:"specification,omitempty"`
+}
+
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
 	Attachments *AttachmentsList     `json:"attachments,omitempty"`
