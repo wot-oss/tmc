@@ -237,7 +237,7 @@ type GetAuthorsParams struct {
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
 	// FilterProtocol Filters the authors according to whether they have inventory entries
-	// which support at least one of the given URL protocol schemes  with an exact match.
+	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
 
@@ -307,7 +307,7 @@ type GetManufacturersParams struct {
 	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 
 	// FilterProtocol Filters the manufacturers according to whether they have inventory entries
-	// which support at least one of the given URL protocol schemes  with an exact match.
+	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
 
@@ -328,7 +328,7 @@ type GetMpnsParams struct {
 	FilterManufacturer *string `form:"filter.manufacturer,omitempty" json:"filter.manufacturer,omitempty"`
 
 	// FilterProtocol Filters the mpns according to whether they have inventory entries
-	// which support at least one of the given URL protocol schemes  with an exact match.
+	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
 

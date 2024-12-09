@@ -51,8 +51,6 @@ func ParseThingModel(data []byte) (*ThingModel, error) {
 }
 
 func (tm *ThingModel) setProtocols(protos []string) {
-	slices.Sort(protos)
-	slices.Compact(protos)
 	tm.protocols = protos
 }
 
@@ -105,10 +103,16 @@ func extractFormsProtocols(m map[string]any) []string {
 	return protos
 }
 
+var placeholdersRegexp = regexp.MustCompile("{{.+}}")
+
 func extractProtocol(uri string) string {
 	if uri == "" {
 		return ""
 	}
+
+	// replace any placeholders in the URI with a string that will most probably make the resulting URI a valid one for parsing
+	uri = placeholdersRegexp.ReplaceAllString(uri, "example.com")
+
 	u, err := url.Parse(uri)
 	if err != nil { //skip unparseable hrefs
 		return ""

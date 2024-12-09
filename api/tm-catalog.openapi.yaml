@@ -701,7 +701,7 @@ paths:
           in: query
           description: |
             Filters the authors according to whether they have inventory entries    
-            which support at least one of the given URL protocol schemes  with an exact match.    
+            which support at least one of the given URL protocol schemes with an exact match.    
             The filter works additive to other filters.
           schema:
             type: string
@@ -768,7 +768,7 @@ paths:
           in: query
           description: |
             Filters the manufacturers according to whether they have inventory entries    
-            which support at least one of the given URL protocol schemes  with an exact match.    
+            which support at least one of the given URL protocol schemes with an exact match.    
             The filter works additive to other filters.
           schema:
             type: string
@@ -817,7 +817,7 @@ paths:
         - name: 'filter.author'
           in: query
           description: |
-            Filters the mpns according to whether they belong to at least one of the given authors with an exact match.     
+            Filters the mpns according to whether they belong to at least one of the given authors with an exact match.   
             The filter works additive to other filters.
           schema:
             type: string
@@ -825,7 +825,7 @@ paths:
         - name: 'filter.manufacturer'
           in: query
           description: |
-            Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.     
+            Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.   
             The filter works additive to other filters.
           schema:
             type: string
@@ -834,7 +834,7 @@ paths:
           in: query
           description: |
             Filters the mpns according to whether they have inventory entries    
-            which support at least one of the given URL protocol schemes  with an exact match.    
+            which support at least one of the given URL protocol schemes with an exact match.    
             The filter works additive to other filters.
           schema:
             type: string

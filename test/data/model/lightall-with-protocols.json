@@ -14,7 +14,7 @@
   "schema:author": {
     "schema:name": "omnicorp"
   },
-  "base": "https://example.com",
+  "base": "https://example.com/{{PATH}}?{{QUERY}}",
   "properties": {
     "status": {
       "description": "current status of the lamp (on|off)",
@@ -42,7 +42,7 @@
       "description": "Turn the lamp on or off",
       "forms": [
         {
-          "href": "modbus+tcp://example.com"
+          "href": "modbus+tcp://{{HOST}}:{{PORT}}"
         },
         {
           "href": "modbus+tls://example.com"
