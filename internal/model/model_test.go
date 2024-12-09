@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 func TestParseFetchName(t *testing.T) {
@@ -39,4 +40,12 @@ func TestParseFetchName(t *testing.T) {
 			assert.Equal(t, exp, out, "Want: ParseFetchName(%s) = %v. Got: %v", test.in, exp, out)
 		}
 	}
+}
+
+func TestCollectProtocols(t *testing.T) {
+	_, data, err := utils.ReadRequiredFile("../../test/data/model/lightall-with-protocols.json")
+	assert.NoError(t, err)
+	protos, err := collectProtocols(data)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"coap", "coaps", "https", "modbus+tcp", "modbus+tls", "opcua+tcp", "opcua+tls"}, protos)
 }

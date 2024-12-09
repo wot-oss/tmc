@@ -102,6 +102,9 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 	}
 
 	invVersion.Links = &links
+	if len(version.Protocols) > 0 {
+		invVersion.Protocols = &version.Protocols
+	}
 
 	atts := m.GetAttachmentsList(model.NewTMIDAttachmentContainerRef(version.TMID), version.AttachmentContainer, version.FoundIn.RepoName)
 	if atts != nil {
