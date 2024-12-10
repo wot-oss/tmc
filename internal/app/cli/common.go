@@ -48,8 +48,10 @@ func printJSON(js any) {
 		fmt.Println("{}")
 		return
 	}
-	b, _ := json.MarshalIndent(js, "", "  ")
-	fmt.Println(string(b))
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	enc.SetEscapeHTML(false)
+	_ = enc.Encode(js)
 }
 
 func IsValidOutputFormat(format string) bool {

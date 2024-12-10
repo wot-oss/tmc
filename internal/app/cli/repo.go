@@ -16,33 +16,67 @@ import (
 
 var ErrInvalidArgs = errors.New("invalid arguments")
 
-func RepoList() error {
-	colWidth := columnWidth()
+func RepoList(format string) error {
 	config, err := repos.ReadConfig()
 	if err != nil {
 		Stderrf("Cannot read repo config: %v", err)
 		return err
 	}
+
+	switch format {
+	case OutputFormatJSON:
+		res := toRepoListAbridged(config)
+		printJSON(res)
+	case OutputFormatPlain:
+		printReposList(config)
+	}
+	return nil
+}
+
+func printReposList(config repos.Config) {
+	colWidth := columnWidth()
+	res := toRepoListAbridged(config)
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
 	_, _ = fmt.Fprintf(table, "NAME\tTYPE\tENBL\tLOCATION\tDESCRIPTION\n")
-	for name, value := range config {
-		typ := fmt.Sprintf("%v", value[repos.KeyRepoType])
-		e, found := utils.JsGetBool(value, repos.KeyRepoEnabled)
-		enbl := !found || e
+	for _, r := range res {
 		var enblS string
-		if enbl {
+		if r.Enabled {
 			enblS = "Y"
 		} else {
 			enblS = "N"
 		}
-		u := fmt.Sprintf("%v", value[repos.KeyRepoLoc])
-		descr, _ := value[repos.KeyRepoDescription].(string)
 
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", elideString(name, colWidth), typ, enblS, u, descr)
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", elideString(r.Name, colWidth), r.Type, enblS, r.Location, r.Description)
 	}
 	_ = table.Flush()
-	return nil
+}
+
+type RepoConfigAbridged struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Enabled     bool   `json:"enabled"`
+	Location    string `json:"location"`
+	Description string `json:"description,omitempty"`
+}
+
+func toRepoListAbridged(config repos.Config) []RepoConfigAbridged {
+	var result []RepoConfigAbridged
+	for name, value := range config {
+		typ, _ := value[repos.KeyRepoType].(string)
+		e, found := utils.JsGetBool(value, repos.KeyRepoEnabled)
+		enbl := !found || e
+		loc, _ := value[repos.KeyRepoLoc].(string)
+		description, _ := value[repos.KeyRepoDescription].(string)
+		result = append(result, RepoConfigAbridged{
+			Name:        name,
+			Type:        typ,
+			Enabled:     enbl,
+			Location:    loc,
+			Description: description,
+		})
+	}
+	return result
 }
 
 func RepoAdd(name, typ string, locStr, descr, jsonConf, confFile string) error {

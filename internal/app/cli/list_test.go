@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -97,7 +98,9 @@ func TestList(t *testing.T) {
 		assert.NoError(t, err)
 		// and then: stdout outputs the listable ThingModel
 		assert.Contains(t, stdout, listRes.Entries[0].Name)
-		assert.NotContains(t, stdout, "{")
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.Error(t, err)
 		// and then: stderr has no outputs
 		assert.Equal(t, "", stderr)
 	})
@@ -126,7 +129,9 @@ func TestList(t *testing.T) {
 		assert.NoError(t, err)
 		// and then: stdout outputs the listable ThingModel
 		assert.Contains(t, stdout, fmt.Sprintf("\"name\": \"%s\"", listRes.Entries[0].Name))
-		assert.Contains(t, stdout, "{")
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.NoError(t, err)
 		// and then: stderr has no outputs
 		assert.Equal(t, "", stderr)
 	})

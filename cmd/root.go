@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"slices"
@@ -102,7 +103,7 @@ func AddRepoDisambiguatorFlags(cmd *cobra.Command) {
 }
 
 func AddOutputFormatFlag(cmd *cobra.Command) {
-	cmd.Flags().String("format", "plain", "output format")
+	cmd.Flags().String("format", "plain", fmt.Sprintf("output format. One of: [plain, json]"))
 	_ = cmd.RegisterFlagCompletionFunc("format", completion.CompleteOutputFomats)
 }
 

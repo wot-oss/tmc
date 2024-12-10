@@ -26,10 +26,13 @@ var repoListCmd = &cobra.Command{
 func init() {
 	cmd.RootCmd.AddCommand(repoCmd)
 	repoCmd.AddCommand(repoListCmd)
+	cmd.AddOutputFormatFlag(repoCmd)
+	cmd.AddOutputFormatFlag(repoListCmd)
 }
 
-func repoList(_ *cobra.Command, _ []string) {
-	err := cli.RepoList()
+func repoList(command *cobra.Command, _ []string) {
+	format := command.Flag("format").Value.String()
+	err := cli.RepoList(format)
 	if err != nil {
 		os.Exit(1)
 	}

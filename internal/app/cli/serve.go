@@ -101,20 +101,6 @@ func createHttpHandler(repo model.RepoSpec, opts ServeOptions) (nethttp.Handler,
 	return httpHandler, nil
 }
 
-func createTmcHandler(repo model.RepoSpec, opts ServeOptions) (*http.TmcHandler, error) {
-	// create an instance of our handler (server interface)
-	handlerService, err := http.NewDefaultHandlerService(repo)
-	if err != nil {
-		return nil, err
-	}
-	handler := http.NewTmcHandler(
-		handlerService,
-		http.TmcHandlerOptions{
-			UrlContextRoot: opts.UrlCtxRoot,
-		})
-	return handler, err
-}
-
 func validateContextRoot(ctxRoot string) error {
 	vCtxRoot, _ := url.JoinPath("/", ctxRoot)
 	_, err := url.ParseRequestURI(vCtxRoot)
