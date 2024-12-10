@@ -1,11 +1,16 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
+	"slices"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 // ThingModel is a model for unmarshalling a Thing Model to be
@@ -18,6 +23,7 @@ type ThingModel struct {
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Version      Version            `json:"version"`
+	protocols    []string
 	Links        `json:"links"`
 }
 
@@ -30,6 +36,84 @@ type SchemaManufacturer struct {
 
 type Version struct {
 	Model string `json:"model"`
+}
+
+func ParseThingModel(data []byte) (*ThingModel, error) {
+	var tm ThingModel
+	err := json.Unmarshal(data, &tm)
+	if err != nil {
+		return nil, err
+	}
+
+	protos, _ := collectProtocols(data)
+	tm.protocols = protos
+	return &tm, nil
+}
+
+// collectProtocols parses byte array containing a TM and returns all URL protocol schemes contained in the TM
+func collectProtocols(data []byte) ([]string, error) {
+	var tm map[string]any
+	err := json.Unmarshal(data, &tm)
+	if err != nil {
+		return nil, err
+	}
+	properties, _ := utils.JsGetMap(tm, "properties")
+	actions, _ := utils.JsGetMap(tm, "actions")
+	events, _ := utils.JsGetMap(tm, "events")
+
+	var protos []string
+	base, _ := utils.JsGetString(tm, "base")
+	baseProto := extractProtocol(base)
+	if baseProto != "" {
+		protos = append(protos, baseProto)
+	}
+	protos = append(protos, extractFormsProtocols(tm)...)
+	for _, m := range []map[string]any{properties, actions, events} {
+		protos = append(protos, extractAffordancesFormsProtocols(m)...)
+	}
+	slices.Sort(protos)
+	protos = slices.Compact(protos)
+	return protos, nil
+}
+
+func extractAffordancesFormsProtocols(affs map[string]any) []string {
+	var protos []string
+	for k, _ := range affs {
+		aff, _ := utils.JsGetMap(affs, k)
+		protos = append(protos, extractFormsProtocols(aff)...)
+	}
+	return protos
+}
+
+func extractFormsProtocols(m map[string]any) []string {
+	var protos []string
+	forms := utils.JsGetArray(m, "forms")
+	for _, f := range forms {
+		form, _ := f.(map[string]interface{})
+		href, _ := utils.JsGetString(form, "href")
+		proto := extractProtocol(href)
+		if proto != "" {
+			protos = append(protos, proto)
+		}
+	}
+	return protos
+}
+
+var placeholdersRegexp = regexp.MustCompile("{{.+}}")
+
+func extractProtocol(uri string) string {
+	if uri == "" {
+		return ""
+	}
+
+	// replace any placeholders in the URI with a string that will most probably make the resulting URI a valid one for parsing
+	uri = placeholdersRegexp.ReplaceAllString(uri, "example.com")
+
+	u, err := url.Parse(uri)
+	if err != nil { //skip unparseable hrefs
+		return ""
+	}
+	return strings.ToLower(u.Scheme)
 }
 
 type FetchName struct {

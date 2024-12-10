@@ -85,6 +85,7 @@ type SearchParams struct {
 	Author       []string
 	Manufacturer []string
 	Mpn          []string
+	Protocol     []string
 	Name         string
 	Query        string
 	Options      SearchOptions
@@ -104,10 +105,10 @@ type SearchOptions struct {
 	NameFilterType FilterType
 }
 
-func ToSearchParams(author, manufacturer, mpn, name, query *string, opts *SearchOptions) *SearchParams {
+func ToSearchParams(author, manufacturer, mpn, protocol, name, query *string, opts *SearchOptions) *SearchParams {
 	var search *SearchParams
 	isSet := func(s *string) bool { return s != nil && *s != "" }
-	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(name) || isSet(query) {
+	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(protocol) || isSet(name) || isSet(query) {
 		search = &SearchParams{}
 		if isSet(author) {
 			search.Author = strings.Split(*author, DefaultListSeparator)
@@ -117,6 +118,9 @@ func ToSearchParams(author, manufacturer, mpn, name, query *string, opts *Search
 		}
 		if isSet(mpn) {
 			search.Mpn = strings.Split(*mpn, DefaultListSeparator)
+		}
+		if isSet(protocol) {
+			search.Protocol = strings.Split(*protocol, DefaultListSeparator)
 		}
 		if isSet(query) {
 			search.Query = *query
