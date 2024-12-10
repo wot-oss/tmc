@@ -46,12 +46,8 @@ func ParseThingModel(data []byte) (*ThingModel, error) {
 	}
 
 	protos, _ := collectProtocols(data)
-	(&tm).setProtocols(protos)
-	return &tm, nil
-}
-
-func (tm *ThingModel) setProtocols(protos []string) {
 	tm.protocols = protos
+	return &tm, nil
 }
 
 // collectProtocols parses byte array containing a TM and returns all URL protocol schemes contained in the TM
