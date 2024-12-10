@@ -301,11 +301,11 @@ func TestFileRepo_Delete(t *testing.T) {
 				assert.ErrorIs(t, err, model.ErrTMNotFound)
 			})
 			t.Run("hash matching id", func(t *testing.T) {
-				err := r.Delete(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20230101125023-be839ce9daf1.tm.json")
+				err := r.Delete(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20230101125023-e414b33a9edf.tm.json")
 				assert.ErrorIs(t, err, model.ErrTMNotFound)
 			})
 			t.Run("existing id", func(t *testing.T) {
-				id := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json"
+				id := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-e414b33a9edf.tm.json"
 				err := r.Delete(context.Background(), id)
 				assert.NoError(t, err)
 				_, err = os.Stat(filepath.Join(r.root, id))
@@ -391,6 +391,7 @@ func TestFileRepo_Index(t *testing.T) {
 		assert.NotNil(t, entry)
 		if assert.Len(t, entry.Versions, 3) {
 			assert.Equal(t, []model.Attachment{{Name: "manual.txt", MediaType: "text/plain; charset=utf-8"}}, entry.Versions[2].Attachments)
+			assert.Equal(t, []string{"coaps", "https"}, entry.Versions[2].Protocols)
 		}
 	})
 
@@ -434,7 +435,7 @@ func TestFileRepo_Index(t *testing.T) {
 		assert.NoError(t, r.writeNamesFile(nil))
 
 		tmName1 := "omnicorp-tm-department/omnicorp/omnilamp"
-		tmId11 := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json"
+		tmId11 := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-e414b33a9edf.tm.json"
 		tmId12 := "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json"
 		tmId13 := "omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json"
 
@@ -539,7 +540,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 			})
 			t.Run("existing id of deleted file", func(t *testing.T) {
 				// given: a deleted TM file
-				_ = os.Remove(filepath.Join(r.root, "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json"))
+				_ = os.Remove(filepath.Join(r.root, "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-e414b33a9edf.tm.json"))
 				// when: updating index for the TM
 				err := r.Index(context.Background())
 				assert.NoError(t, err)

@@ -119,9 +119,9 @@ func TestCopy(t *testing.T) {
 		tmID_1 := copyListRes.Entries[0].Versions[0].TMID
 		tmID_2 := copyListRes.Entries[0].Versions[1].TMID
 		tmID_3 := copyListRes.Entries[0].Versions[2].TMID
-		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
-		_, tmContent2, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json")
-		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
+		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, tmContent2, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
 		var sp *model.SearchParams
@@ -163,9 +163,9 @@ func TestCopy(t *testing.T) {
 		tmID_1 := copyListRes.Entries[0].Versions[0].TMID
 		tmID_2 := copyListRes.Entries[0].Versions[1].TMID
 		tmID_3 := copyListRes.Entries[0].Versions[2].TMID
-		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
-		_, tmContent2, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json")
-		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
+		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, tmContent2, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
 		var sp *model.SearchParams
@@ -204,9 +204,9 @@ func TestCopy(t *testing.T) {
 		tmID_1 := copyListRes.Entries[0].Versions[0].TMID
 		tmID_2 := copyListRes.Entries[0].Versions[1].TMID
 		tmID_3 := copyListRes.Entries[0].Versions[2].TMID
-		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
-		_, tmContent2, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json")
-		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
+		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, tmContent2, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
 		var sp *model.SearchParams
@@ -309,7 +309,7 @@ func TestCopy(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec}, []repos.Repo{source, target}, []error{nil, nil}))
 
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
-		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
 		var sp *model.SearchParams
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
@@ -335,7 +335,7 @@ func TestCopy(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec}, []repos.Repo{source, target}, []error{nil, nil}))
 
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
-		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
 		var sp *model.SearchParams
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
@@ -360,7 +360,7 @@ func TestCopy(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec}, []repos.Repo{source, target}, []error{nil, nil}))
 
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
-		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/index/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
 		readmeContent := []byte("# Read This First")
 		var sp *model.SearchParams
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
