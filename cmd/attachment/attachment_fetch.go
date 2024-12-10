@@ -44,6 +44,7 @@ func attachmentFetch(command *cobra.Command, args []string) {
 	outputPath := command.Flag("output").Value.String()
 	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1], concat, outputPath)
 	if err != nil {
+		cli.Stderrf("attachment fetch failed")
 		os.Exit(1)
 	}
 }

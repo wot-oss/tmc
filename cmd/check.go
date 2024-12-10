@@ -25,13 +25,16 @@ pass it to the check command and thus verify the integrity of only the modified 
 func init() {
 	RootCmd.AddCommand(checkCmd)
 	AddRepoDisambiguatorFlags(checkCmd)
+	AddOutputFormatFlag(checkCmd)
 }
 
 func checkIntegrity(cmd *cobra.Command, args []string) {
 	spec := RepoSpecFromFlags(cmd)
-	err := cli.CheckIntegrity(context.Background(), spec, args)
+	format := cmd.Flag("format").Value.String()
 
-	if err != nil {
+	err := cli.CheckIntegrity(context.Background(), spec, args, format)
+
+	if err != nil && format == cli.OutputFormatPlain {
 		cli.Stderrf("integrity check failed")
 		cli.Stderrf("Hint: make sure you did not change any files directly, bypassing TMC CLI. If you did, consider reverting the files and/or running `tmc index` on the repository")
 		os.Exit(1)

@@ -44,25 +44,13 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 		return err
 	}
 
-	// create an instance of our handler (server interface)
-	handlerService, err := http.NewDefaultHandlerService(repo)
+	httpHandler, err := createHttpHandler(repo, opts)
 	if err != nil {
 		err = fmt.Errorf("Could not start tm catalog server on %s:%s, %v\n", host, port, err)
 		Stderrf(err.Error())
 		log.Error(err.Error())
 		return err
 	}
-
-	handler := http.NewTmcHandler(
-		handlerService,
-		http.TmcHandlerOptions{
-			UrlContextRoot: opts.UrlCtxRoot,
-		})
-
-	// collect Middlewares for the main http handler
-	var mws = getMiddlewares(opts)
-	// create a http handler
-	httpHandler := http.NewHttpHandler(handler, mws)
 	// protect main handler with CORS
 	httpHandler = cors.Protect(httpHandler, opts.CORSOptions)
 
@@ -91,6 +79,26 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 	}
 
 	return nil
+}
+
+func createHttpHandler(repo model.RepoSpec, opts ServeOptions) (nethttp.Handler, error) {
+	// create an instance of our handler (server interface)
+	handlerService, err := http.NewDefaultHandlerService(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	handler := http.NewTmcHandler(
+		handlerService,
+		http.TmcHandlerOptions{
+			UrlContextRoot: opts.UrlCtxRoot,
+		})
+
+	// collect Middlewares for the main http handler
+	var mws = getMiddlewares(opts)
+	// create a http handler
+	httpHandler := http.NewHttpHandler(handler, mws)
+	return httpHandler, nil
 }
 
 func validateContextRoot(ctxRoot string) error {

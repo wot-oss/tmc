@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
@@ -25,6 +26,10 @@ func CompleteRepoNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.
 
 func CompleteRepoTypes(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return repos.SupportedTypes, cobra.ShellCompDirectiveNoFileComp
+}
+
+func CompleteOutputFomats(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	return []string{cli.OutputFormatPlain, cli.OutputFormatJSON}, cobra.ShellCompDirectiveNoFileComp
 }
 
 func NoCompletionNoFile(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {

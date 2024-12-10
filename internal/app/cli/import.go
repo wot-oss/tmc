@@ -27,7 +27,11 @@ func NewImportExecutor(now commands.Now) *ImportExecutor {
 
 // Import imports file or directory into the specified repository
 // Returns the list of import results up to the first encountered error, and the error
-func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model.RepoSpec, optTree bool, opts repos.ImportOptions) ([]repos.ImportResult, error) {
+func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model.RepoSpec, optTree bool, opts repos.ImportOptions, format string) ([]repos.ImportResult, error) {
+	if !IsValidOutputFormat(format) {
+		Stderrf("%v", ErrInvalidOutputFormat)
+		return nil, ErrInvalidOutputFormat
+	}
 	repo, err := repos.Get(spec)
 	if err != nil {
 		Stderrf("Could not initialize a repo instance for %s: %v\ncheck config", spec, err)
@@ -55,8 +59,13 @@ func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model
 		err = impErr
 	}
 	defer func() {
-		for _, r := range res {
-			fmt.Println(r)
+		switch format {
+		case OutputFormatJSON:
+			printJSON(res)
+		case OutputFormatPlain:
+			for _, r := range res {
+				fmt.Println(r)
+			}
 		}
 	}()
 	successfulIds := getSuccessfulIds(res)

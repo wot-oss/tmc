@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -28,17 +29,38 @@ func TestImportExecutor_Import(t *testing.T) {
 		r.On("Import", mock.Anything, tmid, mock.Anything, repos.ImportOptions{}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: id}, nil)
 		r.On("Index", mock.Anything, id).Return(nil)
 
-		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{})
+		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatPlain)
 		assert.NoError(t, err)
 		assert.Len(t, res, 1)
 		assert.Equal(t, repos.ImportResultOK, res[0].Type)
+	})
+	t.Run("import with ok with json output", func(t *testing.T) {
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		now := func() time.Time { return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC) }
+		e := NewImportExecutor(now)
+		id := "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
+		tmid := model.MustParseTMID(id)
+		r.On("Import", mock.Anything, tmid, mock.Anything, repos.ImportOptions{}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: id}, nil)
+		r.On("Index", mock.Anything, id).Return(nil)
+
+		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatJSON)
+		assert.NoError(t, err)
+		assert.Len(t, res, 1)
+		assert.Equal(t, repos.ImportResultOK, res[0].Type)
+		stdout := getStdout()
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.NoError(t, err)
+		expected := []any{map[string]any{"message": "file ../../../test/data/import/omnilamp-versioned.json imported as omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json", "type": "OK"}}
+		assert.Equal(t, expected, actual)
 	})
 
 	t.Run("import non-existing file", func(t *testing.T) {
 
 		now := func() time.Time { return time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC) }
 		e := NewImportExecutor(now)
-		_, err := e.Import(context.Background(), "does-not-exist.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{})
+		_, err := e.Import(context.Background(), "does-not-exist.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatPlain)
 		assert.Error(t, err)
 	})
 
@@ -58,7 +80,7 @@ func TestImportExecutor_Import(t *testing.T) {
 			Message: cErr.Error(),
 			Err:     cErr,
 		}, cErr)
-		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{})
+		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatPlain)
 		assert.Error(t, err)
 		if assert.Len(t, res, 1) {
 			assert.Equal(t, repos.ImportResultError, res[0].Type)
@@ -75,7 +97,7 @@ func TestImportExecutor_Import(t *testing.T) {
 		e := NewImportExecutor(now)
 		ret, resErr := repos.ImportResultFromError(errors.New("unexpected"))
 		r.On("Import", mock.Anything, tmid3, mock.Anything, repos.ImportOptions{}).Return(ret, resErr)
-		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{})
+		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatPlain)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, resErr)
 		if assert.Len(t, res, 1) {
@@ -92,7 +114,7 @@ func TestImportExecutor_Import(t *testing.T) {
 		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: id}, nil)
 		r.On("Index", mock.Anything, id).Return(nil)
 
-		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, opts)
+		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.NoError(t, err)
 		if assert.Len(t, res, 1) {
 			assert.Equal(t, repos.ImportResultOK, res[0].Type)
@@ -136,7 +158,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 			"omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
 			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
 
-		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts)
+		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.Error(t, err)
 		if assert.Len(t, res, 4) {
 			assert.Equalf(t, repos.ImportResultOK, res[0].Type, "res[0]: want ImportResultOK, got %v", res[0].Type)
@@ -179,7 +201,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 			"omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
 			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
 
-		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts)
+		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.NoError(t, err)
 		if assert.Len(t, res, 4) {
 			assert.Equalf(t, repos.ImportResultOK, res[0].Type, "res[0]: want ImportResultOK, got %v", res[0].Type)
@@ -207,7 +229,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid.String()}, nil)
 		r.On("Index", mock.Anything, id1, id2, id3, id4).Return(nil)
 
-		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts)
+		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.NoError(t, err)
 		if assert.Len(t, res, 4) {
 			for i, r := range res {
@@ -233,7 +255,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 		r.On("Import", mock.Anything, tmid, mock.Anything, repos.ImportOptions{OptPath: "/subfolder"}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid.String()}, nil)
 		r.On("Index", mock.Anything, id1, id2, id3, id4).Return(nil)
 
-		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), true, repos.ImportOptions{})
+		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), true, repos.ImportOptions{}, OutputFormatPlain)
 		assert.NoError(t, err)
 		assert.Len(t, res, 4)
 		for i, r := range res {

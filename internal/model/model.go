@@ -248,10 +248,14 @@ func (t CheckResultType) String() string {
 	}
 }
 
+func (t CheckResultType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
+
 type CheckResult struct {
-	Typ          CheckResultType
-	ResourceName string
-	Message      string
+	Typ          CheckResultType `json:"type"`
+	ResourceName string          `json:"resource"`
+	Message      string          `json:"message,omitempty"`
 }
 
 func (r CheckResult) String() string {
