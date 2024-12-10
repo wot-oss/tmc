@@ -107,6 +107,7 @@ type IndexVersion struct {
 	Digest      string            `json:"digest"`
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
+	Protocols   []string          `json:"protocols,omitempty"`
 	SearchScore float32           `json:"-"`
 	AttachmentContainer
 }
@@ -193,6 +194,7 @@ func (idx *Index) Insert(ctm *ThingModel) error {
 		TMID:        ctm.ID,
 		ExternalID:  externalID,
 		Digest:      tmid.Version.Hash,
+		Protocols:   ctm.protocols,
 		Links:       map[string]string{"content": tmid.String()},
 	}
 	if idx := slices.IndexFunc(idxEntry.Versions, func(version *IndexVersion) bool {

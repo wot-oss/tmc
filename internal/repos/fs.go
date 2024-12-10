@@ -963,8 +963,7 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 		return nil, err
 	}
 
-	var ctm model.ThingModel
-	err = json.Unmarshal(data, &ctm)
+	ctm, err := model.ParseThingModel(data)
 	if err != nil {
 		return nil, err
 	}
@@ -975,7 +974,7 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 	}
 
 	return &thingMetadata{
-		tm: ctm,
+		tm: *ctm,
 		id: tmid,
 	}, nil
 }

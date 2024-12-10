@@ -76,12 +76,13 @@ type FilterFlags struct {
 	FilterAuthor       string
 	FilterManufacturer string
 	FilterMpn          string
+	FilterProtocol     string
 	Search             string
 	Deep               bool
 }
 
 func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
-	return model.ToSearchParams(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &name, &flags.Search,
+	return model.ToSearchParams(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name, &flags.Search,
 		&model.SearchOptions{NameFilterType: model.PrefixMatch, UseBleve: flags.Deep})
 }
 
@@ -105,6 +106,7 @@ func AddTMFilterFlags(cmd *cobra.Command, flags *FilterFlags) {
 	cmd.Flags().StringVar(&flags.FilterAuthor, "filter.author", "", "filter TMs by one or more comma-separated authors")
 	cmd.Flags().StringVar(&flags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	cmd.Flags().StringVar(&flags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
+	cmd.Flags().StringVar(&flags.FilterProtocol, "filter.protocol", "", "filter TMs by one or more comma-separated supported protocol schemes")
 	cmd.Flags().StringVarP(&flags.Search, "search", "s", "", "search TMs by their content matching the search term")
 	cmd.Flags().BoolVar(&flags.Deep, "deep", false, "use bleve query index in search flag for more precise matching")
 }
