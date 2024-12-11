@@ -352,6 +352,8 @@ func TestFileRepo_Index(t *testing.T) {
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
+		zeroTime := time.Time{}
+		assert.True(t, idx.Meta.Created.After(zeroTime))
 		assert.Equal(t, 1, len(idx.Data))
 		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
 		assert.Equal(t, 1, len(idx.Data[0].Versions))

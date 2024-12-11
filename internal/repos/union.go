@@ -141,16 +141,17 @@ func listRepoWithDeepSearch(ctx context.Context, r Repo, search *model.SearchPar
 		}
 	}
 
-	// refine with bleve
+	// refine the result with bleve
 	filtered := &searchResult
 	search.Query = query
 	search.Options.UseBleve = true
-	err = filtered.WithSearchIndex(indexPath).Filter(search)
+	search.SetIndexPath(indexPath)
+	err = filtered.Filter(search)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
 
-	return searchResult, err
+	return *filtered, err
 }
 
 func (u *Union) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, []*RepoAccessError) {

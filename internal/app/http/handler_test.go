@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/mocks"
 	"github.com/wot-oss/tmc/internal/commands"
@@ -212,6 +213,7 @@ func Test_Inventory(t *testing.T) {
 		assert.Equal(t, 2, len(response.Data))
 		assertInventoryEntry(t, listResult1.Entries[0], response.Data[0])
 		assertInventoryEntry(t, listResult1.Entries[1], response.Data[1])
+		assert.Equal(t, listResult1.LastUpdated.Format(time.RFC3339), response.Meta.LastUpdated)
 		// and then result is ordered ascending by name
 		isSorted := sort.SliceIsSorted(response.Data, func(i, j int) bool {
 			return response.Data[i].TmName < response.Data[j].TmName
@@ -1416,6 +1418,7 @@ func assertAttachments(t *testing.T, linkPrefix string, expAtts []model.Attachme
 
 var (
 	listResult1 = model.SearchResult{
+		LastUpdated: time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC),
 		Entries: []model.FoundEntry{
 			{
 				Name:         "a-corp/eagle/bt2000",

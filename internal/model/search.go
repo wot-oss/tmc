@@ -24,7 +24,6 @@ var ErrSearchIndexNotFound = errors.New("search index not found. Use `tmc create
 type SearchResult struct {
 	LastUpdated time.Time
 	Entries     []FoundEntry
-	indexPath   string
 }
 
 type FoundEntry struct {
@@ -110,6 +109,10 @@ type SearchParams struct {
 	Options      SearchOptions
 }
 
+func (p *SearchParams) SetIndexPath(indexPath string) {
+	p.Options.indexPath = indexPath
+}
+
 func (p *SearchParams) Sanitize() {
 	p.Author = sanitizeList(p.Author)
 	p.Manufacturer = sanitizeList(p.Manufacturer)
@@ -124,6 +127,8 @@ type SearchOptions struct {
 	NameFilterType FilterType
 	// UseBleve indicates that the search query uses bleve query syntax
 	UseBleve bool
+
+	indexPath string
 }
 
 func (sr *SearchResult) Filter(search *SearchParams) error {
@@ -161,7 +166,7 @@ func (sr *SearchResult) Filter(search *SearchParams) error {
 		return nil
 	}
 
-	del, err := getSearchExclusionFunction(search, sr.indexPath)
+	del, err := getSearchExclusionFunction(search, search.Options.indexPath)
 	if err != nil {
 		return err
 	}
@@ -169,11 +174,6 @@ func (sr *SearchResult) Filter(search *SearchParams) error {
 		sr.Entries = slices.DeleteFunc(sr.Entries, del)
 	}
 	return nil
-}
-
-func (sr *SearchResult) WithSearchIndex(indexPath string) *SearchResult {
-	sr.indexPath = indexPath
-	return sr
 }
 
 func getSearchExclusionFunction(search *SearchParams, indexPath string) (func(e FoundEntry) bool, error) {

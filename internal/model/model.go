@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -233,7 +232,6 @@ type RepoDescription struct {
 	Name        string
 	Type        string
 	Description string
-	LastUpdated time.Time
 }
 
 type CheckResultType int

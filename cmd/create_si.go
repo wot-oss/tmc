@@ -11,15 +11,15 @@ import (
 // createSiCmd represents the createSi command
 var createSiCmd = &cobra.Command{
 	Use:   "create-si",
-	Short: "Creates or updates a bleve search index",
-	Long:  `Creates or updates a bleve search index for all TMs`,
-	Run:   executeCreateSearchIndex,
+	Short: "Create or update a bleve search index",
+	Long: `Create or update a bleve search index for deep searching TMs with '--search <query> --deep'. Usually needs to
+be called only once per repository. Afterwards, updates are performed automatically an outdated search index is detected.`,
+	Run: executeCreateSearchIndex,
 }
 
 func init() {
 	RootCmd.AddCommand(createSiCmd)
-	createSiCmd.Flags().StringP("repo", "r", "", "name of the remote to pull from")
-	createSiCmd.Flags().StringP("directory", "d", "", "TM repository directory to pull from")
+	AddRepoConstraintFlags(createSiCmd)
 }
 
 func executeCreateSearchIndex(cmd *cobra.Command, args []string) {

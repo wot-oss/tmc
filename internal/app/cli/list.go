@@ -50,9 +50,7 @@ func printIndex(res model.SearchResult) {
 		mpn := elideString(value.Mpn, colWidth)
 		auth := elideString(value.Author.Name, colWidth)
 		repo := elideString(fmt.Sprintf("%v", value.FoundIn), colWidth)
-
 		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, auth, man, mpn, repo)
-
 	}
 	_ = table.Flush()
 }

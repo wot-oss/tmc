@@ -9,7 +9,9 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/wot-oss/tmc/internal/model"
@@ -222,6 +224,9 @@ func TestTmcRepo_List(t *testing.T) {
 			if test.expErr == "" {
 				assert.NoError(t, err)
 				assert.Equal(t, test.expRes, len(sr.Entries))
+				if reflect.DeepEqual(test.body, inventory) {
+					assert.Equal(t, time.Date(2024, 12, 1, 10, 0, 0, 0, time.UTC), sr.LastUpdated)
+				}
 				for _, e := range sr.Entries {
 					for _, v := range e.Versions {
 						assert.NotEmpty(t, v.TMID)

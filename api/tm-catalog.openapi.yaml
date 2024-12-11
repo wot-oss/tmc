@@ -1571,6 +1571,7 @@ components:
         meta:
           page:
             elements: 2
+          lastUpdated: '2024-12-11T13:07:22+01:00'
         data:
           - 'links':
               'self': './inventory/.tmName/siemens/siemens/poc1000'
