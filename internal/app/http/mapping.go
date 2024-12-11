@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
@@ -27,6 +28,7 @@ func (m *Mapper) GetInventoryMeta(res model.SearchResult) server.Meta {
 		Page: &server.MetaPage{
 			Elements: len(res.Entries),
 		},
+		LastUpdated: res.LastUpdated.Format(time.RFC3339),
 	}
 }
 

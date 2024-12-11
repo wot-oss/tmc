@@ -25,6 +25,10 @@ type HttpRepo struct {
 	templatedQuery bool
 }
 
+func (h *HttpRepo) CanonicalRoot() string {
+	return h.root
+}
+
 func NewHttpRepo(config map[string]any, spec model.RepoSpec) (*HttpRepo, error) {
 	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {

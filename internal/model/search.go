@@ -21,13 +21,9 @@ const DefaultListSeparator = ","
 var ErrSearchIndexNotFound = errors.New("search index not found. Use `tmc create-si` to create")
 
 type SearchResult struct {
-	Sources   []DatedSource
-	Entries   []FoundEntry
-	indexPath string
-}
-type DatedSource struct {
-	FoundSource
 	LastUpdated time.Time
+	Entries     []FoundEntry
+	indexPath   string
 }
 
 type FoundEntry struct {
@@ -81,7 +77,9 @@ func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {
 }
 
 func (sr *SearchResult) Merge(other *SearchResult) {
-	sr.Sources = append(sr.Sources, other.Sources...)
+	if other.LastUpdated.After(sr.LastUpdated) {
+		sr.LastUpdated = other.LastUpdated
+	}
 	sr.Entries = mergeFoundEntries(sr.Entries, other.Entries)
 }
 
@@ -145,6 +143,10 @@ func (sr *SearchResult) Filter(search *SearchParams) error {
 			return true
 		}
 
+		if !matchesProtocolFilter(search.Protocol, entry) {
+			return true
+		}
+
 		return false
 	}
 	sr.Entries = slices.DeleteFunc(sr.Entries, func(entry FoundEntry) bool {
@@ -154,14 +156,12 @@ func (sr *SearchResult) Filter(search *SearchParams) error {
 		return nil
 	}
 
-	if len(search.Query) > 0 {
-		del, err := getSearchExclusionFunction(search.Options.UseBleve, search.Query, sr.indexPath)
-		if err != nil {
-			return err
-		}
-		if del != nil {
-			sr.Entries = slices.DeleteFunc(sr.Entries, del)
-		}
+	del, err := getSearchExclusionFunction(search, sr.indexPath)
+	if err != nil {
+		return err
+	}
+	if del != nil {
+		sr.Entries = slices.DeleteFunc(sr.Entries, del)
 	}
 	return nil
 }
@@ -171,11 +171,14 @@ func (sr *SearchResult) WithSearchIndex(indexPath string) *SearchResult {
 	return sr
 }
 
-func getSearchExclusionFunction(useBleve bool, query, indexPath string) (func(e FoundEntry) bool, error) {
-	if useBleve {
-		return excludeByContentSearch(query, indexPath)
+func getSearchExclusionFunction(search *SearchParams, indexPath string) (func(e FoundEntry) bool, error) {
+	if search.Query == "" {
+		return nil, nil
+	}
+	if search.Options.UseBleve {
+		return excludeByContentSearch(search.Query, indexPath)
 	} else {
-		return excludeBySimpleContentSearch(query)
+		return excludeBySimpleContentSearch(search.Query)
 	}
 }
 
@@ -242,6 +245,20 @@ func excludeByContentSearch(query, indexPath string) (func(e FoundEntry) bool, e
 		}
 		return del, nil
 	}
+}
+
+func matchesProtocolFilter(protos []string, entry FoundEntry) bool {
+	if len(protos) == 0 {
+		return true
+	}
+	for _, v := range entry.Versions {
+		for _, p := range protos {
+			if slices.Contains(v.Protocols, p) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {

@@ -1316,9 +1316,14 @@ components:
           example: 'siemens'
     Meta:
       type: object
+      required:
+        - lastUpdated
       properties:
         page:
           $ref: '#/components/schemas/MetaPage'
+        lastUpdated:
+          type: string
+          description: RFC3339 timestamp
     MetaPage:
       required:
         - elements

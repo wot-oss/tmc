@@ -29,6 +29,10 @@ type TmcRepo struct {
 	subRepo string
 }
 
+func (t *TmcRepo) CanonicalRoot() string {
+	return t.root
+}
+
 func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
 	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {

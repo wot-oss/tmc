@@ -511,9 +511,9 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
-				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
-				if assert.Equal(t, 1, len(index.Data)) {
-					assert.Equal(t, 3, len(index.Data[0].Versions))
+				e := index.FindByName("omnicorp-tm-department/omnicorp/omnilamp")
+				if assert.NotNil(t, e) {
+					assert.Equal(t, 3, len(e.Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -528,9 +528,9 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
-				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
-				if assert.Equal(t, 1, len(index.Data)) {
-					assert.Equal(t, 3, len(index.Data[0].Versions))
+				e := index.FindByName("omnicorp-tm-department/omnicorp/omnilamp")
+				if assert.NotNil(t, e) {
+					assert.Equal(t, 3, len(e.Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -547,9 +547,9 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: version is removed from index
-				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp"})
-				if assert.Equal(t, 1, len(index.Data)) {
-					assert.Equal(t, 2, len(index.Data[0].Versions))
+				e := index.FindByName("omnicorp-tm-department/omnicorp/omnilamp")
+				if assert.NotNil(t, e) {
+					assert.Equal(t, 2, len(e.Versions))
 				}
 				names := r.readNamesFile()
 				assert.Equal(t, []string{
@@ -567,8 +567,8 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: name is removed from index
-				_ = index.Filter(&model.SearchParams{Name: "omnicorp-tm-department/omnicorp/omnilamp/subfolder"})
-				assert.Equal(t, 0, len(index.Data))
+				e := index.FindByName("omnicorp-tm-department/omnicorp/omnilamp/subfolder")
+				assert.Nil(t, e)
 				names := r.readNamesFile()
 				// then: name is removed from names file
 				assert.Equal(t, []string{

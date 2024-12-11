@@ -39,6 +39,11 @@ type FileRepo struct {
 	idx *model.Index
 }
 
+func (f *FileRepo) CanonicalRoot() string {
+	abs, _ := filepath.Abs(f.root)
+	return abs
+}
+
 func NewFileRepo(config ConfigMap, spec model.RepoSpec) (*FileRepo, error) {
 	loc, found := config.GetString(KeyRepoLoc)
 	if !found {
@@ -353,9 +358,6 @@ func (f *FileRepo) readIndex() (*model.Index, error) {
 
 func (f *FileRepo) indexFilename() string {
 	return filepath.Join(f.root, RepoConfDir, IndexFilename)
-}
-func (f *FileRepo) bleveIndexPath() string {
-	return filepath.Join(f.root, RepoConfDir, "index.bleve")
 }
 
 func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {

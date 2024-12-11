@@ -16,6 +16,24 @@ type Repo struct {
 	mock.Mock
 }
 
+// CanonicalRoot provides a mock function with given fields:
+func (_m *Repo) CanonicalRoot() string {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for CanonicalRoot")
+	}
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
 // CheckIntegrity provides a mock function with given fields: ctx, filter
 func (_m *Repo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) ([]model.CheckResult, error) {
 	ret := _m.Called(ctx, filter)

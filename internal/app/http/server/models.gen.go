@@ -141,7 +141,9 @@ type ManufacturersResponse struct {
 
 // Meta defines model for Meta.
 type Meta struct {
-	Page *MetaPage `json:"page,omitempty"`
+	// LastUpdated RFC3339 timestamp
+	LastUpdated string    `json:"lastUpdated"`
+	Page        *MetaPage `json:"page,omitempty"`
 }
 
 // MetaPage defines model for MetaPage.

@@ -123,6 +123,8 @@ type Repo interface {
 	Versions(ctx context.Context, name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Repo has been created from
 	Spec() model.RepoSpec
+	// CanonicalRoot returns the canonical representation of the repository's root location
+	CanonicalRoot() string
 	// Delete deletes the TM with given id from repo. Returns ErrTMNotFound if TM does not exist
 	Delete(ctx context.Context, id string) error
 
@@ -353,6 +355,12 @@ func Remove(name string) error {
 	if _, ok := conf[name]; !ok {
 		return ErrRepoNotFound
 	}
+	// do a best-effort attempt at removing associated bleve index
+	r, err := Get(model.NewRepoSpec(name))
+	if err == nil {
+		_ = os.RemoveAll(BleveIndexPath(r))
+	}
+
 	delete(conf, name)
 	return saveConfig(conf)
 }
@@ -514,13 +522,10 @@ func expandVar(s string) string {
 	return s
 }
 
-func BleveIndexPath(spec model.RepoSpec) string {
+func BleveIndexPath(repo Repo) string {
 	hasher := sha1.New()
-	rName := spec.RepoName()
-	if rName == "" {
-		rName = spec.Dir()
-	}
-	hasher.Write([]byte(rName))
+	root := repo.CanonicalRoot()
+	hasher.Write([]byte(root))
 	hash := hasher.Sum(nil)
 	hashStr := fmt.Sprintf("%x", hash[:6])
 	return filepath.Join(config.ConfigDir, ".search-indexes", hashStr)
@@ -533,7 +538,7 @@ func UpdateRepoIndex(ctx context.Context, repo Repo) error {
 		os.Exit(1)
 	}
 	// try to open index, if it not there create a fresh one
-	indexPath := BleveIndexPath(repo.Spec())
+	indexPath := BleveIndexPath(repo)
 	index, err := bleve.Open(indexPath)
 
 	if err != nil {
@@ -601,7 +606,7 @@ func UpdateRepoIndex(ctx context.Context, repo Repo) error {
 			return fmt.Errorf("can't run batch: %w", err)
 		}
 	}
-	lu := searchResult.Sources[0].LastUpdated.Format(time.RFC3339)
+	lu := searchResult.LastUpdated.Format(time.RFC3339)
 	err = utils.WriteFileLines([]string{lu}, filepath.Join(indexPath, "updated"), 0664)
 	if err != nil {
 		return err

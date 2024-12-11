@@ -115,7 +115,7 @@ func listRepoWithDeepSearch(ctx context.Context, r Repo, search *model.SearchPar
 	}
 
 	// check local index exists
-	indexPath := BleveIndexPath(r.Spec())
+	indexPath := BleveIndexPath(r)
 	_, err := os.Stat(indexPath)
 	if os.IsNotExist(err) {
 		return model.SearchResult{}, model.ErrSearchIndexNotFound
@@ -134,7 +134,7 @@ func listRepoWithDeepSearch(ctx context.Context, r Repo, search *model.SearchPar
 		lines = []string{""}
 	}
 	indexedTime, _ := time.Parse(time.RFC3339, lines[0])
-	if indexedTime.Before(searchResult.Sources[0].LastUpdated) {
+	if indexedTime.Before(searchResult.LastUpdated) {
 		err := UpdateRepoIndex(ctx, r)
 		if err != nil {
 			return model.SearchResult{}, err
