@@ -14,8 +14,12 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId string) error {
+func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId, format string) error {
 	ref := toAttachmentContainerRef(tmNameOrId)
+	if !IsValidOutputFormat(format) {
+		Stderrf("%v", ErrInvalidOutputFormat)
+		return ErrInvalidOutputFormat
+	}
 
 	var atts []model.FoundAttachment
 	var err error
@@ -52,7 +56,12 @@ func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId string)
 		return err
 	}
 
-	printAttachments(atts)
+	switch format {
+	case OutputFormatJSON:
+		printJSON(atts)
+	case OutputFormatPlain:
+		printAttachments(atts)
+	}
 	return nil
 }
 

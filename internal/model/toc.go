@@ -54,7 +54,7 @@ type IndexEntry struct {
 
 type Attachment struct {
 	Name      string `json:"name"`
-	MediaType string `json:"mediaType"`
+	MediaType string `json:"mediaType,omitempty"`
 }
 
 // AttachmentContainerRef contains a reference to an entity which can have file attachments

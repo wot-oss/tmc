@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -143,7 +144,7 @@ func TestExport(t *testing.T) {
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_2), "CHANGELOG.md").Return(changelogContent, nil).Once()
 
 		// when: exporting from repo
-		err = Export(context.Background(), repoSpec, nil, tempDir, false, true)
+		err = Export(context.Background(), repoSpec, nil, tempDir, false, true, OutputFormatPlain)
 
 		// then: there is no error
 		assert.NoError(t, err)
@@ -154,6 +155,55 @@ func TestExport(t *testing.T) {
 		ver, _ := strings.CutSuffix(filepath.Base(tmID_2), ".tm.json")
 		assertFile(t, filepath.Join(tempDir, exportListRes.Entries[0].Name, model.AttachmentsDir, "README.md"), readmeContent)
 		assertFile(t, filepath.Join(tempDir, exportListRes.Entries[0].Name, model.AttachmentsDir, ver, "CHANGELOG.md"), changelogContent)
+	})
+	t.Run("with ok with json output", func(t *testing.T) {
+		tempDir, err := os.MkdirTemp("", "tmc-export")
+		assert.NoError(t, err)
+		defer os.RemoveAll(tempDir)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+
+		// given: a RepoManager and a repo having 3 ThingModels and 2 attachments
+		repoSpec := model.NewRepoSpec("r1")
+		r := mocks.NewRepo(t)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repoSpec, r, nil))
+
+		tmID_1 := exportListRes.Entries[0].Versions[0].TMID
+		tmID_2 := exportListRes.Entries[0].Versions[1].TMID
+		tmID_3 := exportListRes.Entries[1].Versions[0].TMID
+		tmContent1 := []byte("some TM content 1")
+		tmContent2 := []byte("some TM content 2")
+		tmContent3 := []byte("some TM content 3")
+		readmeContent := []byte("# Read This First")
+		changelogContent := []byte("# CHANGELOG")
+		var sp *model.SearchParams
+		r.On("List", mock.Anything, sp).Return(exportListRes, nil).Once()
+		r.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
+		r.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
+		r.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
+		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(exportListRes.Entries[0].Name), "README.md").Return(readmeContent, nil).Once()
+		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_2), "CHANGELOG.md").Return(changelogContent, nil).Once()
+
+		// when: exporting from repo
+		err = Export(context.Background(), repoSpec, nil, tempDir, false, true, OutputFormatJSON)
+
+		// then: there is no error
+		assert.NoError(t, err)
+		// and then: the exported ThingModels are written to the output path
+		assertFile(t, filepath.Join(tempDir, tmID_1), tmContent1)
+		assertFile(t, filepath.Join(tempDir, tmID_2), tmContent2)
+		assertFile(t, filepath.Join(tempDir, tmID_3), tmContent3)
+		ver, _ := strings.CutSuffix(filepath.Base(tmID_2), ".tm.json")
+		assertFile(t, filepath.Join(tempDir, exportListRes.Entries[0].Name, model.AttachmentsDir, "README.md"), readmeContent)
+		assertFile(t, filepath.Join(tempDir, exportListRes.Entries[0].Name, model.AttachmentsDir, ver, "CHANGELOG.md"), changelogContent)
+
+		stdout := getStdout()
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.NoError(t, err)
+		expected := []any{map[string]any{"resourceId": "a-corp/eagle/bt2000/.attachments/README.md", "type": "OK"}, map[string]any{"resourceId": "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccc.tm.json", "type": "OK"}, map[string]any{"resourceId": "a-corp/eagle/bt2000/v1.0.0-20231231153548-243d1b462ddd.tm.json", "type": "OK"}, map[string]any{"resourceId": "a-corp/eagle/bt2000/.attachments/v1.0.0-20231231153548-243d1b462ddd/CHANGELOG.md", "type": "OK"}, map[string]any{"resourceId": "b-corp/frog/bt3000/v1.0.0-20240108140117-743d1b462uuu.tm.json", "type": "OK"}}
+		assert.Equal(t, expected, actual)
+
 	})
 
 	t.Run("with empty output path", func(t *testing.T) {
@@ -166,7 +216,7 @@ func TestExport(t *testing.T) {
 		outputPath := ""
 
 		// when: exporting from repo
-		err := Export(context.Background(), repoSpec, nil, outputPath, false, false)
+		err := Export(context.Background(), repoSpec, nil, outputPath, false, false, OutputFormatPlain)
 
 		// then: there is an error
 		assert.Error(t, err)
@@ -190,7 +240,7 @@ func TestExport(t *testing.T) {
 		_ = os.WriteFile(outputPath, []byte("foobar"), 0660)
 
 		// when: exporting from repo
-		err = Export(context.Background(), repoSpec, nil, outputPath, false, false)
+		err = Export(context.Background(), repoSpec, nil, outputPath, false, false, OutputFormatPlain)
 
 		// then: there is an error
 		assert.Error(t, err)
@@ -236,7 +286,7 @@ func TestExport(t *testing.T) {
 		r2.On("List", mock.Anything, sp).Return(model.SearchResult{}, accessError).Once()
 
 		// when: exporting from both repos
-		err = Export(context.Background(), model.EmptySpec, nil, tempDir, false, false)
+		err = Export(context.Background(), model.EmptySpec, nil, tempDir, false, false, OutputFormatPlain)
 		stdout := getStdout()
 		stderr := getStderr()
 
@@ -273,7 +323,7 @@ func TestExport(t *testing.T) {
 		r.On("Fetch", mock.Anything, tmID).Return(tmID, tmContent, fetchError).Once()
 
 		// when: exporting from repo
-		err = Export(context.Background(), repoSpec, nil, tempDir, false, false)
+		err = Export(context.Background(), repoSpec, nil, tempDir, false, false, OutputFormatPlain)
 
 		// then: there is a total error
 		assert.Error(t, err)
@@ -298,7 +348,7 @@ func TestExport(t *testing.T) {
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.md").Return(nil, errors.New("no attachment for you")).Once()
 
 		// when: exporting from repo with attachments
-		err = Export(context.Background(), repoSpec, nil, tempDir, false, true)
+		err = Export(context.Background(), repoSpec, nil, tempDir, false, true, OutputFormatPlain)
 
 		// then: there is a total error
 		assert.Error(t, err)
@@ -327,9 +377,9 @@ func TestExport_exportThingModel(t *testing.T) {
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is opResultOK
-		assert.Equal(t, opResultOK, res.typ)
-		assert.Equal(t, tmID, res.resourceId)
-		assert.Equal(t, "", res.text)
+		assert.Equal(t, opResultOK, res.Type)
+		assert.Equal(t, tmID, res.ResourceId)
+		assert.Equal(t, "", res.Text)
 	})
 
 	t.Run("result with error", func(t *testing.T) {
@@ -340,9 +390,9 @@ func TestExport_exportThingModel(t *testing.T) {
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: the result is opResultErr
-		assert.Equal(t, opResultErr, res.typ)
-		assert.NotEmpty(t, res.text)
-		assert.Equal(t, tmID, res.resourceId)
+		assert.Equal(t, opResultErr, res.Type)
+		assert.NotEmpty(t, res.Text)
+		assert.Equal(t, tmID, res.ResourceId)
 	})
 }
 

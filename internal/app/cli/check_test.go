@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -18,7 +19,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 
 	t.Run("with repository not found", func(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), nil, repos.ErrRepoNotFound))
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		assert.ErrorIs(t, err, repos.ErrRepoNotFound)
 	})
 
@@ -26,7 +27,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		r := mocks.NewRepo(t)
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
 		r.On("List", mock.Anything, mock.Anything).Return(model.SearchResult{}, repos.ErrNoIndex)
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		assert.NoError(t, err)
 	})
 
@@ -81,7 +82,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef("mycompany/bartech/bazlamp"), "README.md").Return([]byte("# READ THIS"), nil)
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json"), "CHANGELOG.md").Return([]byte("# THIS HAS CHANGED"), nil)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		assert.NoError(t, err)
 	})
 	t.Run("with attachment not found", func(t *testing.T) {
@@ -117,7 +118,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		// when: FetchAttachments returns an error
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef("mycompany/bartech/bazlamp"), "README.md").Return(nil, model.ErrAttachmentNotFound)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
@@ -132,11 +133,32 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		// when: fetch returns an error
 		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("", nil, model.ErrTMNotFound)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
 		assert.Contains(t, getStdout(), "could not fetch the TM file to verify integrity")
+	})
+	t.Run("with TM file not found with json output", func(t *testing.T) {
+		r := mocks.NewRepo(t)
+		restore, getStdout := testutils.ReplaceStdout()
+		defer restore()
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
+		r.On("List", mock.Anything, mock.Anything).Return(sr1, nil)
+		// when: fetch returns an error
+		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("", nil, model.ErrTMNotFound)
+		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatJSON)
+		// then: there is an error
+		assert.Error(t, err)
+		// and then: stdout contains the correct error message
+		stdout := getStdout()
+		//assert.Contains(t, , "could not fetch the TM file to verify integrity")
+		var actual any
+		err = json.Unmarshal([]byte(stdout), &actual)
+		assert.NoError(t, err)
+		expected := []any{map[string]any{"message": "could not fetch the TM file to verify integrity: TM not found", "resource": "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", "type": "error"}}
+		assert.Equal(t, expected, actual)
 	})
 	t.Run("with TM file invalid", func(t *testing.T) {
 		r := mocks.NewRepo(t)
@@ -147,7 +169,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		// when: fetch returns an TM without MPN
 		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm4), nil)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
@@ -162,7 +184,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		// when: fetch returns an TM without id
 		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm2), nil)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
@@ -177,7 +199,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		// when: fetch returns an TM with invalid id
 		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm3), nil)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
@@ -192,7 +214,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		// when: fetch returns incorrect file location
 		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-35afe53c124a.tm.json", []byte(tm1), nil)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
@@ -207,7 +229,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		// when: fetch returns file with incorrect hash
 		r.On("Fetch", mock.Anything, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json").Return("mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", []byte(tm5), nil)
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return(nil, nil).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
@@ -244,7 +266,7 @@ func TestCheckIntegrity_IndexedResources(t *testing.T) {
 		r.On("CheckIntegrity", mock.Anything, mock.Anything).Return([]model.CheckResult{
 			{model.CheckErr, "mycompany/bartech/bazlamp/v0.0.1-20240101120000-78ff2e36fe32.tm.json", "something unexpected"},
 		}, errors.New("something")).Once()
-		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil)
+		err := CheckIntegrity(context.Background(), model.NewRepoSpec("r1"), nil, OutputFormatPlain)
 		// then: there is an error
 		assert.Error(t, err)
 		// and then: stdout contains the correct error message
