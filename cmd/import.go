@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"time"
 
@@ -29,6 +28,7 @@ Specifying the target repository with --directory or --repo is optional if there
 func init() {
 	RootCmd.AddCommand(importCmd)
 	AddRepoDisambiguatorFlags(importCmd)
+	AddOutputFormatFlag(importCmd)
 	importCmd.Flags().StringP("opt-path", "p", "", "Appends optional path parts to the target path (and id) of imported files, after the mandatory path structure")
 	_ = importCmd.RegisterFlagCompletionFunc("repo", completion.NoCompletionNoFile)
 	importCmd.Flags().BoolP("opt-tree", "t", false, `Use original directory tree structure below file-or-directory as --opt-path for each found ThingModel file.
@@ -43,15 +43,16 @@ func executeImport(cmd *cobra.Command, args []string) {
 	optTree, _ := cmd.Flags().GetBool("opt-tree")
 	force, _ := cmd.Flags().GetBool("force")
 	ie, _ := cmd.Flags().GetBool("ignore-existing")
+	format := cmd.Flag("format").Value.String()
 	spec := RepoSpecFromFlags(cmd)
 	opts := repos.ImportOptions{
 		Force:          force,
 		OptPath:        optPath,
 		IgnoreExisting: ie,
 	}
-	_, err := cli.NewImportExecutor(time.Now).Import(context.Background(), args[0], spec, optTree, opts)
+	_, err := cli.NewImportExecutor(time.Now).Import(context.Background(), args[0], spec, optTree, opts, format)
 	if err != nil {
-		fmt.Println("import failed")
+		cli.Stderrf("import failed")
 		os.Exit(1)
 	}
 }

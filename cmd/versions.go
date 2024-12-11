@@ -21,13 +21,15 @@ var versionsCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(versionsCmd)
 	AddRepoConstraintFlags(versionsCmd)
+	AddOutputFormatFlag(versionsCmd)
 }
 
 func listVersions(cmd *cobra.Command, args []string) {
 	spec := RepoSpecFromFlags(cmd)
+	format := cmd.Flag("format").Value.String()
 
 	name := args[0]
-	err := cli.ListVersions(context.Background(), spec, name)
+	err := cli.ListVersions(context.Background(), spec, name, format)
 	if err != nil {
 		cli.Stderrf("versions failed")
 		os.Exit(1)

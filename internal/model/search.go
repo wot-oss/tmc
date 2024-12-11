@@ -1,6 +1,7 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -43,7 +44,7 @@ type FoundVersion struct {
 
 type FoundAttachment struct {
 	Attachment
-	FoundIn FoundSource
+	FoundIn FoundSource `json:"repo"`
 }
 
 type FoundSource struct {
@@ -56,6 +57,10 @@ func (s FoundSource) String() string {
 		return "<" + s.Directory + ">"
 	}
 	return s.RepoName
+}
+
+func (s FoundSource) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
 }
 
 func MergeFoundVersions(vs1, vs2 []FoundVersion) []FoundVersion {

@@ -12,7 +12,11 @@ import (
 	"github.com/wot-oss/tmc/internal/model"
 )
 
-func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams) error {
+func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams, format string) error {
+	if !IsValidOutputFormat(format) {
+		Stderrf("%v", ErrInvalidOutputFormat)
+		return ErrInvalidOutputFormat
+	}
 	index, err, errs := commands.List(ctx, repo, search)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
@@ -23,7 +27,13 @@ func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams) 
 		err = errs[0]
 	}
 
-	printIndex(index)
+	switch format {
+	case OutputFormatJSON:
+		resp := toListResults(index)
+		printJSON(resp)
+	case OutputFormatPlain:
+		printIndex(index)
+	}
 	printErrs("Errors occurred while listing:", errs)
 	return err
 }
@@ -45,6 +55,28 @@ func printIndex(res model.SearchResult) {
 
 	}
 	_ = table.Flush()
+}
+
+func toListResults(res model.SearchResult) []ListResultEntry {
+	var r []ListResultEntry
+	for _, e := range res.Entries {
+		r = append(r, ListResultEntry{
+			Name:         e.Name,
+			Author:       e.Author.Name,
+			Manufacturer: e.Manufacturer.Name,
+			MPN:          e.Mpn,
+			Repo:         e.FoundIn.String(),
+		})
+	}
+	return r
+}
+
+type ListResultEntry struct {
+	Name         string `json:"name"`
+	Author       string `json:"author"`
+	Manufacturer string `json:"manufacturer"`
+	MPN          string `json:"mpn"`
+	Repo         string `json:"repo"`
 }
 
 func elideString(value string, colWidth int) string {

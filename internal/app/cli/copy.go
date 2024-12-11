@@ -11,7 +11,11 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, search *model.SearchParams, opts repos.ImportOptions) error {
+func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, search *model.SearchParams, opts repos.ImportOptions, format string) error {
+	if !IsValidOutputFormat(format) {
+		Stderrf("%v", ErrInvalidOutputFormat)
+		return ErrInvalidOutputFormat
+	}
 	if repo.RepoName() == toRepo.RepoName() && repo.Dir() == toRepo.Dir() {
 		Stderrf("Source repo cannot be the same as target")
 		return ErrInvalidArgs
@@ -43,9 +47,11 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 		}
 	}
 
-	fmt.Printf("Copying %d ThingModels with %d versions and %d attachments...\n", len(searchResult.Entries), vc, ac)
+	if format == OutputFormatPlain {
+		fmt.Printf("Copying %d ThingModels with %d versions and %d attachments...\n", len(searchResult.Entries), vc, ac)
+	}
 
-	var totalRes []operationResult
+	var totalRes []OperationResult
 	var copiedIDs []string
 	for _, entry := range searchResult.Entries {
 		for _, version := range entry.Versions {
@@ -59,14 +65,14 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 			var errExists *repos.ErrTMIDConflict
 			if errors.As(cErr, &errExists) { // TM exists in target -> add error result and store the total error (unless ought to ignore), but don't skip copying attachments
 				tmExisted = true
-				totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("already exists as %s", errExists.ExistingId)})
+				totalRes = append(totalRes, OperationResult{opResultErr, version.TMID, fmt.Sprintf("already exists as %s", errExists.ExistingId)})
 				if err == nil && !opts.IgnoreExisting {
 					err = cErr
 				}
 			} else {
 				if cErr != nil {
 					cErr = fmt.Errorf("couldn't copy TM %s: %w", version.TMID, cErr)
-					totalRes = append(totalRes, operationResult{opResultErr, version.TMID, fmt.Sprintf("%v", cErr)})
+					totalRes = append(totalRes, OperationResult{opResultErr, version.TMID, fmt.Sprintf("%v", cErr)})
 					if err == nil {
 						err = cErr
 					}
@@ -78,7 +84,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 				copiedIDs = append(copiedIDs, res.TmID)
 				iErr := target.Index(ctx, res.TmID) // need to index the TM to be able to push attachments to it
 				if iErr != nil {
-					totalRes = append(totalRes, operationResult{opResultErr, res.TmID, "could not update index"})
+					totalRes = append(totalRes, OperationResult{opResultErr, res.TmID, "could not update index"})
 					continue
 				}
 			}
@@ -91,9 +97,9 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 					warn = fmt.Sprintf("TM's version and timestamp clash with existing one %s", cErr.ExistingId)
 				}
 				msg := fmt.Sprintf("copied as %s with warning: %s", res.TmID, warn)
-				totalRes = append(totalRes, operationResult{opResultWarn, version.TMID, msg})
+				totalRes = append(totalRes, OperationResult{opResultWarn, version.TMID, msg})
 			case repos.ImportResultOK:
-				totalRes = append(totalRes, operationResult{opResultOK, res.TmID, ""})
+				totalRes = append(totalRes, OperationResult{opResultOK, res.TmID, ""})
 			}
 			spec := model.NewSpecFromFoundSource(entry.FoundIn)
 			aRes, aErr := copyAttachments(ctx, spec, target, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments, opts.Force, opts.IgnoreExisting)
@@ -122,20 +128,25 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 		}
 	}
 
-	for _, res := range totalRes {
-		fmt.Println(res)
+	switch format {
+	case OutputFormatJSON:
+		printJSON(totalRes)
+	case OutputFormatPlain:
+		for _, res := range totalRes {
+			fmt.Println(res)
+		}
 	}
 	printErrs("Errors occurred while listing TMs for export:", errs)
 
 	return err
 }
 
-func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment, force, ignoreExisting bool) ([]operationResult, error) {
+func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo, ref model.AttachmentContainerRef, attachments []model.Attachment, force, ignoreExisting bool) ([]OperationResult, error) {
 	relDir, err := model.RelAttachmentsDir(ref)
 	if err != nil {
 		return nil, err
 	}
-	var results []operationResult
+	var results []OperationResult
 	for _, att := range attachments {
 		var bytes []byte
 		var aErr error
@@ -143,10 +154,10 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 		bytes, aErr = commands.AttachmentFetch(ctx, spec, ref, att.Name, false)
 		if aErr != nil {
 			aErr = fmt.Errorf("could not fetch attachment %s to %v: %w", att.Name, ref, aErr)
-			results = append(results, operationResult{
-				typ:        opResultErr,
-				resourceId: resName,
-				text:       aErr.Error(),
+			results = append(results, OperationResult{
+				Type:       opResultErr,
+				ResourceId: resName,
+				Text:       aErr.Error(),
 			})
 			if err == nil {
 				err = aErr
@@ -156,10 +167,10 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 		wErr := toRepo.ImportAttachment(ctx, ref, att, bytes, force)
 		if wErr != nil {
 			wErr = fmt.Errorf("could not import attachment %s to %v: %w", att.Name, ref, wErr)
-			results = append(results, operationResult{
-				typ:        opResultErr,
-				resourceId: resName,
-				text:       wErr.Error(),
+			results = append(results, OperationResult{
+				Type:       opResultErr,
+				ResourceId: resName,
+				Text:       wErr.Error(),
 			})
 			doIgnore := ignoreExisting && errors.Is(wErr, repos.ErrAttachmentExists)
 			if err == nil && !doIgnore {
@@ -167,9 +178,9 @@ func copyAttachments(ctx context.Context, spec model.RepoSpec, toRepo repos.Repo
 			}
 			continue
 		}
-		results = append(results, operationResult{
-			typ:        opResultOK,
-			resourceId: resName,
+		results = append(results, OperationResult{
+			Type:       opResultOK,
+			ResourceId: resName,
 		})
 	}
 	return results, err

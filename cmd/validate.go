@@ -16,6 +16,7 @@ var validateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := cli.ValidateFile(context.Background(), args[0])
 		if err != nil {
+			cli.Stderrf("validate failed")
 			os.Exit(1)
 		}
 	},

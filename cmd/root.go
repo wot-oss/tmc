@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"os"
 	"slices"
@@ -100,6 +101,11 @@ func AddRepoDisambiguatorFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc("repo", completion.CompleteRepoNames)
 	cmd.Flags().StringP("directory", "d", "", "Use the specified directory as repository. This option allows directly using a directory as a local TM repository, forgoing creating a named repository. Mutually exclusive with --repo.")
 	_ = cmd.MarkFlagDirname("directory")
+}
+
+func AddOutputFormatFlag(cmd *cobra.Command) {
+	cmd.Flags().String("format", "plain", fmt.Sprintf("output format. One of: [plain, json]"))
+	_ = cmd.RegisterFlagCompletionFunc("format", completion.CompleteOutputFomats)
 }
 
 func AddTMFilterFlags(cmd *cobra.Command, flags *FilterFlags) {
