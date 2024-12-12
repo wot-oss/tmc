@@ -268,7 +268,7 @@ paths:
 
             **For the schema of the returned Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
           content:
-            application/json:
+            application/tm+json:
               schema:
                 type: object
         '400':
@@ -355,7 +355,7 @@ paths:
 
             **For the schema of the returned Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
           content:
-            application/json:
+            application/tm+json:
               schema:
                 type: object
         '400':
