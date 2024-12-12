@@ -127,7 +127,7 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 
-	HandleByteResponse(w, r, http.StatusOK, MimeJSON, data)
+	HandleByteResponse(w, r, http.StatusOK, MimeTMJSON, data)
 }
 
 // DeleteThingModelById Delete a Thing Model by ID

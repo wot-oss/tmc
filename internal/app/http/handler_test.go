@@ -646,7 +646,7 @@ func Test_FetchThingModel(t *testing.T) {
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
-		assertResponse200(t, rec)
+		assertResponseTM200(t, rec)
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 
@@ -655,7 +655,7 @@ func Test_FetchThingModel(t *testing.T) {
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=false").RunOnHandler(httpHandler)
 		// then: it returns status 200
-		assertResponse200(t, rec)
+		assertResponseTM200(t, rec)
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 	t.Run("with true restoreId", func(t *testing.T) {
@@ -663,7 +663,7 @@ func Test_FetchThingModel(t *testing.T) {
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=true").RunOnHandler(httpHandler)
 		// then: it returns status 200
-		assertResponse200(t, rec)
+		assertResponseTM200(t, rec)
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 	t.Run("with invalid restoreId", func(t *testing.T) {
@@ -1264,6 +1264,11 @@ func assertHealthyResponse204(t *testing.T, rec *httptest.ResponseRecorder) {
 func assertResponse200(t *testing.T, rec *httptest.ResponseRecorder) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, MimeJSON, rec.Header().Get(HeaderContentType))
+}
+
+func assertResponseTM200(t *testing.T, rec *httptest.ResponseRecorder) {
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, MimeTMJSON, rec.Header().Get(HeaderContentType))
 }
 
 func assertResponse201(t *testing.T, rec *httptest.ResponseRecorder) {
