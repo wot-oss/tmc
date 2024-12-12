@@ -21,6 +21,10 @@
 - `check`: removed subcommands of `check` command, unifying both into the parent command
 - `repo`: reorganized commands that change repo config: renamed/created `config auth`, `config description`, and `config headers` commands
 
+### Fixed
+
+- return "application/tm+json" as MIME type when fetching TMs via API
+
 ## [v0.1.1]
 
 ### Added

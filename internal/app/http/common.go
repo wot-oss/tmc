@@ -35,6 +35,7 @@ const (
 	HeaderXContentTypeOptions = "X-Content-Type-Options"
 	MimeText                  = "text/plain"
 	MimeJSON                  = "application/json"
+	MimeTMJSON                = "application/tm+json"
 	MimeOctetStream           = "application/octet-stream"
 	MimeProblemJSON           = "application/problem+json"
 	NoSniff                   = "nosniff"
