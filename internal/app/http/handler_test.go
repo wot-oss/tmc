@@ -255,12 +255,13 @@ func Test_Inventory(t *testing.T) {
 		fAuthors := "a1,a2"
 		fMan := "man1,man2"
 		fMpn := "mpn1,mpn2"
+		fProtos := "coap,https"
 		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&search=%s",
-			route, fAuthors, fMan, fMpn, search)
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s&search=%s",
+			route, fAuthors, fMan, fMpn, fProtos, search)
 		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := model.ToSearchParams(&fAuthors, &fMan, &fMpn, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
+		expectedSearchParams := model.ToSearchParams(&fAuthors, &fMan, &fMpn, &fProtos, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListInventory", mock.Anything, "", expectedSearchParams).Return(&listResult1, nil).Once()
 
@@ -362,7 +363,7 @@ func Test_Authors(t *testing.T) {
 			route, fMan, fMpn, search)
 
 		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := model.ToSearchParams(nil, &fMan, &fMpn, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
+		expectedSearchParams := model.ToSearchParams(nil, &fMan, &fMpn, nil, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListAuthors", mock.Anything, expectedSearchParams).Return(authors, nil).Once()
 
@@ -645,7 +646,7 @@ func Test_FetchThingModel(t *testing.T) {
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
-		assertResponse200(t, rec)
+		assertResponseTM200(t, rec)
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 
@@ -654,7 +655,7 @@ func Test_FetchThingModel(t *testing.T) {
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=false").RunOnHandler(httpHandler)
 		// then: it returns status 200
-		assertResponse200(t, rec)
+		assertResponseTM200(t, rec)
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 	t.Run("with true restoreId", func(t *testing.T) {
@@ -662,7 +663,7 @@ func Test_FetchThingModel(t *testing.T) {
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?restoreId=true").RunOnHandler(httpHandler)
 		// then: it returns status 200
-		assertResponse200(t, rec)
+		assertResponseTM200(t, rec)
 		assert.Equal(t, tmContent, rec.Body.Bytes())
 	})
 	t.Run("with invalid restoreId", func(t *testing.T) {
@@ -1265,6 +1266,11 @@ func assertResponse200(t *testing.T, rec *httptest.ResponseRecorder) {
 	assert.Equal(t, MimeJSON, rec.Header().Get(HeaderContentType))
 }
 
+func assertResponseTM200(t *testing.T, rec *httptest.ResponseRecorder) {
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, MimeTMJSON, rec.Header().Get(HeaderContentType))
+}
+
 func assertResponse201(t *testing.T, rec *httptest.ResponseRecorder) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
 	assert.Equal(t, MimeJSON, rec.Header().Get(HeaderContentType))
@@ -1501,6 +1507,7 @@ var (
 							Digest:      "234d1b462fff",
 							TimeStamp:   "20240107123001",
 							ExternalID:  "ext-4",
+							Protocols:   []string{"coaps", "https"},
 							AttachmentContainer: model.AttachmentContainer{
 								Attachments: []model.Attachment{
 									{

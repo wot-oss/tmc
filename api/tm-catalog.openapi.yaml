@@ -64,6 +64,14 @@ paths:
           schema:
             type: string
           example: 'BazLamp,POC1000'
+        - name: 'filter.protocol'
+          in: query
+          description: |
+            Filters the inventory by one ore more URL protocol schemes having exact match.   
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: 'http,https'
         - name: 'filter.name'
           in: query
           description: |
@@ -260,7 +268,7 @@ paths:
 
             **For the schema of the returned Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
           content:
-            application/json:
+            application/tm+json:
               schema:
                 type: object
         '400':
@@ -347,7 +355,7 @@ paths:
 
             **For the schema of the returned Thing Model see** [Thing Model JSON schema](https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json)
           content:
-            application/json:
+            application/tm+json:
               schema:
                 type: object
         '400':
@@ -689,6 +697,15 @@ paths:
           schema:
             type: string
           example: 'BazLamp,POC1000'
+        - name: 'filter.protocol'
+          in: query
+          description: |
+            Filters the authors according to whether they have inventory entries    
+            which support at least one of the given URL protocol schemes with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: 'http,https'
         - name: 'search'
           in: query
           description: |
@@ -747,6 +764,15 @@ paths:
           schema:
             type: string
           example: 'BazLamp,POC1000'
+        - name: 'filter.protocol'
+          in: query
+          description: |
+            Filters the manufacturers according to whether they have inventory entries    
+            which support at least one of the given URL protocol schemes with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: 'http,https'
         - name: 'search'
           in: query
           description: |
@@ -791,7 +817,7 @@ paths:
         - name: 'filter.author'
           in: query
           description: |
-            Filters the mpns according to whether they belong to at least one of the given authors with an exact match.     
+            Filters the mpns according to whether they belong to at least one of the given authors with an exact match.   
             The filter works additive to other filters.
           schema:
             type: string
@@ -799,11 +825,20 @@ paths:
         - name: 'filter.manufacturer'
           in: query
           description: |
-            Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.     
+            Filters the mpns according to whether they belong to at least one of the given manufacturers with an exact match.   
             The filter works additive to other filters.
           schema:
             type: string
           example: 'BarTech,siemens'
+        - name: 'filter.protocol'
+          in: query
+          description: |
+            Filters the mpns according to whether they have inventory entries    
+            which support at least one of the given URL protocol schemes with an exact match.    
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: 'http,https'
         - name: 'search'
           in: query
           description: |
@@ -1129,6 +1164,13 @@ components:
           $ref: '#/components/schemas/InventoryEntryVersionLinks'
         attachments:
           $ref: "#/components/schemas/AttachmentsList"
+        protocols:
+          type: array
+          items:
+            type: string
+          example:
+            - "https"
+            - "modbus+tcp"
     InventoryEntryLinks:
       type: object
       required:
@@ -1450,6 +1492,8 @@ components:
                   'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                 'timestamp': '20240108112117'
                 'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'protocols':
+                  - "modbus+tcp"
                 'version':
                   'model': '1.0.0'
               - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
@@ -1460,6 +1504,8 @@ components:
                   'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                 'timestamp': '20231217140234'
                 'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'protocols':
+                  - "modbus+tcp"
                 'version':
                   'model': '0.0.0'
               - 'description': ''
@@ -1470,6 +1516,8 @@ components:
                   'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'timestamp': '20231201133246'
                 'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'protocols':
+                  - "modbus+tcp"
                 'version':
                   'model': '0.0.0'
             attachments:
@@ -1492,6 +1540,9 @@ components:
             'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
           'timestamp': '20240108112117'
           'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+          'protocols':
+            - "https"
+            - "modbus+tcp"
           'version':
             'model': '1.0.0'
     InventoryEntryVersionsResponseExample:
@@ -1505,6 +1556,9 @@ components:
               'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
             'timestamp': '20240108112117'
             'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+            'protocols':
+              - "https"
+              - "modbus+tcp"
             'version':
               'model': '1.0.0'
     InventoryResponseExample:
@@ -1530,6 +1584,8 @@ components:
                   'content': './thing-models/siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
                 'timestamp': '20240108112117'
                 'tmID': 'siemens/siemens/poc1000/v1.0.0-20240108112117-2cd14601ef09.tm.json'
+                'protocols':
+                  - "modbus+tcp"
                 'version':
                   'model': '1.0.0'
               - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
@@ -1540,6 +1596,8 @@ components:
                   'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
                 'timestamp': '20231217140234'
                 'tmID': 'siemens/siemens/poc1000/v0.0.0-20231217140234-f4184d08a02c.tm.json'
+                'protocols':
+                  - "modbus+tcp"
                 'version':
                   'model': '0.0.0'
               - 'description': ''
@@ -1550,6 +1608,8 @@ components:
                   'content': './thing-models/siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
                 'timestamp': '20231201133246'
                 'tmID': 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
+                'protocols':
+                  - "modbus+tcp"
                 'version':
                   'model': '0.0.0'
           - 'links':

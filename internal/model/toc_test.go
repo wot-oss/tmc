@@ -106,6 +106,17 @@ func TestIndex_Filter(t *testing.T) {
 		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
 		assert.NotNil(t, idx.FindByName("aut/man2/mpn"))
 	})
+	t.Run("filter by protocol", func(t *testing.T) {
+		idx := prepareIndex()
+		idx.Filter(&SearchParams{Protocol: []string{"https"}})
+		assert.Len(t, idx.Data, 1)
+		assert.NotNil(t, idx.FindByName("aut/man/mpn"))
+
+		idx = prepareIndex()
+		idx.Filter(&SearchParams{Protocol: []string{"modbus", "coap", "opcua+tcp"}})
+		assert.Len(t, idx.Data, 1)
+		assert.NotNil(t, idx.FindByName("man/mpn"))
+	})
 	t.Run("filter by query", func(t *testing.T) {
 		idx := prepareIndex()
 		_ = idx.Filter(&SearchParams{Query: ""})
@@ -169,13 +180,13 @@ func TestIndex_Filter(t *testing.T) {
 		author := "aut^hor"
 		manuf := "Man&ufacturer"
 		mpn := "M/PN"
-		_ = idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil))
+		_ = idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil, nil))
 		assert.Len(t, idx.Data, 1)
 
 		author = "Aut%hor"
 		manuf = "Man-ufacturer"
 		mpn = "M&pN"
-		_ = idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil))
+		_ = idx.Filter(ToSearchParams(&author, &manuf, &mpn, nil, nil, nil, nil))
 		assert.Len(t, idx.Data, 1)
 	})
 }
@@ -204,6 +215,7 @@ func prepareIndex() *Index {
 						ExternalID:  "externalID",
 						Digest:      "abcd12345679",
 						TimeStamp:   "20231024121314",
+						Protocols:   []string{"modbus"},
 					},
 				},
 			},
@@ -227,6 +239,7 @@ func prepareIndex() *Index {
 						ExternalID:  "externalID2",
 						Digest:      "abcd12345681",
 						TimeStamp:   "20231024121314",
+						Protocols:   []string{"https"},
 					},
 				},
 			},

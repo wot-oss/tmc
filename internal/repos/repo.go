@@ -75,14 +75,17 @@ func (t ImportResultType) String() string {
 		return "internal error: unknown import result type"
 	}
 }
+func (t ImportResultType) MarshalJSON() ([]byte, error) {
+	return json.Marshal(t.String())
+}
 
 type ImportResult struct {
-	Type ImportResultType
+	Type ImportResultType `json:"type"`
 	// TmID is not empty when the result is successful, i.e. Type is OK or Warning
-	TmID    string
-	Message string
+	TmID    string `json:"-"`
+	Message string `json:"message,omitempty"`
 	// Err is not nil when there was an ID conflict or another error during import, i.e. Type is TMExists or Warning or Error
-	Err error
+	Err error `json:"-"`
 }
 
 func ImportResultFromError(err error) (ImportResult, error) {

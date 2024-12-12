@@ -960,8 +960,7 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 		return nil, err
 	}
 
-	var ctm model.ThingModel
-	err = json.Unmarshal(data, &ctm)
+	ctm, err := model.ParseThingModel(data)
 	if err != nil {
 		return nil, err
 	}
@@ -972,7 +971,7 @@ func (f *FileRepo) getThingMetadata(path string) (*thingMetadata, error) {
 	}
 
 	return &thingMetadata{
-		tm: ctm,
+		tm: *ctm,
 		id: tmid,
 	}, nil
 }
@@ -1092,7 +1091,7 @@ func (f *FileRepo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Inde
 
 func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.CheckResult {
 	if isTmcConfigFile(file) {
-		return model.CheckResult{model.CheckOK, file, "OK"}
+		return model.CheckResult{model.CheckOK, file, ""}
 	}
 	if isAtt, ref, attName := isAttachmentFile(file); isAtt {
 		container, _, err := idx.FindAttachmentContainer(ref)
@@ -1106,14 +1105,14 @@ func (f *FileRepo) verifyFileIsIndexed(file string, idx *model.Index) model.Chec
 		if !found {
 			return model.CheckResult{model.CheckErr, file, "appears to be an attachment file which is not known to the repository. Make sure you import it using TMC CLI"}
 		}
-		return model.CheckResult{model.CheckOK, file, "OK"}
+		return model.CheckResult{model.CheckOK, file, ""}
 	}
 	if isTMFile(file) {
 		ver := idx.FindByTMID(file)
 		if ver == nil {
 			return model.CheckResult{model.CheckErr, file, "appears to be a TM file which is not known to the repository. Make sure you import it using TMC CLI"}
 		}
-		return model.CheckResult{model.CheckOK, file, "OK"}
+		return model.CheckResult{model.CheckOK, file, ""}
 	}
 	return model.CheckResult{model.CheckErr, file, "file unknown"}
 }

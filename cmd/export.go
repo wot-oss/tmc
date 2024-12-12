@@ -26,6 +26,7 @@ Use list command with the same parameters to verify beforehand which TMs are goi
 func init() {
 	RootCmd.AddCommand(exportCmd)
 	AddRepoConstraintFlags(exportCmd)
+	AddOutputFormatFlag(exportCmd)
 	exportCmd.Flags().StringP("output", "o", "", "output directory for saving exported TMs")
 	_ = exportCmd.MarkFlagDirname("output")
 	_ = exportCmd.MarkFlagRequired("output")
@@ -39,6 +40,7 @@ func executeExport(cmd *cobra.Command, args []string) {
 	outputPath := cmd.Flag("output").Value.String()
 	restoreId, _ := cmd.Flags().GetBool("restore-id")
 	withAttachments, _ := cmd.Flags().GetBool("with-attachments")
+	format := cmd.Flag("format").Value.String()
 
 	spec := RepoSpecFromFlags(cmd)
 
@@ -47,7 +49,7 @@ func executeExport(cmd *cobra.Command, args []string) {
 		name = args[0]
 	}
 	search := CreateSearchParamsFromCLI(exportFilterFlags, name)
-	err := cli.Export(context.Background(), spec, search, outputPath, restoreId, withAttachments)
+	err := cli.Export(context.Background(), spec, search, outputPath, restoreId, withAttachments, format)
 
 	if err != nil {
 		cli.Stderrf("export failed")
