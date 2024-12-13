@@ -293,8 +293,12 @@ func RepoSetAuth(name, kind string, data []string) error {
 			confValues := parseNamedArgs(data)
 			err := assertNamedArgs(confValues, []string{"token"})
 			if err != nil {
+				var token string
+				if len(data) > 0 {
+					token = data[0]
+				}
 				rc[repos.KeyRepoAuth] = map[string]any{
-					repos.AuthMethodBearerToken: data,
+					repos.AuthMethodBearerToken: token,
 				}
 			} else {
 				rc[repos.KeyRepoAuth] = map[string]any{
