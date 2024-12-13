@@ -581,7 +581,7 @@ func (s *S3Repo) indexUpdaterForIds(ids ...string) indexUpdater {
 			default:
 			}
 			info, statErr := s3Stat(ctx, s.client, s.bucket, id)
-			upd, id, nameDeleted, err := s.updateIndexWithFile(ctx, newIndex, info, statErr)
+			upd, id, nameDeleted, err := s.updateIndexWithFile(ctx, newIndex, id, info, statErr)
 			if err != nil {
 				return nil, nil, 0, err
 			}
@@ -667,7 +667,7 @@ func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ 
 		default:
 		}
 
-		upd, id, _, err := s.updateIndexWithFile(ctx, newIndex, &e, err)
+		upd, id, _, err := s.updateIndexWithFile(ctx, newIndex, e.Name, &e, err)
 		if err != nil {
 			return nil, nil, 0, ctx.Err()
 		}
@@ -714,10 +714,10 @@ func (s *S3Repo) reindexAttachments(ctx context.Context, containers map[model.At
 	return nil
 }
 
-func (s *S3Repo) updateIndexWithFile(ctx context.Context, idx *model.Index, info *S3ObjectInfo, err error) (updated bool, indexedId model.TMID, deletedName string, errr error) {
+func (s *S3Repo) updateIndexWithFile(ctx context.Context, idx *model.Index, id string, info *S3ObjectInfo, err error) (updated bool, indexedId model.TMID, deletedName string, errr error) {
 	log := utils.GetLogger(ctx, "S3Repo")
 	if err == ErrS3NotExists {
-		upd, name, err := idx.Delete(info.Name)
+		upd, name, err := idx.Delete(id)
 		if err != nil {
 			return false, model.TMID{}, "", err
 		}
