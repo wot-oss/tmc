@@ -16,7 +16,7 @@ on:
   create:
     tags:
       - 'v*.*.*'
-      
+
 jobs:
   openapi-lint:
     runs-on: ubuntu-latest
@@ -31,7 +31,7 @@ jobs:
         run: |
           echo 'extends: ["spectral:oas"]' > .spectral.yaml
           spectral lint ${OPENAPI_SPEC}
-          
+  
 
   build:
     needs: openapi-lint
@@ -39,62 +39,78 @@ jobs:
 
     permissions:
       contents: write
-      
+
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
 
-    - name: Check Golang imports order and formatting
-      uses: Jerome1337/goimports-action@v1.0.3
+      - name: Check Golang imports order and formatting
+        uses: Jerome1337/goimports-action@v1.0.3
 
-    - name: Test
-      run: CGO_ENABLED=0 go test -v ./...
+      - name: Test
+        run: CGO_ENABLED=0 go test -v ./...
 
-    - name: Compile
-      run: |
-        echo "FILE_NAME ${FILENAME_PREFIX}"
-        export FILENAME_PREFIX=${FILENAME_PREFIX}
-        export TMC_VERSION=$(git describe --tags --always)   
-        echo "TMC_VERSION ${TMC_VERSION}"       
-        bash ./build/compile.sh
+      - name: Compile
+        run: |
+          echo "FILE_NAME ${FILENAME_PREFIX}"
+          export FILENAME_PREFIX=${FILENAME_PREFIX}
+          export TMC_VERSION=$(git describe --tags --always)   
+          echo "TMC_VERSION ${TMC_VERSION}"       
+          bash ./build/compile.sh
 
-    - name: List-Dependencies
-      run: |
-        export FILENAME_PREFIX=${FILENAME_PREFIX}
-        bash ./build/list-dependencies.sh
+      - name: List-Dependencies
+        run: |
+          export FILENAME_PREFIX=${FILENAME_PREFIX}
+          bash ./build/list-dependencies.sh
 
-    - name: Release-Notes
-      if: startsWith(github.ref, 'refs/tags')
-      run: |
-        echo "Extracting release notes for version ${{github.ref}}"
-        export VERSION=${{github.ref_name}}
-        bash build/extract-release-notes.sh >> release-notes.md
+      - name: Get-Release-Type
+        id: getReleaseType
+        run: |
+          if [[ "${GITHUB_REF}" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+-rc.*$ ]]; then
+            echo "Release-Type: prerelease"
+            echo "prerelease=true" >> $GITHUB_OUTPUT          
+          else
+            echo "Release-Type: release"
+            echo "prerelease=false" >> $GITHUB_OUTPUT
+          fi 
 
-    - name: Release
-      if: startsWith(github.ref, 'refs/tags')
-      uses: softprops/action-gh-release@v1
-      with:
-        body_path: release-notes.md
-        files: ${{ env.FILENAME_PREFIX }}*
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Release-Notes
+        if: startsWith(github.ref, 'refs/tags')
+        run: |
+          if [ ${{ steps.getReleaseType.outputs.prerelease }} = false ]; then
+            export NOTE_REQUIRED=true
+          fi
+          echo "Extracting release notes for version ${{github.ref}}"
+          export VERSION=${{github.ref_name}}
+          bash build/extract-release-notes.sh >> release-notes.md
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags')
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release-notes.md
+          files: ${{ env.FILENAME_PREFIX }}*
+          token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease:  ${{ steps.getReleaseType.outputs.prerelease }}
 
   docker:
-    if: startsWith(github.ref, 'refs/tags') 
+    if: startsWith(github.ref, 'refs/tags')
     needs: build
     runs-on: ubuntu-latest
 
     permissions:
       contents: read
       packages: write
-      
+
     env:
       REGISTRY: ghcr.io
       IMAGE_NAME: ${{ github.repository }}
-      
+      VERSION: ${{ github.ref_name }}
+
     steps:
       - uses: actions/checkout@v3
 
@@ -104,7 +120,7 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-  
+
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
@@ -120,5 +136,7 @@ jobs:
           context: .
           file: ./docker/Dockerfile
           push: true
+          build-args: |
+            VERSION=${{ env.VERSION }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
