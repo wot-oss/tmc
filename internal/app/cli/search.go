@@ -40,14 +40,17 @@ func printSearchResult(res model.SearchResult) {
 	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tAUTHOR\tMANUFACTURER\tMPN\tREPO\n")
-	for _, value := range res.Entries {
-		name := value.Name
-		man := elideString(value.Manufacturer.Name, colWidth)
-		mpn := elideString(value.Mpn, colWidth)
-		auth := elideString(value.Author.Name, colWidth)
-		repo := elideString(fmt.Sprintf("%v", value.FoundIn), colWidth)
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, auth, man, mpn, repo)
+	_, _ = fmt.Fprintf(table, "ID\tREPO\tSCORE\tMATCHES\n")
+	for _, entry := range res.Entries {
+		for _, v := range entry.Versions {
+			repo := elideString(fmt.Sprintf("%v", v.FoundIn), colWidth)
+			_, _ = fmt.Fprintf(table, "%s\t%s\t%v\t%s\n", v.TMID, repo, v.SearchScore, v.MatchLocations[0])
+			if len(v.MatchLocations) > 1 {
+				for _, l := range v.MatchLocations[1:] {
+					_, _ = fmt.Fprintf(table, "%s\t%s\t%v\t%s\n", "", "", "", l)
+				}
+			}
+		}
 	}
 	_ = table.Flush()
 }
@@ -57,8 +60,10 @@ func toSearchCommandResult(res model.SearchResult) []SearchResultEntry {
 	for _, e := range res.Entries {
 		for _, v := range e.Versions {
 			r = append(r, SearchResultEntry{
-				TMID: v.TMID,
-				Repo: v.FoundIn.String(),
+				TMID:           v.TMID,
+				Repo:           v.FoundIn.String(),
+				Score:          v.SearchScore,
+				MatchLocations: v.MatchLocations,
 			})
 		}
 	}
@@ -66,6 +71,8 @@ func toSearchCommandResult(res model.SearchResult) []SearchResultEntry {
 }
 
 type SearchResultEntry struct {
-	TMID string `json:"tmid"`
-	Repo string `json:"repo"`
+	TMID           string   `json:"tmid"`
+	Repo           string   `json:"repo"`
+	Score          float32  `json:"score,omitempty"`
+	MatchLocations []string `json:"matches,omitempty"`
 }

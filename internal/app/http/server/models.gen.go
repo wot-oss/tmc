@@ -101,15 +101,21 @@ type InventoryEntryVersion struct {
 	Digest      string                      `json:"digest"`
 	ExternalID  string                      `json:"externalID"`
 	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
-	Protocols   *[]string                   `json:"protocols,omitempty"`
+
+	// Matches locations where the search terms matched
+	Matches   *[]string `json:"matches,omitempty"`
+	Protocols *[]string `json:"protocols,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
 	// May be left empty when there is only a single repository served by the backend and thus there is not need for
 	// disambiguation. See also '/repos'
-	Repo      *SourceRepository `json:"repo,omitempty"`
-	Timestamp string            `json:"timestamp"`
-	TmID      string            `json:"tmID"`
-	Version   ModelVersion      `json:"version"`
+	Repo *SourceRepository `json:"repo,omitempty"`
+
+	// Score search score
+	Score     *float32     `json:"score,omitempty"`
+	Timestamp string       `json:"timestamp"`
+	TmID      string       `json:"tmID"`
+	Version   ModelVersion `json:"version"`
 }
 
 // InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.

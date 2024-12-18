@@ -113,6 +113,12 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 		invVersion.Attachments = &atts
 	}
 
+	if version.SearchScore != 0.0 {
+		invVersion.Score = &version.SearchScore
+	}
+	if len(version.MatchLocations) > 0 {
+		invVersion.Matches = &version.MatchLocations
+	}
 	return invVersion
 }
 

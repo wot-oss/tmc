@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/blevesearch/bleve/v2"
+	"github.com/blevesearch/bleve/v2/search"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -157,23 +158,36 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 	return nil
 }
 
-// TextSearch deletes all entries from this SearchResult that don't match the search query. The entries that remain
+// TextSearch deletes all versions from this SearchResult that don't match the search query. The entries that remain
 // are extended with information on matches' locations.
 func (sr *SearchResult) TextSearch(query, indexPath string) error {
 	if query == "" {
 		return nil
 	}
-	del, err := excludeByContentSearch(query, indexPath)
+	matcher, err := getMatcherByBleveSearch(query, indexPath)
 	if err != nil {
 		return err
 	}
-	if del != nil {
-		sr.Entries = slices.DeleteFunc(sr.Entries, del)
+	if matcher != nil {
+		var newEntries []FoundEntry
+		for _, entry := range sr.Entries {
+			var newVersions []FoundVersion
+			for _, version := range entry.Versions {
+				if matcher(version) {
+					newVersions = append(newVersions, version)
+				}
+			}
+			if len(newVersions) > 0 {
+				entry.Versions = newVersions
+				newEntries = append(newEntries, entry)
+			}
+		}
+		sr.Entries = newEntries
 	}
 	return nil
 }
 
-func excludeByContentSearch(query, indexPath string) (func(e FoundEntry) bool, error) {
+func getMatcherByBleveSearch(query, indexPath string) (func(e FoundVersion) bool, error) {
 	_, err := os.Stat(indexPath)
 	if err != nil {
 		return nil, ErrSearchIndexNotFound
@@ -184,29 +198,36 @@ func excludeByContentSearch(query, indexPath string) (func(e FoundEntry) bool, e
 	} else {
 		defer bleveIdx.Close()
 		q := bleve.NewQueryStringQuery(query)
-		req := bleve.NewSearchRequestOptions(q, 100000, 0, true)
+		req := bleve.NewSearchRequestOptions(q, 100000, 0, false)
+		req.IncludeLocations = true
 		sr, err := bleveIdx.Search(req)
 
 		if err != nil {
 			return nil, fmt.Errorf("error in content search: %w", err)
 		}
-		del := func(e FoundEntry) bool {
+
+		scores := make(map[string]*search.DocumentMatch)
+		for _, hit := range sr.Hits {
+			scores[hit.ID] = hit
+		}
+
+		matcher := func(v FoundVersion) bool {
 			if sr.Hits.Len() == 0 {
+				return false
+			}
+			if hit, ok := scores[v.TMID]; ok {
+				v.SearchScore = float32(hit.Score)
+				var locs []string
+				for field, _ := range hit.Locations {
+					locs = append(locs, field)
+				}
+				slices.Sort(locs)
+				v.MatchLocations = locs
 				return true
 			}
-			del := true
-			for i, v := range e.Versions {
-				for _, hv := range sr.Hits {
-					parts := strings.Split(hv.ID, ":")
-					if v.TMID == parts[0] {
-						del = false
-						e.Versions[i].SearchScore = float32(hv.Score)
-					}
-				}
-			}
-			return del
+			return false
 		}
-		return del, nil
+		return matcher, nil
 	}
 }
 

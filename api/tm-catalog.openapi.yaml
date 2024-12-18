@@ -1145,6 +1145,14 @@ components:
           example:
             - "https"
             - "modbus+tcp"
+        score:
+          type: number
+          description: search score
+        matches:
+          type: array
+          description: locations where the search terms matched
+          items:
+            type: string
     InventoryEntryLinks:
       type: object
       required:
