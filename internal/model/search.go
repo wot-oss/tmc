@@ -99,21 +99,16 @@ func mergeFoundEntries(e1, e2 []FoundEntry) []FoundEntry {
 	return e1
 }
 
-type SearchParams struct {
+type Filters struct {
 	Author       []string
 	Manufacturer []string
 	Mpn          []string
 	Protocol     []string
 	Name         string
-	Query        string
-	Options      SearchOptions
+	Options      FilterOptions
 }
 
-func (p *SearchParams) SetIndexPath(indexPath string) {
-	p.Options.indexPath = indexPath
-}
-
-func (p *SearchParams) Sanitize() {
+func (p *Filters) Sanitize() {
 	p.Author = sanitizeList(p.Author)
 	p.Manufacturer = sanitizeList(p.Manufacturer)
 	p.Mpn = sanitizeList(p.Mpn)
@@ -121,39 +116,36 @@ func (p *SearchParams) Sanitize() {
 
 type FilterType byte
 
-type SearchOptions struct {
-	// NameFilterType specifies whether SearchParams.Name must match a prefix or the full length of a TM name
+type FilterOptions struct {
+	// NameFilterType specifies whether Filters.Name must match a prefix or the full length of a TM name
 	// Note that using FullMatch effectively limits the search result to at most one FoundEntry
 	NameFilterType FilterType
-	// UseBleve indicates that the search query uses bleve query syntax
-	UseBleve bool
-
-	indexPath string
 }
 
-func (sr *SearchResult) Filter(search *SearchParams) error {
-	if search == nil {
+// Filter deletes all entries from this SearchResult that don't match the filters
+func (sr *SearchResult) Filter(filters *Filters) error {
+	if filters == nil {
 		return nil
 	}
-	search.Sanitize()
+	filters.Sanitize()
 	exclude := func(entry FoundEntry) bool {
-		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
+		if !matchesNameFilter(filters.Name, entry.Name, filters.Options) {
 			return true
 		}
 
-		if !matchesFilter(search.Author, entry.Author.Name) {
+		if !matchesFilter(filters.Author, entry.Author.Name) {
 			return true
 		}
 
-		if !matchesFilter(search.Manufacturer, entry.Manufacturer.Name) {
+		if !matchesFilter(filters.Manufacturer, entry.Manufacturer.Name) {
 			return true
 		}
 
-		if !matchesFilter(search.Mpn, entry.Mpn) {
+		if !matchesFilter(filters.Mpn, entry.Mpn) {
 			return true
 		}
 
-		if !matchesProtocolFilter(search.Protocol, entry) {
+		if !matchesProtocolFilter(filters.Protocol, entry) {
 			return true
 		}
 
@@ -162,11 +154,16 @@ func (sr *SearchResult) Filter(search *SearchParams) error {
 	sr.Entries = slices.DeleteFunc(sr.Entries, func(entry FoundEntry) bool {
 		return exclude(entry)
 	})
-	if len(sr.Entries) == 0 {
+	return nil
+}
+
+// TextSearch deletes all entries from this SearchResult that don't match the search query. The entries that remain
+// are extended with information on matches' locations.
+func (sr *SearchResult) TextSearch(query, indexPath string) error {
+	if query == "" {
 		return nil
 	}
-
-	del, err := getSearchExclusionFunction(search, search.Options.indexPath)
+	del, err := excludeByContentSearch(query, indexPath)
 	if err != nil {
 		return err
 	}
@@ -174,44 +171,6 @@ func (sr *SearchResult) Filter(search *SearchParams) error {
 		sr.Entries = slices.DeleteFunc(sr.Entries, del)
 	}
 	return nil
-}
-
-func getSearchExclusionFunction(search *SearchParams, indexPath string) (func(e FoundEntry) bool, error) {
-	if search.Query == "" {
-		return nil, nil
-	}
-	if search.Options.UseBleve {
-		return excludeByContentSearch(search.Query, indexPath)
-	} else {
-		return excludeBySimpleContentSearch(search.Query)
-	}
-}
-
-func excludeBySimpleContentSearch(searchQuery string) (func(e FoundEntry) bool, error) {
-	return func(e FoundEntry) bool {
-		searchQuery = utils.ToTrimmedLower(searchQuery)
-		if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
-			return false
-		}
-		if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
-			return false
-		}
-		if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
-			return false
-		}
-		if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
-			return false
-		}
-		for _, version := range e.Versions {
-			if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
-				return false
-			}
-			if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
-				return false
-			}
-		}
-		return true
-	}, nil
 }
 
 func excludeByContentSearch(query, indexPath string) (func(e FoundEntry) bool, error) {
@@ -224,14 +183,13 @@ func excludeByContentSearch(query, indexPath string) (func(e FoundEntry) bool, e
 		return nil, fmt.Errorf("couldn't open bleve index: %w", errOpen)
 	} else {
 		defer bleveIdx.Close()
-		query := bleve.NewQueryStringQuery(query)
-		req := bleve.NewSearchRequestOptions(query, 100000, 0, true)
+		q := bleve.NewQueryStringQuery(query)
+		req := bleve.NewSearchRequestOptions(q, 100000, 0, true)
 		sr, err := bleveIdx.Search(req)
 
 		if err != nil {
 			return nil, fmt.Errorf("error in content search: %w", err)
 		}
-
 		del := func(e FoundEntry) bool {
 			if sr.Hits.Len() == 0 {
 				return true
@@ -266,7 +224,7 @@ func matchesProtocolFilter(protos []string, entry FoundEntry) bool {
 	return false
 }
 
-func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
+func matchesNameFilter(acceptedValue string, value string, options FilterOptions) bool {
 	if len(acceptedValue) == 0 {
 		return true
 	}
@@ -294,11 +252,11 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-func ToSearchParams(author, manufacturer, mpn, protocol, name, query *string, opts *SearchOptions) *SearchParams {
-	var search *SearchParams
+func ToFilters(author, manufacturer, mpn, protocol, name *string, opts *FilterOptions) *Filters {
+	var search *Filters
 	isSet := func(s *string) bool { return s != nil && *s != "" }
-	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(protocol) || isSet(name) || isSet(query) {
-		search = &SearchParams{}
+	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(protocol) || isSet(name) {
+		search = &Filters{}
 		if isSet(author) {
 			search.Author = strings.Split(*author, DefaultListSeparator)
 		}
@@ -310,9 +268,6 @@ func ToSearchParams(author, manufacturer, mpn, protocol, name, query *string, op
 		}
 		if isSet(protocol) {
 			search.Protocol = strings.Split(*protocol, DefaultListSeparator)
-		}
-		if isSet(query) {
-			search.Query = *query
 		}
 		if isSet(name) {
 			search.Name = *name

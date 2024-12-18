@@ -14,33 +14,7 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func TestUnion_List_WithSearch(t *testing.T) {
-	t.Run("simple search", func(t *testing.T) {
-		tempDir, _ := os.MkdirTemp("", "tmc-export")
-		defer os.RemoveAll(tempDir)
-		old := config.ConfigDir
-		config.ConfigDir = filepath.Join(tempDir, "config")
-		defer func() { config.ConfigDir = old }()
-		repoRoot := filepath.Join(tempDir, "repo")
-		r := &FileRepo{
-			root: repoRoot,
-			spec: model.NewRepoSpec("repo"),
-		}
-		u := NewUnion(r)
-		err := testutils.CopyDir("../../test/data/repos/file/attachments", repoRoot)
-		assert.NoError(t, err)
-
-		sp := &model.SearchParams{
-			Query: "query",
-		}
-		lu := time.Date(2024, 5, 3, 15, 20, 26, 0, time.UTC)
-
-		res, errs := u.List(context.Background(), sp)
-
-		assert.Empty(t, errs)
-		assert.Equal(t, lu, res.LastUpdated)
-		assert.Len(t, res.Entries, 0)
-	})
+func TestUnion_Search(t *testing.T) {
 	t.Run("no bleve index", func(t *testing.T) {
 		tempDir, _ := os.MkdirTemp("", "tmc-export")
 		defer os.RemoveAll(tempDir)
@@ -56,14 +30,7 @@ func TestUnion_List_WithSearch(t *testing.T) {
 		err := testutils.CopyDir("../../test/data/repos/file/attachments", repoRoot)
 		assert.NoError(t, err)
 
-		sp := &model.SearchParams{
-			Query: "query",
-			Options: model.SearchOptions{
-				UseBleve: true,
-			},
-		}
-
-		_, errs := u.List(context.Background(), sp)
+		_, errs := u.Search(context.Background(), "query")
 		if assert.Len(t, errs, 1) {
 			assert.ErrorIs(t, errs[0], model.ErrSearchIndexNotFound)
 		}
@@ -88,26 +55,12 @@ func TestUnion_List_WithSearch(t *testing.T) {
 		assert.NoError(t, err)
 
 		t.Run("with no match", func(t *testing.T) {
-			sp := &model.SearchParams{
-				Query: "query",
-				Options: model.SearchOptions{
-					UseBleve: true,
-				},
-			}
-
-			res, errs := u.List(context.Background(), sp)
+			res, errs := u.Search(context.Background(), "query")
 			assert.Len(t, errs, 0)
 			assert.Len(t, res.Entries, 0)
 		})
 		t.Run("with match", func(t *testing.T) {
-			sp := &model.SearchParams{
-				Query: "\"Lamp reaches a critical temperature\"",
-				Options: model.SearchOptions{
-					UseBleve: true,
-				},
-			}
-
-			res, errs := u.List(context.Background(), sp)
+			res, errs := u.Search(context.Background(), "\"Lamp reaches a critical temperature\"")
 			assert.Len(t, errs, 0)
 			assert.Len(t, res.Entries, 1)
 		})
@@ -136,14 +89,7 @@ func TestUnion_List_WithSearch(t *testing.T) {
 			filepath.Join(indexPath, "updated"),
 			defaultFilePermissions)
 
-		sp := &model.SearchParams{
-			Query: "\"Lamp reaches a critical temperature\"",
-			Options: model.SearchOptions{
-				UseBleve: true,
-			},
-		}
-
-		res, errs := u.List(context.Background(), sp)
+		res, errs := u.Search(context.Background(), "\"Lamp reaches a critical temperature\"")
 		assert.Len(t, errs, 0)
 		assert.Len(t, res.Entries, 1)
 

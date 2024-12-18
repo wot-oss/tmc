@@ -242,11 +242,6 @@ type GetAuthorsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
-
-	// Search Filters the authors according to whether they have inventory entries
-	// where their content matches the given search.
-	// The search works additive to other filters.
-	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetInventoryParams defines parameters for GetInventory.
@@ -274,8 +269,8 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
 
-	// Search Filters the inventory according to whether the content of the inventory entries matches the given search.
-	// The search works additive to other filters.
+	// Search Searches the inventory for TMs that match the search query. Accepts queries in bleve search engine syntax.
+	// Is mutually exclusive with filters.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
@@ -312,11 +307,6 @@ type GetManufacturersParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
-
-	// Search Filters the manufacturers according to whether they have inventory entries
-	// where their content matches the given search.
-	// The search works additive to other filters.
-	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetMpnsParams defines parameters for GetMpns.
@@ -333,10 +323,6 @@ type GetMpnsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
-
-	// Search Filters the mpns according to whether their inventory entry content matches the given search.
-	// The search works additive to other filters.
-	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // ImportThingModelJSONBody defines parameters for ImportThingModel.

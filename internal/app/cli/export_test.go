@@ -135,7 +135,7 @@ func TestExport(t *testing.T) {
 		tmContent3 := []byte("some TM content 3")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		r.On("List", mock.Anything, sp).Return(exportListRes, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
@@ -176,7 +176,7 @@ func TestExport(t *testing.T) {
 		tmContent3 := []byte("some TM content 3")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		r.On("List", mock.Anything, sp).Return(exportListRes, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
@@ -271,7 +271,7 @@ func TestExport(t *testing.T) {
 		})
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 
-		var sp *model.SearchParams
+		var sp *model.Filters
 
 		// and given: repo 1 returns a ThingModel that can be fetched
 		tmID := exportSingleListRes.Entries[0].Versions[0].TMID
@@ -314,7 +314,7 @@ func TestExport(t *testing.T) {
 
 		tmID := exportSingleListRes.Entries[0].Versions[0].TMID
 		tmContent := []byte("some TM content 1")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		r.On("Spec").Return(repoSpec).Once()
 		r.On("List", mock.Anything, sp).Return(exportSingleListRes, nil).Once()
 
@@ -340,7 +340,7 @@ func TestExport(t *testing.T) {
 
 		tmID := exportSingleListRes.Entries[0].Versions[0].TMID
 		tmContent := []byte("some TM content 1")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		r.On("List", mock.Anything, sp).Return(exportSingleListRes, nil).Once()
 		r.On("Fetch", mock.Anything, tmID).Return(tmID, tmContent, nil).Once()
 

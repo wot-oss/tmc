@@ -121,7 +121,7 @@ type Repo interface {
 	// CheckIntegrity checks the internal resources for integrity and consistency
 	CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error)
 	// List searches the catalog for TMs matching search parameters
-	List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error)
+	List(ctx context.Context, search *model.Filters) (model.SearchResult, error)
 	// Versions lists versions of a TM with given name
 	Versions(ctx context.Context, name string) ([]model.FoundVersion, error)
 	// Spec returns the spec this Repo has been created from

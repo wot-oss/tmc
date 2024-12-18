@@ -112,7 +112,7 @@ func TestTmcRepo_List(t *testing.T) {
 		name   string
 		body   []byte
 		status int
-		search *model.SearchParams
+		search *model.Filters
 		expUrl string
 		expErr string
 		expRes int
@@ -150,29 +150,28 @@ func TestTmcRepo_List(t *testing.T) {
 			name:   "encodes search params",
 			body:   inventory,
 			status: http.StatusOK,
-			search: &model.SearchParams{
+			search: &model.Filters{
 				Author:       []string{"author1", "author2"},
 				Manufacturer: []string{"manuf1", "man&uf2"},
 				Mpn:          []string{"mpn"},
+				Protocol:     []string{"http,https"},
 				Name:         "autho",
-				Query:        "some string",
-				Options:      model.SearchOptions{NameFilterType: model.PrefixMatch},
+				Options:      model.FilterOptions{NameFilterType: model.PrefixMatch},
 			},
-			expUrl: "/inventory?filter.name=autho&filter.author=author1%2Cauthor2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&search=some+string&repo=child",
+			expUrl: "/inventory?filter.name=autho&filter.author=author1%2Cauthor2&filter.manufacturer=manuf1%2Cman%26uf2&filter.mpn=mpn&filter.protocol=http%2Chttps&repo=child",
 			expErr: "",
 			expRes: 3,
 		},
 		{
-			name:   "ignores search params with name and full match",
+			name:   "ignores filter params with name and full match",
 			body:   inventorySingle,
 			status: http.StatusOK,
-			search: &model.SearchParams{
+			search: &model.Filters{
 				Author:       []string{"author1", "author2"},
 				Manufacturer: []string{"manuf1", "man&uf2"},
 				Mpn:          []string{"mpn"},
 				Name:         "author/corp/mpn",
-				Query:        "some string",
-				Options:      model.SearchOptions{NameFilterType: model.FullMatch},
+				Options:      model.FilterOptions{NameFilterType: model.FullMatch},
 			},
 			expUrl: "/inventory/.tmName/author%2Fcorp%2Fmpn?repo=child",
 			expErr: "",
@@ -182,7 +181,7 @@ func TestTmcRepo_List(t *testing.T) {
 			name:   "retrieves single TM name entry",
 			body:   inventorySingle,
 			status: http.StatusOK,
-			search: &model.SearchParams{
+			search: &model.Filters{
 				Name: "author/omnicorp/senseall",
 			},
 			expUrl: "/inventory/.tmName/author%2Fomnicorp%2Fsenseall?repo=child",

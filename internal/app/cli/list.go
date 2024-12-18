@@ -12,7 +12,7 @@ import (
 	"github.com/wot-oss/tmc/internal/model"
 )
 
-func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams, format string) error {
+func List(ctx context.Context, repo model.RepoSpec, search *model.Filters, format string) error {
 	if !IsValidOutputFormat(format) {
 		Stderrf("%v", ErrInvalidOutputFormat)
 		return ErrInvalidOutputFormat

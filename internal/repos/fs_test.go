@@ -219,7 +219,7 @@ func TestFileRepo_List(t *testing.T) {
 		spec: model.NewRepoSpec("fr"),
 	}
 	testutils.CopyFile("../../test/data/list/tm-catalog.toc.json", r.indexFilename())
-	list, err := r.List(context.Background(), &model.SearchParams{})
+	list, err := r.List(context.Background(), &model.Filters{})
 	assert.NoError(t, err)
 	assert.Len(t, list.Entries, 3)
 }

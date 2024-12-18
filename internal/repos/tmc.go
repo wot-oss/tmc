@@ -334,7 +334,7 @@ func (t *TmcRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilte
 	return nil, nil
 }
 
-func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
+func (t *TmcRepo) List(ctx context.Context, search *model.Filters) (model.SearchResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory")
 	t.addRepoParam(reqUrl)
 
@@ -399,14 +399,9 @@ func tmcLinksMapper(links server.InventoryEntryVersion) map[string]string {
 	}
 }
 
-func addSearchParams(u *url.URL, search *model.SearchParams) {
+func addSearchParams(u *url.URL, search *model.Filters) {
 	if search == nil {
 		return
-	}
-	if search.Query != "" {
-		vals := u.Query()
-		vals.Set("search", search.Query)
-		u.RawQuery = vals.Encode()
 	}
 	if search.Name != "" {
 		vals := u.Query()
@@ -416,6 +411,7 @@ func addSearchParams(u *url.URL, search *model.SearchParams) {
 	appendQueryArray(u, "filter.author", search.Author)
 	appendQueryArray(u, "filter.manufacturer", search.Manufacturer)
 	appendQueryArray(u, "filter.mpn", search.Mpn)
+	appendQueryArray(u, "filter.protocol", search.Protocol)
 }
 
 func appendQueryArray(u *url.URL, key string, values []string) {

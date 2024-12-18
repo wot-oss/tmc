@@ -312,7 +312,7 @@ func (f *FileRepo) Spec() model.RepoSpec {
 	return f.spec
 }
 
-func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
+func (f *FileRepo) List(ctx context.Context, search *model.Filters) (model.SearchResult, error) {
 	err := f.checkRootValid()
 	if err != nil {
 		return model.SearchResult{}, err
@@ -362,7 +362,7 @@ func (f *FileRepo) indexFilename() string {
 
 func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	name = strings.TrimSpace(name)
-	res, err := f.List(ctx, &model.SearchParams{Name: name})
+	res, err := f.List(ctx, &model.Filters{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -1181,7 +1181,7 @@ func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]str
 			}
 			return attNames, nil
 		}
-		sp := &model.SearchParams{Name: args[0]}
+		sp := &model.Filters{Name: args[0]}
 		sr, err := f.List(ctx, sp)
 		if err != nil {
 			return nil, err

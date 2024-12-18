@@ -93,9 +93,9 @@ func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []
 	return res.id, res.b, nil, nil
 }
 
-func (u *Union) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, []*RepoAccessError) {
+func (u *Union) Search(ctx context.Context, query string) (model.SearchResult, []*RepoAccessError) {
 	mapper := func(r Repo) mapResult[*model.SearchResult] {
-		searchResult, err := listRepoWithDeepSearch(ctx, r, search)
+		searchResult, err := searchRepoWithBleve(ctx, r, query)
 		return mapResult[*model.SearchResult]{res: &searchResult, err: newRepoAccessError(r, err)}
 	}
 
@@ -109,9 +109,25 @@ func (u *Union) List(ctx context.Context, search *model.SearchParams) (model.Sea
 	return *r, errs
 }
 
-func listRepoWithDeepSearch(ctx context.Context, r Repo, search *model.SearchParams) (model.SearchResult, error) {
-	if search == nil || search.Query == "" || !search.Options.UseBleve {
-		return r.List(ctx, search)
+func (u *Union) List(ctx context.Context, search *model.Filters) (model.SearchResult, []*RepoAccessError) {
+	mapper := func(r Repo) mapResult[*model.SearchResult] {
+		searchResult, err := r.List(ctx, search)
+		return mapResult[*model.SearchResult]{res: &searchResult, err: newRepoAccessError(r, err)}
+	}
+
+	reducer := func(t1, t2 *model.SearchResult) *model.SearchResult {
+		t1.Merge(t2)
+		return t1
+	}
+
+	results := mapConcurrent(ctx, u.rs, mapper)
+	r, errs := reduce(results, &model.SearchResult{}, reducer)
+	return *r, errs
+}
+
+func searchRepoWithBleve(ctx context.Context, r Repo, query string) (model.SearchResult, error) {
+	if query == "" {
+		return r.List(ctx, nil)
 	}
 
 	// check local index exists
@@ -120,38 +136,39 @@ func listRepoWithDeepSearch(ctx context.Context, r Repo, search *model.SearchPar
 	if os.IsNotExist(err) {
 		return model.SearchResult{}, model.ErrSearchIndexNotFound
 	}
-	// list without text query
-	query := search.Query
-	search.Query = ""
-	search.Options.UseBleve = false
-	searchResult, err := r.List(ctx, search)
+	// list all
+	searchResult, err := r.List(ctx, nil)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	// update index if out of date
-	lines, err := utils.ReadFileLines(filepath.Join(indexPath, "updated"))
+	err = updateBleveIndexIfOutdated(ctx, r, indexPath, searchResult.LastUpdated)
 	if err != nil {
-		lines = []string{""}
-	}
-	indexedTime, _ := time.Parse(time.RFC3339, lines[0])
-	if indexedTime.Before(searchResult.LastUpdated) {
-		err := UpdateRepoIndex(ctx, r)
-		if err != nil {
-			return model.SearchResult{}, err
-		}
+		return model.SearchResult{}, err
 	}
 
 	// refine the result with bleve
 	filtered := &searchResult
-	search.Query = query
-	search.Options.UseBleve = true
-	search.SetIndexPath(indexPath)
-	err = filtered.Filter(search)
+	err = filtered.TextSearch(query, indexPath)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
 
 	return *filtered, err
+}
+
+func updateBleveIndexIfOutdated(ctx context.Context, r Repo, indexPath string, lastUpdated time.Time) error {
+	lines, err := utils.ReadFileLines(filepath.Join(indexPath, "updated"))
+	if err != nil {
+		lines = []string{""}
+	}
+	indexedTime, _ := time.Parse(time.RFC3339, lines[0])
+	if indexedTime.Before(lastUpdated) {
+		err := UpdateRepoIndex(ctx, r)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (u *Union) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundVersion, []*RepoAccessError) {
