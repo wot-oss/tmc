@@ -324,7 +324,7 @@ func TestHttpRepo_ListByName(t *testing.T) {
 	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
 
-	res, err := r.List(context.Background(), &model.SearchParams{Name: tmName})
+	res, err := r.List(context.Background(), &model.Filters{Name: tmName})
 	assert.NoError(t, err)
 	if assert.Len(t, res.Entries, 1) {
 		if assert.Len(t, res.Entries[0].Attachments, 1) {

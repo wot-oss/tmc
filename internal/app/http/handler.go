@@ -11,6 +11,7 @@ import (
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 type TmcHandler struct {
@@ -33,10 +34,26 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 
-	searchParams := convertParams(params)
+	filters := convertParams(params)
+	var search string
+	if params.Search != nil {
+		search = *params.Search
+	}
 	repo := convertRepoName(params.Repo)
 
-	inv, err := h.Service.ListInventory(r.Context(), repo, searchParams)
+	if filters != nil && search != "" {
+		HandleErrorResponse(w, r, fmt.Errorf("%w: filters and search are mutually exclusive", ErrIncompatibleParameters))
+		return
+	}
+
+	var inv *model.SearchResult
+	var err error
+	if search != "" {
+		inv, err = h.Service.SearchInventory(r.Context(), repo, search)
+	} else {
+		utils.GetLogger(r.Context(), "handler").Info(fmt.Sprintf("filters %v", filters))
+		inv, err = h.Service.ListInventory(r.Context(), repo, filters)
+	}
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)

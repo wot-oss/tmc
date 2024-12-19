@@ -163,7 +163,7 @@ func Test_ListInventory(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
-		searchParams := &model.SearchParams{Author: []string{"a-corp", "b-corp"}}
+		searchParams := &model.Filters{Author: []string{"a-corp", "b-corp"}}
 		r.On("List", mock.Anything, searchParams).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
@@ -178,7 +178,7 @@ func Test_ListInventory(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
 		r2 := mocks.NewRepo(t)
-		var sp *model.SearchParams
+		var sp *model.Filters
 		r.On("List", mock.Anything, sp).Return(listResult, nil).Once()
 		r2.On("List", mock.Anything, sp).Return(model.SearchResult{}, errors.New("unexpected")).Once()
 		r2.On("Spec").Return(model.NewRepoSpec("r2")).Once()
@@ -219,7 +219,7 @@ func Test_FindInventoryEntry(t *testing.T) {
 		inventoryName := "a/b/c"
 		// given: repo returns empty search result
 		r := mocks.NewRepo(t)
-		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{}, nil).Once()
+		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{}, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 		// when: finding entry
@@ -259,12 +259,12 @@ func Test_ListAuthors(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo returning the inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
+		r.On("List", mock.Anything, &model.Filters{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 
 		// when: list all authors
-		res, err := underTest.ListAuthors(context.Background(), &model.SearchParams{})
+		res, err := underTest.ListAuthors(context.Background(), &model.Filters{})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is sorted asc by name
@@ -302,12 +302,12 @@ func Test_ListManufacturers(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo returning the inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
+		r.On("List", mock.Anything, &model.Filters{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 
 		// when: list all manufacturers
-		res, err := underTest.ListManufacturers(context.Background(), &model.SearchParams{})
+		res, err := underTest.ListManufacturers(context.Background(), &model.Filters{})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is sorted asc by name
@@ -345,12 +345,12 @@ func Test_ListMpns(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo returning the inventory entries
 		r := mocks.NewRepo(t)
-		r.On("List", mock.Anything, &model.SearchParams{}).Return(listResult, nil).Once()
+		r.On("List", mock.Anything, &model.Filters{}).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 
 		// when: list all
-		res, err := underTest.ListMpns(context.Background(), &model.SearchParams{})
+		res, err := underTest.ListMpns(context.Background(), &model.Filters{})
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the result is sorted asc by name
@@ -655,7 +655,7 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV2), attName).Return(attContent3, nil).Once()
-		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name: "a/b/c",
@@ -710,7 +710,7 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil, model.ErrAttachmentNotFound).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV2), attName).Return(attContent3, nil).Once()
-		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name: "a/b/c",
@@ -762,7 +762,7 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 		r := mocks.NewRepo(t)
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
-		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name: "a/b/c",
@@ -806,7 +806,7 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 		// given: repo with a README.md attachment on TM name but none of two TM IDs
 		r := mocks.NewRepo(t)
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
-		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name: "a/b/c",
@@ -849,7 +849,7 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 		// given: repo with no README.md attachment on TM name nor any of the TM IDs
 		r := mocks.NewRepo(t)
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil, model.ErrAttachmentNotFound).Once()
-		r.On("List", mock.Anything, &model.SearchParams{Name: inventoryName}).Return(model.SearchResult{
+		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
 				{
 					Name: "a/b/c",

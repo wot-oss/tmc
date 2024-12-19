@@ -101,15 +101,21 @@ type InventoryEntryVersion struct {
 	Digest      string                      `json:"digest"`
 	ExternalID  string                      `json:"externalID"`
 	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
-	Protocols   *[]string                   `json:"protocols,omitempty"`
+
+	// Matches locations where the search terms matched
+	Matches   *[]string `json:"matches,omitempty"`
+	Protocols *[]string `json:"protocols,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
 	// May be left empty when there is only a single repository served by the backend and thus there is not need for
 	// disambiguation. See also '/repos'
-	Repo      *SourceRepository `json:"repo,omitempty"`
-	Timestamp string            `json:"timestamp"`
-	TmID      string            `json:"tmID"`
-	Version   ModelVersion      `json:"version"`
+	Repo *SourceRepository `json:"repo,omitempty"`
+
+	// Score search score
+	Score     *float32     `json:"score,omitempty"`
+	Timestamp string       `json:"timestamp"`
+	TmID      string       `json:"tmID"`
+	Version   ModelVersion `json:"version"`
 }
 
 // InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.
@@ -141,7 +147,9 @@ type ManufacturersResponse struct {
 
 // Meta defines model for Meta.
 type Meta struct {
-	Page *MetaPage `json:"page,omitempty"`
+	// LastUpdated RFC3339 timestamp
+	LastUpdated string    `json:"lastUpdated"`
+	Page        *MetaPage `json:"page,omitempty"`
 }
 
 // MetaPage defines model for MetaPage.
@@ -240,11 +248,6 @@ type GetAuthorsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
-
-	// Search Filters the authors according to whether they have inventory entries
-	// where their content matches the given search.
-	// The search works additive to other filters.
-	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetInventoryParams defines parameters for GetInventory.
@@ -272,8 +275,8 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
 
-	// Search Filters the inventory according to whether the content of the inventory entries matches the given search.
-	// The search works additive to other filters.
+	// Search Searches the inventory for TMs that match the search query. Accepts queries in bleve search engine syntax.
+	// Is mutually exclusive with filters.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
@@ -310,11 +313,6 @@ type GetManufacturersParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
-
-	// Search Filters the manufacturers according to whether they have inventory entries
-	// where their content matches the given search.
-	// The search works additive to other filters.
-	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // GetMpnsParams defines parameters for GetMpns.
@@ -331,10 +329,6 @@ type GetMpnsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
-
-	// Search Filters the mpns according to whether their inventory entry content matches the given search.
-	// The search works additive to other filters.
-	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
 // ImportThingModelJSONBody defines parameters for ImportThingModel.

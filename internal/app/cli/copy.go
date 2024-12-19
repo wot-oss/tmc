@@ -11,7 +11,7 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, search *model.SearchParams, opts repos.ImportOptions, format string) error {
+func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, search *model.Filters, opts repos.ImportOptions, format string) error {
 	if !IsValidOutputFormat(format) {
 		Stderrf("%v", ErrInvalidOutputFormat)
 		return ErrInvalidOutputFormat

@@ -84,7 +84,7 @@ func TestListVersions(t *testing.T) {
 		var actual any
 		err = json.Unmarshal([]byte(stdout), &actual)
 		assert.NoError(t, err)
-		expected := []any{map[string]any{"description": "desc version v1.0.0", "id": "b-corp/frog/bt3000/v1.0.0-20240108140117-743d1b462uuu.tm.json", "name": "b-corp/frog/bt3000", "repo": "r1", "version": "1.0.0"}}
+		expected := []any{map[string]any{"description": "desc version v1.0.0", "id": "b-corp/frog/bt3000/v1.0.0-20240108140117-743d1b462uuu.tm.json", "repo": "r1", "version": "1.0.0"}}
 		assert.Equal(t, expected, actual)
 		// and then: stderr has no outputs
 		assert.Equal(t, "", stderr)

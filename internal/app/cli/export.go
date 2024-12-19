@@ -12,7 +12,7 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func Export(ctx context.Context, repo model.RepoSpec, search *model.SearchParams, outputPath string, restoreId bool, withAttachments bool, format string) error {
+func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, outputPath string, restoreId bool, withAttachments bool, format string) error {
 	if !IsValidOutputFormat(format) {
 		Stderrf("%v", ErrInvalidOutputFormat)
 		return ErrInvalidOutputFormat

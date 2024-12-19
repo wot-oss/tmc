@@ -40,7 +40,7 @@ func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId, format
 	case model.AttachmentContainerKindTMName:
 		var res model.SearchResult
 		var errs []*repos.RepoAccessError
-		res, err, errs = commands.List(ctx, spec, &model.SearchParams{Name: tmNameOrId})
+		res, err, errs = commands.List(ctx, spec, &model.Filters{Name: tmNameOrId})
 		defer printErrs("Errors occurred while listing:", errs)
 		for _, m := range res.Entries {
 			for _, a := range m.Attachments {

@@ -25,6 +25,10 @@ type HttpRepo struct {
 	templatedQuery bool
 }
 
+func (h *HttpRepo) CanonicalRoot() string {
+	return h.root
+}
+
 func NewHttpRepo(config map[string]any, spec model.RepoSpec) (*HttpRepo, error) {
 	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {
@@ -83,16 +87,18 @@ func (h *HttpRepo) Spec() model.RepoSpec {
 	return h.spec
 }
 
-func (h *HttpRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
+func (h *HttpRepo) List(ctx context.Context, search *model.Filters) (model.SearchResult, error) {
 	idx, err := h.getIndex(ctx)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	err = idx.Filter(search)
+	sr := model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx)
+	filtered := &sr
+	err = filtered.Filter(search)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	return model.NewIndexToFoundMapper(h.Spec().ToFoundSource()).ToSearchResult(*idx), nil
+	return *filtered, err
 }
 
 func (h *HttpRepo) getIndex(ctx context.Context) (*model.Index, error) {
@@ -121,7 +127,7 @@ func (h *HttpRepo) Versions(ctx context.Context, name string) ([]model.FoundVers
 		return nil, errors.New("cannot list versions for empty TM name")
 	}
 	name = strings.TrimSpace(name)
-	idx, err := h.List(ctx, &model.SearchParams{Name: name})
+	idx, err := h.List(ctx, &model.Filters{Name: name})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", name, model.ErrTMNameNotFound)
 	}
@@ -172,8 +178,8 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []stri
 	switch kind {
 	case CompletionKindNames:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, nil, &namePrefix, nil,
-			&model.SearchOptions{NameFilterType: model.PrefixMatch}))
+		sr, err := h.List(ctx, model.ToFilters(nil, nil, nil, nil, &namePrefix,
+			&model.FilterOptions{NameFilterType: model.PrefixMatch}))
 		if err != nil {
 			return nil, err
 		}
@@ -200,8 +206,8 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []stri
 		return vs, nil
 	case CompletionKindNamesOrIds:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(ctx, model.ToSearchParams(nil, nil, nil, nil, &namePrefix, nil,
-			&model.SearchOptions{NameFilterType: model.PrefixMatch}))
+		sr, err := h.List(ctx, model.ToFilters(nil, nil, nil, nil, &namePrefix,
+			&model.FilterOptions{NameFilterType: model.PrefixMatch}))
 		if err != nil {
 			return nil, err
 		}

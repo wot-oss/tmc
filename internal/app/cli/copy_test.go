@@ -124,7 +124,7 @@ func TestCopy(t *testing.T) {
 		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copyListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
@@ -168,7 +168,7 @@ func TestCopy(t *testing.T) {
 		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copyListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
@@ -209,7 +209,7 @@ func TestCopy(t *testing.T) {
 		_, tmContent3, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v3.11.1-20240409155220-da7dbd7ed830.tm.json")
 		readmeContent := []byte("# Read This First")
 		changelogContent := []byte("# CHANGELOG")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copyListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
@@ -259,7 +259,7 @@ func TestCopy(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec}, []repos.Repo{source, target}, []error{nil, nil}))
 
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, nil, model.ErrTMNotFound).Once()
 
@@ -281,7 +281,7 @@ func TestCopy(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunctionFromList(t, []model.RepoSpec{sourceSpec, targetSpec}, []repos.Repo{source, target}, []error{nil, nil}))
 
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, nil, model.ErrTMNotFound).Once()
 
@@ -310,7 +310,7 @@ func TestCopy(t *testing.T) {
 
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
 		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(nil, model.ErrAttachmentNotFound).Once()
@@ -336,7 +336,7 @@ func TestCopy(t *testing.T) {
 
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
 		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
 		res, resErr := repos.ImportResultFromError(repos.ErrNotSupported)
@@ -362,7 +362,7 @@ func TestCopy(t *testing.T) {
 		tmid := copySingleListRes.Entries[0].Versions[0].TMID
 		_, tmContent1, _ := utils.ReadRequiredFile("../../../test/data/copy/omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-80424c65e4e6.tm.json")
 		readmeContent := []byte("# Read This First")
-		var sp *model.SearchParams
+		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(readmeContent, nil).Once()

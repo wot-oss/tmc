@@ -52,7 +52,7 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 		return att, err
 	}
 
-	searchResult, err := repo.List(ctx, &model.SearchParams{Name: ref.TMName})
+	searchResult, err := repo.List(ctx, &model.Filters{Name: ref.TMName})
 	if err != nil {
 		return att, err
 	}

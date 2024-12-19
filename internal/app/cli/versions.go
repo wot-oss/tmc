@@ -26,10 +26,10 @@ func ListVersions(ctx context.Context, spec model.RepoSpec, name, format string)
 	}
 	switch format {
 	case OutputFormatJSON:
-		res := toVersionResults(name, indexVersions)
+		res := toVersionResults(indexVersions)
 		printJSON(res)
 	case OutputFormatPlain:
-		printIndexThing(name, indexVersions)
+		printFoundVersions(indexVersions)
 	}
 
 	printErrs("Errors occurred while listing versions:", errs)
@@ -37,18 +37,16 @@ func ListVersions(ctx context.Context, spec model.RepoSpec, name, format string)
 }
 
 type VersionResultEntry struct {
-	Name        string `json:"name"`
 	Version     string `json:"version"`
 	Description string `json:"description,omitempty"`
 	Repo        string `json:"repo"`
 	ID          string `json:"id"`
 }
 
-func toVersionResults(name string, vers []model.FoundVersion) []VersionResultEntry {
+func toVersionResults(vers []model.FoundVersion) []VersionResultEntry {
 	var r []VersionResultEntry
 	for _, e := range vers {
 		r = append(r, VersionResultEntry{
-			Name:        name,
 			Version:     e.Version.Model,
 			Description: e.Description,
 			Repo:        e.FoundIn.String(),
@@ -59,13 +57,13 @@ func toVersionResults(name string, vers []model.FoundVersion) []VersionResultEnt
 
 }
 
-func printIndexThing(name string, versions []model.FoundVersion) {
+func printFoundVersions(versions []model.FoundVersion) {
 	//	colWidth := columnWidth()
 	table := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 
-	_, _ = fmt.Fprintf(table, "NAME\tVERSION\tDESCRIPTION\tREPO\tID\n")
+	_, _ = fmt.Fprintf(table, "VERSION\tID\tREPO\tDESCRIPTION\n")
 	for _, v := range versions {
-		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\n", name, v.Version.Model, v.Description, v.FoundIn, v.Links["content"])
+		_, _ = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n", v.Version.Model, v.TMID, v.FoundIn, v.Description)
 	}
 	_ = table.Flush()
 }
