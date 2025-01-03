@@ -15,7 +15,12 @@ import (
 )
 
 type Union struct {
-	rs []Repo
+	rs            []Repo
+	searchMatcher SearchMatcher
+}
+
+type SearchMatcher interface {
+	SearchRepo(ctx context.Context, r Repo, query string) (model.SearchResult, error)
 }
 
 type mapResult[T any] struct {
@@ -54,6 +59,12 @@ func NewUnion(rs ...Repo) *Union {
 	return &Union{
 		rs: rs,
 	}
+}
+
+// SetSearchMatcher overrides the default search matcher, which uses bleve indexes in the config dir
+// It is indended for use in testing
+func (u *Union) SetSearchMatcher(searchMatcher SearchMatcher) {
+	u.searchMatcher = searchMatcher
 }
 
 func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []*RepoAccessError) {
@@ -95,7 +106,10 @@ func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []
 
 func (u *Union) Search(ctx context.Context, query string) (model.SearchResult, []*RepoAccessError) {
 	mapper := func(r Repo) mapResult[*model.SearchResult] {
-		searchResult, err := searchRepoWithBleve(ctx, r, query)
+		if u.searchMatcher == nil {
+			u.searchMatcher = &bleveSearchMatcher{}
+		}
+		searchResult, err := u.searchMatcher.SearchRepo(ctx, r, query)
 		return mapResult[*model.SearchResult]{res: &searchResult, err: newRepoAccessError(r, err)}
 	}
 
@@ -125,7 +139,9 @@ func (u *Union) List(ctx context.Context, search *model.Filters) (model.SearchRe
 	return *r, errs
 }
 
-func searchRepoWithBleve(ctx context.Context, r Repo, query string) (model.SearchResult, error) {
+type bleveSearchMatcher struct{}
+
+func (m *bleveSearchMatcher) SearchRepo(ctx context.Context, r Repo, query string) (model.SearchResult, error) {
 	if query == "" {
 		return r.List(ctx, nil)
 	}
@@ -148,7 +164,7 @@ func searchRepoWithBleve(ctx context.Context, r Repo, query string) (model.Searc
 
 	// refine the result with bleve
 	filtered := &searchResult
-	err = filtered.TextSearch(query, indexPath)
+	err = filtered.FilterByQuery(query, indexPath)
 	if err != nil {
 		return model.SearchResult{}, err
 	}

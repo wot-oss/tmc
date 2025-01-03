@@ -8,12 +8,12 @@ import (
 	"github.com/wot-oss/tmc/internal/app/cli"
 )
 
-// createSiCmd represents the createSi command
+// createSiCmd represents the create-si command
 var createSiCmd = &cobra.Command{
 	Use:   "create-si",
-	Short: "Create or update a bleve search index",
-	Long: `Create or update a bleve search index for deep searching TMs with '--search <query> --deep'. Usually needs to
-be called only once per repository. Afterwards, updates are performed automatically an outdated search index is detected.`,
+	Short: "Create or update search index",
+	Long: `Create or update a bleve search index for deep searching TMs with the 'search' command. Usually needs to
+be called only once per repository. Afterwards, updates are performed automatically when an outdated search index is detected.`,
 	Run: executeCreateSearchIndex,
 }
 

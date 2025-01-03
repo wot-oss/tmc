@@ -5,7 +5,7 @@
 ### Added
 
 - `copy`: added flag `--ignore-existing` to ignore TMs and attachments that have conflicts with existing ones instead of returning an error code
-- Added possibility to import file attachments to TMs and TM names
+- added possibility to import file attachments to TMs and TM names
 - `export`: added flag to export attachments together with TMs
 - added setting/storing/detecting of attachment media types
 - `check`: added `.tmc/.tmcignore` file to explicitly exclude files from being validated by `check`
@@ -13,13 +13,18 @@
 - `repo add`, `repo config set`: added flag to pass repo config json as string
 - added possibility to define configuration parameters of repositories by referencing environment variables
 - added flag to change commands' output format to JSON 
-- `list`, `copy`, `export`: add filtering by protocols supported by TMs
+- `list`, `copy`, `export`: added filtering by protocols supported by TMs
+- added `create-si` command to initially create a bleve search index for repositories
+- added `search` command to search for TMs by a text search query using bleve syntax
 
 ### Changed
 
 - return error on attachment import when it already exists and add a flag to override
 - `check`: removed subcommands of `check` command, unifying both into the parent command
 - `repo`: reorganized commands that change repo config: renamed/created `config auth`, `config description`, and `config headers` commands
+- `list`, `copy`, `export`: removed text search query parameter
+- removed 'search' parameter from '/authors', '/manufacturers', and '/mpns' API endpoints
+- '/inventory': make 'search' parameter use bleve query syntax and make it mutually exclusive with filter parameters
 
 ### Fixed
 

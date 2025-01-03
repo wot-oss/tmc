@@ -28,7 +28,7 @@ const (
 	Error502Title                  = "Bad Gateway"
 	Error502Detail                 = "An upstream Thing Model repository returned an error"
 	ErrorRepoAmbiguousDetail       = "Repository ambiguous. Repeat the request with the 'repo' query parameter"
-	ErrorSearchIndexNotFoundDetail = "The search index necessary to fulfill the request is not available on the server. Use simple search or contact administrator to create the search index"
+	ErrorSearchIndexNotFoundDetail = "The search index necessary to fulfill the request is not available on the server. Use other filter parameters or contact administrator to create the search index"
 
 	HeaderAuthorization       = "Authorization"
 	HeaderContentType         = "Content-Type"

@@ -118,7 +118,7 @@ func (p *Filters) Sanitize() {
 type FilterType byte
 
 type FilterOptions struct {
-	// NameFilterType specifies whether Filters.Name must match a prefix or the full length of a TM name
+	// NameFilterType specifies whether Filters. Name must match a prefix or the full length of a TM name
 	// Note that using FullMatch effectively limits the search result to at most one FoundEntry
 	NameFilterType FilterType
 }
@@ -158,9 +158,9 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 	return nil
 }
 
-// TextSearch deletes all versions from this SearchResult that don't match the search query. The entries that remain
+// FilterByQuery deletes all versions from this SearchResult that don't match the search query. The entries that remain
 // are extended with information on matches' locations.
-func (sr *SearchResult) TextSearch(query, indexPath string) error {
+func (sr *SearchResult) FilterByQuery(query, indexPath string) error {
 	if query == "" {
 		return nil
 	}

@@ -332,7 +332,10 @@ func (f *FileRepo) List(ctx context.Context, search *model.Filters) (model.Searc
 	sr := model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx)
 	filtered := &sr
 	err = filtered.Filter(search)
-	return *filtered, err
+	if err != nil {
+		return model.SearchResult{}, err
+	}
+	return *filtered, nil
 }
 
 // readIndex reads the contents of the index file. Must be called after the lock is acquired with lockIndex()
