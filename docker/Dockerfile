@@ -26,7 +26,6 @@ WORKDIR $WORKDIR
 COPY ./docker/download-cli.sh .
 RUN ./download-cli.sh; rm ./download-cli.sh
 RUN chmod 755 ./tmc; mv ./tmc /usr/bin;
-RUN tmc repo add --type file catalog $WORKDIR
 
 # always run the tmc for this docker
 CMD ["serve", "--host", "0.0.0.0" ,"--port",  "8080", "-d", "."]
