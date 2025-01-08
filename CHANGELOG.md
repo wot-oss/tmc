@@ -1,5 +1,10 @@
 # Change Log
 
+## [v0.1.2]
+
+### Removed
+
+- Dockerfile: removed creation of a named catalog in the docker image
 
 ## [v0.1.1]
 
