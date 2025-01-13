@@ -18,10 +18,6 @@ type Union struct {
 	rs []Repo
 }
 
-type SearchMatcher interface {
-	SearchRepo(ctx context.Context, r Repo, query string) (model.SearchResult, error)
-}
-
 type mapResult[T any] struct {
 	res T
 	err *RepoAccessError
