@@ -6,8 +6,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	"github.com/wot-oss/tmc/internal/utils"
 )
 
 type Index struct {
@@ -110,7 +108,13 @@ type IndexVersion struct {
 	TimeStamp   string            `json:"timestamp,omitempty"`
 	ExternalID  string            `json:"externalID"`
 	Protocols   []string          `json:"protocols,omitempty"`
+	SearchMatch *SearchMatch      `json:"searchMatch,omitempty"`
 	AttachmentContainer
+}
+
+type SearchMatch struct {
+	Score     float32  `json:"score,omitempty"`
+	Locations []string `json:"locations,omitempty"`
 }
 
 func (idx *Index) IsEmpty() bool {
@@ -133,129 +137,6 @@ func (idx *Index) Sort() {
 	slices.SortFunc(idx.Data, func(a *IndexEntry, b *IndexEntry) int {
 		return strings.Compare(a.Name, b.Name)
 	})
-}
-
-func (idx *Index) Filter(search *SearchParams) error {
-	if search == nil {
-		return nil
-	}
-	search.Sanitize()
-	exclude := func(entry *IndexEntry) bool {
-		if !matchesNameFilter(search.Name, entry.Name, search.Options) {
-			return true
-		}
-
-		if !matchesFilter(search.Author, entry.Author.Name) {
-			return true
-		}
-
-		if !matchesFilter(search.Manufacturer, entry.Manufacturer.Name) {
-			return true
-		}
-
-		if !matchesFilter(search.Mpn, entry.Mpn) {
-			return true
-		}
-
-		if !matchesProtocolFilter(search.Protocol, entry) {
-			return true
-		}
-
-		return false
-	}
-	idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
-		e := exclude(entry)
-		if e && idx.dataByName != nil {
-			delete(idx.dataByName, entry.Name)
-		}
-		return e
-	})
-	if len(idx.Data) == 0 {
-		return nil
-	}
-
-	if len(search.Query) > 0 {
-		del, err := excludeBySimpleContentSearch(search.Query)
-		if err != nil {
-			return err
-		}
-		if del != nil {
-			idx.Data = slices.DeleteFunc(idx.Data, del)
-		}
-	}
-	return nil
-}
-
-func matchesProtocolFilter(protos []string, entry *IndexEntry) bool {
-	if len(protos) == 0 {
-		return true
-	}
-	for _, v := range entry.Versions {
-		for _, p := range protos {
-			if slices.Contains(v.Protocols, p) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func matchesNameFilter(acceptedValue string, value string, options SearchOptions) bool {
-	if len(acceptedValue) == 0 {
-		return true
-	}
-
-	switch options.NameFilterType {
-	case FullMatch:
-		return value == acceptedValue
-	case PrefixMatch:
-		actualPathParts := strings.Split(value, "/")
-		acceptedValue = strings.Trim(acceptedValue, "/")
-		acceptedPathParts := strings.Split(acceptedValue, "/")
-		if len(acceptedPathParts) > len(actualPathParts) {
-			return false
-		}
-		return slices.Equal(actualPathParts[0:len(acceptedPathParts)], acceptedPathParts)
-	default:
-		panic(fmt.Sprintf("unsupported NameFilterType: %d", options.NameFilterType))
-	}
-}
-
-func matchesFilter(acceptedValues []string, value string) bool {
-	if len(acceptedValues) == 0 {
-		return true
-	}
-	return slices.Contains(acceptedValues, utils.SanitizeName(value))
-}
-
-func excludeBySimpleContentSearch(searchQuery string) (func(e *IndexEntry) bool, error) {
-	return func(e *IndexEntry) bool {
-		if e == nil {
-			return true
-		}
-		searchQuery = utils.ToTrimmedLower(searchQuery)
-		if strings.Contains(utils.ToTrimmedLower(e.Name), searchQuery) {
-			return false
-		}
-		if strings.Contains(utils.ToTrimmedLower(e.Author.Name), searchQuery) {
-			return false
-		}
-		if strings.Contains(utils.ToTrimmedLower(e.Manufacturer.Name), searchQuery) {
-			return false
-		}
-		if strings.Contains(utils.ToTrimmedLower(e.Mpn), searchQuery) {
-			return false
-		}
-		for _, version := range e.Versions {
-			if strings.Contains(utils.ToTrimmedLower(version.Description), searchQuery) {
-				return false
-			}
-			if strings.Contains(utils.ToTrimmedLower(version.ExternalID), searchQuery) {
-				return false
-			}
-		}
-		return true
-	}, nil
 }
 
 // FindByName searches by TM name and returns a pointer to the IndexEntry if found

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
@@ -27,6 +28,7 @@ func (m *Mapper) GetInventoryMeta(res model.SearchResult) server.Meta {
 		Page: &server.MetaPage{
 			Elements: len(res.Entries),
 		},
+		LastUpdated: res.LastUpdated.Format(time.RFC3339),
 	}
 }
 
@@ -111,6 +113,12 @@ func (m *Mapper) GetInventoryEntryVersion(version model.FoundVersion) server.Inv
 		invVersion.Attachments = &atts
 	}
 
+	if version.SearchMatch != nil {
+		invVersion.SearchMatch = &server.SearchMatch{
+			Locations: &version.SearchMatch.Locations,
+			Score:     &version.SearchMatch.Score,
+		}
+	}
 	return invVersion
 }
 

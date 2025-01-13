@@ -83,8 +83,8 @@ paths:
         - name: 'search'
           in: query
           description: |
-            Filters the inventory according to whether the content of the inventory entries matches the given search.    
-            The search works additive to other filters.
+            Searches the inventory for TMs that match the search query. Accepts queries in bleve search engine syntax.    
+            Is mutually exclusive with filters.
           schema:
             type: string
           example: ''
@@ -99,7 +99,7 @@ paths:
                 inventory:
                   $ref: '#/components/examples/InventoryResponseExample'
         '400':
-          description: Invalid filter parameter supplied
+          description: Invalid filter or search parameter supplied
           content:
             application/json:
               schema:
@@ -706,15 +706,6 @@ paths:
           schema:
             type: string
           example: 'http,https'
-        - name: 'search'
-          in: query
-          description: |
-            Filters the authors according to whether they have inventory entries  
-            where their content matches the given search.      
-            The search works additive to other filters.
-          schema:
-            type: string
-          example: ''
       responses:
         '200':
           description: Successful operation
@@ -773,15 +764,6 @@ paths:
           schema:
             type: string
           example: 'http,https'
-        - name: 'search'
-          in: query
-          description: |
-            Filters the manufacturers according to whether they have inventory entries  
-            where their content matches the given search.      
-            The search works additive to other filters.
-          schema:
-            type: string
-          example: ''
       responses:
         '200':
           description: Successful operation
@@ -839,14 +821,6 @@ paths:
           schema:
             type: string
           example: 'http,https'
-        - name: 'search'
-          in: query
-          description: |
-            Filters the mpns according to whether their inventory entry content matches the given search.        
-            The search works additive to other filters.
-          schema:
-            type: string
-          example: ''
       responses:
         '200':
           description: Successful operation
@@ -1171,6 +1145,19 @@ components:
           example:
             - "https"
             - "modbus+tcp"
+        searchMatch:
+          $ref: '#/components/schemas/SearchMatch'
+    SearchMatch:
+      type: object
+      properties:
+        score:
+          type: number
+          description: search score
+        locations:
+          type: array
+          description: locations where the search terms matched
+          items:
+            type: string
     InventoryEntryLinks:
       type: object
       required:
@@ -1316,9 +1303,14 @@ components:
           example: 'siemens'
     Meta:
       type: object
+      required:
+        - lastUpdated
       properties:
         page:
           $ref: '#/components/schemas/MetaPage'
+        lastUpdated:
+          type: string
+          description: RFC3339 timestamp
     MetaPage:
       required:
         - elements
@@ -1566,6 +1558,7 @@ components:
         meta:
           page:
             elements: 2
+          lastUpdated: '2024-12-11T13:07:22+01:00'
         data:
           - 'links':
               'self': './inventory/.tmName/siemens/siemens/poc1000'

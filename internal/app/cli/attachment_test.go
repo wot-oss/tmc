@@ -21,7 +21,7 @@ func TestAttachmentList(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmName := "author/manufacturer/mpn"
-		r.On("List", ctx, &model.SearchParams{Name: tmName}).Return(
+		r.On("List", ctx, &model.Filters{Name: tmName}).Return(
 			model.SearchResult{
 				Entries: []model.FoundEntry{
 					{
@@ -59,7 +59,7 @@ func TestAttachmentList(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmName := "author/manufacturer/mpn"
-		r.On("List", ctx, &model.SearchParams{Name: tmName}).Return(
+		r.On("List", ctx, &model.Filters{Name: tmName}).Return(
 			model.SearchResult{
 				Entries: []model.FoundEntry{
 					{

@@ -6,8 +6,8 @@ title: Commands
 
 For most `tmc` subcommands, their help page (`tmc help <command>`) contains enough information for usage.
 
-This page contains additional or detailed documentation for those subcommands or options where help page would not fit 
-all the necessary information.
+This page contains additional or detailed documentation for those subcommands or options where the help page would not
+fit all the necessary information.
 
 ## `repo add`
 
@@ -19,10 +19,11 @@ all the necessary information.
 
 All repos have two mandatory fields: 'type' and 'loc' (short for location), and an optional 'description' field.
 The 'type' is assigned from '--type' flag and the 'loc' is assigned from \<location> argument.
-Depending on the repo type, the exact meaning of 'loc' field is different and also other fields may be provided or may be mandatory.
+Depending on the repo type, the exact meaning of 'loc' field is different and also other fields may be provided or may
+be mandatory.
 
 When adding a repository, the entire config may be provided in JSON form, either by giving a file name in
-\<config-file> or the entire JSON as string in \<config-json. See `repo show` for example.
+\<config-file> or the entire JSON as string in \<config-json>. See `repo show` for example.
 
 Some configuration parameters can be defined by environment variables. To refer to an environment variable, set the
 value of a parameter to the variable's name prefixed by a '\$', e.g. '\$PROD_TOKEN'. This expansion of env variables is

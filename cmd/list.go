@@ -16,9 +16,9 @@ var listCmd = &cobra.Command{
 	Short: "List TMs in catalog",
 	Long: `List TMs in catalog by name pattern, filters or search. 
 The <name-pattern> can be a full name or a prefix consisting of complete path parts. 
-E.g. 'MyCompany/BarTech' will not match 'MyCompany/BarTechCorp', but will match 'MyCompany/BarTech/BazLamp'.
+E.g. 'my-company/bar-tech' will not match 'my-company/bar-tech-corp', but will match 'my-company/bar-tech/baz-lamp'.
 
-Name pattern, filters and search can be combined to narrow down the result.`,
+<name-pattern> and filters can be combined to narrow down the result.`,
 	Args:              cobra.MaximumNArgs(1),
 	Run:               executeList,
 	ValidArgsFunction: completion.CompleteTMNames,
@@ -39,7 +39,7 @@ func executeList(cmd *cobra.Command, args []string) {
 	spec := RepoSpecFromFlags(cmd)
 	format := cmd.Flag("format").Value.String()
 
-	search := CreateSearchParamsFromCLI(listFilterFlags, name)
+	search := CreateFiltersFromCLI(listFilterFlags, name)
 	err := cli.List(context.Background(), spec, search, format)
 	if err != nil {
 		cli.Stderrf("list failed")

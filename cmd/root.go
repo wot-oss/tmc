@@ -78,12 +78,11 @@ type FilterFlags struct {
 	FilterManufacturer string
 	FilterMpn          string
 	FilterProtocol     string
-	Search             string
 }
 
-func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.SearchParams {
-	return model.ToSearchParams(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name, &flags.Search,
-		&model.SearchOptions{NameFilterType: model.PrefixMatch})
+func CreateFiltersFromCLI(flags FilterFlags, name string) *model.Filters {
+	return model.ToFilters(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name,
+		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }
 
 // AddRepoConstraintFlags adds repo and directory flags for commands that can use multiple repositories (e.g. list)
@@ -112,6 +111,4 @@ func AddTMFilterFlags(cmd *cobra.Command, flags *FilterFlags) {
 	cmd.Flags().StringVar(&flags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	cmd.Flags().StringVar(&flags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
 	cmd.Flags().StringVar(&flags.FilterProtocol, "filter.protocol", "", "filter TMs by one or more comma-separated supported protocol schemes")
-	cmd.Flags().StringVarP(&flags.Search, "search", "s", "", "search TMs by their content matching the search term")
-
 }

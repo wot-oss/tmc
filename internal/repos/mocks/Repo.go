@@ -16,6 +16,24 @@ type Repo struct {
 	mock.Mock
 }
 
+// CanonicalRoot provides a mock function with given fields:
+func (_m *Repo) CanonicalRoot() string {
+	ret := _m.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for CanonicalRoot")
+	}
+
+	var r0 string
+	if rf, ok := ret.Get(0).(func() string); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	return r0
+}
+
 // CheckIntegrity provides a mock function with given fields: ctx, filter
 func (_m *Repo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) ([]model.CheckResult, error) {
 	ret := _m.Called(ctx, filter)
@@ -251,7 +269,7 @@ func (_m *Repo) Index(ctx context.Context, updatedIds ...string) error {
 }
 
 // List provides a mock function with given fields: ctx, search
-func (_m *Repo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
+func (_m *Repo) List(ctx context.Context, search *model.Filters) (model.SearchResult, error) {
 	ret := _m.Called(ctx, search)
 
 	if len(ret) == 0 {
@@ -260,16 +278,16 @@ func (_m *Repo) List(ctx context.Context, search *model.SearchParams) (model.Sea
 
 	var r0 model.SearchResult
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *model.SearchParams) (model.SearchResult, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) (model.SearchResult, error)); ok {
 		return rf(ctx, search)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, *model.SearchParams) model.SearchResult); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) model.SearchResult); ok {
 		r0 = rf(ctx, search)
 	} else {
 		r0 = ret.Get(0).(model.SearchResult)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, *model.SearchParams) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, *model.Filters) error); ok {
 		r1 = rf(ctx, search)
 	} else {
 		r1 = ret.Error(1)

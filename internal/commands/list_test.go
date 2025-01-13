@@ -13,7 +13,7 @@ import (
 )
 
 func TestListCommand_List(t *testing.T) {
-	params := &model.SearchParams{Query: "omnicorp"}
+	params := &model.Filters{Name: "omnicorp"}
 	t.Run("merged", func(t *testing.T) {
 		r1 := mocks.NewRepo(t)
 		r2 := mocks.NewRepo(t)

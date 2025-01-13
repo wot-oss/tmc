@@ -29,6 +29,10 @@ type TmcRepo struct {
 	subRepo string
 }
 
+func (t *TmcRepo) CanonicalRoot() string {
+	return t.root
+}
+
 func NewTmcRepo(config map[string]any, spec model.RepoSpec) (*TmcRepo, error) {
 	base, err := newBaseHttpRepo(config, spec)
 	if err != nil {
@@ -330,7 +334,7 @@ func (t *TmcRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilte
 	return nil, nil
 }
 
-func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
+func (t *TmcRepo) List(ctx context.Context, search *model.Filters) (model.SearchResult, error) {
 	reqUrl := t.parsedRoot.JoinPath("inventory")
 	t.addRepoParam(reqUrl)
 
@@ -339,7 +343,7 @@ func (t *TmcRepo) List(ctx context.Context, search *model.SearchParams) (model.S
 		single = true
 		reqUrl = reqUrl.JoinPath(tmNamePath, url.PathEscape(search.Name))
 	} else {
-		addSearchParams(reqUrl, search)
+		addFilters(reqUrl, search)
 	}
 
 	resp, err := t.doGet(ctx, reqUrl.String())
@@ -395,14 +399,9 @@ func tmcLinksMapper(links server.InventoryEntryVersion) map[string]string {
 	}
 }
 
-func addSearchParams(u *url.URL, search *model.SearchParams) {
+func addFilters(u *url.URL, search *model.Filters) {
 	if search == nil {
 		return
-	}
-	if search.Query != "" {
-		vals := u.Query()
-		vals.Set("search", search.Query)
-		u.RawQuery = vals.Encode()
 	}
 	if search.Name != "" {
 		vals := u.Query()
@@ -412,6 +411,7 @@ func addSearchParams(u *url.URL, search *model.SearchParams) {
 	appendQueryArray(u, "filter.author", search.Author)
 	appendQueryArray(u, "filter.manufacturer", search.Manufacturer)
 	appendQueryArray(u, "filter.mpn", search.Mpn)
+	appendQueryArray(u, "filter.protocol", search.Protocol)
 }
 
 func appendQueryArray(u *url.URL, key string, values []string) {
