@@ -379,9 +379,9 @@ func (_m *HandlerService) ImportThingModel(ctx context.Context, repo string, fil
 	return r0, r1
 }
 
-// ListAuthors provides a mock function with given fields: ctx, search
-func (_m *HandlerService) ListAuthors(ctx context.Context, search *model.Filters) ([]string, error) {
-	ret := _m.Called(ctx, search)
+// ListAuthors provides a mock function with given fields: ctx, filters
+func (_m *HandlerService) ListAuthors(ctx context.Context, filters *model.Filters) ([]string, error) {
+	ret := _m.Called(ctx, filters)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListAuthors")
@@ -390,10 +390,10 @@ func (_m *HandlerService) ListAuthors(ctx context.Context, search *model.Filters
 	var r0 []string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) ([]string, error)); ok {
-		return rf(ctx, search)
+		return rf(ctx, filters)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) []string); ok {
-		r0 = rf(ctx, search)
+		r0 = rf(ctx, filters)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
@@ -401,7 +401,7 @@ func (_m *HandlerService) ListAuthors(ctx context.Context, search *model.Filters
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, *model.Filters) error); ok {
-		r1 = rf(ctx, search)
+		r1 = rf(ctx, filters)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -409,9 +409,9 @@ func (_m *HandlerService) ListAuthors(ctx context.Context, search *model.Filters
 	return r0, r1
 }
 
-// ListInventory provides a mock function with given fields: ctx, repo, search
-func (_m *HandlerService) ListInventory(ctx context.Context, repo string, search *model.Filters) (*model.SearchResult, error) {
-	ret := _m.Called(ctx, repo, search)
+// ListInventory provides a mock function with given fields: ctx, repo, filters
+func (_m *HandlerService) ListInventory(ctx context.Context, repo string, filters *model.Filters) (*model.SearchResult, error) {
+	ret := _m.Called(ctx, repo, filters)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListInventory")
@@ -420,10 +420,10 @@ func (_m *HandlerService) ListInventory(ctx context.Context, repo string, search
 	var r0 *model.SearchResult
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters) (*model.SearchResult, error)); ok {
-		return rf(ctx, repo, search)
+		return rf(ctx, repo, filters)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters) *model.SearchResult); ok {
-		r0 = rf(ctx, repo, search)
+		r0 = rf(ctx, repo, filters)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.SearchResult)
@@ -431,7 +431,7 @@ func (_m *HandlerService) ListInventory(ctx context.Context, repo string, search
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, *model.Filters) error); ok {
-		r1 = rf(ctx, repo, search)
+		r1 = rf(ctx, repo, filters)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -439,9 +439,9 @@ func (_m *HandlerService) ListInventory(ctx context.Context, repo string, search
 	return r0, r1
 }
 
-// ListManufacturers provides a mock function with given fields: ctx, search
-func (_m *HandlerService) ListManufacturers(ctx context.Context, search *model.Filters) ([]string, error) {
-	ret := _m.Called(ctx, search)
+// ListManufacturers provides a mock function with given fields: ctx, filters
+func (_m *HandlerService) ListManufacturers(ctx context.Context, filters *model.Filters) ([]string, error) {
+	ret := _m.Called(ctx, filters)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListManufacturers")
@@ -450,10 +450,10 @@ func (_m *HandlerService) ListManufacturers(ctx context.Context, search *model.F
 	var r0 []string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) ([]string, error)); ok {
-		return rf(ctx, search)
+		return rf(ctx, filters)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) []string); ok {
-		r0 = rf(ctx, search)
+		r0 = rf(ctx, filters)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
@@ -461,7 +461,7 @@ func (_m *HandlerService) ListManufacturers(ctx context.Context, search *model.F
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, *model.Filters) error); ok {
-		r1 = rf(ctx, search)
+		r1 = rf(ctx, filters)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -469,9 +469,9 @@ func (_m *HandlerService) ListManufacturers(ctx context.Context, search *model.F
 	return r0, r1
 }
 
-// ListMpns provides a mock function with given fields: ctx, search
-func (_m *HandlerService) ListMpns(ctx context.Context, search *model.Filters) ([]string, error) {
-	ret := _m.Called(ctx, search)
+// ListMpns provides a mock function with given fields: ctx, filters
+func (_m *HandlerService) ListMpns(ctx context.Context, filters *model.Filters) ([]string, error) {
+	ret := _m.Called(ctx, filters)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListMpns")
@@ -480,10 +480,10 @@ func (_m *HandlerService) ListMpns(ctx context.Context, search *model.Filters) (
 	var r0 []string
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) ([]string, error)); ok {
-		return rf(ctx, search)
+		return rf(ctx, filters)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) []string); ok {
-		r0 = rf(ctx, search)
+		r0 = rf(ctx, filters)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]string)
@@ -491,7 +491,7 @@ func (_m *HandlerService) ListMpns(ctx context.Context, search *model.Filters) (
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, *model.Filters) error); ok {
-		r1 = rf(ctx, search)
+		r1 = rf(ctx, filters)
 	} else {
 		r1 = ret.Error(1)
 	}

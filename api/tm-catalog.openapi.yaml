@@ -1145,10 +1145,15 @@ components:
           example:
             - "https"
             - "modbus+tcp"
+        searchMatch:
+          $ref: '#/components/schemas/SearchMatch'
+    SearchMatch:
+      type: object
+      properties:
         score:
           type: number
           description: search score
-        matches:
+        locations:
           type: array
           description: locations where the search terms matched
           items:

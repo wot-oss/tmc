@@ -85,7 +85,7 @@ func TestUnion_Search(t *testing.T) {
 		indexPath := BleveIndexPath(r)
 		_ = os.MkdirAll(indexPath, defaultDirPermissions)
 		_ = utils.WriteFileLines(
-			[]string{time.Date(2024, 1, 1, 1, 1, 1, 0, time.UTC).Format(time.RFC3339)},
+			[]string{time.Date(2024, 1, 1, 1, 1, 1, 0, time.UTC).Format(time.RFC3339Nano)},
 			filepath.Join(indexPath, "updated"),
 			defaultFilePermissions)
 

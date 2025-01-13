@@ -39,7 +39,7 @@ func executeList(cmd *cobra.Command, args []string) {
 	spec := RepoSpecFromFlags(cmd)
 	format := cmd.Flag("format").Value.String()
 
-	search := CreateSearchParamsFromCLI(listFilterFlags, name)
+	search := CreateFiltersFromCLI(listFilterFlags, name)
 	err := cli.List(context.Background(), spec, search, format)
 	if err != nil {
 		cli.Stderrf("list failed")

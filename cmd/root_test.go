@@ -158,12 +158,12 @@ func resetSearchFlags(flags *FilterFlags) {
 	flags.FilterProtocol = ""
 }
 
-func TestConvertSearchParams(t *testing.T) {
+func TestConvertFilters(t *testing.T) {
 
 	// given: no filter params set via CLI flags
 	flags := FilterFlags{}
 	// when: converting to Filters
-	params := CreateSearchParamsFromCLI(flags, "")
+	params := CreateFiltersFromCLI(flags, "")
 	// then: Filters are undefined
 	assert.Nil(t, params)
 
@@ -175,7 +175,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flags.FilterProtocol = "http"
 	name := "omni-corp/omni"
 	// when: converting to Filters
-	params = CreateSearchParamsFromCLI(flags, name)
+	params = CreateFiltersFromCLI(flags, name)
 	// then: the filter values are converted correctly
 	assert.NotNil(t, params)
 	assert.Equal(t, []string{flags.FilterAuthor}, params.Author)
@@ -192,7 +192,7 @@ func TestConvertSearchParams(t *testing.T) {
 	flags.FilterMpn = "some mpn 1,some mpn 2,some mpn 3"
 	flags.FilterProtocol = "http,https"
 	// when: converting to Filters
-	params = CreateSearchParamsFromCLI(flags, "")
+	params = CreateFiltersFromCLI(flags, "")
 	// then: the multiple filter values are converted correctly
 	assert.NotNil(t, params)
 	assert.Equal(t, strings.Split(flags.FilterAuthor, ","), params.Author)

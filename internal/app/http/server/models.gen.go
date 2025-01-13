@@ -101,21 +101,16 @@ type InventoryEntryVersion struct {
 	Digest      string                      `json:"digest"`
 	ExternalID  string                      `json:"externalID"`
 	Links       *InventoryEntryVersionLinks `json:"links,omitempty"`
-
-	// Matches locations where the search terms matched
-	Matches   *[]string `json:"matches,omitempty"`
-	Protocols *[]string `json:"protocols,omitempty"`
+	Protocols   *[]string                   `json:"protocols,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
 	// May be left empty when there is only a single repository served by the backend and thus there is not need for
 	// disambiguation. See also '/repos'
-	Repo *SourceRepository `json:"repo,omitempty"`
-
-	// Score search score
-	Score     *float32     `json:"score,omitempty"`
-	Timestamp string       `json:"timestamp"`
-	TmID      string       `json:"tmID"`
-	Version   ModelVersion `json:"version"`
+	Repo        *SourceRepository `json:"repo,omitempty"`
+	SearchMatch *SearchMatch      `json:"searchMatch,omitempty"`
+	Timestamp   string            `json:"timestamp"`
+	TmID        string            `json:"tmID"`
+	Version     ModelVersion      `json:"version"`
 }
 
 // InventoryEntryVersionLinks defines model for InventoryEntryVersionLinks.
@@ -186,6 +181,15 @@ type SchemaAuthor struct {
 // SchemaManufacturer defines model for SchemaManufacturer.
 type SchemaManufacturer struct {
 	SchemaName string `json:"schema:name"`
+}
+
+// SearchMatch defines model for SearchMatch.
+type SearchMatch struct {
+	// Locations locations where the search terms matched
+	Locations *[]string `json:"locations,omitempty"`
+
+	// Score search score
+	Score *float32 `json:"score,omitempty"`
 }
 
 // SourceRepository The name of the source repository where the inventory entry or version resides.

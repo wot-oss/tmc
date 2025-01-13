@@ -100,17 +100,21 @@ func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
 }
 
 type IndexVersion struct {
-	Description    string            `json:"description"`
-	Version        Version           `json:"version"`
-	Links          map[string]string `json:"links"`
-	TMID           string            `json:"tmID"`
-	Digest         string            `json:"digest"`
-	TimeStamp      string            `json:"timestamp,omitempty"`
-	ExternalID     string            `json:"externalID"`
-	Protocols      []string          `json:"protocols,omitempty"`
-	SearchScore    float32           `json:"searchScore,omitempty"`
-	MatchLocations []string          `json:"matchLocations,omitempty"`
+	Description string            `json:"description"`
+	Version     Version           `json:"version"`
+	Links       map[string]string `json:"links"`
+	TMID        string            `json:"tmID"`
+	Digest      string            `json:"digest"`
+	TimeStamp   string            `json:"timestamp,omitempty"`
+	ExternalID  string            `json:"externalID"`
+	Protocols   []string          `json:"protocols,omitempty"`
+	SearchMatch *SearchMatch      `json:"searchMatch,omitempty"`
 	AttachmentContainer
+}
+
+type SearchMatch struct {
+	Score     float32  `json:"score,omitempty"`
+	Locations []string `json:"locations,omitempty"`
 }
 
 func (idx *Index) IsEmpty() bool {

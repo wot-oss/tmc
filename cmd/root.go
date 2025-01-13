@@ -80,7 +80,7 @@ type FilterFlags struct {
 	FilterProtocol     string
 }
 
-func CreateSearchParamsFromCLI(flags FilterFlags, name string) *model.Filters {
+func CreateFiltersFromCLI(flags FilterFlags, name string) *model.Filters {
 	return model.ToFilters(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name,
 		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }

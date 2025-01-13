@@ -48,7 +48,7 @@ func executeExport(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		name = args[0]
 	}
-	search := CreateSearchParamsFromCLI(exportFilterFlags, name)
+	search := CreateFiltersFromCLI(exportFilterFlags, name)
 	err := cli.Export(context.Background(), spec, search, outputPath, restoreId, withAttachments, format)
 
 	if err != nil {

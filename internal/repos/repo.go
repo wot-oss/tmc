@@ -609,7 +609,7 @@ func UpdateRepoIndex(ctx context.Context, repo Repo) error {
 			return fmt.Errorf("can't run batch: %w", err)
 		}
 	}
-	lu := searchResult.LastUpdated.Format(time.RFC3339)
+	lu := searchResult.LastUpdated.Format(time.RFC3339Nano)
 	err = utils.WriteFileLines([]string{lu}, filepath.Join(indexPath, "updated"), 0664)
 	if err != nil {
 		return err

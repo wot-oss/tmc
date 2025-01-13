@@ -163,12 +163,12 @@ func Test_ListInventory(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		// given: repo having some inventory entries
 		r := mocks.NewRepo(t)
-		searchParams := &model.Filters{Author: []string{"a-corp", "b-corp"}}
-		r.On("List", mock.Anything, searchParams).Return(listResult, nil).Once()
+		filters := &model.Filters{Author: []string{"a-corp", "b-corp"}}
+		r.On("List", mock.Anything, filters).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
 		// when: list all
-		res, err := underTest.ListInventory(context.Background(), "", searchParams)
+		res, err := underTest.ListInventory(context.Background(), "", filters)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned

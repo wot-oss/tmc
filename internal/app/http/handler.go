@@ -35,13 +35,13 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 
 	filters := convertParams(params)
+	repo := convertRepoName(params.Repo)
 	var search string
 	if params.Search != nil {
 		search = *params.Search
 	}
-	repo := convertRepoName(params.Repo)
 
-	if filters != nil && search != "" {
+	if filters != nil && params.Search != nil {
 		HandleErrorResponse(w, r, fmt.Errorf("%w: filters and search are mutually exclusive", ErrIncompatibleParameters))
 		return
 	}
@@ -205,9 +205,9 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {
 
-	searchParams := convertParams(params)
+	filters := convertParams(params)
 
-	authors, err := h.Service.ListAuthors(r.Context(), searchParams)
+	authors, err := h.Service.ListAuthors(r.Context(), filters)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -220,9 +220,9 @@ func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params s
 
 func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, params server.GetManufacturersParams) {
 
-	searchParams := convertParams(params)
+	filters := convertParams(params)
 
-	mans, err := h.Service.ListManufacturers(r.Context(), searchParams)
+	mans, err := h.Service.ListManufacturers(r.Context(), filters)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -235,9 +235,9 @@ func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, pa
 
 func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params server.GetMpnsParams) {
 
-	searchParams := convertParams(params)
+	filters := convertParams(params)
 
-	mpns, err := h.Service.ListMpns(r.Context(), searchParams)
+	mpns, err := h.Service.ListMpns(r.Context(), filters)
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)

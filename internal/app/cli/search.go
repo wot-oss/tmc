@@ -44,9 +44,10 @@ func printSearchResult(res model.SearchResult) {
 	for _, entry := range res.Entries {
 		for _, v := range entry.Versions {
 			repo := elideString(fmt.Sprintf("%v", v.FoundIn), colWidth)
-			_, _ = fmt.Fprintf(table, "%s\t%s\t%v\t%s\n", v.TMID, repo, v.SearchScore, v.MatchLocations[0])
-			if len(v.MatchLocations) > 1 {
-				for _, l := range v.MatchLocations[1:] {
+			sm := v.SearchMatch
+			_, _ = fmt.Fprintf(table, "%s\t%s\t%v\t%s\n", v.TMID, repo, sm.Score, sm.Locations[0])
+			if len(sm.Locations) > 1 {
+				for _, l := range sm.Locations[1:] {
 					_, _ = fmt.Fprintf(table, "%s\t%s\t%v\t%s\n", "", "", "", l)
 				}
 			}
@@ -60,10 +61,9 @@ func toSearchCommandResult(res model.SearchResult) []SearchResultEntry {
 	for _, e := range res.Entries {
 		for _, v := range e.Versions {
 			r = append(r, SearchResultEntry{
-				TMID:           v.TMID,
-				Repo:           v.FoundIn.String(),
-				Score:          v.SearchScore,
-				MatchLocations: v.MatchLocations,
+				TMID:        v.TMID,
+				Repo:        v.FoundIn.String(),
+				SearchMatch: v.SearchMatch,
 			})
 		}
 	}
@@ -71,8 +71,7 @@ func toSearchCommandResult(res model.SearchResult) []SearchResultEntry {
 }
 
 type SearchResultEntry struct {
-	TMID           string   `json:"tmid"`
-	Repo           string   `json:"repo"`
-	Score          float32  `json:"score,omitempty"`
-	MatchLocations []string `json:"matches,omitempty"`
+	TMID        string             `json:"tmid"`
+	Repo        string             `json:"repo"`
+	SearchMatch *model.SearchMatch `json:"searchMatch,omitempty"`
 }

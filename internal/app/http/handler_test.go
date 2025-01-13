@@ -268,6 +268,21 @@ func Test_Inventory(t *testing.T) {
 		// then: it returns status 400
 		assertResponse400(t, rec, filterRoute)
 	})
+	t.Run("list with filter and empty search parameter", func(t *testing.T) {
+		// given: the route with filter and search parameters
+		fAuthors := "a1,a2"
+		fMan := "man1,man2"
+		fMpn := "mpn1,mpn2"
+		fProtos := "coap,https"
+
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s&search=",
+			route, fAuthors, fMan, fMpn, fProtos)
+
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		// then: it returns status 400
+		assertResponse400(t, rec, filterRoute)
+	})
 	t.Run("list with filter parameters", func(t *testing.T) {
 		// given: the route with filter and search parameters
 		fAuthors := "a1,a2"
@@ -277,7 +292,7 @@ func Test_Inventory(t *testing.T) {
 
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s",
 			route, fAuthors, fMan, fMpn, fProtos)
-		// and given: searchParams, expected to be converted from request query parameters
+		// and given: filters, expected to be converted from request query parameters
 		expectedFilters := model.ToFilters(&fAuthors, &fMan, &fMpn, &fProtos, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListInventory", mock.Anything, "", expectedFilters).Return(&listResult1, nil).Once()
@@ -391,10 +406,10 @@ func Test_Authors(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.manufacturer=%s&filter.mpn=%s",
 			route, fMan, fMpn)
 
-		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := model.ToFilters(nil, &fMan, &fMpn, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
+		// and given: filters, expected to be converted from request query parameters
+		expectedFilters := model.ToFilters(nil, &fMan, &fMpn, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
-		hs.On("ListAuthors", mock.Anything, expectedSearchParams).Return(authors, nil).Once()
+		hs.On("ListAuthors", mock.Anything, expectedFilters).Return(authors, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -448,14 +463,14 @@ func Test_Manufacturers(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.mpn=%s",
 			route, strings.Join(fAuthors, ","), strings.Join(fMpn, ","))
 
-		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := &model.Filters{
+		// and given: filters, expected to be converted from request query parameters
+		expectedFilters := &model.Filters{
 			Author:  fAuthors,
 			Mpn:     fMpn,
 			Options: model.FilterOptions{NameFilterType: model.PrefixMatch},
 		}
 
-		hs.On("ListManufacturers", mock.Anything, expectedSearchParams).Return(manufacturers, nil).Once()
+		hs.On("ListManufacturers", mock.Anything, expectedFilters).Return(manufacturers, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -510,14 +525,14 @@ func Test_Mpns(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s",
 			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","))
 
-		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := &model.Filters{
+		// and given: filters, expected to be converted from request query parameters
+		expectedFilters := &model.Filters{
 			Author:       fAuthors,
 			Manufacturer: fMan,
 			Options:      model.FilterOptions{NameFilterType: model.PrefixMatch},
 		}
 
-		hs.On("ListMpns", mock.Anything, expectedSearchParams).Return(mpns, nil).Once()
+		hs.On("ListMpns", mock.Anything, expectedFilters).Return(mpns, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)

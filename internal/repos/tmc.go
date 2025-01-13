@@ -343,7 +343,7 @@ func (t *TmcRepo) List(ctx context.Context, search *model.Filters) (model.Search
 		single = true
 		reqUrl = reqUrl.JoinPath(tmNamePath, url.PathEscape(search.Name))
 	} else {
-		addSearchParams(reqUrl, search)
+		addFilters(reqUrl, search)
 	}
 
 	resp, err := t.doGet(ctx, reqUrl.String())
@@ -399,7 +399,7 @@ func tmcLinksMapper(links server.InventoryEntryVersion) map[string]string {
 	}
 }
 
-func addSearchParams(u *url.URL, search *model.Filters) {
+func addFilters(u *url.URL, search *model.Filters) {
 	if search == nil {
 		return
 	}

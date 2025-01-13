@@ -216,13 +216,15 @@ func getMatcherByBleveSearch(query, indexPath string) (func(e FoundVersion) bool
 				return false
 			}
 			if hit, ok := scores[v.TMID]; ok {
-				v.SearchScore = float32(hit.Score)
 				var locs []string
 				for field, _ := range hit.Locations {
 					locs = append(locs, field)
 				}
 				slices.Sort(locs)
-				v.MatchLocations = locs
+				v.SearchMatch = &SearchMatch{
+					Score:     float32(hit.Score),
+					Locations: locs,
+				}
 				return true
 			}
 			return false

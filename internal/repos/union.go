@@ -15,8 +15,7 @@ import (
 )
 
 type Union struct {
-	rs            []Repo
-	searchMatcher SearchMatcher
+	rs []Repo
 }
 
 type SearchMatcher interface {
@@ -61,12 +60,6 @@ func NewUnion(rs ...Repo) *Union {
 	}
 }
 
-// SetSearchMatcher overrides the default search matcher, which uses bleve indexes in the config dir
-// It is indended for use in testing
-func (u *Union) SetSearchMatcher(searchMatcher SearchMatcher) {
-	u.searchMatcher = searchMatcher
-}
-
 func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []*RepoAccessError) {
 	type fetchRes struct {
 		id  string
@@ -106,10 +99,7 @@ func (u *Union) Fetch(ctx context.Context, id string) (string, []byte, error, []
 
 func (u *Union) Search(ctx context.Context, query string) (model.SearchResult, []*RepoAccessError) {
 	mapper := func(r Repo) mapResult[*model.SearchResult] {
-		if u.searchMatcher == nil {
-			u.searchMatcher = &bleveSearchMatcher{}
-		}
-		searchResult, err := u.searchMatcher.SearchRepo(ctx, r, query)
+		searchResult, err := searchRepo(ctx, r, query)
 		return mapResult[*model.SearchResult]{res: &searchResult, err: newRepoAccessError(r, err)}
 	}
 
@@ -139,9 +129,7 @@ func (u *Union) List(ctx context.Context, search *model.Filters) (model.SearchRe
 	return *r, errs
 }
 
-type bleveSearchMatcher struct{}
-
-func (m *bleveSearchMatcher) SearchRepo(ctx context.Context, r Repo, query string) (model.SearchResult, error) {
+func searchRepo(ctx context.Context, r Repo, query string) (model.SearchResult, error) {
 	if query == "" {
 		return r.List(ctx, nil)
 	}
@@ -177,7 +165,7 @@ func updateBleveIndexIfOutdated(ctx context.Context, r Repo, indexPath string, l
 	if err != nil {
 		lines = []string{""}
 	}
-	indexedTime, _ := time.Parse(time.RFC3339, lines[0])
+	indexedTime, _ := time.Parse(time.RFC3339Nano, lines[0])
 	if indexedTime.Before(lastUpdated) {
 		err := UpdateRepoIndex(ctx, r)
 		if err != nil {

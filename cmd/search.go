@@ -14,7 +14,9 @@ var searchCmd = &cobra.Command{
 	Use:   "search [<search-term> ...]",
 	Short: "Search full text of TMs in catalog using bleve search engine",
 	Long: `Search full text of TMs in catalog using bleve search engine. For each repository to be searched,
-a local search index has to be created once using 'create-si' command.`,
+a local search index has to be created once using 'create-si' command.
+
+The accepted search query syntax is described at https://blevesearch.com/docs/Query-String-Query/`,
 	Args:              cobra.MinimumNArgs(1),
 	Run:               executeSearch,
 	ValidArgsFunction: completion.CompleteTMNames,
