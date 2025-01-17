@@ -21,6 +21,7 @@ const (
 	KeyJWTValidation        = "jwtValidation"
 	KeyJWTServiceID         = "jwtServiceID"
 	KeyJWKSURL              = "jwksURL"
+	KeyColumnWidth          = "columnWidth"
 	EnvPrefix               = "tmc"
 	LogLevelOff             = "off"
 
@@ -35,6 +36,7 @@ const DefaultConfigDir = "~/.tm-catalog"
 func init() {
 	viper.SetDefault(KeyLogLevel, LogLevelOff)
 	viper.SetDefault(KeyJWTValidation, false)
+	viper.SetDefault(KeyColumnWidth, 40)
 
 	viper.SetConfigType("json")
 	viper.SetConfigName("config")
@@ -54,7 +56,7 @@ func init() {
 	_ = viper.BindEnv(KeyJWTValidation)        // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWTServiceID)         // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
-
+	_ = viper.BindEnv(KeyColumnWidth)          // env variable name = tmc_columnwidth
 }
 
 func ReadInConfig() {

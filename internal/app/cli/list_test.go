@@ -84,7 +84,7 @@ func TestList(t *testing.T) {
 		r := mocks.NewRepo(t)
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repoSpec, r, nil))
 
-		var sp *model.SearchParams
+		var sp *model.Filters
 
 		r.On("Spec").Return(repoSpec).Maybe()
 		r.On("List", mock.Anything, sp).Return(listRes, nil).Once()
@@ -115,7 +115,7 @@ func TestList(t *testing.T) {
 		r := mocks.NewRepo(t)
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repoSpec, r, nil))
 
-		var sp *model.SearchParams
+		var sp *model.Filters
 
 		r.On("Spec").Return(repoSpec).Maybe()
 		r.On("List", mock.Anything, sp).Return(listRes, nil).Once()
@@ -154,7 +154,7 @@ func TestList(t *testing.T) {
 		})
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r1, r2))
 
-		var sp *model.SearchParams
+		var sp *model.Filters
 
 		// and given: repo 1 can be listed
 		r1.On("Spec").Return(repoSpec1).Maybe()

@@ -15,10 +15,11 @@ import (
 
 //go:generate mockery --name HandlerService --outpkg mocks --output mocks
 type HandlerService interface {
-	ListInventory(ctx context.Context, repo string, search *model.SearchParams) (*model.SearchResult, error)
-	ListAuthors(ctx context.Context, search *model.SearchParams) ([]string, error)
-	ListManufacturers(ctx context.Context, search *model.SearchParams) ([]string, error)
-	ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error)
+	ListInventory(ctx context.Context, repo string, filters *model.Filters) (*model.SearchResult, error)
+	SearchInventory(ctx context.Context, repo, query string) (*model.SearchResult, error)
+	ListAuthors(ctx context.Context, filters *model.Filters) ([]string, error)
+	ListManufacturers(ctx context.Context, filters *model.Filters) ([]string, error)
+	ListMpns(ctx context.Context, filters *model.Filters) ([]string, error)
 	FindInventoryEntries(ctx context.Context, repo string, name string) ([]model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, repo, tmID string, restoreId bool) ([]byte, error)
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
@@ -48,12 +49,12 @@ func NewDefaultHandlerService(servedRepo model.RepoSpec) (*defaultHandlerService
 	return dhs, nil
 }
 
-func (dhs *defaultHandlerService) ListInventory(ctx context.Context, repo string, search *model.SearchParams) (*model.SearchResult, error) {
+func (dhs *defaultHandlerService) ListInventory(ctx context.Context, repo string, filters *model.Filters) (*model.SearchResult, error) {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
-	res, err, errs := commands.List(ctx, spec, search)
+	res, err, errs := commands.List(ctx, spec, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -65,10 +66,27 @@ func (dhs *defaultHandlerService) ListInventory(ctx context.Context, repo string
 	return &res, nil
 }
 
-func (dhs *defaultHandlerService) ListAuthors(ctx context.Context, search *model.SearchParams) ([]string, error) {
+func (dhs *defaultHandlerService) SearchInventory(ctx context.Context, repo, query string) (*model.SearchResult, error) {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	res, err, errs := commands.Search(ctx, spec, query)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(errs) > 0 {
+		return nil, errs[0]
+	}
+
+	return &res, nil
+}
+
+func (dhs *defaultHandlerService) ListAuthors(ctx context.Context, filters *model.Filters) ([]string, error) {
 	authors := []string{}
 
-	res, err := dhs.ListInventory(ctx, "", search) // fixme: replace empty repo
+	res, err := dhs.ListInventory(ctx, "", filters) // fixme: replace empty repo
 	if err != nil {
 		return authors, err
 	}
@@ -84,10 +102,10 @@ func (dhs *defaultHandlerService) ListAuthors(ctx context.Context, search *model
 	return authors, nil
 }
 
-func (dhs *defaultHandlerService) ListManufacturers(ctx context.Context, search *model.SearchParams) ([]string, error) {
+func (dhs *defaultHandlerService) ListManufacturers(ctx context.Context, filters *model.Filters) ([]string, error) {
 	mans := []string{}
 
-	res, err := dhs.ListInventory(ctx, "", search) // fixme: replace empty repo
+	res, err := dhs.ListInventory(ctx, "", filters) // fixme: replace empty repo
 	if err != nil {
 		return mans, err
 	}
@@ -103,10 +121,10 @@ func (dhs *defaultHandlerService) ListManufacturers(ctx context.Context, search 
 	return mans, nil
 }
 
-func (dhs *defaultHandlerService) ListMpns(ctx context.Context, search *model.SearchParams) ([]string, error) {
+func (dhs *defaultHandlerService) ListMpns(ctx context.Context, filters *model.Filters) ([]string, error) {
 	mpns := []string{}
 
-	res, err := dhs.ListInventory(ctx, "", search) // fixme: replace empty repo
+	res, err := dhs.ListInventory(ctx, "", filters) // fixme: replace empty repo
 	if err != nil {
 		return mpns, err
 	}
@@ -132,7 +150,7 @@ func (dhs *defaultHandlerService) ListRepos(ctx context.Context) ([]model.RepoDe
 
 func (dhs *defaultHandlerService) FindInventoryEntries(ctx context.Context, repo string, name string) ([]model.FoundEntry, error) {
 	//todo: check if name is valid format
-	res, err := dhs.ListInventory(ctx, repo, &model.SearchParams{Name: name, Options: model.SearchOptions{NameFilterType: model.FullMatch}})
+	res, err := dhs.ListInventory(ctx, repo, &model.Filters{Name: name, Options: model.FilterOptions{NameFilterType: model.FullMatch}})
 	if err != nil {
 		return nil, err
 	}

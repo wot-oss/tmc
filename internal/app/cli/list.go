@@ -4,18 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
 	"text/tabwriter"
 
+	"github.com/spf13/viper"
 	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/model"
 )
 
-// TODO: figure out how to use viper
-const columnWidthName = "TMC_COLUMNWIDTH"
-const columnWidthDefault = 40
-
-func List(ctx context.Context, repo model.RepoSpec, search *model.SearchParams, format string) error {
+func List(ctx context.Context, repo model.RepoSpec, search *model.Filters, format string) error {
 	if !IsValidOutputFormat(format) {
 		Stderrf("%v", ErrInvalidOutputFormat)
 		return ErrInvalidOutputFormat
@@ -96,9 +93,5 @@ func elideString(value string, colWidth int) string {
 }
 
 func columnWidth() int {
-	cw, err := strconv.Atoi(os.Getenv(columnWidthName))
-	if err != nil {
-		cw = columnWidthDefault
-	}
-	return cw
+	return viper.GetInt(config.KeyColumnWidth)
 }

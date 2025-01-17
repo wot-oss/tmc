@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
 )
@@ -15,7 +16,9 @@ func NewIndexToFoundMapper(s FoundSource) *IndexToSearchResultMapper {
 }
 
 func (m *IndexToSearchResultMapper) ToSearchResult(idx Index) SearchResult {
-	r := SearchResult{}
+	r := SearchResult{
+		LastUpdated: idx.Meta.Created,
+	}
 	var es []FoundEntry
 	for _, e := range idx.Data {
 		es = append(es, m.ToFoundEntry(e))
@@ -61,7 +64,13 @@ func NewInventoryResponseToSearchResultMapper(s FoundSource, linksMapper func(li
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToSearchResult(inv server.InventoryResponse) SearchResult {
-	r := SearchResult{}
+	var lu time.Time
+	if inv.Meta != nil {
+		lu, _ = time.Parse(time.RFC3339, inv.Meta.LastUpdated)
+	}
+	r := SearchResult{
+		LastUpdated: lu,
+	}
 	es := m.ToFoundEntries(inv.Data)
 	r.Entries = es
 	return r

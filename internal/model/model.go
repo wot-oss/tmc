@@ -197,27 +197,31 @@ func NewSpecFromFoundSource(s FoundSource) RepoSpec {
 	}
 }
 
-func (r RepoSpec) ToFoundSource() FoundSource {
+func (s RepoSpec) ToFoundSource() FoundSource {
 	return FoundSource{
-		Directory: r.dir,
-		RepoName:  r.repoName,
+		Directory: s.dir,
+		RepoName:  s.repoName,
 	}
 }
 
-func (r RepoSpec) Dir() string {
-	return r.dir
+func (s RepoSpec) Dir() string {
+	return s.dir
 }
-func (r RepoSpec) RepoName() string {
-	return r.repoName
+func (s RepoSpec) RepoName() string {
+	return s.repoName
 }
-func (r RepoSpec) String() string {
-	if r.dir == "" {
-		if r.repoName == "" {
+func (s RepoSpec) String() string {
+	if s.dir == "" {
+		if s.repoName == "" {
 			return fmt.Sprintf("unspecified repo")
 		}
-		return fmt.Sprintf("named repo <%s>", r.repoName)
+		return fmt.Sprintf("named repo <%s>", s.repoName)
 	}
-	return fmt.Sprintf("local repo %s", r.dir)
+	return fmt.Sprintf("local repo %s", s.dir)
+}
+
+func (s RepoSpec) IsEmpty() bool {
+	return s.dir == "" && s.repoName == ""
 }
 
 var EmptySpec, _ = NewSpec("", "")

@@ -39,6 +39,11 @@ type FileRepo struct {
 	idx *model.Index
 }
 
+func (f *FileRepo) CanonicalRoot() string {
+	abs, _ := filepath.Abs(f.root)
+	return abs
+}
+
 func NewFileRepo(config ConfigMap, spec model.RepoSpec) (*FileRepo, error) {
 	loc, found := config.GetString(KeyRepoLoc)
 	if !found {
@@ -307,7 +312,7 @@ func (f *FileRepo) Spec() model.RepoSpec {
 	return f.spec
 }
 
-func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
+func (f *FileRepo) List(ctx context.Context, search *model.Filters) (model.SearchResult, error) {
 	err := f.checkRootValid()
 	if err != nil {
 		return model.SearchResult{}, err
@@ -323,12 +328,14 @@ func (f *FileRepo) List(ctx context.Context, search *model.SearchParams) (model.
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	err = idx.Filter(search)
+	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
+	sr := model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx)
+	filtered := &sr
+	err = filtered.Filter(search)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
-	return model.NewIndexToFoundMapper(f.Spec().ToFoundSource()).ToSearchResult(*idx), nil
+	return *filtered, nil
 }
 
 // readIndex reads the contents of the index file. Must be called after the lock is acquired with lockIndex()
@@ -358,7 +365,7 @@ func (f *FileRepo) indexFilename() string {
 
 func (f *FileRepo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	name = strings.TrimSpace(name)
-	res, err := f.List(ctx, &model.SearchParams{Name: name})
+	res, err := f.List(ctx, &model.Filters{Name: name})
 	if err != nil {
 		return nil, err
 	}
@@ -668,6 +675,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	}
 
 	newIndex.Sort()
+	newIndex.Meta.Created = time.Now()
 	f.idx = newIndex
 	duration := time.Now().Sub(start)
 	// Ignore error as we are sure our struct does not contain channel,
@@ -1176,7 +1184,7 @@ func getAttachmentCompletions(ctx context.Context, args []string, f Repo) ([]str
 			}
 			return attNames, nil
 		}
-		sp := &model.SearchParams{Name: args[0]}
+		sp := &model.Filters{Name: args[0]}
 		sr, err := f.List(ctx, sp)
 		if err != nil {
 			return nil, err

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/mocks"
 	"github.com/wot-oss/tmc/internal/commands"
@@ -198,7 +199,7 @@ func Test_Inventory(t *testing.T) {
 	httpHandler := setupTestHttpHandler(hs)
 
 	t.Run("list all", func(t *testing.T) {
-		var search *model.SearchParams
+		var search *model.Filters
 		hs.On("ListInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
 
 		// when: calling the route
@@ -212,6 +213,7 @@ func Test_Inventory(t *testing.T) {
 		assert.Equal(t, 2, len(response.Data))
 		assertInventoryEntry(t, listResult1.Entries[0], response.Data[0])
 		assertInventoryEntry(t, listResult1.Entries[1], response.Data[1])
+		assert.Equal(t, listResult1.LastUpdated.Format(time.RFC3339), response.Meta.LastUpdated)
 		// and then result is ordered ascending by name
 		isSorted := sort.SliceIsSorted(response.Data, func(i, j int) bool {
 			return response.Data[i].TmName < response.Data[j].TmName
@@ -219,7 +221,7 @@ func Test_Inventory(t *testing.T) {
 		assert.True(t, isSorted)
 	})
 	t.Run("list all from single repo", func(t *testing.T) {
-		var search *model.SearchParams
+		var search *model.Filters
 		hs.On("ListInventory", mock.Anything, "r1", search).Return(&listResult1, nil).Once()
 
 		// when: calling the route
@@ -240,7 +242,7 @@ func Test_Inventory(t *testing.T) {
 		assert.True(t, isSorted)
 	})
 	t.Run("list all from invalid repo", func(t *testing.T) {
-		var search *model.SearchParams
+		var search *model.Filters
 		hs.On("ListInventory", mock.Anything, "invalid", search).Return(nil, repos.ErrRepoNotFound).Once()
 
 		// when: calling the route
@@ -260,10 +262,53 @@ func Test_Inventory(t *testing.T) {
 
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s&search=%s",
 			route, fAuthors, fMan, fMpn, fProtos, search)
-		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := model.ToSearchParams(&fAuthors, &fMan, &fMpn, &fProtos, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
 
-		hs.On("ListInventory", mock.Anything, "", expectedSearchParams).Return(&listResult1, nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		// then: it returns status 400
+		assertResponse400(t, rec, filterRoute)
+	})
+	t.Run("list with filter and empty search parameter", func(t *testing.T) {
+		// given: the route with filter and search parameters
+		fAuthors := "a1,a2"
+		fMan := "man1,man2"
+		fMpn := "mpn1,mpn2"
+		fProtos := "coap,https"
+
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s&search=",
+			route, fAuthors, fMan, fMpn, fProtos)
+
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		// then: it returns status 400
+		assertResponse400(t, rec, filterRoute)
+	})
+	t.Run("list with filter parameters", func(t *testing.T) {
+		// given: the route with filter and search parameters
+		fAuthors := "a1,a2"
+		fMan := "man1,man2"
+		fMpn := "mpn1,mpn2"
+		fProtos := "coap,https"
+
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s",
+			route, fAuthors, fMan, fMpn, fProtos)
+		// and given: filters, expected to be converted from request query parameters
+		expectedFilters := model.ToFilters(&fAuthors, &fMan, &fMpn, &fProtos, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
+
+		hs.On("ListInventory", mock.Anything, "", expectedFilters).Return(&listResult1, nil).Once()
+
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		// then: it returns status 200
+		assertResponse200(t, rec)
+	})
+	t.Run("list with search parameter", func(t *testing.T) {
+		// given: the route with search parameter
+		search := "foo"
+
+		filterRoute := fmt.Sprintf("%s?search=%s",
+			route, search)
+		hs.On("SearchInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -272,7 +317,7 @@ func Test_Inventory(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -281,7 +326,7 @@ func Test_Inventory(t *testing.T) {
 	})
 
 	t.Run("with repository access error", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -335,7 +380,7 @@ func Test_Authors(t *testing.T) {
 	authors := []string{"author1", "author2", "author3"}
 
 	t.Run("list all", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListAuthors", mock.Anything, sp).Return(authors, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -353,19 +398,18 @@ func Test_Authors(t *testing.T) {
 		assert.True(t, isSorted)
 	})
 
-	t.Run("list with filter and search parameter", func(t *testing.T) {
+	t.Run("list with filter parameters", func(t *testing.T) {
 		// given: the route with filter and search parameters
 		fMan := "man1,man2"
 		fMpn := "mpn1,mpn2"
-		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.manufacturer=%s&filter.mpn=%s&search=%s",
-			route, fMan, fMpn, search)
+		filterRoute := fmt.Sprintf("%s?filter.manufacturer=%s&filter.mpn=%s",
+			route, fMan, fMpn)
 
-		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := model.ToSearchParams(nil, &fMan, &fMpn, nil, nil, &search, &model.SearchOptions{NameFilterType: model.PrefixMatch})
+		// and given: filters, expected to be converted from request query parameters
+		expectedFilters := model.ToFilters(nil, &fMan, &fMpn, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
-		hs.On("ListAuthors", mock.Anything, expectedSearchParams).Return(authors, nil).Once()
+		hs.On("ListAuthors", mock.Anything, expectedFilters).Return(authors, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -374,7 +418,7 @@ func Test_Authors(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListAuthors", mock.Anything, sp).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -393,7 +437,7 @@ func Test_Manufacturers(t *testing.T) {
 	manufacturers := []string{"man1", "man2", "man3"}
 
 	t.Run("list all", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListManufacturers", mock.Anything, sp).Return(manufacturers, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -411,24 +455,22 @@ func Test_Manufacturers(t *testing.T) {
 		assert.True(t, isSorted)
 	})
 
-	t.Run("list with filter and search parameter", func(t *testing.T) {
+	t.Run("list with filter parameters", func(t *testing.T) {
 		// given: the route with filter and search parameters
 		fAuthors := []string{"a1", "a2"}
 		fMpn := []string{"mpn1", "mpn2"}
-		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.mpn=%s&search=%s",
-			route, strings.Join(fAuthors, ","), strings.Join(fMpn, ","), search)
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.mpn=%s",
+			route, strings.Join(fAuthors, ","), strings.Join(fMpn, ","))
 
-		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := &model.SearchParams{
+		// and given: filters, expected to be converted from request query parameters
+		expectedFilters := &model.Filters{
 			Author:  fAuthors,
 			Mpn:     fMpn,
-			Query:   search,
-			Options: model.SearchOptions{NameFilterType: model.PrefixMatch},
+			Options: model.FilterOptions{NameFilterType: model.PrefixMatch},
 		}
 
-		hs.On("ListManufacturers", mock.Anything, expectedSearchParams).Return(manufacturers, nil).Once()
+		hs.On("ListManufacturers", mock.Anything, expectedFilters).Return(manufacturers, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -437,7 +479,7 @@ func Test_Manufacturers(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListManufacturers", mock.Anything, sp).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -455,7 +497,7 @@ func Test_Mpns(t *testing.T) {
 	mpns := []string{"mpn1", "mpn2", "mpn3"}
 
 	t.Run("list all", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListMpns", mock.Anything, sp).Return(mpns, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -475,24 +517,22 @@ func Test_Mpns(t *testing.T) {
 		assert.True(t, isSorted)
 	})
 
-	t.Run("list with filter and search parameter", func(t *testing.T) {
+	t.Run("list with filter parameters", func(t *testing.T) {
 		// given: the route with filter and search parameters
 		fAuthors := []string{"a1", "a2"}
 		fMan := []string{"man1", "man2"}
-		search := "foo"
 
-		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&search=%s",
-			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","), search)
+		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s",
+			route, strings.Join(fAuthors, ","), strings.Join(fMan, ","))
 
-		// and given: searchParams, expected to be converted from request query parameters
-		expectedSearchParams := &model.SearchParams{
+		// and given: filters, expected to be converted from request query parameters
+		expectedFilters := &model.Filters{
 			Author:       fAuthors,
 			Manufacturer: fMan,
-			Query:        search,
-			Options:      model.SearchOptions{NameFilterType: model.PrefixMatch},
+			Options:      model.FilterOptions{NameFilterType: model.PrefixMatch},
 		}
 
-		hs.On("ListMpns", mock.Anything, expectedSearchParams).Return(mpns, nil).Once()
+		hs.On("ListMpns", mock.Anything, expectedFilters).Return(mpns, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -501,7 +541,7 @@ func Test_Mpns(t *testing.T) {
 	})
 
 	t.Run("with unknown error", func(t *testing.T) {
-		var sp *model.SearchParams
+		var sp *model.Filters
 		hs.On("ListMpns", mock.Anything, sp).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
@@ -1421,6 +1461,7 @@ func assertAttachments(t *testing.T, linkPrefix string, expAtts []model.Attachme
 
 var (
 	listResult1 = model.SearchResult{
+		LastUpdated: time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC),
 		Entries: []model.FoundEntry{
 			{
 				Name:         "a-corp/eagle/bt2000",

@@ -57,7 +57,7 @@ func executeCopy(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		name = args[0]
 	}
-	search := CreateSearchParamsFromCLI(copyFilterFlags, name)
+	search := CreateFiltersFromCLI(copyFilterFlags, name)
 	err = cli.Copy(context.Background(), spec, toSpec, search, repos.ImportOptions{Force: force, IgnoreExisting: ie}, format)
 
 	if err != nil {

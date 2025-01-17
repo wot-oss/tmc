@@ -50,7 +50,7 @@ use tab to auto-complete path parts):
 tmc list omnicorp/omnicorp
 ```
 
-There are also other options to list a subset of available TMs from a catalog. See `tmc list -h` for details.
+There are other options to list a subset of available TMs from a catalog. See `tmc list -h` for details.
 
 ### List Versions
 

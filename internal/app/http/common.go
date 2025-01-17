@@ -18,16 +18,17 @@ import (
 )
 
 const (
-	Error400Title            = "Bad Request"
-	Error401Title            = "Unauthorized"
-	Error404Title            = "Not Found"
-	Error409Title            = "Conflict"
-	Error503Title            = "Service Unavailable"
-	Error500Title            = "Internal Server Error"
-	Error500Detail           = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
-	Error502Title            = "Bad Gateway"
-	Error502Detail           = "An upstream Thing Model repository returned an error"
-	ErrorRepoAmbiguousDetail = "Repository ambiguous. Repeat the request with the 'repo' query parameter"
+	Error400Title                  = "Bad Request"
+	Error401Title                  = "Unauthorized"
+	Error404Title                  = "Not Found"
+	Error409Title                  = "Conflict"
+	Error503Title                  = "Service Unavailable"
+	Error500Title                  = "Internal Server Error"
+	Error500Detail                 = "An unhandled error has occurred. Try again later. If it is a bug we already recorded it. Retrying will most likely not help"
+	Error502Title                  = "Bad Gateway"
+	Error502Detail                 = "An upstream Thing Model repository returned an error"
+	ErrorRepoAmbiguousDetail       = "Repository ambiguous. Repeat the request with the 'repo' query parameter"
+	ErrorSearchIndexNotFoundDetail = "The search index necessary to fulfill the request is not available on the server. Use other filter parameters or contact administrator to create the search index"
 
 	HeaderAuthorization       = "Authorization"
 	HeaderContentType         = "Content-Type"
@@ -47,6 +48,8 @@ const (
 	ctxUrlRoot      = "urlContextRoot"
 	ctxRelPathDepth = "relPathDepth"
 )
+
+var ErrIncompatibleParameters = errors.New("request parameters incompatible")
 
 func HandleJsonResponse(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
 	body, err := json.MarshalIndent(data, "", "    ")
@@ -90,9 +93,14 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
 		errors.Is(err, repos.ErrRepoNotFound),
+		errors.Is(err, ErrIncompatibleParameters),
 		errors.Is(err, repos.ErrInvalidCompletionParams):
 		errTitle = Error400Title
 		errDetail = err.Error()
+		errStatus = http.StatusBadRequest
+	case errors.Is(err, model.ErrSearchIndexNotFound):
+		errTitle = Error400Title
+		errDetail = ErrorSearchIndexNotFoundDetail
 		errStatus = http.StatusBadRequest
 	case errors.Is(err, repos.ErrAmbiguous):
 		errTitle = Error400Title
@@ -231,14 +239,13 @@ func convertForceParam(p *server.ForceImport) bool {
 	return false
 }
 
-func convertParams(params any) *model.SearchParams {
+func convertParams(params any) *model.Filters {
 
 	var filterAuthor *string
 	var filterManufacturer *string
 	var filterMpn *string
 	var filterProtocol *string
 	var filterName *string
-	var search *string
 
 	if invParams, ok := params.(server.GetInventoryParams); ok {
 		filterAuthor = invParams.FilterAuthor
@@ -246,26 +253,22 @@ func convertParams(params any) *model.SearchParams {
 		filterMpn = invParams.FilterMpn
 		filterProtocol = invParams.FilterProtocol
 		filterName = invParams.FilterName
-		search = invParams.Search
 	} else if authorsParams, ok := params.(server.GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
 		filterProtocol = authorsParams.FilterProtocol
-		search = authorsParams.Search
 	} else if manParams, ok := params.(server.GetManufacturersParams); ok {
 		filterAuthor = manParams.FilterAuthor
 		filterMpn = manParams.FilterMpn
 		filterProtocol = manParams.FilterProtocol
-		search = manParams.Search
 	} else if mpnsParams, ok := params.(server.GetMpnsParams); ok {
 		filterAuthor = mpnsParams.FilterAuthor
 		filterManufacturer = mpnsParams.FilterManufacturer
 		filterProtocol = mpnsParams.FilterProtocol
-		search = mpnsParams.Search
 	}
 
-	return model.ToSearchParams(filterAuthor, filterManufacturer, filterMpn, filterProtocol, filterName, search,
-		&model.SearchOptions{NameFilterType: model.PrefixMatch})
+	return model.ToFilters(filterAuthor, filterManufacturer, filterMpn, filterProtocol, filterName,
+		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }
 
 func toInventoryResponse(ctx context.Context, res model.SearchResult) server.InventoryResponse {
