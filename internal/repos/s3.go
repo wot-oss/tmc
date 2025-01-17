@@ -55,6 +55,7 @@ func createS3RepoConfig(bytes []byte) (ConfigMap, error) {
 }
 
 type S3Repo struct {
+	root   string
 	region string
 	bucket string
 	spec   model.RepoSpec
@@ -95,10 +96,6 @@ func NewS3Repo(cfg ConfigMap, spec model.RepoSpec) (*S3Repo, error) {
 	}
 
 	s3Client := s3.NewFromConfig(configS3)
-	if err != nil {
-		err := fmt.Errorf("error creating S3 client from configuration: %w", err)
-		return nil, err
-	}
 
 	return &S3Repo{
 		bucket: bucket,
@@ -106,6 +103,10 @@ func NewS3Repo(cfg ConfigMap, spec model.RepoSpec) (*S3Repo, error) {
 		client: s3Client,
 		spec:   spec,
 	}, nil
+}
+
+func (s *S3Repo) CanonicalRoot() string {
+	return s.region + s.bucket
 }
 
 func (s *S3Repo) Import(ctx context.Context, id model.TMID, raw []byte, opts ImportOptions) (ImportResult, error) {
@@ -306,7 +307,7 @@ func (s *S3Repo) Spec() model.RepoSpec {
 	return s.spec
 }
 
-func (s *S3Repo) List(ctx context.Context, search *model.SearchParams) (model.SearchResult, error) {
+func (s *S3Repo) List(ctx context.Context, search *model.Filters) (model.SearchResult, error) {
 	unlock, err := s.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
@@ -317,12 +318,15 @@ func (s *S3Repo) List(ctx context.Context, search *model.SearchParams) (model.Se
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	err = idx.Filter(search)
+
+	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
+	sr := model.NewIndexToFoundMapper(s.Spec().ToFoundSource()).ToSearchResult(*idx)
+	filtered := &sr
+	err = filtered.Filter(search)
 	if err != nil {
 		return model.SearchResult{}, err
 	}
-	idx.Sort() // the index is supposed to be sorted on disk, but we don't trust external storage, hence we'll sort here one more time to be extra sure
-	return model.NewIndexToFoundMapper(s.Spec().ToFoundSource()).ToSearchResult(*idx), nil
+	return *filtered, nil
 }
 
 // readIndex reads the contents of the index file. Must be called after the lock is acquired with lockIndex()
@@ -352,7 +356,7 @@ func (s *S3Repo) indexFilename() string {
 
 func (s *S3Repo) Versions(ctx context.Context, name string) ([]model.FoundVersion, error) {
 	name = strings.TrimSpace(name)
-	res, err := s.List(ctx, &model.SearchParams{Name: name})
+	res, err := s.List(ctx, &model.Filters{Name: name})
 	if err != nil {
 		return nil, err
 	}
