@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/aws/smithy-go"
 	"io"
 	"path"
 	"slices"
@@ -18,14 +19,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/aws/smithy-go"
 	ignore "github.com/sabhiram/go-gitignore"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
 var ErrS3NotExists = errors.New("file does not exist in S3")
-var ErrS3OpError = errors.New("operational error")
+var ErrS3Op = errors.New("operational error")
+var ErrS3Unknown = errors.New("unknown error")
 
 func createS3RepoConfig(bytes []byte) (ConfigMap, error) {
 	rc, err := AsRepoConfig(bytes)
@@ -54,13 +55,23 @@ func createS3RepoConfig(bytes []byte) (ConfigMap, error) {
 	return rc, nil
 }
 
+//go:generate mockery --name S3Client --outpkg s3mocks --output ../testutils/s3mocks
+type S3Client interface {
+	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+	DeleteObject(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)
+	DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
+	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+	HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error)
+	Options() s3.Options
+}
+
 type S3Repo struct {
-	root   string
 	region string
 	bucket string
 	spec   model.RepoSpec
 
-	client *s3.Client
+	client S3Client
 	// cached index
 	idx *model.Index
 }
@@ -84,23 +95,23 @@ func NewS3Repo(cfg ConfigMap, spec model.RepoSpec) (*S3Repo, error) {
 	if (!foundAk && foundSk) || (foundAk && !foundSk) {
 		return nil, fmt.Errorf("cannot create a AWS S3 repo from spec %v. Invalid config. aws_access_key_id and aws_secret_access_key must be set both as type string when setting credentials explicit", spec)
 	}
-	if foundAk && foundSk {
+	if foundAk {
 		optFns = append(optFns, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(ak, sk, "")))
 	}
 
-	configS3, err := config.LoadDefaultConfig(context.TODO(), optFns...)
+	configS3, err := config.LoadDefaultConfig(context.Background(), optFns...)
 
 	if err != nil {
 		err := fmt.Errorf("error loading S3 configuration: %w", err)
 		return nil, err
 	}
 
-	s3Client := s3.NewFromConfig(configS3)
+	c := s3.NewFromConfig(configS3)
 
 	return &S3Repo{
 		bucket: bucket,
 		region: region,
-		client: s3Client,
+		client: c,
 		spec:   spec,
 	}, nil
 }
@@ -182,8 +193,6 @@ func (s *S3Repo) Delete(ctx context.Context, id string) error {
 		}
 	}
 
-	// todo: _ = rmEmptyS3Dirs(dir, s.root)
-
 	_, err = s.updateIndex(ctx, s.indexUpdaterForIds(id))
 	return err
 }
@@ -233,11 +242,7 @@ func findTMS3EntriesByBaseVersion(infos []S3ObjectInfo, version model.TMVersion)
 	baseString := version.BaseString()
 	var res []model.TMVersion
 	for _, info := range infos {
-		if info.IsDir {
-			continue
-		}
-
-		_, base := filenames(info.Name)
+		_, base := filenames(info.Path)
 		ver, err := model.ParseTMVersion(strings.TrimSuffix(base, TMExt))
 		if err != nil {
 			continue
@@ -336,7 +341,7 @@ func (s *S3Repo) readIndex(ctx context.Context) (*model.Index, error) {
 	}
 	data, err := s3ReadObject(ctx, s.client, s.bucket, s.indexFilename())
 	if err != nil {
-		if err == ErrS3NotExists {
+		if errors.Is(err, ErrS3NotExists) {
 			err = ErrNoIndex
 		}
 		return nil, err
@@ -452,7 +457,7 @@ func (s *S3Repo) FetchAttachment(ctx context.Context, ref model.AttachmentContai
 	}
 
 	file, err := s3ReadObject(ctx, s.client, s.bucket, path.Join(attDir, attachmentName))
-	if err == ErrS3NotExists {
+	if errors.Is(err, ErrS3NotExists) {
 		return nil, model.ErrAttachmentNotFound
 	}
 	return file, err
@@ -515,15 +520,13 @@ func (s *S3Repo) listAttachments(ctx context.Context, ref model.AttachmentContai
 
 func (s *S3Repo) getS3FileNames(ctx context.Context, dir string) ([]string, error) {
 	entries, err := s3ListObjects(ctx, s.client, s.bucket, dir)
-	if err != nil && err != ErrS3NotExists {
+	if err != nil && !errors.Is(err, ErrS3NotExists) {
 		return nil, err
 	}
 
 	var files []string
 	for _, e := range entries {
-		if !e.IsDir {
-			files = append(files, e.Name)
-		}
+		files = append(files, e.Name)
 	}
 	return files, nil
 }
@@ -671,7 +674,7 @@ func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ 
 		default:
 		}
 
-		upd, id, _, err := s.updateIndexWithFile(ctx, newIndex, e.Name, &e, err)
+		upd, id, _, err := s.updateIndexWithFile(ctx, newIndex, e.Path, &e, err)
 		if err != nil {
 			return nil, nil, 0, ctx.Err()
 		}
@@ -720,7 +723,7 @@ func (s *S3Repo) reindexAttachments(ctx context.Context, containers map[model.At
 
 func (s *S3Repo) updateIndexWithFile(ctx context.Context, idx *model.Index, id string, info *S3ObjectInfo, err error) (updated bool, indexedId model.TMID, deletedName string, errr error) {
 	log := utils.GetLogger(ctx, "S3Repo")
-	if err == ErrS3NotExists {
+	if errors.Is(err, ErrS3NotExists) {
 		upd, name, err := idx.Delete(id)
 		if err != nil {
 			return false, model.TMID{}, "", err
@@ -730,41 +733,29 @@ func (s *S3Repo) updateIndexWithFile(ctx context.Context, idx *model.Index, id s
 	if err != nil {
 		return false, model.TMID{}, "", err
 	}
-	if info.IsDir {
+	if !strings.HasSuffix(info.Path, TMExt) {
 		return false, model.TMID{}, "", nil
 	}
-	if !strings.HasSuffix(info.Name, TMExt) {
-		return false, model.TMID{}, "", nil
-	}
-	thingMeta, err := s.getThingMetadata(ctx, info.Name)
+	thingMeta, err := s.getThingMetadata(ctx, info.Path)
 	if err != nil {
-		log.Warn(fmt.Sprintf("failed to extract metadata from file %s: %v. The file will be excluded from index", info.Name, err))
+		log.Warn(fmt.Sprintf("failed to extract metadata from file %s: %v. The file will be excluded from index", info.Path, err))
 		return false, model.TMID{}, "", nil
 	}
 	err = idx.Insert(&thingMeta.tm)
 	if err != nil {
-		log.Warn(fmt.Sprintf("failed to insert %s into index: %v. The file will be excluded from index", info.Name, err))
+		log.Warn(fmt.Sprintf("failed to insert %s into index: %v. The file will be excluded from index", info.Path, err))
 		return false, model.TMID{}, "", nil
 	}
 	return true, thingMeta.id, "", nil
 }
 
 func (s *S3Repo) lockIndex(ctx context.Context) (unlockFunc, error) {
-	//idxFile := s.indexFilename()
-
-	//fl := flock.New(idxFile + ".lock")
+	// todo: locking index not yet implemented for S3, compare with fs_repo.go!
 	ctx, cancel := context.WithTimeout(ctx, indexLockTimeout)
 	unlock := func() {
 		cancel()
-		//_ = fl.Unlock()
 		s.idx = nil
 	}
-	/*locked, err := fl.TryLockContext(ctx, indexLocRetryDelay)
-	if err != nil || !locked {
-		err = fmt.Errorf("failed to lock index file %s: %w", idxFile, err)
-		return unlock, err
-	}*/
-
 	return unlock, nil
 }
 
@@ -782,7 +773,7 @@ func (s *S3Repo) writeNamesFile(ctx context.Context, names []string) error {
 func (s *S3Repo) readIgnoreFile(ctx context.Context) (*ignore.GitIgnore, error) {
 	ignoreFileName := path.Join(RepoConfDir, TmIgnoreFile)
 	_, err := s3Stat(ctx, s.client, s.bucket, ignoreFileName)
-	if err == ErrS3NotExists {
+	if errors.Is(err, ErrS3NotExists) {
 		err := s.writeDefaultIgnoreFile(ctx)
 		if err != nil {
 			return nil, err
@@ -814,8 +805,7 @@ func (s *S3Repo) getThingMetadata(ctx context.Context, id string) (*thingMetadat
 		return nil, err
 	}
 
-	var ctm model.ThingModel
-	err = json.Unmarshal(data, &ctm)
+	ctm, err := model.ParseThingModel(data)
 	if err != nil {
 		return nil, err
 	}
@@ -826,7 +816,7 @@ func (s *S3Repo) getThingMetadata(ctx context.Context, id string) (*thingMetadat
 	}
 
 	return &thingMetadata{
-		tm: ctm,
+		tm: *ctm,
 		id: tmid,
 	}, nil
 }
@@ -857,7 +847,7 @@ func (s *S3Repo) ListCompletions(ctx context.Context, kind string, args []string
 		}
 		vm := make(map[string]struct{})
 		for _, e := range entries {
-			if !e.IsDir && strings.HasSuffix(e.Name, TMExt) {
+			if strings.HasSuffix(e.Path, TMExt) {
 				ver, err := model.ParseTMVersion(strings.TrimSuffix(e.Name, TMExt))
 				if err != nil {
 					utils.GetLogger(ctx, "S3Repo.ListCompletions").Debug(err.Error())
@@ -921,14 +911,10 @@ func (s *S3Repo) verifyAllFilesAreIndexed(ctx context.Context, idx *model.Index,
 		default:
 		}
 
-		if e.IsDir {
+		if ignor(e.Path) || !filter(e.Path) {
 			continue
 		}
-
-		if ignor(e.Name) || !filter(e.Name) {
-			continue
-		}
-		checkResult := s.verifyFileIsIndexed(e.Name, idx)
+		checkResult := s.verifyFileIsIndexed(e.Path, idx)
 		results = append(results, checkResult)
 	}
 
@@ -974,64 +960,77 @@ func (s *S3Repo) prepareIgnoreFunc(ctx context.Context) (func(string) bool, erro
 }
 
 type S3ObjectInfo struct {
-	Name  string
-	IsDir bool
+	Path string
+	Name string
 }
 
-func s3Stat(ctx context.Context, client *s3.Client, bucket string, objectName string) (*S3ObjectInfo, error) {
-	_, err := client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: aws.String(bucket), Key: &objectName})
+func s3Stat(ctx context.Context, client S3Client, bucket string, objectKey string) (*S3ObjectInfo, error) {
+	_, err := client.HeadObject(ctx, &s3.HeadObjectInput{Bucket: aws.String(bucket), Key: &objectKey})
 
-	var ae smithy.APIError
-	var oe *smithy.OperationError
 	if err != nil {
-		if errors.As(err, &ae) && ae.ErrorCode() == "NotFound" {
-			//utils.GetLogger(ctx, "S3Repo").Error("failed to stat object %s from S3: bucket: %s, code: %s, message: %s, fault: %s", objectName, bucket, ae.ErrorCode(), ae.ErrorMessage(), ae.ErrorFault().String())
-			utils.GetLogger(ctx, "S3Repo").Error("failed to stat object from S3", "object", objectName, "bucket", bucket, "code", ae.ErrorCode(), "msg", ae.ErrorMessage(), "fault", ae.ErrorFault().String())
+		utils.GetLogger(ctx, "S3Repo").Warn("failed to stat object from S3", "object", objectKey, "bucket", bucket, "error", err.Error())
 
-			return nil, ErrS3NotExists
-		} else if errors.As(err, &oe) {
-			utils.GetLogger(ctx, "S3Repo").Error("failed to stat object from S3", "object", objectName, "bucket", bucket, "service", oe.Service(), "op", oe.OperationName, "error", oe.Unwrap())
-			return nil, ErrS3OpError
+		var ae smithy.APIError
+		var oe *smithy.OperationError
+
+		switch true {
+		case errors.As(err, &ae) && ae.ErrorCode() == "NotFound":
+			return nil, fmt.Errorf("%w, object: %s error: %s", ErrS3NotExists, objectKey, err.Error())
+		case errors.As(err, &oe):
+			return nil, fmt.Errorf("%w, object: %s error: %s", ErrS3Op, objectKey, err.Error())
+		default:
+			return nil, fmt.Errorf("%w %s", ErrS3Unknown, err.Error())
 		}
-		return nil, err
 	}
+
 	return &S3ObjectInfo{
-		Name:  objectName,
-		IsDir: isS3Dir(objectName),
+		Path: objectKey,
+		Name: path.Base(objectKey),
 	}, nil
 }
 
-func s3WriteObject(ctx context.Context, client *s3.Client, bucket string, objectName string, data []byte) error {
+func s3WriteObject(ctx context.Context, client S3Client, bucket string, objectKey string, data []byte) error {
 	_, err := client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectName),
+		Key:    aws.String(objectKey),
 		Body:   bytes.NewReader(data),
 	})
+
 	if err != nil {
-		err := fmt.Errorf("failed to write object %s to S3: bucket: %s  error: %w", objectName, bucket, err)
-		return err
+		utils.GetLogger(ctx, "S3Repo").Warn("failed to write object to S3", "object", objectKey, "bucket", bucket, "error", err.Error())
+
+		var oe *smithy.OperationError
+		if errors.As(err, &oe) {
+			return fmt.Errorf("%w, object: %s error: %s", ErrS3Op, objectKey, err.Error())
+		}
+		return fmt.Errorf("%w, object: %s error: %s", ErrS3Unknown, objectKey, err.Error())
 	}
 
-	msg := fmt.Sprintf("object %s successfully written to S3: bucket %s", objectName, bucket)
+	msg := fmt.Sprintf("object %s successfully written to S3: bucket %s", objectKey, bucket)
 	utils.GetLogger(ctx, "S3Repo").Debug(msg)
 
 	return nil
 }
 
-func s3ReadObject(ctx context.Context, client *s3.Client, bucket string, objectName string) ([]byte, error) {
+func s3ReadObject(ctx context.Context, client S3Client, bucket string, objectKey string) ([]byte, error) {
 
 	result, err := client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    aws.String(objectName),
+		Key:    aws.String(objectKey),
 	})
 	if err != nil {
+		utils.GetLogger(ctx, "S3Repo").Warn("failed to read object from S3", "object", objectKey, "bucket", bucket, "error", err.Error())
+
 		var noKey *types.NoSuchKey
-		if errors.As(err, &noKey) {
-			utils.GetLogger(ctx, "S3Repo").Warn("failed to read object from S3", "object", objectName, "bucket", bucket, "code", noKey.ErrorCode(), "msg", noKey.ErrorMessage(), "fault", noKey.ErrorFault().String())
-			return nil, ErrS3NotExists
-		} else {
-			utils.GetLogger(ctx, "S3Repo").Warn("failed to read object from S3", "object", objectName, "bucket", bucket, "error", err.Error())
-			return nil, err
+		var oe *smithy.OperationError
+
+		switch true {
+		case errors.As(err, &noKey):
+			return nil, fmt.Errorf("%w, object: %s error: %s", ErrS3NotExists, objectKey, err.Error())
+		case errors.As(err, &oe):
+			return nil, fmt.Errorf("%w, object: %s error: %s", ErrS3Op, objectKey, err.Error())
+		default:
+			return nil, fmt.Errorf("%w, object: %s error: %s", ErrS3Unknown, objectKey, err.Error())
 		}
 	}
 
@@ -1042,37 +1041,56 @@ func s3ReadObject(ctx context.Context, client *s3.Client, bucket string, objectN
 	return b, err
 }
 
-func s3ListObjects(ctx context.Context, client *s3.Client, bucket, objectPrefix string) ([]S3ObjectInfo, error) {
+func s3ListObjects(ctx context.Context, client S3Client, bucket, objectPrefix string) ([]S3ObjectInfo, error) {
 
 	output, err := client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucket),
 		Prefix: &objectPrefix,
 	})
+
 	if err != nil {
-		return nil, err
+		utils.GetLogger(ctx, "S3Repo").Warn("failed to list objects from S3", "bucket", bucket, "error", err.Error())
+
+		var opErr *smithy.OperationError
+		if errors.As(err, &opErr) {
+			return nil, fmt.Errorf("%w %s", ErrS3Op, err.Error())
+		}
+		return nil, fmt.Errorf("%w %s", ErrS3Unknown, err.Error())
 	}
 
 	var infos []S3ObjectInfo
 	for _, o := range output.Contents {
+		if !strings.HasPrefix(path.Dir(*o.Key), "") {
+			continue
+		}
+
 		infos = append(infos, S3ObjectInfo{
-			Name:  *o.Key,
-			IsDir: isS3Dir(*o.Key),
+			Path: *o.Key,
+			Name: path.Base(*o.Key),
 		})
 	}
-
 	return infos, err
-	//todo: return own sentinel error, or wrapped
 }
 
-func s3RemoveObject(ctx context.Context, client *s3.Client, bucket string, objectName string) error {
+func s3RemoveObject(ctx context.Context, client S3Client, bucket string, objectKey string) error {
 	_, err := client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(bucket),
-		Key:    &objectName,
+		Key:    &objectKey,
 	})
-	return err
+
+	if err != nil {
+		utils.GetLogger(ctx, "S3Repo").Warn("failed to remove object from S3", "object", objectKey, "bucket", bucket, "error", err.Error())
+
+		var opErr *smithy.OperationError
+		if errors.As(err, &opErr) {
+			return fmt.Errorf("%w, object: %s error: %s", ErrS3Op, objectKey, err.Error())
+		}
+		return fmt.Errorf("%w, object: %s error: %s", ErrS3Unknown, objectKey, err.Error())
+	}
+	return nil
 }
 
-func s3RemoveAll(ctx context.Context, client *s3.Client, bucket string, objectPrefix string) error {
+func s3RemoveAll(ctx context.Context, client S3Client, bucket string, objectPrefix string) error {
 
 	files, err := s3ListObjects(ctx, client, bucket, objectPrefix)
 	if err != nil {
@@ -1081,7 +1099,7 @@ func s3RemoveAll(ctx context.Context, client *s3.Client, bucket string, objectPr
 
 	var objectIds []types.ObjectIdentifier
 	for _, o := range files {
-		objectIds = append(objectIds, types.ObjectIdentifier{Key: &o.Name})
+		objectIds = append(objectIds, types.ObjectIdentifier{Key: &o.Path})
 	}
 
 	if len(objectIds) > 0 {
@@ -1089,11 +1107,21 @@ func s3RemoveAll(ctx context.Context, client *s3.Client, bucket string, objectPr
 			Bucket: aws.String(bucket),
 			Delete: &types.Delete{Objects: objectIds},
 		})
+
+		if err != nil {
+			utils.GetLogger(ctx, "S3Repo").Warn("failed to remove objects from S3", "objectPrefix", objectPrefix, "bucket", bucket, "error", err.Error())
+
+			var opErr *smithy.OperationError
+			if errors.As(err, &opErr) {
+				return fmt.Errorf("%w, objectPrefix: %s error: %s", ErrS3Op, objectPrefix, err.Error())
+			}
+			return fmt.Errorf("%w, objectPrefix: %s error: %s", ErrS3Unknown, objectPrefix, err.Error())
+		}
 	}
-	return err
+	return nil
 }
 
-func writeFileLines(ctx context.Context, client *s3.Client, bucket string, fileName string, lines []string) error {
+func writeFileLines(ctx context.Context, client S3Client, bucket string, fileName string, lines []string) error {
 	buf := bytes.NewBuffer(nil)
 	for _, line := range lines {
 		_, err := fmt.Fprintln(buf, line)
@@ -1104,7 +1132,7 @@ func writeFileLines(ctx context.Context, client *s3.Client, bucket string, fileN
 	return s3WriteObject(ctx, client, bucket, fileName, buf.Bytes())
 }
 
-func readFileLines(ctx context.Context, client *s3.Client, bucket string, fileName string) ([]string, error) {
+func readFileLines(ctx context.Context, client S3Client, bucket string, fileName string) ([]string, error) {
 	b, err := s3ReadObject(ctx, client, bucket, fileName)
 	if err != nil {
 		return nil, err
@@ -1118,14 +1146,10 @@ func readFileLines(ctx context.Context, client *s3.Client, bucket string, fileNa
 	return lines, scanner.Err()
 }
 
-func toS3Dir(objectName string) string {
-	if isS3Dir(objectName) {
-		return objectName
+func toS3Dir(objectKey string) string {
+	if strings.HasSuffix(objectKey, "/") {
+		return objectKey
 	} else {
-		return objectName + "/"
+		return objectKey + "/"
 	}
-}
-
-func isS3Dir(objectName string) bool {
-	return strings.HasSuffix(objectName, "/")
 }
