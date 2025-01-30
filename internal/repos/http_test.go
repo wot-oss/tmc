@@ -309,6 +309,24 @@ func TestHttpRepo_GetTMMetadata(t *testing.T) {
 		}
 	}
 }
+func TestHttpRepo_HandlesNoServerErr(t *testing.T) {
+	const tmID = "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20240409155220-3f779458e453.tm.json"
+
+	// given: server is not running
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	}))
+	srv.Close() // close immediately
+	config, err := createHttpRepoConfig([]byte(`{"loc":"` + srv.URL + `", "type":"http"}`))
+	assert.NoError(t, err)
+	r, err := NewHttpRepo(config, model.NewRepoSpec("nameless"))
+	assert.NoError(t, err)
+
+	// when: http repo sends a request
+	_, err = r.GetTMMetadata(context.Background(), tmID)
+
+	// then: an error is returned
+	assert.Error(t, err)
+}
 func TestHttpRepo_ListByName(t *testing.T) {
 	const tmName = "omnicorp-tm-department/omnicorp/omnilamp"
 	_, idx, err := utils.ReadRequiredFile("../../test/data/repos/file/attachments/.tmc/tm-catalog.toc.json")
