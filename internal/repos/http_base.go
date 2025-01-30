@@ -138,7 +138,7 @@ func (b *baseHttpRepo) doHttp(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		utils.GetLogger(req.Context(), "baseHttpRepo").Error(err.Error())
 	}
-	if resp.StatusCode >= http.StatusBadRequest {
+	if resp != nil && resp.StatusCode >= http.StatusBadRequest {
 		utils.GetLogger(req.Context(), "baseHttpRepo").Error("received error response from remote", "status", resp.StatusCode)
 	}
 	return resp, err
