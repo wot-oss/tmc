@@ -16,6 +16,7 @@
 - `list`, `copy`, `export`: added filtering by protocols supported by TMs
 - added `create-si` command to initially create a bleve search index for repositories
 - added `search` command to search for TMs by a text search query using bleve syntax
+- added a `s3` (AWS S3) repository type
 
 ### Changed
 
