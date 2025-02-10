@@ -198,14 +198,14 @@ func (s *S3Repo) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-func filenames(id string) (string, string) {
+func s3Filenames(id string) (string, string) {
 	dir := toS3Dir(path.Dir(id))
 	base := path.Base(id)
 	return dir, base
 }
 
 func (s *S3Repo) getExistingID(ctx context.Context, ids string) (idMatch, string) {
-	dir, base := filenames(ids)
+	dir, base := s3Filenames(ids)
 	// try full repoName as given
 	if _, err := s3Stat(ctx, s.client, s.bucket, ids); err == nil {
 		return idMatchFull, ids
@@ -236,14 +236,14 @@ func (s *S3Repo) getExistingID(ctx context.Context, ids string) (idMatch, string
 	return idMatchNone, ""
 }
 
-// findTMFileEntriesByBaseVersion finds directory entries that correspond to TM file names, converts those to TMVersions,
+// findTMS3EntriesByBaseVersion finds directory entries that correspond to TM file names, converts those to TMVersions,
 // filters out those that have a differing base version from the one given as argument, and sorts the remaining in
 // descending order
 func findTMS3EntriesByBaseVersion(infos []S3ObjectInfo, version model.TMVersion) []model.TMVersion {
 	baseString := version.BaseString()
 	var res []model.TMVersion
 	for _, info := range infos {
-		_, base := filenames(info.Path)
+		_, base := s3Filenames(info.Path)
 		ver, err := model.ParseTMVersion(strings.TrimSuffix(base, TMExt))
 		if err != nil {
 			continue
@@ -761,14 +761,14 @@ func (s *S3Repo) lockIndex(ctx context.Context) (unlockFunc, error) {
 }
 
 func (s *S3Repo) readNamesFile(ctx context.Context) []string {
-	lines, _ := readFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, TmNamesFile))
+	lines, _ := s3ReadFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, TmNamesFile))
 	return lines
 }
 
 func (s *S3Repo) writeNamesFile(ctx context.Context, names []string) error {
 	slices.Sort(names)
 	names = slices.Compact(names)
-	return writeFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, TmNamesFile), names)
+	return s3WriteFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, TmNamesFile), names)
 }
 
 func (s *S3Repo) readIgnoreFile(ctx context.Context) (*ignore.GitIgnore, error) {
@@ -780,7 +780,7 @@ func (s *S3Repo) readIgnoreFile(ctx context.Context) (*ignore.GitIgnore, error) 
 			return nil, err
 		}
 	}
-	lines, err := readFileLines(ctx, s.client, s.bucket, ignoreFileName)
+	lines, err := s3ReadFileLines(ctx, s.client, s.bucket, ignoreFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -789,15 +789,7 @@ func (s *S3Repo) readIgnoreFile(ctx context.Context) (*ignore.GitIgnore, error) 
 }
 
 func (s *S3Repo) writeDefaultIgnoreFile(ctx context.Context) error {
-	ignoreDefaults := []string{
-		"# ignore any top-level files",
-		"/*",
-		"!/*/",
-		"",
-		"# ignore any top-level directories starting with a dot",
-		"/.*/",
-	}
-	return writeFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, TmIgnoreFile), ignoreDefaults)
+	return s3WriteFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, TmIgnoreFile), repoDefaultIgnore)
 }
 
 func (s *S3Repo) getThingMetadata(ctx context.Context, id string) (*thingMetadata, error) {
@@ -1122,7 +1114,7 @@ func s3RemoveAll(ctx context.Context, client S3Client, bucket string, objectPref
 	return nil
 }
 
-func writeFileLines(ctx context.Context, client S3Client, bucket string, fileName string, lines []string) error {
+func s3WriteFileLines(ctx context.Context, client S3Client, bucket string, fileName string, lines []string) error {
 	buf := bytes.NewBuffer(nil)
 	for _, line := range lines {
 		_, err := fmt.Fprintln(buf, line)
@@ -1133,7 +1125,7 @@ func writeFileLines(ctx context.Context, client S3Client, bucket string, fileNam
 	return s3WriteObject(ctx, client, bucket, fileName, buf.Bytes())
 }
 
-func readFileLines(ctx context.Context, client S3Client, bucket string, fileName string) ([]string, error) {
+func s3ReadFileLines(ctx context.Context, client S3Client, bucket string, fileName string) ([]string, error) {
 	b, err := s3ReadObject(ctx, client, bucket, fileName)
 	if err != nil {
 		return nil, err

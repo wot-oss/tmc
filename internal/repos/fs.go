@@ -946,15 +946,7 @@ func (f *FileRepo) readIgnoreFile() (*ignore.GitIgnore, error) {
 	return gitIgnore, nil
 }
 func (f *FileRepo) writeDefaultIgnoreFile() error {
-	ignoreDefaults := []string{
-		"# ignore any top-level files",
-		"/*",
-		"!/*/",
-		"",
-		"# ignore any top-level directories starting with a dot",
-		"/.*/",
-	}
-	return utils.WriteFileLines(ignoreDefaults, filepath.Join(f.root, RepoConfDir, TmIgnoreFile), defaultFilePermissions)
+	return utils.WriteFileLines(repoDefaultIgnore, filepath.Join(f.root, RepoConfDir, TmIgnoreFile), defaultFilePermissions)
 }
 
 type thingMetadata struct {

@@ -58,6 +58,15 @@ const (
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
 
+var repoDefaultIgnore = []string{
+	"# ignore any top-level files",
+	"/*",
+	"!/*/",
+	"",
+	"# ignore any top-level directories starting with a dot",
+	"/.*/",
+}
+
 type Config map[string]map[string]any
 
 var SupportedTypes = []string{RepoTypeFile, RepoTypeHttp, RepoTypeTmc, RepoTypeS3}
