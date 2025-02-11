@@ -20,7 +20,7 @@ fit all the necessary information.
 All repos have a mandatory field 'type' and an optional 'description' field.  
 The 'type' is assigned from '--type' flag.  
 Depending on the repo type, also the field 'loc' (short for location) may be required and is then assigned from \<location> argument.  
-The exact meaning of 'loc' field may different and also other fields may be provided or may be mandatory.  
+The exact meaning of 'loc' field may differ and also other fields may be provided or may be mandatory.  
 
 When adding a repository, the entire config may be provided in JSON form, either by giving a file name in
 \<config-file> or the entire JSON as string in \<config-json>. See `repo show` for example.
@@ -47,7 +47,7 @@ S3 repos do not have a 'loc' field, the entire configuration must be provided in
 The config json requires at least the field 'aws_bucket'.  
 
 Depending on how AWS client access is configured where the 'tmc' binary is running (e.g. via IAM role or shared config and credential files),   
-additional fields are necessary for the S3 repo.   
+additional fields may be necessary for the S3 repo.   
 
 A complete config json may look like this:
 ```
