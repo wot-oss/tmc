@@ -17,10 +17,10 @@ fit all the necessary information.
 > --json &lt;config-json>)
 > 
 
-All repos have two mandatory fields: 'type' and 'loc' (short for location), and an optional 'description' field.
-The 'type' is assigned from '--type' flag and the 'loc' is assigned from \<location> argument.
-Depending on the repo type, the exact meaning of 'loc' field is different and also other fields may be provided or may
-be mandatory.
+All repos have a mandatory field 'type' and an optional 'description' field.  
+The 'type' is assigned from '--type' flag.  
+Depending on the repo type, also the field 'loc' (short for location) may be required and is then assigned from \<location> argument.  
+The exact meaning of 'loc' field may different and also other fields may be provided or may be mandatory.  
 
 When adding a repository, the entire config may be provided in JSON form, either by giving a file name in
 \<config-file> or the entire JSON as string in \<config-json>. See `repo show` for example.
@@ -37,6 +37,31 @@ File repo is the primary repo type.
 For repos of type "file", 'loc' field is the path to filesystem directory where the repository is located.
 
 File repos do not define any additional fields.
+
+### S3 Repositories
+
+S3 repo allows accessing a repository stored in an AWS S3 bucket.  
+Like a file repo, this type of repository is writable.
+
+S3 repos do not have a 'loc' field, the entire configuration must be provided in JSON form.  
+The config json requires at least the field 'aws_bucket'.  
+
+Depending on how AWS client access is configured where the 'tmc' binary is running (e.g. via IAM role or shared config and credential files),   
+additional fields are necessary for the S3 repo.   
+
+A complete config json may look like this:
+```
+{
+  "aws_bucket": "catalog",
+  "aws_region": "eu-central-1",
+  "aws_access_key_id": "$AWS_AKI", 
+  "aws_secret_access_key": "$AWS_SAK",
+  "description": "Repository stored on AWS",
+  "type": "s3"
+}
+```
+
+
 
 ### HTTP Repositories
 
