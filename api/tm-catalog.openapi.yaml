@@ -297,7 +297,7 @@ paths:
       summary: Delete a Thing Model by ID
       description: >
         Deletes a Thing Model.
-        Normally, the catalog is write-only and no TMs are ever deleted.
+        Normally, the catalog is read-only and no TMs are ever deleted.
         The delete operation is implemented for the rare cases when a TM has been imported whilst containing major errors 
         or by mistake. It is mandatory to provide the query parameter ?force=true to delete a TM.
       operationId: deleteThingModelById
