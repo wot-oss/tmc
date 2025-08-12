@@ -96,10 +96,14 @@ tmc fetch omnicorp/omnicorp/lightall-mk2 -o .
 
 If you want to host a catalog for your organization or project you should create (See [Create a Repository][4]) and populate (See [Import Thing Models][5]) a repository 
 and then host it using one of the two options:
+
 1. [A simple read-only catalog hosted by your favorite git forge][1]
 2. [A catalog served by the TMC REST API][2]
 
-You can configure those as a repo of type 'http' or 'tmc', respectively
+You can configure those as a repo of type 'http' or 'tmc', respectively.
+The figure below also demonstrates different ways to use the TMC or TMs hosted by a TMC instance.
+
+![Thing Model Catalog Basic Architecture](../media/usage.png)
 
 [1]: ./workflows#publish-a-catalog-to-a-git-forge
 [2]: ./workflows#expose-a-catalog-for-http-clients
