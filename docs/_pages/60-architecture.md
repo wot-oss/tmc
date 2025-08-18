@@ -45,6 +45,8 @@ When a TM is added for a device, TMC creates metadata that contains the followin
 - Author, manufacturer and MPN information
 - Links to the all known TM versions
 
+TMC uses the metadata information for providing search, querying and indexing purposes.
+
 [1]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
 [2]: ./30-concepts.md
 
