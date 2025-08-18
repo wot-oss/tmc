@@ -103,7 +103,7 @@ and then host it using one of the two options:
 You can configure those as a repo of type 'http' or 'tmc', respectively.
 The figure below also demonstrates different ways to use the TMC or TMs hosted by a TMC instance.
 
-![Thing Model Catalog Basic Architecture](../media/usage.png)
+![Thing Model Catalog Usage Methods]({{site.baseurl}}/media/usage.png)
 
 [1]: ./workflows#publish-a-catalog-to-a-git-forge
 [2]: ./workflows#expose-a-catalog-for-http-clients
