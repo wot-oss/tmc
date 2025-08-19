@@ -15,7 +15,7 @@ tags:
   - name: attachments
     description: Access to TM and TM name attachments
   - name: inventory
-    description: Access to the inventory of the catalog
+    description: Access to the metadata of catalog entries
   - name: thing-models
     description: Access to Thing Model content
   - name: authors
