@@ -31,6 +31,12 @@ However, a TM cannot be changed in place, i.e. each change must be published as 
 As the id of a TM is generated based on the content, each change results in a new TM id.
 In the filesystem, all TMs of a device are found under the same folder.
 
+Each TM needs to contain the following top-level fields in addition to what is required by the standard in order to be accepted in the TMC. You can refer to [the validation schema][3]:
+
+- `"schema:author"`
+- `"schema:manufacturer"`
+- `"schema:mpn"`
+
 ## Attachments
 
 In addition to a TM, a device can contain attachments such as images, manuals or even binaries.
@@ -49,4 +55,4 @@ TMC uses the metadata information for providing search, querying and indexing pu
 
 [1]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
 [2]: ./30-concepts.md
-
+[3]: https://github.com/wot-oss/tmc/blob/278150599bd0f35db8c6b2d8a70c5525ffbec1a4/internal/commands/validate/tmc-mandatory.schema.json
