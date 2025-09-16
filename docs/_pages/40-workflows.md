@@ -27,7 +27,7 @@ See [`repo add`][6] for more details on how to create repositories.
 
 Most subcommands of `tmc` operate by default on the list of named repositories stored in its `config.json` file, unless a single one of them is selected
 by `--repo` flag or a local repository is defined by `--directory` flag. The default location of the `config.json` file is `~/.tm-catalog`. You can
-override the default config directory with the `--config` flag.
+override the default config directory with the `--config` flag. There must be at least one repository to serve specified in `config.json` file or with the `--repo` or `--directory` flags.
 
 To view and modify the list of repositories in the config file, use command `repo` and its subcommands. For example,
 
