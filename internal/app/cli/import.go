@@ -94,7 +94,7 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 	var results []repos.ImportResult
 	var tErr error
 	uuidToTmNameMap := make(map[string]string)
-	tErr = filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
+	err := filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
 		if d.IsDir() || !strings.HasSuffix(d.Name(), ".json") {
 			return nil
 		}
@@ -114,41 +114,43 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 		}
 		return nil
 	})
-	if tErr != nil {
-		return results, tErr
+	if err != nil {
+		return results, err
 	}
-	repo.Index(ctx)
-	tms, _ := repo.List(ctx, nil)
-	for _, tm := range tms.Entries {
-		for _, v := range tm.Versions {
-			uuidToTmNameMap[v.ExternalID] = tm.Name
-		}
-	}
-	tErr = filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
-		if d.IsDir() || !strings.Contains(d.Name(), ".json") {
-			if err != nil {
-				fmt.Printf("Error encountered during directory traversal %s: %v\n", d.Name(), err)
-				return err
-			}
-			if d.IsDir() {
-				return nil
-			}
-			ext := filepath.Ext(d.Name())
-			mimeType := mime.TypeByExtension(ext)
-			if mimeType == "" {
-				//fallback to "application/octet-stream", if the filetype is unknown
-				fmt.Printf("%s: unknown MIME type for extension '%s'\n", d.Name(), ext)
-				mimeType = "application/octet-stream"
-			}
-			uuid := filepath.Base(filepath.Dir(path))
-			err = AttachmentImport(ctx, repo.Spec(), uuidToTmNameMap[uuid], path, d.Name(), mimeType, true)
-			if err != nil {
-				fmt.Printf("Error encountered during aattachment import %s: %v\n", d.Name(), err)
-				return err
+	if opts.WithAttachments {
+		repo.Index(ctx)
+		tms, _ := repo.List(ctx, nil)
+		for _, tm := range tms.Entries {
+			for _, v := range tm.Versions {
+				uuidToTmNameMap[v.ExternalID] = tm.Name
 			}
 		}
-		return nil
-	})
+		err = filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
+			if d.IsDir() || !strings.Contains(d.Name(), ".json") {
+				if err != nil {
+					fmt.Printf("Error encountered during directory traversal %s: %v\n", d.Name(), err)
+					return err
+				}
+				if d.IsDir() {
+					return nil
+				}
+				ext := filepath.Ext(d.Name())
+				mimeType := mime.TypeByExtension(ext)
+				if mimeType == "" {
+					//fallback to "application/octet-stream", if the filetype is unknown
+					fmt.Printf("%s: unknown MIME type for extension '%s'\n", d.Name(), ext)
+					mimeType = "application/octet-stream"
+				}
+				uuid := filepath.Base(filepath.Dir(path))
+				err = AttachmentImport(ctx, repo.Spec(), uuidToTmNameMap[uuid], path, d.Name(), mimeType, true)
+				if err != nil {
+					fmt.Printf("Error encountered during aattachment import %s: %v\n", d.Name(), err)
+					return err
+				}
+			}
+			return nil
+		})
+	}
 	return results, tErr
 
 }
