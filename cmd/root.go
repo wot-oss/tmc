@@ -14,6 +14,7 @@ import (
 	"github.com/wot-oss/tmc/internal/app/cli"
 	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -65,9 +66,14 @@ func preRunAll(cmd *cobra.Command, _ []string) {
 func RepoSpecFromFlags(cmd *cobra.Command) model.RepoSpec {
 	repoName := cmd.Flag("repo").Value.String()
 	dir := cmd.Flag("directory").Value.String()
+	repos, _ := repos.ReadConfig()
+	if repoName == "" && dir == "" && len(repos) == 0 {
+		cli.Stderrf("No specified repos in config, no repo specified with flags. Nothing to serve. Set at least one.")
+		os.Exit(1)
+	}
 	spec, err := model.NewSpec(repoName, dir)
 	if errors.Is(err, model.ErrInvalidSpec) {
-		cli.Stderrf("Invalid specification of repository. --repo and --directory are mutually exclusive. Set at most one")
+		cli.Stderrf("Invalid specification of repository. --repo and --directory are mutually exclusive. Set at most one.")
 		os.Exit(1)
 	}
 	return spec
