@@ -16,6 +16,7 @@ func convertToNativeLineEndings(b []byte) []byte {
 }
 
 func atomicWriteFile(name string, data []byte, perm os.FileMode) error {
+	const maxRetries = 5
 	dir := filepath.Dir(name)
 	temp, err := os.CreateTemp(dir, filepath.Base(name)+".*.temp")
 	if err != nil {
@@ -27,5 +28,11 @@ func atomicWriteFile(name string, data []byte, perm os.FileMode) error {
 	if err != nil {
 		return err
 	}
-	return os.Rename(temp.Name(), name)
+	for i := 0; i < maxRetries; i++ {
+		err := os.Rename(temp.Name(), name)
+		if err == nil {
+			break
+		}
+	}
+	return err
 }

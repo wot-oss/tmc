@@ -154,9 +154,10 @@ type Repo interface {
 }
 
 type ImportOptions struct {
-	Force          bool
-	OptPath        string
-	IgnoreExisting bool
+	Force           bool
+	OptPath         string
+	IgnoreExisting  bool
+	WithAttachments bool
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {
