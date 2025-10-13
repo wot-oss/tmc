@@ -10,6 +10,7 @@ import (
 
 	"github.com/wot-oss/tmc/internal/app/http/cors"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
 
 	"github.com/wot-oss/tmc/internal/app/http/jwt"
@@ -29,6 +30,7 @@ type ServeOptions struct {
 }
 
 func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
+	var currRepo string
 	log := utils.GetLogger(context.Background(), "cli.Serve")
 	defer func() {
 		if r := recover(); r != nil {
@@ -60,9 +62,29 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 	}
 
 	// valid configuration, we can print the banner and start the server
+	repos, _ := repos.ReadConfig()
+	if repo.Dir() != "" || repo.RepoName() != "" {
+		currRepo = "from command line flags: "
+		dir := repo.Dir()
+		if dir != "" {
+			currRepo += dir
+		} else {
+			currRepo += repo.RepoName()
+		}
+	} else if len(repos) > 0 {
+		currRepo = "from config file: "
+		for r := range repos {
+			currRepo += r + " "
+		}
+	} else {
+		err = fmt.Errorf("could not start tm catalog server on %s:%s, there's no catalog to serve", host, port)
+		Stderrf(err.Error())
+		log.Error(err.Error())
+		return err
+	}
 	fmt.Println(banner)
 	verMsg := fmt.Sprintf("Version of tmc: %s", utils.GetTmcVersion())
-	startMsg := fmt.Sprintf("Starting tmc server on %s:%s", host, port)
+	startMsg := fmt.Sprintf("Starting tmc server on %s:%s serving catalog(s) %s", host, port, currRepo)
 	fmt.Println(verMsg)
 	fmt.Println(startMsg)
 	fmt.Println()

@@ -17,11 +17,18 @@ Read our [Documentation][3] for more.
 
 ## Installation
 
+### Prebuilt
+
 Download binary from [releases][2] page or
 
 ```bash
 go install github.com/wot-oss/tmc@v0.1.2
 ```
+
+### From Source
+
+Run `go install` to install tmc to your install path. You can find the install path by running `go list -f '{{.Target}}'`.
+Switch to the install path folder and run the binary.
 
 ## Quick Start
 
@@ -32,7 +39,7 @@ go install github.com/wot-oss/tmc@v0.1.2
     tmc completion -h
     ```
 
-2. Follow the instructions of the shell specific help text
+2. Follow the instructions of the shell-specific help text
     ```bash
     tmc completion <shell> -h
     ```
@@ -40,7 +47,7 @@ go install github.com/wot-oss/tmc@v0.1.2
 ### Browse the Example Catalog
 
 We provide an [example repository][4] for you to get acquainted with `tmc`. The following commands assume that you use
-the example repository. If your organization hosts a TM catalog for use as a default, you will need to change the
+the example repository. If your organization hosts a TM catalog as a default, you must change the
 commands accordingly.
 
 #### Configure the Example Repository
