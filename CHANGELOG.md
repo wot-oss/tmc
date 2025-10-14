@@ -12,11 +12,13 @@
 - added HTTP Basic auth to tmc and file repos
 - `repo add`, `repo config set`: added flag to pass repo config json as string
 - added possibility to define configuration parameters of repositories by referencing environment variables
-- added flag to change commands' output format to JSON 
+- added flag to change commands' output format to JSON
 - `list`, `copy`, `export`: added filtering by protocols supported by TMs
 - added `create-si` command to initially create a bleve search index for repositories
 - added `search` command to search for TMs by a text search query using bleve syntax
 - added a `s3` (AWS S3) repository type
+- added a check for directory or repo before serving
+- added importing attachments in a directory of TMs when importing TMs
 
 ### Changed
 
