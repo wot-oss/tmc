@@ -263,4 +263,67 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 		}
 	})
 
+	t.Run("import directory with with-attachments", func(t *testing.T) {
+		clk := testutils.NewTestClock(time.Date(2023, time.November, 10, 12, 32, 43, 0, time.UTC), time.Second)
+		e := NewImportExecutor(clk.Now)
+		opts := repos.ImportOptions{
+			WithAttachments: true,
+		}
+		repoSpec := model.NewRepoSpec("repo")
+		ctx := context.Background()
+		r.On("Spec").Return(repoSpec)
+		tmid1 := model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123244-98b3fbd291f4.tm.json")
+		r.On("Import", mock.Anything, tmid1, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid1.String()}, nil)
+		tmid2 := model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123245-575dfac219e2.tm.json")
+		r.On("Import", mock.Anything, tmid2, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid2.String()}, nil)
+		r.On("Index", mock.Anything).Return(nil)
+		r.On("Index", mock.Anything, tmid1.String(), tmid2.String()).Return(nil)
+		v1 := model.IndexVersion{
+			ExternalID: "omnilamp.json",
+		}
+		v2 := model.IndexVersion{
+			ExternalID: "omnilamp-versioned.json",
+		}
+		entry1 := model.FoundEntry{
+			Name: tmid1.Name,
+			Manufacturer: model.SchemaManufacturer{
+				Name: "omnicorp",
+			},
+			Mpn: "123",
+			Author: model.SchemaAuthor{
+				Name: "author",
+			},
+			Versions: []model.FoundVersion{
+				{
+					IndexVersion: &v1,
+				},
+			},
+		}
+		entry2 := model.FoundEntry{
+			Name: tmid2.Name,
+			Manufacturer: model.SchemaManufacturer{
+				Name: "omnicorp",
+			},
+			Mpn: "000",
+			Author: model.SchemaAuthor{
+				Name: "author",
+			},
+			Versions: []model.FoundVersion{
+				{
+					IndexVersion: &v2,
+				},
+			},
+		}
+		r.On("List", mock.Anything, mock.Anything).Return(model.SearchResult{LastUpdated: clk.Now(), Entries: []model.FoundEntry{entry1, entry2}}, nil)
+		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid1.Name), model.Attachment{Name: "test.svg", MediaType: "image/svg+xml"}, mock.Anything, mock.Anything).Return(nil)
+		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid2.Name), model.Attachment{Name: "test.svg", MediaType: "image/svg+xml"}, mock.Anything, mock.Anything).Return(nil)
+		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid2.Name), model.Attachment{Name: "test.txt", MediaType: "text/plain; charset=utf-8"}, mock.Anything, mock.Anything).Return(nil)
+		res, err := e.Import(context.Background(), "../../../test/data/import_attachments/subfolder_with_attachments", repoSpec, false, opts, OutputFormatPlain)
+		assert.NoError(t, err)
+		assert.Len(t, res, 2)
+		for i, r := range res {
+			assert.Equalf(t, repos.ImportResultOK, r.Type, "res[%d]: want ImportResultOK, got %v", i, r.Type)
+		}
+	})
+
 }
