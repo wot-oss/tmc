@@ -27,6 +27,10 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
+var janedoe_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjgwOWU2ZDNhYjUyN2NlYzgxYTEwYTAyMWYzMjExZTk1In0.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJzdWIiOiIxMjM0NTY3ODkwIiwidW5pcXVlX25hbWUiOiJqYW5lLmRvZUBzaWVtZW5zLmNvbSIsIm5hbWUiOiJKYW5lIERvZSIsImlhdCI6MTc1NDU3NTc3NiwiZXhwIjoyMDU0NjgxNDcwfQ.U9QV-x-ft0tyPzjBwKMgFHIVFjdPkRkZaZQsgTcrA70uK3gS6sujil5WNhTSC4wRL3bK7N0eSNYQSsNgpTw-Ux-7lWcuiaBcshVmUa5Wp7jimy8rGig5xFpAUbKJj62awv0d6CTvPVFGda82RCnkB8WPTFsIqtEfE9NpIvFLsIzKsz-RzEXvHqTQScu4OCB7COlQoMqOFnLokmntjGADYpJaZGxrfPEIEu2iezrFEvxwBVd4qq1m7zf8aCLyUBbcuOwcUA7LGiuP9YvkO2gcQZI5wEEFZWrvPzlkZxPPks9oZWnjj8JahR1qxADYrkiLFNW1lnTlP1Z3gOUGr8q62eqybY2O3BiiM6BQhrI5234P86bV0nOodADu9hlb_SC-KH6N6OtnM2QSvvgez-EXN5l0SEoAtOjhBX-GlK6ReQ-Mck1GDhmLwJKrR9WjruLLcdoOiV_u5-glWOnDEp_JvgyezgvuxLPrck5Y3ibkcZKm3zFo8S5QqWck3GDYVVG5"
+var maxmustermann_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjgwOWU2ZDNhYjUyN2NlYzgxYTEwYTAyMWYzMjExZTk1In0.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJzdWIiOiIxMjM0NTY3ODkwIiwidW5pcXVlX25hbWUiOiJtYXgubXVzdGVybWFubkBzaWVtZW5zLmNvbSIsIm5hbWUiOiJNYXggTXVzdGVybWFubiIsImlhdCI6MTc1NDU3NTc3NiwiZXhwIjoyMDU0NjgxNDcwfQ.F1mjLTQQqorFqeq_exiqg9CMJhTcbJOfBmKvr-iHL5-xvV9JZfIlG48myf7gwdYZsPArGTXshLerl8gdutHMEelVWetYYO4n9cY_xngzC8ezzhZjgLBFY5cs9imTe63o-GPT0AqY6S1VhsBt2UE7jvPDFGeSPtg_J4Kv9NgpIqtbJXGa7NA-lsjbtkSMOhN51lPQaajyXBjFS2aq9oMONRtGYRtAnzR3wbk4nRcVb4lFMF1g5-YRgszlE2iNRINhvXmWo2cvPXQ2EkgUgx3L_BTDSrBBH5E7QZyWbU5WgY9vBZ0TAWibToHk86bEs6kIe026o10xtoEqqjaFJ7bslTiPdYFBXRnO3-BtF9ZuSTn6xZHdryny5raNonbwmIyXnmHZbgqDQqiVsmMpp8oGOpJQUCzkTrPvEPYhPsd8svY2PoUoYb77d5b2gIUSY4Uu63jDicwfslbtAObRDNeCbYRULLQqgIdce1-IjesJMIqE0S8zpAXpi09O10gII_ep"
+var annsmith_token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjgwOWU2ZDNhYjUyN2NlYzgxYTEwYTAyMWYzMjExZTk1In0.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJzdWIiOiIxMjM0NTY3ODkwIiwidW5pcXVlX25hbWUiOiJhbm4uc21pdGhAc2llbWVucy5jb20iLCJuYW1lIjoiQW5uIFNtaXRoIiwiaWF0IjoxNzU0NTc1Nzc2LCJleHAiOjIwNTQ2ODE0NzB9.WOgdf978D_qrVJ2kkD2on1_tH9nmgiui2S_SUIguAPsMnY62SHiI2J67WkZIqWv5DzqC3b6uYBH1_0cW9loMpUt197-xChcHbJn_hR90ptqso6W7t-4g9nuOA9TIo-FUXfs2LrYGpsWhc_aJ1Dxyri_JHE5FCCCSVUaWa4wpIJlZxjbYJmRfGD1MWla8MWdPjtYVU1PTqDIN1bGEplKw1NufJHEN1qSeSGh1gIWoU_97-KhQXPIKw3w431WiJ6UcjvCLM6_AHaugrJOxjnJNPq5xCXzhJs3gJwzCuC4cVlbigGpyQTiSdNUZSQjAFnxrR-ExWshKABB8ajY66xhA8hLbERhRvrSuqBl3oOffPh7zkbCnEpuDg1g5mfoMgrQJ8tYqv8s8jqrL7dk4dGEEhsGfGMyAfCj4QPGhDQ-YCS66u5gcJEpLVmnaixOJNdbjDPAqxJANWqxAmjByyvyKKpyvtRRKuZdNBMzR2U_UyD7PIPxYKDJFhYyw-T6Z7cYj"
+
 func Test_getRelativeDepth(t *testing.T) {
 	type args struct {
 		path        string
@@ -60,6 +64,7 @@ func setupTestHttpHandler(hs HandlerService) http.Handler {
 		hs,
 		TmcHandlerOptions{
 			UrlContextRoot: "",
+			WhitelistPath:  "../../../whitelist.json",
 		})
 
 	return NewHttpHandler(handler, nil)
@@ -201,9 +206,14 @@ func Test_Inventory(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		var search *model.Filters
 		hs.On("ListInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
-
+		// when: calling the route with an unauthorized user
+		recunauth := testutils.NewRequest(http.MethodGet, route).
+			WithHeader("Authorization", "Bearer "+maxmustermann_token).RunOnHandler(httpHandler)
+		// then: it returns status 401
+		assertResponse401(t, recunauth)
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, route).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
@@ -225,7 +235,8 @@ func Test_Inventory(t *testing.T) {
 		hs.On("ListInventory", mock.Anything, "r1", search).Return(&listResult1, nil).Once()
 
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, route+"?repo=r1").RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, route+"?repo=r1").
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 200
 		assertResponse200(t, rec)
 		// and then: the body is of correct type
@@ -247,7 +258,8 @@ func Test_Inventory(t *testing.T) {
 
 		// when: calling the route
 		rt := route + "?repo=invalid"
-		rec := testutils.NewRequest(http.MethodGet, rt).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, rt).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 400
 		assertResponse400(t, rec, rt)
 	})
@@ -264,7 +276,8 @@ func Test_Inventory(t *testing.T) {
 			route, fAuthors, fMan, fMpn, fProtos, search)
 
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 400
 		assertResponse400(t, rec, filterRoute)
 	})
@@ -279,7 +292,8 @@ func Test_Inventory(t *testing.T) {
 			route, fAuthors, fMan, fMpn, fProtos)
 
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 400
 		assertResponse400(t, rec, filterRoute)
 	})
@@ -298,7 +312,8 @@ func Test_Inventory(t *testing.T) {
 		hs.On("ListInventory", mock.Anything, "", expectedFilters).Return(&listResult1, nil).Once()
 
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 200
 		assertResponse200(t, rec)
 	})
@@ -311,7 +326,8 @@ func Test_Inventory(t *testing.T) {
 		hs.On("SearchInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
 
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, filterRoute).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 200
 		assertResponse200(t, rec)
 	})
@@ -320,7 +336,8 @@ func Test_Inventory(t *testing.T) {
 		var sp *model.Filters
 		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, unknownErr).Once()
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, route).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
 		assertResponse500(t, rec, route)
 	})
@@ -329,7 +346,8 @@ func Test_Inventory(t *testing.T) {
 		var sp *model.Filters
 		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
 		// when: calling the route
-		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
+		rec := testutils.NewRequest(http.MethodGet, route).
+			WithHeader("Authorization", "Bearer "+janedoe_token).RunOnHandler(httpHandler)
 		// then: it returns status 502 and json error as body
 		assertResponse502(t, rec, route)
 	})
@@ -1326,6 +1344,11 @@ func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route strin
 
 	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
 	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
+}
+
+func assertResponse401(t *testing.T, rec *httptest.ResponseRecorder) {
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
 }
 
 func assertResponse409TMIDConflict(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *repos.ErrTMIDConflict) {

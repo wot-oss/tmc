@@ -2,17 +2,20 @@ package jwt
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
 var jwksKeyFunc jwt.Keyfunc
 var jwtServiceID string
+var whitelistFile string
 
 // GetMiddleware starts a go routine that periodically fetches the JWKS
 // key set and returns a middleware that uses that keyset to validate a
@@ -20,6 +23,7 @@ var jwtServiceID string
 func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
 	jwksKeyFunc = startJWKSFetch(opts).Keyfunc
 	jwtServiceID = opts.JWTServiceID
+	whitelistFile = opts.WhitelistFile
 	return jwtValidationMiddleware
 }
 
@@ -45,12 +49,18 @@ func jwtValidationMiddleware(h http.Handler) http.Handler {
 				return
 			}
 			// valid token, identify our service in the "aud" claim
-			// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
-			if err := validateAudClaim(token); err != nil {
-				log.Warn("failed to validate 'aud' claim", "error", err)
+			_, err = getAuthStatus(w, r, token)
+			if err != nil {
+				log.Warn("the user doesn't have a whitelist entry for the requested endpoint", "error", err)
 				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
+			// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
+			// if err := validateAudClaim(token); err != nil {
+			// 	//log.Warn("failed to validate 'aud' claim", "error", err)
+			// 	//TODO: what to do?? httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+			// 	return
+			// }
 		}
 		h.ServeHTTP(w, r)
 	})
@@ -64,7 +74,7 @@ var TokenNotFoundError = errors.New("'Authorization' header does not contain a b
 
 var extractBearerToken = func(r *http.Request) (string, error) {
 	// get header and extract token string
-	header := r.Header.Get(httptmc.HeaderAuthorization)
+	header := r.Header.Get("Authorization")
 	parts := strings.Split(header, " ")
 
 	if !(len(parts) == 2 && parts[0] == "Bearer") {
@@ -75,7 +85,8 @@ var extractBearerToken = func(r *http.Request) (string, error) {
 	return token, nil
 }
 
-var InvalidAudClaimError = errors.New("claim 'aud' did not contain valid service id")
+var ErrInvalidAudClaim = errors.New("claim 'aud' did not contain valid service id")
+var ErrToken = errors.New("token fields do not match the expected values")
 
 func validateAudClaim(token *jwt.Token) error {
 	audClaims, err := token.Claims.GetAudience()
@@ -87,5 +98,38 @@ func validateAudClaim(token *jwt.Token) error {
 			return nil
 		}
 	}
-	return InvalidAudClaimError
+	return ErrInvalidAudClaim
+}
+
+func getAuthStatus(w http.ResponseWriter, r *http.Request, token *jwt.Token) (bool, error) {
+
+	ac, err := NewAccessControl(config.WhitelistPath)
+	if err != nil {
+		log.Fatalf("Failed to initialize access control: %v", err)
+	}
+	valid, userInfo := ValidateJWT(token.Raw, ac)
+	if !valid {
+		err := errors.New("validation failed, check if it is needed at all")
+		httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(err, ""))
+		return false, ErrToken
+	}
+	aliasToBeChecked := ""
+	switch strings.Split(r.URL.Path[1:], "/")[0] {
+	case "inventory":
+		aliasToBeChecked = "inventory"
+	case "thing-models":
+		if strings.Split(r.URL.Path[1:], "/")[1] == ".latest" || strings.Split(r.URL.Path[1:], "/")[1] == ".tmName" {
+			aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[2]
+		} else {
+			aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[1]
+		}
+	default:
+		return true, nil
+	}
+	if !ac.HasAccess(userInfo, aliasToBeChecked, r) {
+		err := errors.New("the user doesn't have access")
+		httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(err, ""))
+		return false, ErrToken
+	}
+	return true, nil
 }

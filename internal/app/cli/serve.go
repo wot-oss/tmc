@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/wot-oss/tmc/internal/app/http/cors"
+	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -114,6 +115,7 @@ func createHttpHandler(repo model.RepoSpec, opts ServeOptions) (nethttp.Handler,
 		handlerService,
 		http.TmcHandlerOptions{
 			UrlContextRoot: opts.UrlCtxRoot,
+			WhitelistPath:  config.WhitelistPath,
 		})
 
 	// collect Middlewares for the main http handler

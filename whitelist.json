@@ -1,0 +1,25 @@
+[
+    {
+        "guards" : {"email": "john.doe@siemens.com"},
+        "inventory": true,
+        "namespaces": ["omniuser"],
+        "operations": ["GET", "POST", "PUT"]
+    },
+    {
+        "guards" : {"username": "jane.doe@siemens.com"},
+        "inventory": true,
+        "namespaces": ["*"],
+        "operations": ["*"]
+    },
+    {
+        "guards" : {"username": "max.mustermann@siemens.com"},
+        "inventory": true,
+        "namespaces": ["namespace3"],
+        "operations": ["GET"]
+    },
+    {
+        "guards" : {"username": "ann.smith@siemens.com"},
+        "namespaces": ["namespace4"],
+        "operations": ["GET", "PUT", "DELETE"]
+    }
+]

@@ -22,11 +22,13 @@ func Test_Authorization(t *testing.T) {
 	pastDate := time.Now().Add(-24 * time.Hour).Unix()
 	futureDate := time.Now().Add(24 * time.Hour).Unix()
 	jwtServiceID = "some-service-id"
+	whitelistFile := "./whitelist.json"
 
 	tests := []struct {
 		privateKey     *rsa.PrivateKey
 		serviceID      string
 		tokenString    string
+		whitelistFile  string
 		authScopes     []string
 		expectedStatus int
 		authorized     bool
@@ -40,6 +42,7 @@ func Test_Authorization(t *testing.T) {
 				"nbf": pastDate,
 				"exp": futureDate,
 			}, keyA),
+			whitelistFile,
 			[]string{},
 			http.StatusOK,
 			true,
@@ -53,6 +56,7 @@ func Test_Authorization(t *testing.T) {
 				"nbf": pastDate,
 				"exp": futureDate,
 			}, keyB),
+			whitelistFile,
 			[]string{},
 			http.StatusUnauthorized,
 			false,
@@ -66,6 +70,7 @@ func Test_Authorization(t *testing.T) {
 				"nbf": pastDate,
 				"exp": futureDate,
 			}, keyA),
+			whitelistFile,
 			[]string{},
 			http.StatusUnauthorized,
 			false,
@@ -79,6 +84,7 @@ func Test_Authorization(t *testing.T) {
 				"nbf": pastDate,
 				"exp": pastDate,
 			}, keyA),
+			whitelistFile,
 			[]string{},
 			http.StatusUnauthorized,
 			false,
@@ -92,6 +98,7 @@ func Test_Authorization(t *testing.T) {
 				"nbf": futureDate,
 				"exp": futureDate,
 			}, keyA),
+			whitelistFile,
 			[]string{},
 			http.StatusUnauthorized,
 			false,
