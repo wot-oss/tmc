@@ -87,6 +87,6 @@ func getJWKSOptions() jwt.JWTValidationOpts {
 	opts := jwt.JWTValidationOpts{}
 	opts.JWTServiceID = viper.GetString(config.KeyJWTServiceID)
 	opts.JWKSURLString = viper.GetString(config.KeyJWKSURL)
-	opts.WhitelistFile = viper.GetString(config.WhitelistPath)
+	opts.WhitelistFile = viper.GetString(config.KeyWhitelistPath)
 	return opts
 }

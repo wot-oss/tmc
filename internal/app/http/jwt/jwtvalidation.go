@@ -1,15 +1,14 @@
 package jwt
 
 import (
+	"context"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	"github.com/wot-oss/tmc/internal/app/http/server"
-	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -17,19 +16,40 @@ var jwksKeyFunc jwt.Keyfunc
 var jwtServiceID string
 var whitelistFile string
 
+var globalAccessControl *AccessControl
+
+func InitializeAccessControl(filePath string) error {
+	if globalAccessControl == nil {
+		globalAccessControl = &AccessControl{}
+	}
+	globalAccessControl.filePath = filePath
+	return globalAccessControl.reload()
+}
+
 // GetMiddleware starts a go routine that periodically fetches the JWKS
 // key set and returns a middleware that uses that keyset to validate a
 // token
 func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
+	// start fetching JWKS and set keyfunc
 	jwksKeyFunc = startJWKSFetch(opts).Keyfunc
 	jwtServiceID = opts.JWTServiceID
-	whitelistFile = opts.WhitelistFile
+
+	// ensure access control is initialized (loads whitelist file)
+	if err := InitializeAccessControl(opts.WhitelistFile); err != nil {
+		// log the error and continue; middleware will fail requests if access control is not available
+		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to initialize access control", "error", err)
+	}
+
 	return jwtValidationMiddleware
 }
 
 func jwtValidationMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// existing scopes in ctx is the only hint for a protected endpoint
+		if globalAccessControl == nil {
+			http.Error(w, "Access control not initialized", http.StatusInternalServerError)
+			return
+		}
 		scopes := extractAuthScopes(r)
 		if scopes != nil {
 			log := utils.GetLogger(r.Context(), "jwt.validation.middleware").With("authentication", true)
@@ -103,11 +123,11 @@ func validateAudClaim(token *jwt.Token) error {
 
 func getAuthStatus(w http.ResponseWriter, r *http.Request, token *jwt.Token) (bool, error) {
 
-	ac, err := NewAccessControl(config.WhitelistPath)
-	if err != nil {
-		log.Fatalf("Failed to initialize access control: %v", err)
-	}
-	valid, userInfo := ValidateJWT(token.Raw, ac)
+	// ac, err := NewAccessControl(config.WhitelistPath)
+	// if err != nil {
+	// 	log.Fatalf("Failed to initialize access control: %v", err)
+	// }
+	valid, userInfo := ValidateJWT(token.Raw)
 	if !valid {
 		err := errors.New("validation failed, check if it is needed at all")
 		httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(err, ""))
@@ -126,7 +146,7 @@ func getAuthStatus(w http.ResponseWriter, r *http.Request, token *jwt.Token) (bo
 	default:
 		return true, nil
 	}
-	if !ac.HasAccess(userInfo, aliasToBeChecked, r) {
+	if !HasAccess(userInfo, aliasToBeChecked, r) {
 		err := errors.New("the user doesn't have access")
 		httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(err, ""))
 		return false, ErrToken

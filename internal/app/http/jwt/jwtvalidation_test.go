@@ -22,7 +22,10 @@ func Test_Authorization(t *testing.T) {
 	pastDate := time.Now().Add(-24 * time.Hour).Unix()
 	futureDate := time.Now().Add(24 * time.Hour).Unix()
 	jwtServiceID = "some-service-id"
-	whitelistFile := "./whitelist.json"
+	username := "tmc testuser"
+	wrongusername := "wrong tmc testuser"
+	whitelistFile := "../../../../test/data/jwt/whitelist.json"
+	InitializeAccessControl(whitelistFile)
 
 	tests := []struct {
 		privateKey     *rsa.PrivateKey
@@ -38,9 +41,10 @@ func Test_Authorization(t *testing.T) {
 			keyA,
 			jwtServiceID,
 			newToken(jwt.MapClaims{
-				"aud": jwtServiceID,
-				"nbf": pastDate,
-				"exp": futureDate,
+				"aud":      jwtServiceID,
+				"nbf":      pastDate,
+				"exp":      futureDate,
+				"username": username,
 			}, keyA),
 			whitelistFile,
 			[]string{},
@@ -52,23 +56,25 @@ func Test_Authorization(t *testing.T) {
 			keyA,
 			jwtServiceID,
 			newToken(jwt.MapClaims{
-				"aud": jwtServiceID,
-				"nbf": pastDate,
-				"exp": futureDate,
+				"aud":      jwtServiceID,
+				"nbf":      pastDate,
+				"exp":      futureDate,
+				"username": username,
 			}, keyB),
 			whitelistFile,
 			[]string{},
 			http.StatusUnauthorized,
 			false,
 		},
-		// wrong service ID
+		// wrong username
 		{
 			keyA,
 			jwtServiceID,
 			newToken(jwt.MapClaims{
-				"aud": "wrong-service-id",
-				"nbf": pastDate,
-				"exp": futureDate,
+				"aud":      "wrong-service-id",
+				"nbf":      pastDate,
+				"exp":      futureDate,
+				"username": wrongusername,
 			}, keyA),
 			whitelistFile,
 			[]string{},
@@ -80,9 +86,10 @@ func Test_Authorization(t *testing.T) {
 			keyA,
 			jwtServiceID,
 			newToken(jwt.MapClaims{
-				"aud": jwtServiceID,
-				"nbf": pastDate,
-				"exp": pastDate,
+				"aud":      jwtServiceID,
+				"nbf":      pastDate,
+				"exp":      pastDate,
+				"username": wrongusername,
 			}, keyA),
 			whitelistFile,
 			[]string{},
@@ -94,9 +101,10 @@ func Test_Authorization(t *testing.T) {
 			keyA,
 			jwtServiceID,
 			newToken(jwt.MapClaims{
-				"aud": jwtServiceID,
-				"nbf": futureDate,
-				"exp": futureDate,
+				"aud":      jwtServiceID,
+				"nbf":      futureDate,
+				"exp":      futureDate,
+				"username": username,
 			}, keyA),
 			whitelistFile,
 			[]string{},

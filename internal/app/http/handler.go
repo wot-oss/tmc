@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -199,12 +198,6 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 		return
 	}
 
-	var data ThingModel
-	err = json.Unmarshal(b, &data)
-	if err != nil {
-		HandleErrorResponse(w, r, NewBadRequestError(err, "Failed to parse request body as JSON: %v", err))
-		return
-	}
 	opts := repos.ImportOptions{}
 	opts.Force = convertForceParam(p.Force)
 	if p.OptPath != nil {

@@ -13,7 +13,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/joho/godotenv"
 )
 
 type UserGuard map[string]string
@@ -49,13 +48,7 @@ type AccessControl struct {
 	lastRead time.Time
 }
 
-func init() {
-	if err := godotenv.Load("auth.env"); err != nil {
-		log.Printf("Warning: auth.env file not found")
-	}
-}
-
-func ValidateJWT(token string, ac *AccessControl) (bool, map[string]string) {
+func ValidateJWT(token string) (bool, map[string]string) {
 	matchedGuards := make(map[string]string)
 	claims, err := parseToken(token)
 	if err != nil {
@@ -75,7 +68,7 @@ func ValidateJWT(token string, ac *AccessControl) (bool, map[string]string) {
 	} else {
 		log.Printf("Warning: 'exp' claim not found or not a valid number in token. Proceeding without expiration check.")
 	}
-	whitelistFile, err := os.ReadFile(ac.filePath)
+	whitelistFile, err := os.ReadFile(globalAccessControl.filePath)
 	if err != nil {
 		log.Printf("Error reading whitelist config")
 		return false, nil
@@ -155,26 +148,27 @@ func loadGuardsFromJSON(jsonString []byte) (GuardConfig, error) {
 	return guards, nil
 }
 
-func NewAccessControl(whitelistPath string) (*AccessControl, error) {
-	ac := &AccessControl{
-		filePath: whitelistPath,
-	}
+// func NewAccessControl(whitelistPath string) (*AccessControl, error) {
+// 	ac := &AccessControl{
+// 		filePath: whitelistPath,
+// 	}
 
-	if err := ac.reload(); err != nil {
-		return nil, err
-	}
+// 	if err := ac.reload(); err != nil {
+// 		return nil, err
+// 	}
 
-	if err := ac.ValidateRules(); err != nil {
-		return nil, fmt.Errorf("invalid rules: %w", err)
-	}
+// 	if err := ac.ValidateRules(); err != nil {
+// 		return nil, fmt.Errorf("invalid rules: %w", err)
+// 	}
 
-	return ac, nil
-}
+// 	return ac, nil
+// }
 
 func (ac *AccessControl) reload() error {
-	content, err := os.ReadFile(ac.filePath)
+	content, err := os.ReadFile(globalAccessControl.filePath)
 	if err != nil {
-		return fmt.Errorf("failed to read whitelist file: %w", err)
+
+		return fmt.Errorf("failed to read whitelist file %s: %w", globalAccessControl.filePath, err)
 	}
 
 	var rules []AccessRule
@@ -187,7 +181,7 @@ func (ac *AccessControl) reload() error {
 	return nil
 }
 
-func (ac *AccessControl) HasAccess(userClaims map[string]string, namespace string, r *http.Request) bool {
+func HasAccess(userClaims map[string]string, namespace string, r *http.Request) bool {
 	var operation Operation
 	switch r.Method {
 	case http.MethodGet:
@@ -202,13 +196,13 @@ func (ac *AccessControl) HasAccess(userClaims map[string]string, namespace strin
 		fmt.Printf("This is a %s request\n It's handling in authorization logic hasn't been implemented yet", r.Method)
 		return false
 	}
-	if ac.shouldReload() {
-		if err := ac.reload(); err != nil {
+	if globalAccessControl.shouldReload() {
+		if err := globalAccessControl.reload(); err != nil {
 			log.Printf("Failed to reload whitelist: %v", err)
 		}
 	}
 
-	for _, rule := range ac.Rules {
+	for _, rule := range globalAccessControl.Rules {
 		guardMatched := false
 		if len(rule.Guards) == 0 {
 			log.Printf("Rule has no guards defined, applies to all users. Rule: %+v", rule)
