@@ -1,13 +1,12 @@
-package jwt
+package auth
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
-	"os"
-
-	"encoding/json"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
@@ -15,16 +14,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-type UserGuard map[string]string
-
-type GuardDefinition struct {
-	Guards     UserGuard `json:"guards"`
-	Inventory  bool      `json:"inventory"`
-	Namespaces []string  `json:"namespaces"`
-	Operations []string  `json:"operations"`
-}
-
-type GuardConfig []GuardDefinition
+type GuardConfig []AccessRule
 
 type Operation string
 
@@ -48,6 +38,16 @@ type AccessControl struct {
 	lastRead time.Time
 }
 
+var GlobalAccessControl *AccessControl
+
+func InitializeAccessControl(filePath string) error {
+	if GlobalAccessControl == nil {
+		GlobalAccessControl = &AccessControl{}
+	}
+	GlobalAccessControl.filePath = filePath
+	return GlobalAccessControl.reload()
+}
+
 func ValidateJWT(token string) (bool, map[string]string) {
 	matchedGuards := make(map[string]string)
 	claims, err := parseToken(token)
@@ -68,12 +68,12 @@ func ValidateJWT(token string) (bool, map[string]string) {
 	} else {
 		log.Printf("Warning: 'exp' claim not found or not a valid number in token. Proceeding without expiration check.")
 	}
-	whitelistFile, err := os.ReadFile(globalAccessControl.filePath)
+	whitelistFile, err := os.ReadFile(GlobalAccessControl.filePath)
 	if err != nil {
 		log.Printf("Error reading whitelist config")
 		return false, nil
 	}
-	requiredGuards, err := loadGuardsFromJSON(whitelistFile)
+	requiredGuards, err := LoadGuardsFromJSON(whitelistFile)
 	if err != nil {
 		log.Println("failed to unmarshal guards JSON: %w", err)
 		return false, nil
@@ -139,7 +139,7 @@ func parseToken(tokenString string) (jwt.MapClaims, error) {
 	return claims, nil
 }
 
-func loadGuardsFromJSON(jsonString []byte) (GuardConfig, error) {
+func LoadGuardsFromJSON(jsonString []byte) (GuardConfig, error) {
 	var guards GuardConfig
 	err := json.Unmarshal(jsonString, &guards)
 	if err != nil {
@@ -148,27 +148,11 @@ func loadGuardsFromJSON(jsonString []byte) (GuardConfig, error) {
 	return guards, nil
 }
 
-// func NewAccessControl(whitelistPath string) (*AccessControl, error) {
-// 	ac := &AccessControl{
-// 		filePath: whitelistPath,
-// 	}
-
-// 	if err := ac.reload(); err != nil {
-// 		return nil, err
-// 	}
-
-// 	if err := ac.ValidateRules(); err != nil {
-// 		return nil, fmt.Errorf("invalid rules: %w", err)
-// 	}
-
-// 	return ac, nil
-// }
-
 func (ac *AccessControl) reload() error {
-	content, err := os.ReadFile(globalAccessControl.filePath)
+	content, err := os.ReadFile(GlobalAccessControl.filePath)
 	if err != nil {
 
-		return fmt.Errorf("failed to read whitelist file %s: %w", globalAccessControl.filePath, err)
+		return fmt.Errorf("failed to read whitelist file %s: %w", GlobalAccessControl.filePath, err)
 	}
 
 	var rules []AccessRule
@@ -181,7 +165,7 @@ func (ac *AccessControl) reload() error {
 	return nil
 }
 
-func HasAccess(userClaims map[string]string, namespace string, r *http.Request) bool {
+func HasAccess(userClaims map[string]string, namespace string, r *http.Request, tokenString string) bool {
 	var operation Operation
 	switch r.Method {
 	case http.MethodGet:
@@ -196,57 +180,55 @@ func HasAccess(userClaims map[string]string, namespace string, r *http.Request) 
 		fmt.Printf("This is a %s request\n It's handling in authorization logic hasn't been implemented yet", r.Method)
 		return false
 	}
-	if globalAccessControl.shouldReload() {
-		if err := globalAccessControl.reload(); err != nil {
+	if GlobalAccessControl.shouldReload() {
+		if err := GlobalAccessControl.reload(); err != nil {
 			log.Printf("Failed to reload whitelist: %v", err)
 		}
 	}
+	var rule = GetRuleForToken(tokenString)
+	if rule == nil {
+		log.Printf("No rules for token found in the whitelist")
+		return false
+	}
 
-	for _, rule := range globalAccessControl.Rules {
+	//Chcek if inventory access is allowed
+	if rule.Inventory && namespace == "inventory" {
+		return true
+	}
+	for _, allowedNamespace := range rule.Namespaces {
+		if allowedNamespace == "*" || allowedNamespace == namespace {
+			for _, allowedOp := range rule.Operations {
+				if allowedOp == operation || allowedOp == "*" {
+					return true
+				}
+			}
+
+		}
+	}
+	return false
+}
+
+func GetRuleForToken(token string) *AccessRule {
+	for _, rule := range GlobalAccessControl.Rules {
 		guardMatched := false
 		if len(rule.Guards) == 0 {
 			log.Printf("Rule has no guards defined, applies to all users. Rule: %+v", rule)
 			guardMatched = true
 		} else {
 			for guardKey, guardValue := range rule.Guards {
-
+				userClaims, _ := parseToken(token)
 				if userClaimValue, ok := userClaims[guardKey]; ok && userClaimValue == guardValue {
 					guardMatched = true
-					break
+					return &rule
 				}
 			}
 		}
-
 		if !guardMatched {
 			continue
 		}
-
-		//Chcek if iternary access is allowed
-		if rule.Inventory && namespace == "inventory" {
-			return true
-		}
-
-		// Check if namespace matches any of the allowed namespaces
-		namespaceAllowed := false
-		for _, allowedNs := range rule.Namespaces {
-			if allowedNs == "*" || allowedNs == namespace {
-				namespaceAllowed = true
-				break
-			}
-		}
-		if !namespaceAllowed {
-			continue
-		}
-
-		// Check if operation is allowed
-		for _, allowedOp := range rule.Operations {
-			if allowedOp == operation || allowedOp == "*" {
-				return true
-			}
-		}
 	}
-
-	return false
+	fmt.Println("have to return nil")
+	return nil
 }
 
 func (ac *AccessControl) ValidateRules() error {
@@ -318,68 +300,6 @@ func (ac *AccessControl) ListUserAccess(userClaims map[string]string) []AccessRu
 		}
 	}
 	return rules
-}
-
-func (ac *AccessControl) GetUserNamespaces(userClaims map[string]string) []string {
-	namespaces := make(map[string]bool)
-	for _, rule := range ac.Rules {
-		guardMatched := false
-		if len(rule.Guards) == 0 {
-			guardMatched = true
-		} else {
-			for guardKey, guardValue := range rule.Guards {
-				if userClaimValue, ok := userClaims[guardKey]; ok && userClaimValue == guardValue {
-					guardMatched = true
-					break
-				}
-			}
-		}
-
-		if guardMatched {
-			for _, ns := range rule.Namespaces {
-				namespaces[ns] = true
-			}
-		}
-	}
-
-	result := make([]string, 0, len(namespaces))
-	for ns := range namespaces {
-		result = append(result, ns)
-	}
-	return result
-}
-
-func (ac *AccessControl) GetUserOperations(userClaims map[string]string, namespace string) []Operation {
-	operations := make(map[Operation]bool)
-	for _, rule := range ac.Rules {
-		guardMatched := false
-		if len(rule.Guards) == 0 {
-			guardMatched = true
-		} else {
-			for guardKey, guardValue := range rule.Guards {
-				if userClaimValue, ok := userClaims[guardKey]; ok && userClaimValue == guardValue {
-					guardMatched = true
-					break
-				}
-			}
-		}
-
-		if guardMatched {
-			for _, allowedNs := range rule.Namespaces {
-				if allowedNs == namespace || allowedNs == "*" { // Check if namespace matches or is wildcard
-					for _, op := range rule.Operations {
-						operations[op] = true
-					}
-				}
-			}
-		}
-	}
-
-	result := make([]Operation, 0, len(operations))
-	for op := range operations {
-		result = append(result, op)
-	}
-	return result
 }
 
 func GetCLIToken() string {

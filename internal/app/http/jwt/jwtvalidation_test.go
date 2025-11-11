@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	auth "github.com/wot-oss/tmc/internal/app/http/auth"
+
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -25,7 +27,7 @@ func Test_Authorization(t *testing.T) {
 	username := "tmc testuser"
 	wrongusername := "wrong tmc testuser"
 	whitelistFile := "../../../../test/data/jwt/whitelist.json"
-	InitializeAccessControl(whitelistFile)
+	auth.InitializeAccessControl(whitelistFile)
 
 	tests := []struct {
 		privateKey     *rsa.PrivateKey

@@ -9,7 +9,6 @@ import (
 	"net/url"
 
 	"github.com/wot-oss/tmc/internal/app/http/cors"
-	"github.com/wot-oss/tmc/internal/config"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -111,11 +110,16 @@ func createHttpHandler(repo model.RepoSpec, opts ServeOptions) (nethttp.Handler,
 		return nil, err
 	}
 
+	var jwtValidation bool
+	jwtValidation = false
+	if opts.JWTValidation {
+		jwtValidation = true
+	}
 	handler := http.NewTmcHandler(
 		handlerService,
 		http.TmcHandlerOptions{
 			UrlContextRoot: opts.UrlCtxRoot,
-			WhitelistPath:  config.WhitelistPath,
+			JWTValidation:  jwtValidation,
 		})
 
 	// collect Middlewares for the main http handler
