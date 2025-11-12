@@ -85,6 +85,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv)
+	fmt.Println("resp inv:", resp)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 

@@ -3,6 +3,7 @@ package jwt
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
@@ -10,6 +11,7 @@ import (
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	auth "github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/commands/validate"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -119,12 +121,30 @@ func getAuthStatus(w http.ResponseWriter, r *http.Request, token *jwt.Token) (bo
 	aliasToBeChecked := ""
 	switch strings.Split(r.URL.Path[1:], "/")[0] {
 	case "inventory":
-		aliasToBeChecked = "inventory"
-	case "thing-models":
-		if strings.Split(r.URL.Path[1:], "/")[1] == ".latest" || strings.Split(r.URL.Path[1:], "/")[1] == ".tmName" {
-			aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[2]
+		if len(strings.Split(r.URL.Path[1:], "/")) == 1 {
+			aliasToBeChecked = "inventory"
 		} else {
-			aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[1]
+			if strings.Split(r.URL.Path[1:], "/")[1] == ".latest" || strings.Split(r.URL.Path[1:], "/")[1] == ".tmName" {
+				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[2]
+			} else {
+				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[1]
+			}
+		}
+	case "thing-models":
+		if r.Method == "POST" {
+			body, _ := io.ReadAll(r.Body)
+			tm, err := validate.ValidateThingModel(body)
+			if err != nil {
+				httptmc.HandleErrorResponse(w, r, httptmc.NewBadRequestError(err, ""))
+				return false, ErrToken
+			}
+			aliasToBeChecked = tm.Author.Name
+		} else {
+			if strings.Split(r.URL.Path[1:], "/")[1] == ".latest" || strings.Split(r.URL.Path[1:], "/")[1] == ".tmName" {
+				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[2]
+			} else {
+				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[1]
+			}
 		}
 	default:
 		return true, nil

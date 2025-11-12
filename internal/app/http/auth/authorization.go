@@ -195,6 +195,9 @@ func HasAccess(userClaims map[string]string, namespace string, r *http.Request, 
 	if rule.Inventory && namespace == "inventory" {
 		return true
 	}
+	if !rule.Inventory && namespace == "inventory" {
+		return false
+	}
 	for _, allowedNamespace := range rule.Namespaces {
 		if allowedNamespace == "*" || allowedNamespace == namespace {
 			for _, allowedOp := range rule.Operations {
@@ -228,47 +231,6 @@ func GetRuleForToken(token string) *AccessRule {
 		}
 	}
 	fmt.Println("have to return nil")
-	return nil
-}
-
-func (ac *AccessControl) ValidateRules() error {
-	for i, rule := range ac.Rules {
-		// Validate guards
-		if len(rule.Guards) == 0 {
-			return fmt.Errorf("rule %d: 'guards' field is missing or empty. At least one guard key-value pair is required.", i)
-		}
-		for key, value := range rule.Guards {
-			if key == "" {
-				return fmt.Errorf("rule %d: empty guard key found", i)
-			}
-			if value == "" {
-				return fmt.Errorf("rule %d: empty guard value for key '%s'", i, key)
-			}
-		}
-
-		// Validate namespaces
-		if len(rule.Namespaces) == 0 {
-			return fmt.Errorf("rule %d: no namespaces specified", i)
-		}
-		for j, ns := range rule.Namespaces {
-			if ns == "" {
-				return fmt.Errorf("rule %d: empty namespace at index %d", i, j)
-			}
-		}
-
-		// Validate operations
-		if len(rule.Operations) == 0 {
-			return fmt.Errorf("rule %d: no operations specified", i)
-		}
-		for j, op := range rule.Operations {
-			switch op {
-			case OpGet, OpPost, OpPut, OpDelete, "*":
-				// valid operation
-			default:
-				return fmt.Errorf("rule %d: invalid operation at index %d: %s", i, j, op)
-			}
-		}
-	}
 	return nil
 }
 

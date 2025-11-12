@@ -1,15 +1,27 @@
 [
     {
-        "guards" : {"username": "tmc testuser"},
+        "guards" : {"username": "tmc testuser god mode"},
         "inventory": true,
         "namespaces": ["*"],
         "operations": ["*"]
     },
     {
-        "guards" : {"mail": "kirill.dorofeev@siemens.com"},
-        "inventory": true,
+        "guards" : {"username": "tmc testuser no inventory"},
+        "inventory": false,
         "namespaces": ["*"],
         "operations": ["*"]
+    },
+    {
+        "guards" : {"username": "tmc testuser only b-corp"},
+        "inventory": false,
+        "namespaces": ["b-corp"],
+        "operations": ["*"]
+    },
+    {
+        "guards" : {"username": "tmc testuser only post"},
+        "inventory": false,
+        "namespaces": ["*"],
+        "operations": ["POST"]
     },
     {
         "guards" : {"username": "jane.doe@siemens.com"},
