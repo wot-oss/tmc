@@ -150,8 +150,6 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 				if err != nil {
 					fmt.Printf("File ignored while attachment import -- no mapping to TM possible %s: %v\n", d.Name(), err)
 					return nil
-				} else {
-					fmt.Printf("Successfully added an attachment to the TM %s\n", uuidToTmNameMap[filepath.Base(filepath.Dir(path))])
 				}
 			}
 			return nil
