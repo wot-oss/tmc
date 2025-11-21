@@ -2,6 +2,9 @@
 
 ## [unreleased]
 
+### Added
+- `import`: added flag `--with-attachments` to import the attachments along with TMs
+
 ## [v0.1.3]
 
 ### Added
