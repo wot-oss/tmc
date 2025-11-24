@@ -35,7 +35,12 @@ jobs:
 
   build:
     needs: openapi-lint
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     permissions:
       contents: write
@@ -48,13 +53,28 @@ jobs:
       with:
         go-version: '1.21'
 
-    - name: Check Golang imports order and formatting
+    - name: Check Golang imports order and formatting (Linux)
+      if: runner.os == 'Linux'
       uses: Jerome1337/goimports-action@v1.0.3
+    
+    - name: Install Goimports (win/macOS)
+      if: runner.os == 'Windows' || runner.os == 'macOS'
+      run: go install golang.org/x/tools/cmd/goimports@latest
 
-    - name: Test
+    - name: Check Golang imports order and formatting (win/macOS)
+      if: runner.os == 'Windows' || runner.os == 'macOS'
+      run: goimports -l -w .
+
+    - name: Test (Linux/macOS)
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       run: CGO_ENABLED=0 go test -v ./...
 
-    - name: Compile
+    - name: Test (win)
+      if: runner.os == 'Windows'
+      run: go test -v ./...
+
+    - name: Compile (Linux/macOS)
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
         echo "FILE_NAME ${FILENAME_PREFIX}"
         export FILENAME_PREFIX=${FILENAME_PREFIX}
@@ -62,10 +82,27 @@ jobs:
         echo "TMC_VERSION ${TMC_VERSION}"       
         bash ./build/compile.sh
 
-    - name: List-Dependencies
+    - name: Compile (win)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        echo "FILE_NAME $env:FILENAME_PREFIX"
+        $env:FILENAME_PREFIX = "${{ env.FILENAME_PREFIX }}"
+        $env:TMC_VERSION = (git describe --tags --always)
+        echo "TMC_VERSION $env:TMC_VERSION"
+        bash ./build/compile.sh
+
+    - name: List-Dependencies (Linux/macOS)
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
         export FILENAME_PREFIX=${FILENAME_PREFIX}
         bash ./build/list-dependencies.sh
+    
+    - name: List-Dependencies (win)
+      if: runner.os == 'Windows'
+      shell: powershell
+      run: |
+        bash -c "export FILENAME_PREFIX='$env:FILENAME_PREFIX' && ./build/list-dependencies.sh"
 
     - name: Release-Notes
       if: startsWith(github.ref, 'refs/tags')
@@ -81,7 +118,7 @@ jobs:
         body_path: release-notes.md
         files: ${{ env.FILENAME_PREFIX }}*
         token: ${{ secrets.GITHUB_TOKEN }}
-
+        
   docker:
     if: startsWith(github.ref, 'refs/tags') 
     needs: build
