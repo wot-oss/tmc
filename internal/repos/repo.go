@@ -256,7 +256,12 @@ var All = func() ([]Repo, error) {
 // or be returned as "found-in" sources when reading from catalog
 var GetDescriptions = func(ctx context.Context, spec model.RepoSpec) ([]model.RepoDescription, error) {
 	if spec.Dir() != "" {
-		return nil, nil
+		r := model.RepoDescription{
+			Name:        spec.Dir(),
+			Type:        RepoTypeFile,
+			Description: "Repo generated from the directory specified in the arguments of serve command",
+		}
+		return []model.RepoDescription{r}, nil
 	}
 	conf, err := ReadConfig()
 	if err != nil {

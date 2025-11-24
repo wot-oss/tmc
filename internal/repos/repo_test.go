@@ -423,7 +423,8 @@ func TestGetDescriptions(t *testing.T) {
 		t.Run("with dir spec", func(t *testing.T) {
 			ds, err := GetDescriptions(context.Background(), model.NewDirSpec("somewhere"))
 			assert.NoError(t, err)
-			assert.Len(t, ds, 0)
+			expDs := []model.RepoDescription{{Name: "somewhere", Type: "file", Description: "Repo generated from the directory specified in the arguments of serve command"}}
+			assert.Equal(t, expDs, ds)
 		})
 		t.Run("with single file repo", func(t *testing.T) {
 			ds, err := GetDescriptions(context.Background(), model.NewRepoSpec("r1"))
