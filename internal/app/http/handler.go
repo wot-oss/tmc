@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strings"
 
-	auth "github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
@@ -48,17 +46,17 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	repo := convertRepoName(params.Repo)
 	var search string
 	if h.Options.JWTValidation {
-		authHeader := r.Header.Get("Authorization")
-		token := strings.TrimSpace(authHeader[len("Bearer "):])
-		rule := auth.GetRuleForToken(token)
-		if rule != nil && !slices.Contains(rule.Namespaces, "*") {
-			fmt.Println("rule is not nil!")
-			if filters == nil {
-				filters = &model.Filters{}
-			}
-			fmt.Printf("rule.Namespaces: %s\n", rule.Namespaces)
-			filters.Author = rule.Namespaces
-		}
+		// authHeader := r.Header.Get("Authorization")
+		// token := strings.TrimSpace(authHeader[len("Bearer "):])
+		// rule := auth.GetRuleForToken(token)
+		// if rule != nil && !slices.Contains(rule.Namespaces, "*") {
+		// 	fmt.Println("rule is not nil!")
+		// 	if filters == nil {
+		// 		filters = &model.Filters{}
+		// 	}
+		// 	fmt.Printf("rule.Namespaces: %s\n", rule.Namespaces)
+		// 	filters.Author = rule.Namespaces
+		// }
 	}
 	if params.Search != nil {
 		search = *params.Search

@@ -36,7 +36,6 @@ func init() {
 	serveCmd.Flags().Bool(config.KeyJWTValidation, false, "If set to 'true', jwt tokens are used to grant access to the API (env var TMC_JWTVALIDATION)")
 	serveCmd.Flags().String(config.KeyJWTServiceID, "", "If set to an identifier, value will be compared to 'aud' claim in validated JWT (env var TMC_JWTSERVICEID)")
 	serveCmd.Flags().String(config.KeyJWKSURL, "", "URL to periodically fetch JSON Web Key Sets for token validation (env var TMC_JWKSURL)")
-	serveCmd.Flags().String(config.KeyWhitelistPath, config.DefaultWhiteListPath, "path to the whitelist file")
 
 	_ = viper.BindPFlag(config.KeyUrlContextRoot, serveCmd.Flags().Lookup(config.KeyUrlContextRoot))
 	_ = viper.BindPFlag(config.KeyCorsAllowedOrigins, serveCmd.Flags().Lookup(config.KeyCorsAllowedOrigins))
@@ -46,7 +45,6 @@ func init() {
 	_ = viper.BindPFlag(config.KeyJWTValidation, serveCmd.Flags().Lookup(config.KeyJWTValidation))
 	_ = viper.BindPFlag(config.KeyJWTServiceID, serveCmd.Flags().Lookup(config.KeyJWTServiceID))
 	_ = viper.BindPFlag(config.KeyJWKSURL, serveCmd.Flags().Lookup(config.KeyJWKSURL))
-	_ = viper.BindPFlag(config.KeyWhitelistPath, serveCmd.Flags().Lookup(config.KeyWhitelistPath))
 }
 
 func serve(cmd *cobra.Command, args []string) {
@@ -87,6 +85,5 @@ func getJWKSOptions() jwt.JWTValidationOpts {
 	opts := jwt.JWTValidationOpts{}
 	opts.JWTServiceID = viper.GetString(config.KeyJWTServiceID)
 	opts.JWKSURLString = viper.GetString(config.KeyJWKSURL)
-	opts.WhitelistFile = viper.GetString(config.KeyWhitelistPath)
 	return opts
 }

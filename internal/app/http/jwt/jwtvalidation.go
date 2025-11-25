@@ -3,21 +3,20 @@ package jwt
 import (
 	"context"
 	"errors"
-	"io"
+	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	auth "github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
-	"github.com/wot-oss/tmc/internal/commands/validate"
 	"github.com/wot-oss/tmc/internal/utils"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var jwksKeyFunc jwt.Keyfunc
 var jwtServiceID string
-var whitelistFile string
 
 // GetMiddleware starts a go routine that periodically fetches the JWKS
 // key set and returns a middleware that uses that keyset to validate a
@@ -26,7 +25,7 @@ func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
 	jwksKeyFunc = startJWKSFetch(opts).Keyfunc
 	jwtServiceID = opts.JWTServiceID
 
-	if err := auth.InitializeAccessControl(opts.WhitelistFile); err != nil {
+	if err := auth.InitializeAccessControl(); err != nil {
 		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to initialize access control", "error", err)
 	}
 
@@ -53,24 +52,31 @@ func jwtValidationMiddleware(h http.Handler) http.Handler {
 			}
 			// got token, validate it
 			var token *jwt.Token
-			if token, err = jwt.Parse(tokenString, jwksKeyFunc); err != nil {
+			if token, err = jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, jwksKeyFunc); err != nil {
 				log.Warn("token validation failed", "error", err)
 				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
-			// valid token, identify our service in the "aud" claim
-			_, err = getAuthStatus(w, r, token)
+
+			// Validate audience claim
+			if err := validateAudClaim(token); err != nil {
+				log.Warn("audience validation failed", "error", err)
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+				return
+			}
+
+			scopes, err := getScopesFromToken(token, nil)
+			if err != nil {
+				log.Warn("failed to get scopes from token", "error", err)
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+				return
+			}
+			_, err = getAuthStatus(r, scopes)
 			if err != nil {
 				log.Warn("the user doesn't have a whitelist entry for the requested endpoint", "error", err)
 				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}
-			// https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3
-			// if err := validateAudClaim(token); err != nil {
-			// 	//log.Warn("failed to validate 'aud' claim", "error", err)
-			// 	//TODO: what to do?? httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
-			// 	return
-			// }
 		}
 		h.ServeHTTP(w, r)
 	})
@@ -111,48 +117,85 @@ func validateAudClaim(token *jwt.Token) error {
 	return ErrInvalidAudClaim
 }
 
-func getAuthStatus(w http.ResponseWriter, r *http.Request, token *jwt.Token) (bool, error) {
-	valid, userInfo := auth.ValidateJWT(token.Raw)
-	if !valid {
-		err := errors.New("validation failed, check if it is needed at all")
-		httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(err, ""))
-		return false, ErrToken
+func getScopesFromToken(token *jwt.Token, signingKey []byte) ([]string, error) {
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		scopeInterface, exists := claims["scope"]
+		if !exists {
+			return nil, fmt.Errorf("scope claim not found in token")
+		}
+		var scopes []string
+		switch v := scopeInterface.(type) {
+		case []string:
+			scopes = v
+		case []interface{}:
+			for _, item := range v {
+				if str, ok := item.(string); ok {
+					scopes = append(scopes, str)
+				} else {
+					return nil, fmt.Errorf("scope item is not a string, got type %T", item)
+				}
+			}
+		default:
+			return nil, fmt.Errorf("scope claim has unexpected type %T", scopeInterface)
+		}
+
+		return scopes, nil
+	} else {
+		return nil, fmt.Errorf("claims type assertion failed")
 	}
+}
+
+func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
+	pathParts := strings.Split(r.URL.Path[1:], "/")
 	aliasToBeChecked := ""
-	switch strings.Split(r.URL.Path[1:], "/")[0] {
-	case "inventory":
-		if len(strings.Split(r.URL.Path[1:], "/")) == 1 {
-			aliasToBeChecked = "inventory"
+
+	if len(pathParts) > 1 {
+		if pathParts[1] == ".latest" || pathParts[1] == ".tmName" {
+			if len(pathParts) > 2 {
+				aliasToBeChecked = pathParts[2]
+			}
 		} else {
-			if strings.Split(r.URL.Path[1:], "/")[1] == ".latest" || strings.Split(r.URL.Path[1:], "/")[1] == ".tmName" {
-				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[2]
+			aliasToBeChecked = pathParts[1]
+		}
+	}
+
+	for _, scope := range scopes {
+		if scope == "tmc.admin" {
+			return true, nil
+		}
+		if scope == "tmc.repos.read" && pathParts[0] == "repos" && r.Method == "GET" {
+			return true, nil
+		}
+		if scope == "tmc.internal.read" && pathParts[0] == "info" && r.Method == "GET" {
+			return true, nil
+		} // Support both legacy `tmc.repos.health` and the preferred `tmc.health.read`
+		if (scope == "tmc.health.read") && pathParts[0] == "healthz" && r.Method == "GET" {
+			return true, nil
+		}
+		if strings.HasPrefix(scope, "tmc.ns.") {
+			parts := strings.Split(scope, ".")
+			if len(parts) >= 4 {
+				namespaceNameToExtract := parts[2]
+				if aliasToBeChecked == "" && r.Method == "POST" && pathParts[0] == "thing-models" {
+					if strings.HasSuffix(scope, ".write") {
+						return true, nil
+					}
+				}
+				if namespaceNameToExtract == aliasToBeChecked {
+					if strings.HasSuffix(scope, ".read") && r.Method == "GET" {
+						return true, nil
+					} else if strings.HasSuffix(scope, ".write") && (r.Method == "POST" || r.Method == "PUT") {
+						return true, nil
+					} else if strings.HasSuffix(scope, "attachments.delete") && r.Method == "DELETE" && (pathParts[2] == ".attachments" || pathParts[3] == ".attachments") {
+						return true, nil
+					} else if strings.HasSuffix(scope, "thingmodels.delete") && r.Method == "DELETE" && pathParts[0] == "thing-models" && len(pathParts) == 2 {
+						return true, nil
+					}
+				}
 			} else {
-				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[1]
+				return false, fmt.Errorf("scope '%s' malformed: expected format 'tmc.ns.<namespace>.<operation>'", scope)
 			}
 		}
-	case "thing-models":
-		if r.Method == "POST" {
-			body, _ := io.ReadAll(r.Body)
-			tm, err := validate.ValidateThingModel(body)
-			if err != nil {
-				httptmc.HandleErrorResponse(w, r, httptmc.NewBadRequestError(err, ""))
-				return false, ErrToken
-			}
-			aliasToBeChecked = tm.Author.Name
-		} else {
-			if strings.Split(r.URL.Path[1:], "/")[1] == ".latest" || strings.Split(r.URL.Path[1:], "/")[1] == ".tmName" {
-				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[2]
-			} else {
-				aliasToBeChecked = strings.Split(r.URL.Path[1:], "/")[1]
-			}
-		}
-	default:
-		return true, nil
 	}
-	if !auth.HasAccess(userInfo, aliasToBeChecked, r, token.Raw) {
-		err := errors.New("the user doesn't have access")
-		httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(err, ""))
-		return false, ErrToken
-	}
-	return true, nil
+	return false, fmt.Errorf("user does not have access to this resource")
 }
