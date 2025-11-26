@@ -21,6 +21,15 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
+	JWTValidation  bool
+}
+
+type SchemaAuthor struct {
+	Name string `json:"schema:name"`
+}
+
+type ThingModel struct {
+	Author SchemaAuthor `json:"schema:author"`
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
@@ -33,10 +42,22 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
-
 	filters := convertParams(params)
 	repo := convertRepoName(params.Repo)
 	var search string
+	if h.Options.JWTValidation {
+		// authHeader := r.Header.Get("Authorization")
+		// token := strings.TrimSpace(authHeader[len("Bearer "):])
+		// rule := auth.GetRuleForToken(token)
+		// if rule != nil && !slices.Contains(rule.Namespaces, "*") {
+		// 	fmt.Println("rule is not nil!")
+		// 	if filters == nil {
+		// 		filters = &model.Filters{}
+		// 	}
+		// 	fmt.Printf("rule.Namespaces: %s\n", rule.Namespaces)
+		// 	filters.Author = rule.Namespaces
+		// }
+	}
 	if params.Search != nil {
 		search = *params.Search
 	}
@@ -62,12 +83,14 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv)
+	fmt.Println("resp inv:", resp)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
 // GetInventoryByName Get an inventory entry by inventory name
 // (GET /inventory/.tmName/{tmName})
 func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, tmName string, params server.GetInventoryByNameParams) {
+	// if getAuthStatus(h, w, r, tmName) {
 	repo := convertRepoName(params.Repo)
 	entries, err := h.Service.FindInventoryEntries(r.Context(), repo, tmName)
 
@@ -84,6 +107,7 @@ func (h *TmcHandler) GetInventoryByName(w http.ResponseWriter, r *http.Request, 
 // GetInventoryByFetchName Get the metadata of the most recent TM version matching the name
 // (GET /inventory/.latest/{fetchName})
 func (h *TmcHandler) GetInventoryByFetchName(w http.ResponseWriter, r *http.Request, fetchName server.FetchName, params server.GetInventoryByFetchNameParams) {
+	// if getAuthStatus(h, w, r, fetchName) {
 	entry, err := h.Service.GetLatestTMMetadata(r.Context(), convertRepoName(params.Repo), fetchName)
 
 	if err != nil {
@@ -99,6 +123,7 @@ func (h *TmcHandler) GetInventoryByFetchName(w http.ResponseWriter, r *http.Requ
 // GetThingModelByFetchName Get the content of a Thing Model by fetch name
 // (GET /thing-models/.latest/{fetchName}
 func (h *TmcHandler) GetThingModelByFetchName(w http.ResponseWriter, r *http.Request, fetchName server.FetchName, params server.GetThingModelByFetchNameParams) {
+	// if getAuthStatus(h, w, r, fetchName) {
 	restoreId := false
 	if params.RestoreId != nil {
 		restoreId = *params.RestoreId
@@ -133,6 +158,7 @@ func (h *TmcHandler) GetInventoryByID(w http.ResponseWriter, r *http.Request, tm
 // GetThingModelById Get the content of a Thing Model by its ID
 // (GET /thing-models/{id})
 func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, id string, params server.GetThingModelByIdParams) {
+	// if getAuthStatus(h, w, r, id) {
 	restoreId := false
 	if params.RestoreId != nil {
 		restoreId = *params.RestoreId
@@ -201,6 +227,7 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 	resp := toImportThingModelResponse(res)
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
+
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {

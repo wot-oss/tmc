@@ -10,6 +10,7 @@ import (
 type JWTValidationOpts struct {
 	JWTServiceID  string
 	JWKSURLString string
+	WhitelistFile string
 }
 
 func validateOptions(opts JWTValidationOpts) {

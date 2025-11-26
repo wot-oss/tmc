@@ -22,6 +22,7 @@ const (
 	KeyJWTServiceID         = "jwtServiceID"
 	KeyJWKSURL              = "jwksURL"
 	KeyColumnWidth          = "columnWidth"
+	KeyWhitelistPath        = "whitelist"
 	EnvPrefix               = "tmc"
 	LogLevelOff             = "off"
 
@@ -30,8 +31,10 @@ const (
 )
 
 var ConfigDir string
+var WhitelistPath string
 
 const DefaultConfigDir = "~/.tm-catalog"
+const DefaultWhiteListPath = ""
 
 func init() {
 	viper.SetDefault(KeyLogLevel, LogLevelOff)
@@ -57,6 +60,7 @@ func init() {
 	_ = viper.BindEnv(KeyJWTServiceID)         // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
 	_ = viper.BindEnv(KeyColumnWidth)          // env variable name = tmc_columnwidth
+	_ = viper.BindEnv(KeyWhitelistPath)
 }
 
 func ReadInConfig() {
@@ -80,6 +84,16 @@ func ReadInConfig() {
 			}
 		}
 	}
+
+	wlPath := viper.GetString(KeyWhitelistPath)
+	if wlPath == "" {
+		wlPath = DefaultWhiteListPath
+	}
+	wlPath, err = utils.ExpandHome(wlPath)
+	if err != nil {
+		panic(err)
+	}
+	WhitelistPath = wlPath
 }
 
 func Save(key string, data any) error {
