@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -103,7 +104,6 @@ func moveIdToOriginalLink(ctx context.Context, raw []byte, id string) []byte {
 
 	link := map[string]any{"href": id, "rel": "original"}
 	var linksArray []map[string]any
-
 	switch dataType {
 	case jsonparser.NotExist:
 		// put "links" : [{"href": "{{id}}", "rel": "original"}]
@@ -127,11 +127,17 @@ func moveIdToOriginalLink(ctx context.Context, raw []byte, id string) []byte {
 		utils.GetLogger(ctx, "ImportCommand").Debug(fmt.Sprintf("unexpected type of links %v", dataType))
 		return raw
 	}
-
-	linksBytes, err := json.Marshal(linksArray)
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err = encoder.Encode(linksArray)
 	if err != nil {
-		utils.GetLogger(ctx, "ImportCommand").Error("unexpected marshal error", "error", err)
+		utils.GetLogger(ctx, "ImportCommand").Error("unexpected encoding error", "error", err)
 		return raw
+	}
+	linksBytes := buffer.Bytes()
+	if len(linksBytes) > 0 && linksBytes[len(linksBytes)-1] == '\n' {
+		linksBytes = linksBytes[:len(linksBytes)-1]
 	}
 	raw, err = jsonparser.Set(raw, linksBytes, "links")
 	if err != nil {
