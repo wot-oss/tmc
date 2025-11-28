@@ -5,6 +5,7 @@
 ### Added
 
 - REST API: `/repos` returns directory name, when serving a catalog with `--directory` flag
+- `import`: added flag `--with-attachments` to import the attachments along with TMs
 
 ## [v0.1.3]
 
