@@ -2,6 +2,10 @@
 
 ## [unreleased]
 
+### Added
+
+- REST API: `/repos` returns directory name, when serving a catalog with `--directory` flag
+
 ## [v0.1.3]
 
 ### Added
