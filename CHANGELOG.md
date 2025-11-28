@@ -5,6 +5,10 @@
 ### Added
 - `import`: added flag `--with-attachments` to import the attachments along with TMs
 
+### Fixed
+
+- avoid escaping special characters when marshaling json
+
 ## [v0.1.3]
 
 ### Added

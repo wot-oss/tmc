@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -127,15 +126,11 @@ func moveIdToOriginalLink(ctx context.Context, raw []byte, id string) []byte {
 		utils.GetLogger(ctx, "ImportCommand").Debug(fmt.Sprintf("unexpected type of links %v", dataType))
 		return raw
 	}
-	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
-	encoder.SetEscapeHTML(false)
-	err = encoder.Encode(linksArray)
+	linksBytes, err := utils.EncodeJSONWithoutEscapeHTML(linksArray)
 	if err != nil {
-		utils.GetLogger(ctx, "ImportCommand").Error("unexpected encoding error", "error", err)
+		utils.GetLogger(ctx, "ImportCommand").Error("error encoding links", "error", err)
 		return raw
 	}
-	linksBytes := buffer.Bytes()
 	if len(linksBytes) > 0 && linksBytes[len(linksBytes)-1] == '\n' {
 		linksBytes = linksBytes[:len(linksBytes)-1]
 	}
