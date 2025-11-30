@@ -65,10 +65,30 @@ tmc import my-tm.json
 tmc import ./my-tms
 ```
 
+### Attachments
+
 When importing a folder, the `import` command can be used with the `--with-attachments` flag to import attachments along with the TMs. An attachment is linked to a TM by placing it into a subfolder whose name exactly matches the TM's filename (including its extension). 
 For example:
     *   If your TM file is: `../example-catalog/.tmc/omniuser/omnicorp/senseall/v1.0.0-20241008124326-15af48381cf7.tm.json`
     *   Then an attachment (e.g., `readme.md`) for this TM would be placed at: `../example-catalog/.tmc/omniuser/omnicorp/senseall/.attachments/v1.0.0-20241008124326-15af48381cf7.tm.json/readme.md`
+
+### Input Sanitization
+
+Please pay attention to the values of `manufacturer`, `author`, and `mpn` as they will be sanitized following the rules below:
+
+- spaces will be removed
+- all letters will become lowercase
+- characters below will be replaced with `-`:
+  - `_`
+  - `+`
+  - `&`
+  - `=`
+  - `:`
+  - `/`
+- all characters with an accent will be replaced with their versions without an accent, e.g., `ö` will become `oe`, `à` will become `a`.
+
+In the end, there will be only letters, numbers and `-` remaining.
+You can refer to `SanitizeName` function at [internal/utils/util.go](https://github.com/wot-oss/tmc/blob/main/internal/utils/util.go).
 
 ## Find and fetch a TM
 
