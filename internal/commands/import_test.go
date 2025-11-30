@@ -143,10 +143,10 @@ func TestPrepareToImport(t *testing.T) {
 			Mpn:          "senseall",
 			Author:       model.SchemaAuthor{Name: "author"},
 			Version:      model.Version{Model: "v3.2.1"},
-		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"foreign-id\"}"), "opt/dir")
+		}, []byte("{\r\n\"title\":\"test\"\r\n,\"id\":\"<foreign&id>\"}"), "opt/dir")
 		assert.NoError(t, err)
-		assert.True(t, bytes.Contains(b, []byte("\"href\":\"foreign-id\"")))
-		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-e7dac5728be6.tm.json")))
+		assert.True(t, bytes.Contains(b, []byte("\"href\":\"<foreign&id>\"")))
+		assert.True(t, bytes.Contains(b, []byte("author/omnicorp/senseall/opt/dir/v3.2.1-20231110123243-09788aa7b98d.tm.json")))
 	})
 	t.Run("our string id in original/correct hash", func(t *testing.T) {
 		b, _, err := prepareToImport(context.Background(), now, &model.ThingModel{

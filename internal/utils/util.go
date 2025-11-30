@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -139,6 +140,17 @@ func JsGetArray(js map[string]any, key string) []any {
 // See NormalizeLineEndings
 func ConvertToNativeLineEndings(b []byte) []byte {
 	return convertToNativeLineEndings(b)
+}
+
+func EncodeJSONWithoutEscapeHTML(v any) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(v)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected encoding error %w", err)
+	}
+	return buffer.Bytes(), nil
 }
 
 // AtomicWriteFile writes data to the named file quasi-atomically, creating it if necessary.
