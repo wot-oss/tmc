@@ -105,14 +105,14 @@ jobs:
         bash -c "export FILENAME_PREFIX='$env:FILENAME_PREFIX' && ./build/list-dependencies.sh"
 
     - name: Release-Notes
-      if: startsWith(github.ref, 'refs/tags')
+      if: startsWith(github.ref, 'refs/tags') && (runner.os == 'Linux')
       run: |
         echo "Extracting release notes for version ${{github.ref}}"
         export VERSION=${{github.ref_name}}
         bash build/extract-release-notes.sh >> release-notes.md
 
     - name: Release
-      if: startsWith(github.ref, 'refs/tags')
+      if: startsWith(github.ref, 'refs/tags') && (runner.os == 'Linux')
       uses: softprops/action-gh-release@v1
       with:
         body_path: release-notes.md
