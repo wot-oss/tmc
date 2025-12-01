@@ -1363,6 +1363,7 @@ components:
         implementation:
           type: string
     ErrorResponse:
+      description: RFC 7807 compliant error response with additional 'code' field in case of conflicting TM.
       required:
         - title
         - status
@@ -1378,6 +1379,7 @@ components:
           type: string
         code:
           type: string
+          description: Used only when the received TM already exists, thus a conflict. This will contain the id of the conflicting TM.
         status:
           type: integer
   parameters:

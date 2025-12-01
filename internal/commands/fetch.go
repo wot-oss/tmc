@@ -69,7 +69,7 @@ func restoreExternalId(ctx context.Context, raw []byte) []byte {
 	if len(linksArray) != len(newLinks) { // original id found
 		var withLinks []byte
 		if len(newLinks) > 0 {
-			linksBytes, err := json.Marshal(newLinks)
+			linksBytes, err := utils.EncodeJSONWithoutEscapeHTML(newLinks)
 			if err != nil {
 				utils.GetLogger(ctx, "commands.restoreExternalId").Error("unexpected marshal error", "error", err)
 				return raw
@@ -82,7 +82,7 @@ func restoreExternalId(ctx context.Context, raw []byte) []byte {
 		} else {
 			withLinks = jsonparser.Delete(raw, "links")
 		}
-		idBytes, _ := json.Marshal(originalId)
+		idBytes, _ := utils.EncodeJSONWithoutEscapeHTML(originalId)
 
 		withId, err := jsonparser.Set(withLinks, idBytes, "id")
 		if err != nil {

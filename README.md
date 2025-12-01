@@ -7,9 +7,9 @@
 ---
 Find, use and contribute device descriptions for industrial IoT devices!
 
-⚠ This software is **experimental** and may not be fit for any purpose. 
+⚠ This software is **experimental** and may not be fit for any purpose.
 
-The Thing Model Catalog Command Line Client, or ```tmc``` for short, is a tool for browsing, consuming, contributing and serving Thing Models.
+The Thing Model Catalog Command Line Client, or ```tmc``` for short, is a tool for browsing, consuming, contributing and serving Thing Models specified by [WoT Thing Description][1] standard.
 
 Read our [Documentation][3] for more.
 
@@ -31,6 +31,8 @@ Run `go install` to install tmc to your install path. You can find the install p
 Switch to the install path folder and run the binary.
 
 ## Quick Start
+
+We recommend you to start with the Command Line Interface (CLI) so that you can add a TM repository. Once that is done, you can use TMC over its [REST API](#rest-api).
 
 ### Configure Autocompletion (Optional)
 
@@ -122,5 +124,12 @@ tmc fetch omnicorp/omnicorp/lightall-mk2 -o .
 [3]: https://wot-oss.github.io/tmc/
 [4]: https://github.com/wot-oss/example-catalog
 
+## REST API
+
+Almost all of the TMC functionality is available over a REST API.
+You can find ths OpenAPI definition at [api/tm-catalog.openapi.yaml](api/tm-catalog.openapi.yaml).
+Please read [our documentation](https://wot-oss.github.io/tmc/workflows#expose-a-catalog-for-http-clients) to learn more.
+
 ## License
+
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fwot-oss%2Ftmc?ref=badge_large)

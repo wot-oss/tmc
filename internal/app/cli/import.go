@@ -108,6 +108,17 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 		}
 
 		res, err := p.importFile(ctx, path, repo, fileOpts)
+		if opts.WithAttachments {
+			var tmId model.TMID
+			var tmConflictErr *repos.ErrTMIDConflict
+			if errors.As(err, &tmConflictErr) {
+				tmId, err = model.ParseTMID(tmConflictErr.ExistingId)
+				uuidToTmNameMap[filepath.Base(path)] = tmId.Name
+			} else {
+				tmId, err = model.ParseTMID(res.TmID)
+				uuidToTmNameMap[filepath.Base(path)] = tmId.Name
+			}
+		}
 		results = append(results, res)
 		if tErr == nil {
 			tErr = err
@@ -119,12 +130,6 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 	}
 	if opts.WithAttachments {
 		repo.Index(ctx)
-		tms, _ := repo.List(ctx, nil)
-		for _, tm := range tms.Entries {
-			for _, v := range tm.Versions {
-				uuidToTmNameMap[v.ExternalID] = tm.Name
-			}
-		}
 		err = filepath.WalkDir(absDirname, func(path string, d fs.DirEntry, err error) error {
 			if d.IsDir() || !strings.Contains(d.Name(), ".json") {
 				if err != nil {
@@ -141,11 +146,10 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 					fmt.Printf("%s: unknown MIME type for extension '%s'\n", d.Name(), ext)
 					mimeType = "application/octet-stream"
 				}
-				uuid := filepath.Base(filepath.Dir(path))
-				err = AttachmentImport(ctx, repo.Spec(), uuidToTmNameMap[uuid], path, d.Name(), mimeType, true)
+				err = AttachmentImport(ctx, repo.Spec(), uuidToTmNameMap[filepath.Base(filepath.Dir(path))], path, d.Name(), mimeType, true)
 				if err != nil {
-					fmt.Printf("Error encountered during aattachment import %s: %v\n", d.Name(), err)
-					return err
+					fmt.Printf("File ignored while attachment import -- no mapping to TM possible %s: %v\n", d.Name(), err)
+					return nil
 				}
 			}
 			return nil

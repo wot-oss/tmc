@@ -2,6 +2,25 @@
 
 ## [unreleased]
 
+### Added
+
+### Fixed
+
+### Removed
+
+## [v0.1.4]
+
+### Added
+
+- REST API: `/repos` returns directory name, when serving a catalog with `--directory` flag
+- `import`: added flag `--with-attachments` to import the attachments along with TMs
+- REST API: added reference to RFC 7807 and code key explanation for the error response
+- Docs: explain sanitization rules for `manufacturer`, `author`, and `mpn`
+
+### Fixed
+
+- avoid escaping special characters when marshaling json
+
 ## [v0.1.3]
 
 ### Added
