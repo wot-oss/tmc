@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Thing Model Catalog - OpenAPI 3.0
-  version: 0.1.2
+  version: 0.1.4
   description: "This is the Thing Model Catalog API specification."
   contact: {}  
 externalDocs:
@@ -1682,7 +1682,7 @@ components:
       value:
         'name': 'tmc'
         'version':
-          'specification': '0.1.2'
+          'specification': '0.1.4'
           'implementation': '0.1.0'
         'details': []
   securitySchemes:
