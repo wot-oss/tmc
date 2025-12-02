@@ -1,14 +1,12 @@
 package jwt
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
-	auth "github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/utils"
 
@@ -24,21 +22,12 @@ var jwtServiceID string
 func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
 	jwksKeyFunc = startJWKSFetch(opts).Keyfunc
 	jwtServiceID = opts.JWTServiceID
-
-	if err := auth.InitializeAccessControl(); err != nil {
-		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to initialize access control", "error", err)
-	}
-
 	return jwtValidationMiddleware
 }
 
 func jwtValidationMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// existing scopes in ctx is the only hint for a protected endpoint
-		if auth.GlobalAccessControl == nil {
-			http.Error(w, "Access control not initialized", http.StatusInternalServerError)
-			return
-		}
 		scopes := extractAuthScopes(r)
 		if scopes != nil {
 			log := utils.GetLogger(r.Context(), "jwt.validation.middleware").With("authentication", true)
@@ -73,7 +62,7 @@ func jwtValidationMiddleware(h http.Handler) http.Handler {
 			}
 			_, err = getAuthStatus(r, scopes)
 			if err != nil {
-				log.Warn("the user doesn't have a whitelist entry for the requested endpoint", "error", err)
+				log.Warn("the user doesn't have access rights for the requested endpoint", "error", err)
 				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
 				return
 			}

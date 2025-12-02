@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	auth "github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 )
 
@@ -28,7 +27,6 @@ func Test_Authorization_Inventory(t *testing.T) {
 	futureDate := time.Now().Add(24 * time.Hour).Unix()
 	jwtServiceID = "some-service-id"
 	scopeAdmin := []string{"tmc.admin"}
-	auth.InitializeAccessControl()
 
 	tests := []struct {
 		privateKey     *rsa.PrivateKey
@@ -148,7 +146,6 @@ func Test_Authorization_GetTMsWithToken(t *testing.T) {
 	scopeAdmin := []string{"tmc.admin"}
 	scopeOnlyBCorpNSRead := []string{"tmc.ns.b-corp.read"}
 	scopeOnlyBCorpNSWrite := []string{"tmc.ns.b-corp.write"}
-	auth.InitializeAccessControl()
 	filePath := "../../../../test/data/validate/omnilamp.json"
 	jsonData, _ := os.ReadFile(filePath)
 
@@ -337,7 +334,6 @@ func Test_Authorization_Scopes(t *testing.T) {
 	futureDate := time.Now().Add(24 * time.Hour).Unix()
 	pastDate := time.Now().Add(-24 * time.Hour).Unix()
 	jwtServiceID := "some-service-id"
-	auth.InitializeAccessControl()
 
 	// Define scope strings
 	scopeReadACorp := []string{"tmc.ns.a-corp.read"}
