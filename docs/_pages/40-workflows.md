@@ -151,6 +151,69 @@ or volume into the container as follows:
 docker run --rm --name tm-catalog -p 8080:8080 -v$(pwd):/thingmodels ghcr.io/wot-oss/tmc:latest
 ```
 
+## JWT Validation for API Requests
+
+The `serve` command can be configured with the `--jwtValidation` flag to enforce security by requiring valid JWTs for incoming API requests. 
+
+### Configuration
+
+1. **`--jwtValidation`**  
+   - Enables JWT-based access control for the API server.
+
+2. **`--jwksURL=<url>`**  
+   - Specifies the JWKS URL to retrieve public keys for verifying JWT signatures.
+   - Example: `http://127.0.0.1:8100/.well-known/jwks.json`.
+
+3. **`--jwtServiceID=<serviceID>`**  
+   - String that represents the **audience** (`aud` claim) required in valid JWTs.
+   - Example: `"myServiceID"`.
+
+### Behavior with JWT Validation
+
+When the `--jwtValidation` flag is provided:
+
+#### 1. Bearer Token Requirement  
+- All incoming requests **must include a valid Bearer token** in the `Authorization` header.  
+
+#### 2. JWKS Validation  
+- Incoming tokens are validated against the JSON Web Key Sets (JWKS) at the URL specified in `--jwksURL`.  
+- The server checks the following:
+- JWT signature is valid and matches the public key(s) defined in the JWKS.
+- JWT is issued by the **issuer URL** corresponding to `--jwksURL`.
+- JWT audience (`aud` claim) matches the value specified in `--jwtServiceID`.
+
+#### 3. Scope-Based Access Control  
+- The JWT must include a `scope` claim, which is an array of strings defining user permissions.  
+- Each scope string determines the user's access rights to specific endpoints, as defined in the **Scope Table** (explained below).  
+- Example Scope Claim:
+```json
+"scope": ["tmc.ns.myNamespace.read", "tmc.ns.myNamespace.write"]
+```
+
+#### 4. Token Validation Details
+The token is confirmed to be valid if:
+
+Its signature is verified using a public key from the JWKS.
+The token has not expired (checks the exp claim).
+It is issued by the expected issuer URL.
+The aud claim equals the value of --jwtServiceID.
+The scope claim contains sufficient permissions for the requested endpoint.
+
+### 5. Error Handling
+Requests without a valid Bearer token will result in an HTTP 401 Unauthorized error.
+
+**Scope Table**
+| Scope                                                              | /thing-models/{tmID}/attachments/{attachmentFileName} (GET) | /thing-models/{tmID}/attachments/{attachmentFileName} (PUT) | /thing-models/{tmID}/attachments/{attachmentFileName} (DELETE) | /thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (GET) | /thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (PUT) | /thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (DELETE) | Inventory (GET) | /thing-models/{tmID} (GET) | /thing-models/{tmID} (DELETE) | /thing-models/.latest/{fetchName} (GET) | /thing-models/.latest/{fetchName} (POST) | /thing-models (POST) | /repos (GET) | /info* (GET) | /health* (GET) |
+|:-------------------------------------------------------------------|:-----------------------------------------------------------:|:-----------------------------------------------------------:|:-------------------------------------------------------------:|:-------------------------------------------------------------------------:|:-------------------------------------------------------------------------:|:---------------------------------------------------------------------------:|:---------------:|:--------------------------:|:-----------------------------:|:-----------------------------------------:|:------------------------------------------:|:--------------------:|:------------:|:-------------:|:--------------:|
+| tmc.ns.{namespace}.read: Reading TMs, their metadata and attachments | if tmID == namespace                                        | no                                                          | no                                                            | if tmID == namespace                                      | no                                                          | no                                                            | if tmID == namespace | if tmID == namespace       | no                            | if tmID == namespace             | no                                         | no                   | no           | no            | no             |
+| tmc.ns.{namespace}.write: Adding new TMs and attachments           | no                                                          | if tmID == namespace                                        | no                                                            | no                                                        | if tmID == namespace                                      | no                                                            | no               | no                         | no                            | no                                       | if tmID == namespace             | if tmID == namespace | no           | no            | no             |
+| tmc.ns.{namespace}.attachments.delete: Deleting attachments        | no                                                          | no                                                          | if tmID == namespace                                          | no                                                        | no                                                          | if tmID == namespace                                          | no               | no                         | no                            | no                                       | no                                         | no                   | no           | no            | no             |
+| tmc.ns.{namespace}.thingmodels.delete: Deleting TMs (not desired, thus separate scope) | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | if tmID == namespace          | no                                       | no                                         | no                   | no           | no            | no             |
+| tmc.repos.read: Reading /repos -                                   | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | no                            | no                                       | no                                         | no                   | yes          | no            | no             |
+| tmc.internal.read: Reading everything under /info                  | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | no                            | no                                       | no                                         | no                   | no           | yes           | no             |
+| tmc.health.read: Reading everything under /healthz                 | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | no                            | no                                       | no                                         | no                   | no           | no            | yes            |
+| tmc.admin: everything allowed                                      | yes                                                         | yes                                                         | yes                                                           | yes                                                       | yes                                                         | yes                                                           | yes              | yes                        | yes                           | yes                                      | yes                                        | yes                  | yes          | yes           | yes            |
+
 [1]: https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json
 [2]: https://schema.org
 [3]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
