@@ -110,10 +110,16 @@ func createHttpHandler(repo model.RepoSpec, opts ServeOptions) (nethttp.Handler,
 		return nil, err
 	}
 
+	var jwtValidation bool
+	jwtValidation = false
+	if opts.JWTValidation {
+		jwtValidation = true
+	}
 	handler := http.NewTmcHandler(
 		handlerService,
 		http.TmcHandlerOptions{
 			UrlContextRoot: opts.UrlCtxRoot,
+			JWTValidation:  jwtValidation,
 		})
 
 	// collect Middlewares for the main http handler

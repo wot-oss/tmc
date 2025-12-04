@@ -21,6 +21,15 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
+	JWTValidation  bool
+}
+
+type SchemaAuthor struct {
+	Name string `json:"schema:name"`
+}
+
+type ThingModel struct {
+	Author SchemaAuthor `json:"schema:author"`
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
@@ -33,7 +42,6 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
-
 	filters := convertParams(params)
 	repo := convertRepoName(params.Repo)
 	var search string
@@ -143,7 +151,6 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 		HandleErrorResponse(w, r, err)
 		return
 	}
-
 	HandleByteResponse(w, r, http.StatusOK, MimeTMJSON, data)
 }
 
@@ -201,6 +208,7 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 	resp := toImportThingModelResponse(res)
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
+
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {
