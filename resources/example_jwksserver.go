@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio" // <-- New import for bufio
+	"bufio"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv" // <-- New import for strconv to parse expiry
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -153,7 +153,7 @@ func GenerateJWT(privateKey *rsa.PrivateKey, scopes, issuer, audience string, ex
 		"sub":                "testuser@siemens.com",
 		"iat":                time.Now().Unix(),
 		"exp":                time.Now().Add(time.Duration(expiryMinutes) * time.Minute).Unix(),
-		"scope":              strings.Fields(scopes), // This part is correct for splitting space-separated scopes
+		"scope":              strings.Fields(scopes),
 		"preferred_username": "testuser",
 		"email":              "testuser@siemens.com",
 	}
@@ -210,39 +210,38 @@ func main() {
 	fmt.Println("\nJWKS server is running. Press Ctrl+C to stop.")
 	fmt.Printf("JWKS URL: http://%s:%s%s\n", JWKSHost, JWKSPort, JWKSPath)
 
-	// Initialize a new scanner for reading full lines
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		var scopes, issuer, audience string
-		var expiry int = 60 // Set default expiry here
+		var expiry int = 60
 
 		fmt.Print("\nEnter custom scopes (space-separated, or 'q' to quit): ")
-		scanner.Scan() // Read the entire line
+		scanner.Scan()
 		scopes = scanner.Text()
 		if scopes == "q" {
 			break
 		}
 
 		fmt.Printf("Enter issuer (default: http://%s:%s): ", JWKSHost, JWKSPort)
-		scanner.Scan() // Read the entire line
+		scanner.Scan()
 		issuer = scanner.Text()
 		if issuer == "" {
 			issuer = fmt.Sprintf("http://%s:%s", JWKSHost, JWKSPort)
 		}
 
 		fmt.Printf("Enter audience (default: %s): ", DefaultAudience)
-		scanner.Scan() // Read the entire line
+		scanner.Scan()
 		audience = scanner.Text()
 		if audience == "" {
 			audience = DefaultAudience
 		}
 
 		fmt.Print("Enter expiry (in minutes, default: 60): ")
-		scanner.Scan() // Read the entire line
+		scanner.Scan()
 		expiryStr := scanner.Text()
 		if expiryStr != "" {
-			parsedExpiry, err := strconv.Atoi(expiryStr) // Convert string to int
+			parsedExpiry, err := strconv.Atoi(expiryStr)
 			if err != nil {
 				fmt.Println("Invalid expiry input. Using default (60 minutes).")
 			} else {
