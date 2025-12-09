@@ -1,6 +1,7 @@
 package jwt
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -137,6 +138,9 @@ func getScopesFromToken(token *jwt.Token, signingKey []byte) ([]string, error) {
 func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	pathParts := strings.Split(r.URL.Path[1:], "/")
 	aliasToBeChecked := ""
+	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" {
+		return true, nil
+	}
 
 	if len(pathParts) > 1 {
 		if pathParts[1] == ".latest" || pathParts[1] == ".tmName" {
@@ -145,6 +149,28 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 			}
 		} else {
 			aliasToBeChecked = pathParts[1]
+		}
+	}
+
+	if pathParts[0] == "inventory" && r.Method == "GET" {
+		var allowedNamespaces []string
+		for _, scope := range scopes {
+			if scope == "tmc.admin" {
+				return true, nil
+			}
+			if strings.HasPrefix(scope, "tmc.ns.") && strings.HasSuffix(scope, ".read") {
+				parts := strings.Split(scope, ".")
+				if len(parts) >= 4 {
+					namespace := parts[2]
+					allowedNamespaces = append(allowedNamespaces, namespace)
+				}
+			}
+		}
+		if len(allowedNamespaces) > 0 {
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, httptmc.ContextKeyBearerAuthNamespaces, allowedNamespaces)
+			*r = *r.WithContext(ctx)
+			return true, nil
 		}
 	}
 
@@ -157,7 +183,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 		}
 		if scope == "tmc.internal.read" && pathParts[0] == "info" && r.Method == "GET" {
 			return true, nil
-		} // Support both legacy `tmc.repos.health` and the preferred `tmc.health.read`
+		}
 		if (scope == "tmc.health.read") && pathParts[0] == "healthz" && r.Method == "GET" {
 			return true, nil
 		}

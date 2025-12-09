@@ -368,7 +368,7 @@ func Test_Authorization_Scopes(t *testing.T) {
 				{"GET", "/thing-models/b-corp/frog/bt3000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false},
 				{"GET", "/thing-models/.latest/a-corp/eagle/bt2000", nil, http.StatusOK, true},
 				{"POST", "/thing-models", nil, http.StatusUnauthorized, false},
-				{"GET", "/inventory", nil, http.StatusUnauthorized, false},
+				{"GET", "/inventory", nil, http.StatusOK, true},
 			},
 		},
 		{

@@ -14,6 +14,8 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
+const ContextKeyBearerAuthNamespaces = "BearerAuth.Namespaces"
+
 type TmcHandler struct {
 	Service HandlerService
 	Options TmcHandlerOptions
@@ -43,6 +45,15 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 	filters := convertParams(params)
+	if h.Options.JWTValidation {
+		namespaces := extractNamespacesFromContext(r.Context())
+		if namespaces != nil {
+			if filters == nil {
+				filters = &model.Filters{}
+			}
+			filters.Author = namespaces
+		}
+	}
 	repo := convertRepoName(params.Repo)
 	var search string
 	if params.Search != nil {
@@ -71,6 +82,18 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+func extractNamespacesFromContext(ctx context.Context) []string {
+	val := ctx.Value(ContextKeyBearerAuthNamespaces)
+	if val == nil {
+		return nil
+	}
+	namespaces, ok := val.([]string)
+	if !ok {
+		return nil
+	}
+	return namespaces
 }
 
 // GetInventoryByName Get an inventory entry by inventory name

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio" // <-- New import for bufio
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -9,9 +10,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv" // <-- New import for strconv to parse expiry
 	"strings"
 	"sync"
 	"time"
@@ -81,7 +82,7 @@ func LoadRSAKeyPair() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 		return GenerateRSAKeyPair()
 	}
 
-	privateKeyPEM, err := ioutil.ReadFile(PrivateKeyFile)
+	privateKeyPEM, err := os.ReadFile(PrivateKeyFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error reading private key file: %v", err)
 	}
@@ -96,7 +97,7 @@ func LoadRSAKeyPair() (*rsa.PrivateKey, *rsa.PublicKey, error) {
 		return nil, nil, fmt.Errorf("error parsing private key: %v", err)
 	}
 
-	publicKeyPEM, err := ioutil.ReadFile(PublicKeyFile)
+	publicKeyPEM, err := os.ReadFile(PublicKeyFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error reading public key file: %v", err)
 	}
@@ -152,7 +153,7 @@ func GenerateJWT(privateKey *rsa.PrivateKey, scopes, issuer, audience string, ex
 		"sub":                "testuser@siemens.com",
 		"iat":                time.Now().Unix(),
 		"exp":                time.Now().Add(time.Duration(expiryMinutes) * time.Minute).Unix(),
-		"scope":              strings.Fields(scopes),
+		"scope":              strings.Fields(scopes), // This part is correct for splitting space-separated scopes
 		"preferred_username": "testuser",
 		"email":              "testuser@siemens.com",
 	}
@@ -209,32 +210,44 @@ func main() {
 	fmt.Println("\nJWKS server is running. Press Ctrl+C to stop.")
 	fmt.Printf("JWKS URL: http://%s:%s%s\n", JWKSHost, JWKSPort, JWKSPath)
 
+	// Initialize a new scanner for reading full lines
+	scanner := bufio.NewScanner(os.Stdin)
+
 	for {
 		var scopes, issuer, audience string
-		var expiry int
+		var expiry int = 60 // Set default expiry here
 
-		fmt.Print("\nEnter custom scopes (or 'q' to quit): ")
-		fmt.Scanln(&scopes)
+		fmt.Print("\nEnter custom scopes (space-separated, or 'q' to quit): ")
+		scanner.Scan() // Read the entire line
+		scopes = scanner.Text()
 		if scopes == "q" {
 			break
 		}
 
 		fmt.Printf("Enter issuer (default: http://%s:%s): ", JWKSHost, JWKSPort)
-		fmt.Scanln(&issuer)
+		scanner.Scan() // Read the entire line
+		issuer = scanner.Text()
 		if issuer == "" {
 			issuer = fmt.Sprintf("http://%s:%s", JWKSHost, JWKSPort)
 		}
 
 		fmt.Printf("Enter audience (default: %s): ", DefaultAudience)
-		fmt.Scanln(&audience)
+		scanner.Scan() // Read the entire line
+		audience = scanner.Text()
 		if audience == "" {
 			audience = DefaultAudience
 		}
 
 		fmt.Print("Enter expiry (in minutes, default: 60): ")
-		fmt.Scanln(&expiry)
-		if expiry == 0 {
-			expiry = 60
+		scanner.Scan() // Read the entire line
+		expiryStr := scanner.Text()
+		if expiryStr != "" {
+			parsedExpiry, err := strconv.Atoi(expiryStr) // Convert string to int
+			if err != nil {
+				fmt.Println("Invalid expiry input. Using default (60 minutes).")
+			} else {
+				expiry = parsedExpiry
+			}
 		}
 
 		token, err := GenerateJWT(privateKey, scopes, issuer, audience, expiry)
@@ -247,6 +260,4 @@ func main() {
 		fmt.Println(token)
 		fmt.Println("----------------------")
 	}
-
-	fmt.Println("\nGoodbye!")
 }
