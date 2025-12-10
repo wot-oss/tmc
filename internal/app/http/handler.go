@@ -26,14 +26,6 @@ type TmcHandlerOptions struct {
 	JWTValidation  bool
 }
 
-type SchemaAuthor struct {
-	Name string `json:"schema:name"`
-}
-
-type ThingModel struct {
-	Author SchemaAuthor `json:"schema:author"`
-}
-
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
 	return &TmcHandler{
 		Service: handlerService,

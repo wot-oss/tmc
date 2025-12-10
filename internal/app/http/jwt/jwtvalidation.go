@@ -1,14 +1,18 @@
 package jwt
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -137,18 +141,18 @@ func getScopesFromToken(token *jwt.Token, signingKey []byte) ([]string, error) {
 
 func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	pathParts := strings.Split(r.URL.Path[1:], "/")
-	aliasToBeChecked := ""
-	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" {
+	namespaceFromPath := ""
+	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" || pathParts[0] == "mpns" || pathParts[0] == ".completions" {
 		return true, nil
 	}
 
 	if len(pathParts) > 1 {
 		if pathParts[1] == ".latest" || pathParts[1] == ".tmName" {
 			if len(pathParts) > 2 {
-				aliasToBeChecked = pathParts[2]
+				namespaceFromPath = pathParts[2]
 			}
 		} else {
-			aliasToBeChecked = pathParts[1]
+			namespaceFromPath = pathParts[1]
 		}
 	}
 
@@ -190,13 +194,30 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 		if strings.HasPrefix(scope, "tmc.ns.") {
 			parts := strings.Split(scope, ".")
 			if len(parts) >= 4 {
-				namespaceNameToExtract := parts[2]
-				if aliasToBeChecked == "" && r.Method == "POST" && pathParts[0] == "thing-models" {
+				namespaceFromScope := parts[2]
+				if namespaceFromPath == "" && r.Method == "POST" && pathParts[0] == "thing-models" {
 					if strings.HasSuffix(scope, ".write") {
-						return true, nil
+						tmbody, err := io.ReadAll(r.Body)
+						if err != nil {
+							panic(err)
+						}
+						r.Body = io.NopCloser(bytes.NewReader(tmbody))
+						var tm model.ThingModel
+						err = json.Unmarshal(tmbody, &tm)
+						if err != nil {
+							panic(err)
+						}
+						fmt.Println(utils.SanitizeName(tm.Author.Name))
+						if strings.EqualFold(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope)) {
+							fmt.Println(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope))
+							r.Body = io.NopCloser(bytes.NewReader(tmbody))
+							return true, nil
+						} else {
+							return false, fmt.Errorf("user cannot import thing models into this namespace: %s", tm.Author.Name)
+						}
 					}
 				}
-				if namespaceNameToExtract == aliasToBeChecked {
+				if strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") {
 					if strings.HasSuffix(scope, ".read") && r.Method == "GET" {
 						return true, nil
 					} else if strings.HasSuffix(scope, ".write") && (r.Method == "POST" || r.Method == "PUT") {

@@ -138,14 +138,14 @@ func Test_Authorization_Inventory(t *testing.T) {
 	}
 }
 
-func Test_Authorization_GetTMsWithToken(t *testing.T) {
+func Test_Authorization_GetPostTMsWithToken(t *testing.T) {
 	keyA, _ := rsa.GenerateKey(rand.Reader, 1024)
 	futureDate := time.Now().Add(24 * time.Hour).Unix()
 	pastDate := time.Now().Add(-24 * time.Hour).Unix()
 	jwtServiceID := "some-service-id"
 	scopeAdmin := []string{"tmc.admin"}
 	scopeOnlyBCorpNSRead := []string{"tmc.ns.b-corp.read"}
-	scopeOnlyBCorpNSWrite := []string{"tmc.ns.b-corp.write"}
+	scopeOnlyBCorpNSWrite := []string{"tmc.ns.omnicorp-TM-department.write"}
 	filePath := "../../../../test/data/validate/omnilamp.json"
 	jsonData, _ := os.ReadFile(filePath)
 
@@ -380,7 +380,7 @@ func Test_Authorization_Scopes(t *testing.T) {
 				expectedStatus   int
 				authorized       bool
 			}{
-				{"POST", "/thing-models", nil, http.StatusOK, true},
+				{"POST", "/thing-models", []byte("{\"schema:author\":{\"schema:name\":\"a-corp\"}}"), http.StatusOK, true},
 				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false},
 			},
 		},
