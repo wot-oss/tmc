@@ -4,6 +4,8 @@
 
 ### Added
 
+- REST API: jwt authentication based on JWT scopes array
+
 ### Fixed
 
 ### Removed

@@ -14,6 +14,8 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
+const ContextKeyBearerAuthNamespaces = "BearerAuth.Namespaces"
+
 type TmcHandler struct {
 	Service HandlerService
 	Options TmcHandlerOptions
@@ -21,6 +23,7 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
+	JWTValidation  bool
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
@@ -33,8 +36,16 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
-
 	filters := convertParams(params)
+	if h.Options.JWTValidation {
+		namespaces := extractNamespacesFromContext(r.Context())
+		if namespaces != nil {
+			if filters == nil {
+				filters = &model.Filters{}
+			}
+			filters.Author = namespaces
+		}
+	}
 	repo := convertRepoName(params.Repo)
 	var search string
 	if params.Search != nil {
@@ -63,6 +74,18 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+func extractNamespacesFromContext(ctx context.Context) []string {
+	val := ctx.Value(ContextKeyBearerAuthNamespaces)
+	if val == nil {
+		return nil
+	}
+	namespaces, ok := val.([]string)
+	if !ok {
+		return nil
+	}
+	return namespaces
 }
 
 // GetInventoryByName Get an inventory entry by inventory name
@@ -143,7 +166,6 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 		HandleErrorResponse(w, r, err)
 		return
 	}
-
 	HandleByteResponse(w, r, http.StatusOK, MimeTMJSON, data)
 }
 
@@ -201,6 +223,7 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 	resp := toImportThingModelResponse(res)
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
+
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {

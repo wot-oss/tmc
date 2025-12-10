@@ -14,11 +14,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/wot-oss/tmc/internal/app/http/mocks"
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/testutils"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -201,7 +201,6 @@ func Test_Inventory(t *testing.T) {
 	t.Run("list all", func(t *testing.T) {
 		var search *model.Filters
 		hs.On("ListInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
-
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -1326,6 +1325,11 @@ func assertResponse400(t *testing.T, rec *httptest.ResponseRecorder, route strin
 
 	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
 	assert.Equal(t, NoSniff, rec.Header().Get(HeaderXContentTypeOptions))
+}
+
+func assertResponse401(t *testing.T, rec *httptest.ResponseRecorder) {
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, MimeProblemJSON, rec.Header().Get(HeaderContentType))
 }
 
 func assertResponse409TMIDConflict(t *testing.T, rec *httptest.ResponseRecorder, route string, idErr *repos.ErrTMIDConflict) {
