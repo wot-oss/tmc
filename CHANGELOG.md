@@ -4,6 +4,8 @@
 
 ### Added
 
+- `docker` command to build a docker image for local deployment
+
 ### Fixed
 
 ### Removed
