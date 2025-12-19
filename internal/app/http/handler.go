@@ -56,7 +56,6 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 					}
 				}
 				if len(intersection) == 0 {
-					fmt.Println("authorset: ", authorSet, " namespaces: ", namespaces, " intersection: ", intersection)
 					resp := toInventoryResponse(h.createContext(r), model.SearchResult{
 						LastUpdated: time.Now(),
 						Entries:     []model.FoundEntry{},

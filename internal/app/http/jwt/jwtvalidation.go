@@ -41,34 +41,34 @@ func jwtValidationMiddleware(h http.Handler) http.Handler {
 			tokenString, err := extractBearerToken(r)
 			if err != nil {
 				log.Warn("failed to extract token", "error", err)
-				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, "%v", err.Error()))
 				return
 			}
 			// got token, validate it
 			var token *jwt.Token
 			if token, err = jwt.ParseWithClaims(tokenString, jwt.MapClaims{}, jwksKeyFunc); err != nil {
 				log.Warn("token validation failed", "error", err)
-				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, "%v", err.Error()))
 				return
 			}
 
 			// Validate audience claim
 			if err := validateAudClaim(token); err != nil {
 				log.Warn("audience validation failed", "error", err)
-				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, "%v", err.Error()))
 				return
 			}
 
 			scopes, err := getScopesFromToken(token, nil)
 			if err != nil {
 				log.Warn("failed to get scopes from token", "error", err)
-				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, "%v", err.Error()))
 				return
 			}
 			_, err = getAuthStatus(r, scopes)
 			if err != nil {
 				log.Warn("the user doesn't have access rights for the requested endpoint", "error", err)
-				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, err.Error()))
+				httptmc.HandleErrorResponse(w, r, httptmc.NewUnauthorizedError(nil, "%v", err.Error()))
 				return
 			}
 		}
