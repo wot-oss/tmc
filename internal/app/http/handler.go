@@ -7,12 +7,15 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
 )
+
+const ContextKeyBearerAuthNamespaces = "BearerAuth.Namespaces"
 
 type TmcHandler struct {
 	Service HandlerService
@@ -21,6 +24,7 @@ type TmcHandler struct {
 
 type TmcHandlerOptions struct {
 	UrlContextRoot string
+	JWTValidation  bool
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
@@ -33,8 +37,36 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
-
 	filters := convertParams(params)
+	if h.Options.JWTValidation {
+		namespaces := extractNamespacesFromContext(r.Context())
+		if namespaces != nil {
+			if filters == nil {
+				filters = &model.Filters{}
+				filters.Author = namespaces
+			} else {
+				authorSet := make(map[string]struct{})
+				for _, a := range filters.Author {
+					authorSet[a] = struct{}{}
+				}
+				var intersection []string
+				for _, ns := range namespaces {
+					if _, exists := authorSet[ns]; exists {
+						intersection = append(intersection, ns)
+					}
+				}
+				if len(intersection) == 0 {
+					resp := toInventoryResponse(h.createContext(r), model.SearchResult{
+						LastUpdated: time.Now(),
+						Entries:     []model.FoundEntry{},
+					})
+					HandleJsonResponse(w, r, http.StatusOK, resp)
+					return
+				}
+				filters.Author = intersection
+			}
+		}
+	}
 	repo := convertRepoName(params.Repo)
 	var search string
 	if params.Search != nil {
@@ -63,6 +95,18 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+func extractNamespacesFromContext(ctx context.Context) []string {
+	val := ctx.Value(ContextKeyBearerAuthNamespaces)
+	if val == nil {
+		return nil
+	}
+	namespaces, ok := val.([]string)
+	if !ok {
+		return nil
+	}
+	return namespaces
 }
 
 // GetInventoryByName Get an inventory entry by inventory name
@@ -143,7 +187,6 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 		HandleErrorResponse(w, r, err)
 		return
 	}
-
 	HandleByteResponse(w, r, http.StatusOK, MimeTMJSON, data)
 }
 
@@ -201,6 +244,7 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 	resp := toImportThingModelResponse(res)
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
+
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {

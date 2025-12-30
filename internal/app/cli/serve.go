@@ -36,12 +36,12 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 		if r := recover(); r != nil {
 			e := fmt.Errorf("panic: could not start tmc server: %v", r).Error()
 			log.Error(e)
-			Stderrf(e)
+			Stderrf("%v", e)
 		}
 	}()
 	err := validateContextRoot(opts.UrlCtxRoot)
 	if err != nil {
-		Stderrf(err.Error())
+		Stderrf("%v", err.Error())
 		log.Error(err.Error())
 		return err
 	}
@@ -49,7 +49,7 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 	httpHandler, err := createHttpHandler(repo, opts)
 	if err != nil {
 		err = fmt.Errorf("Could not start tm catalog server on %s:%s, %v\n", host, port, err)
-		Stderrf(err.Error())
+		Stderrf("%v", err.Error())
 		log.Error(err.Error())
 		return err
 	}
@@ -78,7 +78,7 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 		}
 	} else {
 		err = fmt.Errorf("could not start tm catalog server on %s:%s, there's no catalog to serve", host, port)
-		Stderrf(err.Error())
+		Stderrf("%v", err.Error())
 		log.Error(err.Error())
 		return err
 	}
@@ -95,7 +95,7 @@ func Serve(host, port string, opts ServeOptions, repo model.RepoSpec) error {
 	err = s.ListenAndServe()
 	if err != nil {
 		err = fmt.Errorf("Could not start tm catalog server on %s:%s, %v\n", host, port, err)
-		Stderrf(err.Error())
+		Stderrf("%v", err.Error())
 		log.Error(err.Error())
 		return err
 	}
@@ -110,10 +110,16 @@ func createHttpHandler(repo model.RepoSpec, opts ServeOptions) (nethttp.Handler,
 		return nil, err
 	}
 
+	var jwtValidation bool
+	jwtValidation = false
+	if opts.JWTValidation {
+		jwtValidation = true
+	}
 	handler := http.NewTmcHandler(
 		handlerService,
 		http.TmcHandlerOptions{
 			UrlContextRoot: opts.UrlCtxRoot,
+			JWTValidation:  jwtValidation,
 		})
 
 	// collect Middlewares for the main http handler

@@ -193,6 +193,8 @@ func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Req
 func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealth(w, r)
 	}))
@@ -207,6 +209,8 @@ func (siw *ServerInterfaceWrapper) GetHealth(w http.ResponseWriter, r *http.Requ
 // GetHealthLive operation middleware
 func (siw *ServerInterfaceWrapper) GetHealthLive(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealthLive(w, r)
@@ -223,6 +227,8 @@ func (siw *ServerInterfaceWrapper) GetHealthLive(w http.ResponseWriter, r *http.
 func (siw *ServerInterfaceWrapper) GetHealthReady(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealthReady(w, r)
 	}))
@@ -238,6 +244,8 @@ func (siw *ServerInterfaceWrapper) GetHealthReady(w http.ResponseWriter, r *http
 func (siw *ServerInterfaceWrapper) GetHealthStartup(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetHealthStartup(w, r)
 	}))
@@ -252,6 +260,8 @@ func (siw *ServerInterfaceWrapper) GetHealthStartup(w http.ResponseWriter, r *ht
 // GetInfo operation middleware
 func (siw *ServerInterfaceWrapper) GetInfo(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetInfo(w, r)
