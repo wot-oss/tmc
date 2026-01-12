@@ -22,7 +22,7 @@ Read our [Documentation][3] for more.
 Download binary from [releases][2] page or
 
 ```bash
-go install github.com/wot-oss/tmc@v0.1.2
+go install github.com/wot-oss/tmc@v0.1.4
 ```
 
 ### From Source

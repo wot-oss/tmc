@@ -206,7 +206,7 @@ func NewBadRequestError(err error, detail string, args ...any) error {
 }
 
 func NewServiceUnavailableError(err error, detail string) error {
-	return newBaseHttpError(err, http.StatusServiceUnavailable, Error503Title, detail)
+	return newBaseHttpError(err, http.StatusServiceUnavailable, Error503Title, "%s", detail)
 }
 
 func newBaseHttpError(err error, status int, title string, detail string, args ...any) error {

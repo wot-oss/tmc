@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Thing Model Catalog - OpenAPI 3.0
-  version: 0.1.2
+  version: 0.1.4
   description: "This is the Thing Model Catalog API specification."
   contact: {}  
 externalDocs:
@@ -884,8 +884,6 @@ paths:
       tags:
         - health
       summary: Get the overall health of the service
-      security:
-        - {}
       description: Get the overall health of the service, aggregates the responses from the /health/live and /health/ready
       operationId: getHealth
       responses:
@@ -908,8 +906,6 @@ paths:
       tags:
         - health
       summary: Returns the liveliness of the service
-      security:
-        - {}
       description: Returns the liveliness of the service, or whether it encountered a bug or deadlock
       operationId: getHealthLive
       responses:
@@ -932,8 +928,6 @@ paths:
       tags:
         - health
       summary: Returns the readiness of the service
-      security:
-        - {}
       description: Returns the readiness of the service, or whether it is ready to process requests
       operationId: getHealthReady
       responses:
@@ -956,8 +950,6 @@ paths:
       tags:
         - health
       summary: Returns whether the service is initialized
-      security:
-        - {}
       description: Returns whether the service is initialized
       operationId: getHealthStartup
       responses:
@@ -980,8 +972,6 @@ paths:
       tags:
         - internal
       summary: Returns some static information about the Thing Model Catalog API
-      security:
-        - { }
       description: Returns some static information about the Thing Model Catalog API
       operationId: getInfo
       responses:
@@ -1682,7 +1672,7 @@ components:
       value:
         'name': 'tmc'
         'version':
-          'specification': '0.1.2'
+          'specification': '0.1.4'
           'implementation': '0.1.0'
         'details': []
   securitySchemes:
