@@ -15,7 +15,7 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageName string, outputFile string, format string) error {
+func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageTag string, outputFile string, format string, inputName, inputMaintainer, inputVersion string) error {
 	defer func() {
 		fmt.Println("Cleaning up ./docker_context directory")
 		if err := os.RemoveAll("./docker_context/"); err != nil {
@@ -54,16 +54,44 @@ func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageName strin
 		return fmt.Errorf("failed to write updated config: %w", err)
 	}
 	copyDirectory("./docker/", "./docker_context/")
+	imageName := inputName
+	if imageName == "" {
+		imageName = "W3C Thing Model Catalog"
+	}
+
+	imageMaintainer := inputMaintainer
+	if imageMaintainer == "" {
+		imageMaintainer = "https://github.com/wot-oss"
+	}
+
+	imageVersion := inputVersion
+	if imageVersion == "" {
+		imageVersion = "latest"
+	}
+
+	buildArgs := []string{
+		"--build-arg", fmt.Sprintf("NAME=\"%s\"", imageName),
+		"--build-arg", fmt.Sprintf("MAINTAINER=\"%s\"", imageMaintainer),
+		"--build-arg", fmt.Sprintf("VERSION=\"%s\"", imageVersion),
+	}
+	buildCmdArgs := []string{
+		"build",
+		"--progress=plain",
+		"--no-cache",
+		"-t", imageTag,
+	}
+	buildCmdArgs = append(buildCmdArgs, buildArgs...)
+	buildCmdArgs = append(buildCmdArgs, "./docker_context", "-f", "./docker_context/Dockerfile_localdeployment")
 
 	fmt.Println("Building Docker image")
-	buildCmd := exec.Command("docker", "build", "--progress=plain", "--no-cache", "-t", imageName, "./docker_context", "-f", "./docker_context/Dockerfile_localdeployment")
+	buildCmd := exec.Command("docker", buildCmdArgs...)
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
 	if err := buildCmd.Run(); err != nil {
 		return fmt.Errorf("failed to build Docker image: %w", err)
 	}
 
-	saveCmd := exec.Command("docker", "save", "-o", outputFile, imageName)
+	saveCmd := exec.Command("docker", "save", "-o", outputFile, imageTag)
 	saveCmd.Stdout = os.Stdout
 	saveCmd.Stderr = os.Stderr
 	if err := saveCmd.Run(); err != nil {

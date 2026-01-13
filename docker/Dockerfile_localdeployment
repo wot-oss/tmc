@@ -9,12 +9,16 @@ ENV TMC_CORSALLOWEDHEADERS=
 ENV TMC_CORSALLOWCREDENTIALS=
 ENV TMC_CORSMAXAGE=86500
 
-LABEL name="W3C Thing Model Catalog" \
-      maintainer="https://github.com/wot-oss" \
-      version=${VERSION} \
-      summary="A catalog service to host and share W3C thing models"
-      
-ENV WORKDIR /thingmodels
+ARG NAME=""
+ARG MAINTAINER=""
+ARG VERSION=""
+
+LABEL name=$NAME \
+      maintainer=$MAINTAINER \
+      version=$VERSION \
+      summary="A catalog service to host and share W3C Thing Models"
+
+ENV WORKDIR=/thingmodels
 
 RUN apk update \
  && apk add --no-cache curl jq \
