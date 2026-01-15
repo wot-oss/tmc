@@ -33,8 +33,9 @@ type AuthorsResponse struct {
 	Data []string `json:"data"`
 }
 
-// ErrorResponse defines model for ErrorResponse.
+// ErrorResponse RFC 7807 compliant error response with additional 'code' field in case of conflicting TM.
 type ErrorResponse struct {
+	// Code Used only when the received TM already exists, thus a conflict. This will contain the id of the conflicting TM.
 	Code     *string `json:"code,omitempty"`
 	Detail   *string `json:"detail,omitempty"`
 	Instance *string `json:"instance,omitempty"`
@@ -218,7 +219,7 @@ type TMID = string
 // TMName defines model for TMName.
 type TMName = string
 
-// UnauthorizedError defines model for UnauthorizedError.
+// UnauthorizedError RFC 7807 compliant error response with additional 'code' field in case of conflicting TM.
 type UnauthorizedError = ErrorResponse
 
 // GetCompletionsParams defines parameters for GetCompletions.
@@ -333,6 +334,12 @@ type GetMpnsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
+}
+
+// ExportCatalogParams defines parameters for ExportCatalog.
+type ExportCatalogParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // ImportThingModelJSONBody defines parameters for ImportThingModel.

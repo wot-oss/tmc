@@ -616,6 +616,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /thing-models:
+    get:
+      tags:
+        - thing-models
+      summary: Export the whole catalog
+      description: Export the whole catalog as a zip file
+      operationId: exportCatalog
+      parameters:
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
       tags:
         - thing-models

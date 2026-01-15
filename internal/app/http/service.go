@@ -1,8 +1,11 @@
 package http
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"slices"
 	"sort"
 	"strings"
@@ -25,6 +28,7 @@ type HandlerService interface {
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
 	ImportThingModel(ctx context.Context, repo string, file []byte, opts repos.ImportOptions) (repos.ImportResult, error)
 	DeleteThingModel(ctx context.Context, repo string, tmID string) error
+	ExportCatalog(ctx context.Context, repo string) ([]byte, error)
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
 	CheckHealthReady(ctx context.Context) error
@@ -228,6 +232,38 @@ func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo str
 	}
 	err = commands.Delete(ctx, spec, tmID)
 	return err
+}
+
+func NewHttpZipExportTarget() *HttpZipExportTarget {
+	buf := new(bytes.Buffer)
+	zw := zip.NewWriter(buf)
+	return &HttpZipExportTarget{
+		buffer:    buf,
+		zipWriter: zw,
+	}
+}
+
+func (dhs *defaultHandlerService) ExportCatalog(ctx context.Context, repo string) ([]byte, error) {
+	zipTarget := NewHttpZipExportTarget()
+	defer func() {
+		if err := zipTarget.Close(); err != nil {
+			fmt.Printf("Warning: error closing zip writer: %v\n", err)
+		}
+	}()
+
+	searchFilters := &model.Filters{}
+	rs := model.NewRepoSpec(repo)
+
+	_, err := commands.ExportThingModels(ctx, rs, searchFilters, zipTarget, true, true)
+	if err != nil {
+		return nil, fmt.Errorf("failed to export catalog: %w", err)
+	}
+
+	if err := zipTarget.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finalize zip archive: %w", err)
+	}
+
+	return zipTarget.Bytes(), nil
 }
 
 func (dhs *defaultHandlerService) GetCompletions(ctx context.Context, kind string, args []string, toComplete string) ([]string, error) {

@@ -1,12 +1,14 @@
 package http
 
 import (
+	"archive/zip"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -25,6 +27,53 @@ type TmcHandler struct {
 type TmcHandlerOptions struct {
 	UrlContextRoot string
 	JWTValidation  bool
+}
+
+type ZipEntryWriter struct {
+	io.Writer
+	closer func() error // Function to call when Close is invoked
+}
+
+func (w *ZipEntryWriter) Close() error {
+	if w.closer != nil {
+		return w.closer()
+	}
+	return nil
+}
+
+type HttpZipExportTarget struct {
+	buffer    *bytes.Buffer
+	zipWriter *zip.Writer
+	mu        sync.Mutex
+}
+
+func (zt *HttpZipExportTarget) CreateWriter(ctx context.Context, logicalPath string) (io.WriteCloser, error) {
+	zt.mu.Lock()
+	defer zt.mu.Unlock()
+
+	header := &zip.FileHeader{
+		Name:     logicalPath,
+		Method:   zip.Deflate,
+		Modified: time.Now(),
+	}
+	header.Modified = time.Now()
+
+	entryWriter, err := zt.zipWriter.CreateHeader(header)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create zip entry for %s: %w", logicalPath, err)
+	}
+
+	return &ZipEntryWriter{Writer: entryWriter}, nil
+}
+
+func (zt *HttpZipExportTarget) Close() error {
+	zt.mu.Lock()
+	defer zt.mu.Unlock()
+	return zt.zipWriter.Close()
+}
+
+func (zt *HttpZipExportTarget) Bytes() []byte {
+	return zt.buffer.Bytes()
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
@@ -188,6 +237,25 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 	HandleByteResponse(w, r, http.StatusOK, MimeTMJSON, data)
+}
+
+// ExportCatalog Export the entire catalog as a zip file
+// (GET /thing-models/)
+func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, params server.ExportCatalogParams) {
+	data, err := h.Service.ExportCatalog(r.Context(), convertRepoName(params.Repo))
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"thing-models-catalog.zip\"")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+
+	_, err = w.Write(data)
+	if err != nil {
+		fmt.Printf("Error writing zip data to response: %v\n", err)
+	}
 }
 
 // DeleteThingModelById Delete a Thing Model by ID

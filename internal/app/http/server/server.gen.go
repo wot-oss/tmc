@@ -56,6 +56,9 @@ type ServerInterface interface {
 	// Get the list of repositories
 	// (GET /repos)
 	GetRepos(w http.ResponseWriter, r *http.Request)
+	// Export the whole catalog
+	// (GET /thing-models)
+	ExportCatalog(w http.ResponseWriter, r *http.Request, params ExportCatalogParams)
 	// Import a Thing Model
 	// (POST /thing-models)
 	ImportThingModel(w http.ResponseWriter, r *http.Request, params ImportThingModelParams)
@@ -569,6 +572,36 @@ func (siw *ServerInterfaceWrapper) GetRepos(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRepos(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ExportCatalog operation middleware
+func (siw *ServerInterfaceWrapper) ExportCatalog(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportCatalogParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportCatalog(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1228,6 +1261,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/healthz/live", wrapper.GetHealthLive).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.ImportThingModel).Methods("POST")
+
+	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.ExportCatalog).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/repos", wrapper.GetRepos).Methods("GET")
 
