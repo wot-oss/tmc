@@ -114,6 +114,17 @@ func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageTag string
 	if imageVersion == "" {
 		imageVersion = "latest"
 	}
+	checkCmd := exec.Command("docker", "images", "-q", imageTag)
+	output, err := checkCmd.Output()
+	if err != nil {
+		fmt.Printf("Warning: Could not check for existing image (%s). Error: %v\n", imageTag, err)
+	} else if len(strings.TrimSpace(string(output))) > 0 {
+		deleteCmd := exec.Command("docker", "rmi", "-f", imageTag)
+		deleteOutput, deleteErr := deleteCmd.CombinedOutput()
+		if deleteErr != nil {
+			fmt.Printf("Error deleting existing image '%s': %v\nOutput: %s\n", imageTag, deleteErr, string(deleteOutput))
+		}
+	}
 
 	buildArgs := []string{
 		"--build-arg", fmt.Sprintf("NAME=\"%s\"", imageName),
