@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -45,6 +46,51 @@ func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageTag string
 			repo["type"] = "file"
 			repo["loc"] = "/docker/repos/" + name
 			repo["description"] = ""
+		case "s3":
+			fmt.Printf("Downloading from s3 bucket for repo: %s\n", name)
+
+			bucket, ok := repo["aws_bucket"].(string)
+			if !ok {
+				return fmt.Errorf("missing AWS bucket name for repo: %s", name)
+			}
+			region, ok := repo["aws_region"].(string)
+			if !ok {
+				return fmt.Errorf("missing AWS region for repo: %s", name)
+			}
+			accesskey, ok := repo["aws_access_key_id"].(string)
+			if !ok {
+				return fmt.Errorf("missing AWS access key ID for repo: %s", name)
+			}
+			secret, ok := repo["aws_secret_access_key"].(string)
+			if !ok {
+				return fmt.Errorf("missing AWS secret access key for repo: %s", name)
+			}
+			endpoint, ok := repo["aws_endpoint"].(string)
+			if !ok {
+				return fmt.Errorf("missing AWS endpoint for repo: %s", name)
+			}
+			awsAccessKeyID := accesskey
+			awsSecretAccessKey := secret
+			awsDefaultRegion := region
+			awsEndpoint := endpoint
+
+			cmd := exec.Command("aws", "s3", "cp", "s3://"+bucket, "./docker_context/data/"+name, "--recursive")
+
+			cmd.Env = os.Environ()
+			cmd.Env = append(cmd.Env, fmt.Sprintf("AWS_ACCESS_KEY_ID=%s", awsAccessKeyID))
+			cmd.Env = append(cmd.Env, fmt.Sprintf("AWS_SECRET_ACCESS_KEY=%s", awsSecretAccessKey))
+			cmd.Env = append(cmd.Env, fmt.Sprintf("AWS_DEFAULT_REGION=%s", awsDefaultRegion))
+			cmd.Env = append(cmd.Env, fmt.Sprintf("AWS_ENDPOINT_URL=%s", awsEndpoint))
+
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+
+			fmt.Printf("Executing s3 cp command: %s %v\n", cmd.Path, cmd.Args)
+			err := cmd.Run()
+			if err != nil {
+				log.Fatalf("Command s3 cp failed: %v", err)
+			}
+
 		default:
 			return fmt.Errorf("unknown repo type: %s", repoType)
 		}
