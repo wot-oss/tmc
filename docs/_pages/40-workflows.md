@@ -199,20 +199,182 @@ It is issued by the expected issuer URL.
 The aud claim equals the value of --jwtServiceID.
 The scope claim contains sufficient permissions for the requested endpoint.
 
-### 5. Error Handling
+#### 5. Error Handling
 Requests without a valid Bearer token will result in an HTTP 401 Unauthorized error.
 
-### 6. Scope Table
-| Scope                                                              | /thing-models/{tmID}/attachments/{attachmentFileName} (GET) | /thing-models/{tmID}/attachments/{attachmentFileName} (PUT) | /thing-models/{tmID}/attachments/{attachmentFileName} (DELETE) | /thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (GET) | /thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (PUT) | /thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (DELETE) | Inventory (GET) | /thing-models/{tmID} (GET) | /thing-models/{tmID} (DELETE) | /thing-models/.latest/{fetchName} (GET) | /thing-models/.latest/{fetchName} (POST) | /thing-models (POST) | /repos (GET) | /info* (GET) | /health* (GET) |
-|:-------------------------------------------------------------------|:-----------------------------------------------------------:|:-----------------------------------------------------------:|:-------------------------------------------------------------:|:-------------------------------------------------------------------------:|:-------------------------------------------------------------------------:|:---------------------------------------------------------------------------:|:---------------:|:--------------------------:|:-----------------------------:|:-----------------------------------------:|:------------------------------------------:|:--------------------:|:------------:|:-------------:|:--------------:|
-| tmc.ns.{namespace}.read: Reading TMs, their metadata and attachments | if tmID == namespace                                        | no                                                          | no                                                            | if tmID == namespace                                      | no                                                          | no                                                            | if tmID == namespace | if tmID == namespace       | no                            | if tmID == namespace             | no                                         | no                   | no           | no            | no             |
-| tmc.ns.{namespace}.write: Adding new TMs and attachments           | no                                                          | if tmID == namespace                                        | no                                                            | no                                                        | if tmID == namespace                                      | no                                                            | no               | no                         | no                            | no                                       | if tmID == namespace             | if tmID == namespace | no           | no            | no             |
-| tmc.ns.{namespace}.attachments.delete: Deleting attachments        | no                                                          | no                                                          | if tmID == namespace                                          | no                                                        | no                                                          | if tmID == namespace                                          | no               | no                         | no                            | no                                       | no                                         | no                   | no           | no            | no             |
-| tmc.ns.{namespace}.thingmodels.delete: Deleting TMs (not desired, thus separate scope) | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | if tmID == namespace          | no                                       | no                                         | no                   | no           | no            | no             |
-| tmc.repos.read: Reading /repos -                                   | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | no                            | no                                       | no                                         | no                   | yes          | no            | no             |
-| tmc.internal.read: Reading everything under /info                  | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | no                            | no                                       | no                                         | no                   | no           | yes           | no             |
-| tmc.health.read: Reading everything under /healthz                 | no                                                          | no                                                          | no                                                            | no                                                        | no                                                          | no                                                            | no               | no                         | no                            | no                                       | no                                         | no                   | no           | no            | yes            |
-| tmc.admin: everything allowed                                      | yes                                                         | yes                                                         | yes                                                           | yes                                                       | yes                                                         | yes                                                           | yes              | yes                        | yes                           | yes                                      | yes                                        | yes                  | yes          | yes           | yes            |
+#### 6. Scope Table
+<div style="overflow-x: auto; width: 100%;">
+
+<table style="border-collapse: collapse; width: 100%;">
+  <thead>
+    <tr>
+      <th>Scope</th>
+      <th>/thing-models/{tmID}/attachments/{attachmentFileName} (GET)</th>
+      <th>/thing-models/{tmID}/attachments/{attachmentFileName} (PUT)</th>
+      <th>/thing-models/{tmID}/attachments/{attachmentFileName} (DELETE)</th>
+      <th>/thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (GET)</th>
+      <th>/thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (PUT)</th>
+      <th>/thing-models/{tmName}/{tmVersion}/attachments/{attachmentFileName} (DELETE)</th>
+      <th>Inventory (GET)</th>
+      <th>/thing-models/{tmID} (GET)</th>
+      <th>/thing-models/{tmID} (DELETE)</th>
+      <th>/thing-models/.latest/{fetchName} (GET)</th>
+      <th>/thing-models/.latest/{fetchName} (POST)</th>
+      <th>/thing-models (POST)</th>
+      <th>/repos (GET)</th>
+      <th>/info* (GET)</th>
+      <th>/health* (GET)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><b>tmc.ns.{namespace}.read: Reading TMs, their metadata and attachments</b></td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td><b>tmc.ns.{namespace}.write: Adding new TMs and attachments</b></td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td><b>tmc.ns.{namespace}.attachments.delete: Deleting attachments</b></td>
+      <td>no</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td><b>tmc.ns.{namespace}.thingmodels.delete: Deleting TMs (not desired, thus separate scope)</b></td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>if tmID == namespace</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td><b>tmc.repos.read: Reading /repos</b></td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td><b>tmc.internal.read: Reading everything under /info</b></td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>no</td>
+    </tr>
+    <tr>
+      <td><b>tmc.health.read: Reading everything under /healthz</b></td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+    </tr>
+    <tr>
+      <td><b>tmc.admin: everything's allowed</b></td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+    </tr>
+  </tbody>
+</table>
+
+</div>
 
 [1]: https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json
 [2]: https://schema.org
