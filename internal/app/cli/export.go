@@ -4,17 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/utils"
 )
-
-type FileSystemExportTarget struct {
-	basePath string
-}
 
 func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, outputPath string, restoreId bool, withAttachments bool, format string) error {
 	if !IsValidOutputFormat(format) {
@@ -26,7 +22,7 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, out
 		return errors.New("--output not provided")
 	}
 
-	fsTarget, err := NewFileSystemExportTarget(outputPath)
+	fsTarget, err := commands.NewFileSystemExportTarget(outputPath)
 	if err != nil {
 		Stderrf("%v", err)
 		return err
@@ -49,11 +45,6 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, out
 		})
 	}
 
-	if cmdErr != nil {
-		Stderrf("Error during export: %v", cmdErr)
-		return cmdErr
-	}
-
 	switch format {
 	case OutputFormatJSON:
 		printJSON(totalRes)
@@ -63,31 +54,35 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, out
 		}
 	}
 
+	if cmdErr != nil {
+		Stderrf("Error during export: %v", cmdErr)
+		return cmdErr
+	}
+
 	return nil
 }
 
-func NewFileSystemExportTarget(basePath string) (*FileSystemExportTarget, error) {
-	f, err := os.Stat(basePath)
-	if f != nil && !f.IsDir() {
-		return nil, fmt.Errorf("output target folder %s is not a folder", basePath)
+func exportThingModel(ctx context.Context, outputPath string, version model.FoundVersion, restoreId bool) (OperationResult, error) {
+	spec := model.NewSpecFromFoundSource(version.FoundIn)
+	id, thing, err, errs := commands.FetchByTMID(ctx, spec, version.TMID, restoreId)
+	if err == nil && len(errs) > 0 { // spec cannot be empty, therefore, there can be at most one RepoAccessError
+		err = errs[0]
 	}
-	if err != nil && !os.IsNotExist(err) {
-		return nil, fmt.Errorf("error checking output path %s: %w", basePath, err)
-	}
-	return &FileSystemExportTarget{basePath: basePath}, nil
-}
-
-func (fset *FileSystemExportTarget) CreateWriter(ctx context.Context, logicalPath string) (io.WriteCloser, error) {
-	finalPath := filepath.Join(fset.basePath, logicalPath)
-
-	dir := filepath.Dir(finalPath)
-	if err := os.MkdirAll(dir, 0770); err != nil {
-		return nil, fmt.Errorf("could not create output directory %s: %w", dir, err)
-	}
-
-	file, err := os.OpenFile(finalPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0660)
 	if err != nil {
-		return nil, fmt.Errorf("could not open file %s for writing: %w", finalPath, err)
+		Stderrf("Error fetch %s: %v", version.TMID, err)
+		return OperationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot fetch from repo %s)", version.FoundIn)}, err
 	}
-	return file, nil
+	thing = utils.ConvertToNativeLineEndings(thing)
+	finalOutput := filepath.Join(outputPath, id)
+	err = os.MkdirAll(filepath.Dir(finalOutput), 0770)
+	if err != nil {
+		Stderrf("Could not write ThingModel to file %s: %v", finalOutput, err)
+		return OperationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
+	}
+	err = os.WriteFile(finalOutput, thing, 0660)
+	if err != nil {
+		Stderrf("Could not write ThingModel to file %s: %v", finalOutput, err)
+		return OperationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
+	}
+	return OperationResult{opResultOK, version.TMID, ""}, err
 }

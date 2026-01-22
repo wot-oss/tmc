@@ -1,8 +1,6 @@
 package http
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -234,17 +232,8 @@ func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo str
 	return err
 }
 
-func NewHttpZipExportTarget() *HttpZipExportTarget {
-	buf := new(bytes.Buffer)
-	zw := zip.NewWriter(buf)
-	return &HttpZipExportTarget{
-		buffer:    buf,
-		zipWriter: zw,
-	}
-}
-
 func (dhs *defaultHandlerService) ExportCatalog(ctx context.Context, repo string) ([]byte, error) {
-	zipTarget := NewHttpZipExportTarget()
+	zipTarget := commands.NewHttpZipExportTarget()
 	defer func() {
 		if err := zipTarget.Close(); err != nil {
 			fmt.Printf("Warning: error closing zip writer: %v\n", err)

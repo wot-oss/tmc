@@ -1,14 +1,12 @@
 package http
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -27,53 +25,6 @@ type TmcHandler struct {
 type TmcHandlerOptions struct {
 	UrlContextRoot string
 	JWTValidation  bool
-}
-
-type ZipEntryWriter struct {
-	io.Writer
-	closer func() error // Function to call when Close is invoked
-}
-
-func (w *ZipEntryWriter) Close() error {
-	if w.closer != nil {
-		return w.closer()
-	}
-	return nil
-}
-
-type HttpZipExportTarget struct {
-	buffer    *bytes.Buffer
-	zipWriter *zip.Writer
-	mu        sync.Mutex
-}
-
-func (zt *HttpZipExportTarget) CreateWriter(ctx context.Context, logicalPath string) (io.WriteCloser, error) {
-	zt.mu.Lock()
-	defer zt.mu.Unlock()
-
-	header := &zip.FileHeader{
-		Name:     logicalPath,
-		Method:   zip.Deflate,
-		Modified: time.Now(),
-	}
-	header.Modified = time.Now()
-
-	entryWriter, err := zt.zipWriter.CreateHeader(header)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create zip entry for %s: %w", logicalPath, err)
-	}
-
-	return &ZipEntryWriter{Writer: entryWriter}, nil
-}
-
-func (zt *HttpZipExportTarget) Close() error {
-	zt.mu.Lock()
-	defer zt.mu.Unlock()
-	return zt.zipWriter.Close()
-}
-
-func (zt *HttpZipExportTarget) Bytes() []byte {
-	return zt.buffer.Bytes()
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
