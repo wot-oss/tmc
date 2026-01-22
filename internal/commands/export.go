@@ -37,7 +37,7 @@ type HttpZipExportTarget struct {
 
 type ZipEntryWriter struct {
 	io.Writer
-	closer func() error // Function to call when Close is invoked
+	closer func() error
 }
 
 func NewFileSystemExportTarget(basePath string) (*FileSystemExportTarget, error) {

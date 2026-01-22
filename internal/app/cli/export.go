@@ -22,9 +22,15 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, out
 		return errors.New("--output not provided")
 	}
 
+	f, err := os.Stat(outputPath)
+	if f != nil && !f.IsDir() {
+		Stderrf("output target folder --output is not a folder")
+		return errors.New("output target folder --output is not a folder")
+	}
+
 	fsTarget, err := commands.NewFileSystemExportTarget(outputPath)
 	if err != nil {
-		Stderrf("%v", err)
+		Stderrf("Error listing: %v", err)
 		return err
 	}
 

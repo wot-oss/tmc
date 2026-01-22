@@ -234,7 +234,12 @@ func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo str
 
 func (dhs *defaultHandlerService) ExportCatalog(ctx context.Context, repo string) ([]byte, error) {
 	zipTarget := commands.NewHttpZipExportTarget()
+	var zipTargetClosed bool
+	zipTargetClosed = false
 	defer func() {
+		if zipTargetClosed == true {
+			return
+		}
 		if err := zipTarget.Close(); err != nil {
 			fmt.Printf("Warning: error closing zip writer: %v\n", err)
 		}
@@ -251,6 +256,7 @@ func (dhs *defaultHandlerService) ExportCatalog(ctx context.Context, repo string
 	if err := zipTarget.Close(); err != nil {
 		return nil, fmt.Errorf("failed to finalize zip archive: %w", err)
 	}
+	zipTargetClosed = true
 
 	return zipTarget.Bytes(), nil
 }
