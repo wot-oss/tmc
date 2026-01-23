@@ -5,6 +5,7 @@
 ### Added
 
 - REST API: jwt authentication based on JWT scopes array
+- REST API:GET `/thing-models` returns the whole repo as zip
 
 ### Fixed
 
