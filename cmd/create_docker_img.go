@@ -10,7 +10,7 @@ import (
 )
 
 var createDockerImgCmd = &cobra.Command{
-	Use:   "docker <image-name> <output-tar> [--name <image-name>] [--maintainer <maintainer>] [--version <version>]",
+	Use:   "docker <image-name> <output-tar> [--name <label-name>] [--maintainer <label-maintainer>] [--version <label-version>]",
 	Short: "Create a docker image for current TMC configuration",
 	Long:  `Create a docker image for current TMC configuration. Packs all configured repositories to a single docker image.`,
 	Args:  cobra.MinimumNArgs(1),
@@ -22,9 +22,9 @@ func init() {
 	AddRepoConstraintFlags(createDockerImgCmd)
 	AddOutputFormatFlag(createDockerImgCmd)
 
-	createDockerImgCmd.Flags().String("name", "", "Specify the image name (optional, default: W3C Thing Model Catalog)")
-	createDockerImgCmd.Flags().String("maintainer", "", "Specify the maintainer (optional, default: https://github.com/wot-oss)")
-	createDockerImgCmd.Flags().String("version", "", "Specify the docker image version (optional, default: latest)")
+	createDockerImgCmd.Flags().String("name", "", "Specify the image label NAME (optional, default: W3C Thing Model Catalog)")
+	createDockerImgCmd.Flags().String("maintainer", "", "Specify the image label MAINTAINER (optional, default: https://github.com/wot-oss)")
+	createDockerImgCmd.Flags().String("version", "", "Specify the image label VERSION (optional, default: latest)")
 }
 
 func createDockerImg(cmd *cobra.Command, args []string) {
