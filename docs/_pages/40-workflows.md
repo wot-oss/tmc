@@ -187,7 +187,7 @@ When the `--jwtValidation` flag is provided:
 - Each scope string determines the user's access rights to specific endpoints, as defined in the **Scope Table** (explained below).  
 - Example Scope Claim:
 ```json
-"scope": ["tmc.ns.myNamespace.read", "tmc.ns.myNamespace.write"]
+"scope":["tmc.ns.myNamespace.read","tmc.ns.myNamespace.write"]
 ```
 
 #### 4. Token Validation Details
@@ -375,6 +375,8 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 </table>
 
 </div>
+
+'*' can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
 
 [1]: https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json
 [2]: https://schema.org
