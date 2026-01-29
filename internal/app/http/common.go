@@ -201,6 +201,10 @@ func NewNotFoundError(err error, detail string, args ...any) error {
 	return newBaseHttpError(err, http.StatusNotFound, Error404Title, detail, args...)
 }
 
+func NewConflictError(err error, detail string, args ...any) error {
+	return newBaseHttpError(err, http.StatusConflict, Error409Title, detail, args...)
+}
+
 func NewBadRequestError(err error, detail string, args ...any) error {
 	return newBaseHttpError(err, http.StatusBadRequest, Error400Title, detail, args...)
 }

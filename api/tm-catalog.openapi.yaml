@@ -616,30 +616,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   /thing-models:
-    get:
-      tags:
-        - thing-models
-      summary: Export the whole catalog
-      description: Export the whole catalog as a zip file
-      operationId: exportCatalog
-      parameters:
-        - $ref: '#/components/parameters/RepoDisambiguator'
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/zip:
-              schema:
-                type: string
-                format: binary
-        '401':
-          $ref: '#/components/responses/UnauthorizedError'
-        '500':
-          description: Internal error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
     post:
       tags:
         - thing-models
@@ -685,6 +661,64 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '409':
           description: Conflict, Thing Model already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /repos/export:
+    get:
+      tags:
+        - repos
+      summary: Export the whole catalog
+      description: Export the whole catalog as a zip file
+      operationId: getExportedCatalog
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - thing-models
+      summary: Trigger exporting the whole catalog
+      description: Trigger exporting the whole catalog as a zip file
+      operationId: exportCatalog
+      parameters:
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '202':
+          description: Export successfully triggered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportCatalogTriggerResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Conflict, export catalog is already executed
           content:
             application/json:
               schema:
@@ -1352,6 +1386,13 @@ components:
           type: string
           example: "a TM with the same timestamp but different content exists under ID: mycompany/bartech/bazlamp/v0.0.1-20240206122430-1fc13316b7d8.tm.json"
         code:
+          type: string
+    ExportCatalogTriggerResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
           type: string
     InfoResponse:
       required:

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -18,8 +19,10 @@ import (
 const ContextKeyBearerAuthNamespaces = "BearerAuth.Namespaces"
 
 type TmcHandler struct {
-	Service HandlerService
-	Options TmcHandlerOptions
+	Service    HandlerService
+	Options    TmcHandlerOptions
+	JobManager *JobManager
+	zipData    []byte
 }
 
 type TmcHandlerOptions struct {
@@ -27,10 +30,36 @@ type TmcHandlerOptions struct {
 	JWTValidation  bool
 }
 
+type ExportJobStatus struct {
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Error     string    `json:"error,omitempty"`
+}
+
+type JobManager struct {
+	job               ExportJobStatus
+	activeJobLock     sync.Mutex
+	isExportingActive bool
+}
+
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
 	return &TmcHandler{
-		Service: handlerService,
-		Options: options,
+		Service:    handlerService,
+		Options:    options,
+		JobManager: NewJobManager(),
+		zipData:    make([]byte, 0),
+	}
+}
+
+func NewJobManager() *JobManager {
+	return &JobManager{
+		job: ExportJobStatus{
+			Status:    "idle",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		isExportingActive: false,
 	}
 }
 
@@ -191,11 +220,20 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 }
 
 // ExportCatalog Export the entire catalog as a zip file
-// (GET /thing-models/)
-func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, params server.ExportCatalogParams) {
-	data, err := h.Service.ExportCatalog(r.Context(), convertRepoName(params.Repo))
-	if err != nil {
+// (GET /repos/export)
+func (h *TmcHandler) GetExportedCatalog(w http.ResponseWriter, r *http.Request) {
+	jobStatus := h.JobManager.GetJob()
+
+	if jobStatus.Status != "completed" {
+		err := NewConflictError(nil, "Exporting not yet complete or failed. Current status: %s", jobStatus.Status)
 		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	data := h.zipData
+	if len(data) == 0 {
+		fmt.Printf("Error: Zip data not found in store for completed job when trying to download.\n")
+		http.Error(w, "Internal server error: Zip data missing", http.StatusInternalServerError)
 		return
 	}
 
@@ -203,10 +241,44 @@ func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, param
 	w.Header().Set("Content-Disposition", "attachment; filename=\"thing-models-catalog.zip\"")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
-	_, err = w.Write(data)
+	_, err := w.Write(data)
 	if err != nil {
 		fmt.Printf("Error writing zip data to response: %v\n", err)
 	}
+}
+
+// ExportCatalog Export the entire catalog as a zip file
+// (POST /repos/export)
+func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, params server.ExportCatalogParams) {
+	if !h.JobManager.TryAcquireExportingLock() {
+		currentJobStatus := h.JobManager.GetJob()
+		err := NewConflictError(nil, "An export job is already in progress. Current status: %s", currentJobStatus.Status)
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	h.zipData = nil
+	go h.performExportCatalogAsync(convertRepoName(params.Repo))
+	HandleJsonResponse(w, r, http.StatusAccepted, map[string]string{
+		"status":  "packing",
+		"message": "Exporting initiated.",
+	})
+}
+
+func (h *TmcHandler) performExportCatalogAsync(repoName string) {
+	defer h.JobManager.ReleaseExportingLock()
+
+	h.JobManager.UpdateJobStatus("packing", "Currently packing the catalog...")
+	ctx := context.Background()
+
+	data, err := h.Service.ExportCatalog(ctx, repoName)
+	if err != nil {
+		h.JobManager.MarkJobFailed(err.Error())
+		fmt.Printf("Error during async export: %v\n", err)
+		return
+	}
+	h.zipData = data
+	h.JobManager.UpdateJobStatus("completed", "Export complete. Ready for download.")
+	fmt.Printf("Job completed successfully.\n")
 }
 
 // DeleteThingModelById Delete a Thing Model by ID
@@ -504,4 +576,59 @@ func getRelativeDepth(path, siblingPath string) int {
 	path = path[idx:]
 	d := strings.Count(path, "/")
 	return d
+}
+
+func (jm *JobManager) TryAcquireExportingLock() bool {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+
+	if jm.isExportingActive {
+		return false
+	}
+
+	jm.isExportingActive = true
+	jm.job = ExportJobStatus{
+		Status:    "pending",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	return true
+}
+
+func (jm *JobManager) ReleaseExportingLock() {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	jm.isExportingActive = false
+}
+
+func (jm *JobManager) CreateJob() ExportJobStatus {
+	job := ExportJobStatus{
+		Status:    "pending",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	jm.job = job
+	return job
+}
+
+func (jm *JobManager) GetJob() ExportJobStatus {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	return jm.job
+}
+
+func (jm *JobManager) UpdateJobStatus(status, message string) {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	jm.job.Status = status
+	jm.job.UpdatedAt = time.Now()
+	jm.job.Error = ""
+}
+
+func (jm *JobManager) MarkJobFailed(errorMessage string) {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	jm.job.Status = "failed"
+	jm.job.Error = errorMessage
+	jm.job.UpdatedAt = time.Now()
 }

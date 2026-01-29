@@ -57,7 +57,10 @@ type ServerInterface interface {
 	// (GET /repos)
 	GetRepos(w http.ResponseWriter, r *http.Request)
 	// Export the whole catalog
-	// (GET /thing-models)
+	// (GET /repos/export)
+	GetExportedCatalog(w http.ResponseWriter, r *http.Request)
+	// Trigger exporting the whole catalog
+	// (POST /repos/export)
 	ExportCatalog(w http.ResponseWriter, r *http.Request, params ExportCatalogParams)
 	// Import a Thing Model
 	// (POST /thing-models)
@@ -572,6 +575,23 @@ func (siw *ServerInterfaceWrapper) GetRepos(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRepos(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetExportedCatalog operation middleware
+func (siw *ServerInterfaceWrapper) GetExportedCatalog(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExportedCatalog(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1252,6 +1272,10 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.DeleteThingModelById).Methods("DELETE")
 
+	r.HandleFunc(options.BaseURL+"/repos/export", wrapper.GetExportedCatalog).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/repos/export", wrapper.ExportCatalog).Methods("POST")
+
 	r.HandleFunc(options.BaseURL+"/inventory/{tmID:.+}", wrapper.GetInventoryByID).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/healthz/startup", wrapper.GetHealthStartup).Methods("GET")
@@ -1261,8 +1285,6 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/healthz/live", wrapper.GetHealthLive).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.ImportThingModel).Methods("POST")
-
-	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.ExportCatalog).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/repos", wrapper.GetRepos).Methods("GET")
 

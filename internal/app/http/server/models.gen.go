@@ -44,6 +44,11 @@ type ErrorResponse struct {
 	Type     *string `json:"type,omitempty"`
 }
 
+// ExportCatalogTriggerResponse defines model for ExportCatalogTriggerResponse.
+type ExportCatalogTriggerResponse struct {
+	Status string `json:"status"`
+}
+
 // ImportThingModelResponse defines model for ImportThingModelResponse.
 type ImportThingModelResponse struct {
 	Data ImportThingModelResult `json:"data"`

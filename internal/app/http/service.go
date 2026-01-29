@@ -245,10 +245,10 @@ func (dhs *defaultHandlerService) ExportCatalog(ctx context.Context, repo string
 		}
 	}()
 
-	searchFilters := &model.Filters{}
+	//searchFilters := nil
 	rs := model.NewRepoSpec(repo)
 
-	_, err := commands.ExportThingModels(ctx, rs, searchFilters, zipTarget, true, true)
+	_, err := commands.ExportThingModels(ctx, rs, nil, zipTarget, true, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to export catalog: %w", err)
 	}
@@ -257,6 +257,7 @@ func (dhs *defaultHandlerService) ExportCatalog(ctx context.Context, repo string
 		return nil, fmt.Errorf("failed to finalize zip archive: %w", err)
 	}
 	zipTargetClosed = true
+	fmt.Println("Export catalog zip archive created successfully.")
 
 	return zipTarget.Bytes(), nil
 }
