@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -43,16 +44,26 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 		if namespaces != nil {
 			if filters == nil {
 				filters = &model.Filters{}
-				filters.Author = namespaces
-			} else {
+				if !slices.Contains(namespaces, "*") {
+					filters.Author = namespaces
+				} else {
+					filters = nil
+				}
+			} else if filters.Author != nil {
 				authorSet := make(map[string]struct{})
 				for _, a := range filters.Author {
 					authorSet[a] = struct{}{}
 				}
 				var intersection []string
-				for _, ns := range namespaces {
-					if _, exists := authorSet[ns]; exists {
-						intersection = append(intersection, ns)
+				if slices.Contains(namespaces, "*") {
+					for _, a := range filters.Author {
+						intersection = append(intersection, a)
+					}
+				} else {
+					for _, ns := range namespaces {
+						if _, exists := authorSet[ns]; exists {
+							intersection = append(intersection, ns)
+						}
 					}
 				}
 				if len(intersection) == 0 {
