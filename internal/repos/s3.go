@@ -539,6 +539,8 @@ func (s *S3Repo) getAttachmentsDir(ref model.AttachmentContainerRef) (string, er
 
 func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
 	// Prepare data collection for logging stats
+	var manufacturers []string
+	var mpns []string
 	start := time.Now()
 
 	oldNames := s.readNamesFile(ctx)
@@ -565,7 +567,23 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.
 	if err != nil {
 		return nil, err
 	}
-	err = s.writeNamesFile(ctx, names)
+	for _, d := range newIndex.Data {
+		if !slices.Contains(manufacturers, d.Manufacturer.Name) {
+			manufacturers = append(manufacturers, d.Manufacturer.Name)
+		}
+		if !slices.Contains(mpns, d.Mpn) {
+			mpns = append(mpns, d.Mpn)
+		}
+	}
+	err = s.writeHelperTxtFile(ctx, names, TmNamesFile)
+	if err != nil {
+		return nil, err
+	}
+	err = s.writeHelperTxtFile(ctx, manufacturers, TmManufacturersFile)
+	if err != nil {
+		return nil, err
+	}
+	err = s.writeHelperTxtFile(ctx, mpns, TmMpnsFile)
 	if err != nil {
 		return nil, err
 	}
@@ -765,10 +783,10 @@ func (s *S3Repo) readNamesFile(ctx context.Context) []string {
 	return lines
 }
 
-func (s *S3Repo) writeNamesFile(ctx context.Context, names []string) error {
+func (s *S3Repo) writeHelperTxtFile(ctx context.Context, names []string, fileName string) error {
 	slices.Sort(names)
 	names = slices.Compact(names)
-	return s3WriteFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, TmNamesFile), names)
+	return s3WriteFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, fileName), names)
 }
 
 func (s *S3Repo) readIgnoreFile(ctx context.Context) (*ignore.GitIgnore, error) {

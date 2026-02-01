@@ -51,6 +51,8 @@ const (
 	RepoConfDir               = ".tmc"
 	IndexFilename             = "tm-catalog.toc.json"
 	TmNamesFile               = "tmnames.txt"
+	TmManufacturersFile       = "tmmanufacturers.txt"
+	TmMpnsFile                = "tmmpns.txt"
 	TmIgnoreFile              = ".tmcignore"
 
 	maxIndexingBatchSize = math.MaxInt

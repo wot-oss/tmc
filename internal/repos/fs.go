@@ -658,6 +658,8 @@ func makeAbs(dir string) (string, error) {
 
 func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
 	// Prepare data collection for logging stats
+	var manufacturers []string
+	var mpns []string
 	start := time.Now()
 
 	oldNames := f.readNamesFile()
@@ -685,7 +687,23 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	if err != nil {
 		return nil, err
 	}
-	err = f.writeNamesFile(names)
+	for _, d := range newIndex.Data {
+		if !slices.Contains(manufacturers, d.Manufacturer.Name) {
+			manufacturers = append(manufacturers, d.Manufacturer.Name)
+		}
+		if !slices.Contains(mpns, d.Mpn) {
+			mpns = append(mpns, d.Mpn)
+		}
+	}
+	err = f.writeHelperTxtFile(names, TmNamesFile)
+	if err != nil {
+		return nil, err
+	}
+	err = f.writeHelperTxtFile(manufacturers, TmManufacturersFile)
+	if err != nil {
+		return nil, err
+	}
+	err = f.writeHelperTxtFile(mpns, TmMpnsFile)
 	if err != nil {
 		return nil, err
 	}
@@ -924,10 +942,10 @@ func (f *FileRepo) readNamesFile() []string {
 	lines, _ := utils.ReadFileLines(filepath.Join(f.root, RepoConfDir, TmNamesFile))
 	return lines
 }
-func (f *FileRepo) writeNamesFile(names []string) error {
+func (f *FileRepo) writeHelperTxtFile(names []string, fileName string) error {
 	slices.Sort(names)
 	names = slices.Compact(names)
-	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, TmNamesFile), defaultFilePermissions)
+	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, fileName), defaultFilePermissions)
 }
 func (f *FileRepo) readIgnoreFile() (*ignore.GitIgnore, error) {
 	ignoreFileName := filepath.Join(f.root, RepoConfDir, TmIgnoreFile)
