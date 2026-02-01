@@ -33,6 +33,7 @@ const (
 	keySubRepo                = "keySubRepo"
 	KeyRepoAWSRegion          = "aws_region"
 	KeyRepoAWSBucket          = "aws_bucket"
+	KeyRepoAWSEndpoint        = "aws_endpoint"
 	KeyRepoAWSAccessKeyId     = "aws_access_key_id"
 	KeyRepoAWSSecretAccessKey = "aws_secret_access_key"
 	AuthMethodNone            = "none"
