@@ -93,6 +93,7 @@ func NewS3Repo(cfg ConfigMap, spec model.RepoSpec) (*S3Repo, error) {
 
 	ak, foundAk := cfg.GetString(KeyRepoAWSAccessKeyId)
 	sk, foundSk := cfg.GetString(KeyRepoAWSSecretAccessKey)
+	endpoint, foundEp := cfg.GetString(KeyRepoAWSEndpoint)
 	if (!foundAk && foundSk) || (foundAk && !foundSk) {
 		return nil, fmt.Errorf("cannot create a AWS S3 repo from spec %v. Invalid config. aws_access_key_id and aws_secret_access_key must be set both as type string when setting credentials explicit", spec)
 	}
@@ -101,13 +102,17 @@ func NewS3Repo(cfg ConfigMap, spec model.RepoSpec) (*S3Repo, error) {
 	}
 
 	configS3, err := config.LoadDefaultConfig(context.Background(), optFns...)
-
+	if foundEp {
+		configS3.BaseEndpoint = aws.String(endpoint)
+	}
 	if err != nil {
 		err := fmt.Errorf("error loading S3 configuration: %w", err)
 		return nil, err
 	}
 
-	c := s3.NewFromConfig(configS3)
+	c := s3.NewFromConfig(configS3, func(o *s3.Options) {
+		o.UsePathStyle = true
+	})
 
 	return &S3Repo{
 		bucket: bucket,
