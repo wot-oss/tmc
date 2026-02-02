@@ -45,6 +45,7 @@ You can also use any directory as a storage space for an unnamed local repositor
 To be imported into a catalog, a TM must be valid according to the [W3C Thing Model schema][1]. In addition to that,
 some minimal key fields defined by [schema.org][2] are required.
 The fields are:
+
 - `schema:author/schema:name` (https://schema.org/author)
 - `schema:manufacturer/schema:name` (https://schema.org/manufacturer)
 - `schema:mpn` (https://schema.org/mpn)
@@ -55,11 +56,13 @@ You may also want to set the field `version/model` (https://www.w3.org/TR/wot-th
 and communicate the extent of changes between versions of TMs with the same TM name.
 
 You can check if a TM can be imported by validating it beforehand:
+
 ```bash
 tmc validate my-tm.json 
 ```
 
 Import a TM or a folder with multiple TMs into the catalog:
+
 ```bash
 tmc import my-tm.json
 tmc import ./my-tms
@@ -69,8 +72,9 @@ tmc import ./my-tms
 
 When importing a folder, the `import` command can be used with the `--with-attachments` flag to import attachments along with the TMs. An attachment is linked to a TM by placing it into a subfolder whose name exactly matches the TM's filename (including its extension). 
 For example:
-    *   If your TM file is: `../example-catalog/.tmc/omniuser/omnicorp/senseall/v1.0.0-20241008124326-15af48381cf7.tm.json`
-    *   Then an attachment (e.g., `readme.md`) for this TM would be placed at: `../example-catalog/.tmc/omniuser/omnicorp/senseall/.attachments/v1.0.0-20241008124326-15af48381cf7.tm.json/readme.md`
+
+-  If your TM file is: `../example-catalog/.tmc/omniuser/omnicorp/senseall/v1.0.0-20241008124326-15af48381cf7.tm.json`
+-  Then an attachment (e.g., `readme.md`) for this TM would be placed at: `../example-catalog/.tmc/omniuser/omnicorp/senseall/.attachments/v1.0.0-20241008124326-15af48381cf7.tm.json/readme.md`
 
 ### Input Sanitization
 
@@ -97,7 +101,7 @@ tmc list --filter.mpn poc1000
 tmc fetch siemens/siemens/poc1000/v1.0.1-20240407094932-5a3840060b05.tm.json
 ```
 
-You can fetch a specific version of a TM by fetching by ID as above, or you can fetch the latest TM that matches a given name and, optionally, a part of semantic version.   
+You can fetch a specific version of a TM by fetching by ID as above, or you can fetch the latest TM that matches a given name and, optionally, a part of semantic version.  
 Examples:
 ```bash
 tmc fetch siemens/siemens/poc1000
@@ -151,46 +155,79 @@ or volume into the container as follows:
 docker run --rm --name tm-catalog -p 8080:8080 -v$(pwd):/thingmodels ghcr.io/wot-oss/tmc:latest
 ```
 
+### Catalog as S3 bucket
+
+In order to quickly getting started with S3, we recommend to use [localstack][6] (requires docker) and [awslocal][7] for local developments. Once installed:
+
+1. start localstack:
+```bash
+localstack start
+```
+2. create a bucket in s3 by running:
+```bash
+awslocal s3api create-bucket --bucket tmc-bucket --region eu-central-1 --create-bucket-configuration LocationConstraint=eu-central-1
+```
+3. copy the tmc into the newly created bucket:
+```bash
+awslocal s3 cp <local_repo_folder> s3://tmc-bucket --recursive --endpoint-url=http://localhost:4566
+```
+4. create the S3 repo configuration in config.json:
+```json
+{
+  "s3repo": {
+    "description": "",
+    "aws_bucket": "tmc-bucket",
+    "aws_region": "eu-central-1",
+    "aws_endpoint": "http://localhost:4566",
+    "aws_access_key_id":"some access key",
+    "aws_secret_access_key":"some secret",
+    "type": "s3"
+  }
+}
+```
+5. run tmc. the s3 repo should be accessible just as any other repo, you've been using before.
+
 ## JWT Validation for API Requests
 
 The `serve` command can be configured with the `--jwtValidation` flag to enforce security by requiring valid JWTs for incoming API requests. 
 
 ### Configuration
 
-1. **`--jwtValidation`**  
-   - Enables JWT-based access control for the API server.
+1. **`--jwtValidation`** 
+  - Enables JWT-based access control for the API server.
 
-2. **`--jwksURL=<url>`**  
-   - Specifies the JWKS URL to retrieve public keys for verifying JWT signatures.
-   - Example: `http://127.0.0.1:8100/.well-known/jwks.json`.
+2. **`--jwksURL=<url>`** 
+  - Specifies the JWKS URL to retrieve public keys for verifying JWT signatures.
+  - Example: `http://127.0.0.1:8100/.well-known/jwks.json`.
 
-3. **`--jwtServiceID=<serviceID>`**  
-   - String that represents the **audience** (`aud` claim) required in valid JWTs.
-   - Example: `"myServiceID"`.
+3. **`--jwtServiceID=<serviceID>`** 
+  - String that represents the **audience** (`aud` claim) required in valid JWTs.
+  - Example: `"myServiceID"`.
 
 ### Behavior with JWT Validation
 
 When the `--jwtValidation` flag is provided:
 
-#### 1. Bearer Token Requirement  
-- All incoming requests **must include a valid Bearer token** in the `Authorization` header.  
+#### 1. Bearer Token Requirement 
+- All incoming requests **must include a valid Bearer token** in the `Authorization` header. 
 
-#### 2. JWKS Validation  
-- Incoming tokens are validated against the JSON Web Key Sets (JWKS) at the URL specified in `--jwksURL`.  
+#### 2. JWKS Validation 
+- Incoming tokens are validated against the JSON Web Key Sets (JWKS) at the URL specified in `--jwksURL`. 
 - The server checks the following:
 - JWT signature is valid and matches the public key(s) defined in the JWKS.
 - JWT is issued by the **issuer URL** corresponding to `--jwksURL`.
 - JWT audience (`aud` claim) matches the value specified in `--jwtServiceID`.
 
-#### 3. Scope-Based Access Control  
-- The JWT must include a `scope` claim, which is an array of strings defining user permissions.  
-- Each scope string determines the user's access rights to specific endpoints, as defined in the **Scope Table** (explained below).  
+#### 3. Scope-Based Access Control 
+- The JWT must include a `scope` claim, which is an array of strings defining user permissions. 
+- Each scope string determines the user's access rights to specific endpoints, as defined in the **Scope Table** (explained below). 
 - Example Scope Claim:
 ```json
 "scope": ["tmc.ns.myNamespace.read", "tmc.ns.myNamespace.write"]
 ```
 
 #### 4. Token Validation Details
+
 The token is confirmed to be valid if:
 
 Its signature is verified using a public key from the JWKS.
@@ -200,9 +237,11 @@ The aud claim equals the value of --jwtServiceID.
 The scope claim contains sufficient permissions for the requested endpoint.
 
 #### 5. Error Handling
+
 Requests without a valid Bearer token will result in an HTTP 401 Unauthorized error.
 
 #### 6. Scope Table
+
 <div style="overflow-x: auto; width: 100%;">
 
 <table style="border-collapse: collapse; width: 100%;">
@@ -381,3 +420,5 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 [3]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
 [4]: https://github.com/wot-oss/tmc/pkgs/container/tmc
 [5]: ./commands#repo-add
+[6]: https://docs.localstack.cloud/aws/getting-started
+[7]: https://github.com/localstack/awscli-local

@@ -5,7 +5,8 @@
 ### Added
 
 - REST API: jwt authentication based on JWT scopes array
-- REST API:GET `/thing-models` returns the whole repo as zip
+- REST API: POST `/repos/export` creates a zip for the specified repository
+- REST API: GET `/repos/export` to download archived repo
 
 ### Fixed
 
