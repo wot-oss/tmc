@@ -257,7 +257,6 @@ func (dhs *defaultHandlerService) ExportCatalog(ctx context.Context, repo string
 		return nil, fmt.Errorf("failed to finalize zip archive: %w", err)
 	}
 	zipTargetClosed = true
-	fmt.Println("Export catalog zip archive created successfully.")
 
 	return zipTarget.Bytes(), nil
 }

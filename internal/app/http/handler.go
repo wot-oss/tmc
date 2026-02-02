@@ -19,10 +19,11 @@ import (
 const ContextKeyBearerAuthNamespaces = "BearerAuth.Namespaces"
 
 type TmcHandler struct {
-	Service    HandlerService
-	Options    TmcHandlerOptions
-	JobManager *JobManager
-	zipData    []byte
+	Service     HandlerService
+	Options     TmcHandlerOptions
+	JobManager  *JobManager
+	zipData     []byte
+	zipDataName string
 }
 
 type TmcHandlerOptions struct {
@@ -45,10 +46,11 @@ type JobManager struct {
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
 	return &TmcHandler{
-		Service:    handlerService,
-		Options:    options,
-		JobManager: NewJobManager(),
-		zipData:    make([]byte, 0),
+		Service:     handlerService,
+		Options:     options,
+		JobManager:  NewJobManager(),
+		zipData:     make([]byte, 0),
+		zipDataName: "",
 	}
 }
 
@@ -238,7 +240,7 @@ func (h *TmcHandler) GetExportedCatalog(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"thing-models-catalog.zip\"")
+	w.Header().Set("Content-Disposition", "attachment; filename="+h.zipDataName)
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
 
 	_, err := w.Write(data)
@@ -257,6 +259,7 @@ func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 	h.zipData = nil
+	h.zipDataName = fmt.Sprintf("%s.zip", *params.Repo)
 	go h.performExportCatalogAsync(convertRepoName(params.Repo))
 	HandleJsonResponse(w, r, http.StatusAccepted, map[string]string{
 		"status":  "packing",
@@ -278,7 +281,6 @@ func (h *TmcHandler) performExportCatalogAsync(repoName string) {
 	}
 	h.zipData = data
 	h.JobManager.UpdateJobStatus("completed", "Export complete. Ready for download.")
-	fmt.Printf("Job completed successfully.\n")
 }
 
 // DeleteThingModelById Delete a Thing Model by ID
