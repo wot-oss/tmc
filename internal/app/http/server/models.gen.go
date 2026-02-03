@@ -33,8 +33,9 @@ type AuthorsResponse struct {
 	Data []string `json:"data"`
 }
 
-// ErrorResponse defines model for ErrorResponse.
+// ErrorResponse RFC 7807 compliant error response with additional 'code' field in case of conflicting TM.
 type ErrorResponse struct {
+	// Code Used only when the received TM already exists, thus a conflict. This will contain the id of the conflicting TM.
 	Code     *string `json:"code,omitempty"`
 	Detail   *string `json:"detail,omitempty"`
 	Instance *string `json:"instance,omitempty"`
@@ -133,6 +134,15 @@ type InventoryEntryVersionsResponse struct {
 type InventoryResponse struct {
 	Data []InventoryEntry `json:"data"`
 	Meta *Meta            `json:"meta,omitempty"`
+
+	// Page current page number
+	Page *int `json:"page,omitempty"`
+
+	// PageSize size of a page
+	PageSize *int `json:"pageSize,omitempty"`
+
+	// TotalCount total number of inventory entries available
+	TotalCount *int `json:"totalCount,omitempty"`
 }
 
 // ManufacturersResponse defines model for ManufacturersResponse.
@@ -218,7 +228,7 @@ type TMID = string
 // TMName defines model for TMName.
 type TMName = string
 
-// UnauthorizedError defines model for UnauthorizedError.
+// UnauthorizedError RFC 7807 compliant error response with additional 'code' field in case of conflicting TM.
 type UnauthorizedError = ErrorResponse
 
 // GetCompletionsParams defines parameters for GetCompletions.
@@ -278,6 +288,12 @@ type GetInventoryParams struct {
 	// FilterName Filters the inventory by inventory entry name having a prefix match of full path parts.
 	// The filter works additive to other filters.
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
+
+	// Page Page number for pagination (starting from 1)
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of items per page for pagination
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 
 	// Search Searches the inventory for TMs that match the search query. Accepts queries in bleve search engine syntax.
 	// Is mutually exclusive with filters.

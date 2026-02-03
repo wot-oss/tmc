@@ -38,6 +38,16 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
 	filters := convertParams(params)
+	page := 1
+	if params.Page != nil && *params.Page > 0 {
+		page = *params.Page
+	}
+	pageSize := 100
+	if params.PageSize != nil && *params.PageSize > 0 {
+		pageSize = *params.PageSize
+	}
+	offset := (page - 1) * pageSize
+	limit := pageSize
 	if h.Options.JWTValidation {
 		namespaces := extractNamespacesFromContext(r.Context())
 		if namespaces != nil {
@@ -59,7 +69,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 					resp := toInventoryResponse(h.createContext(r), model.SearchResult{
 						LastUpdated: time.Now(),
 						Entries:     []model.FoundEntry{},
-					})
+					}, page, pageSize)
 					HandleJsonResponse(w, r, http.StatusOK, resp)
 					return
 				}
@@ -81,10 +91,10 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	var inv *model.SearchResult
 	var err error
 	if search != "" {
-		inv, err = h.Service.SearchInventory(r.Context(), repo, search)
+		inv, err = h.Service.SearchInventory(r.Context(), repo, search, offset, limit)
 	} else {
 		utils.GetLogger(r.Context(), "handler").Info(fmt.Sprintf("filters %v", filters))
-		inv, err = h.Service.ListInventory(r.Context(), repo, filters)
+		inv, err = h.Service.ListInventory(r.Context(), repo, filters, offset, limit)
 	}
 
 	if err != nil {
@@ -93,7 +103,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	}
 
 	ctx := h.createContext(r)
-	resp := toInventoryResponse(ctx, *inv)
+	resp := toInventoryResponse(ctx, *inv, page, pageSize)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
