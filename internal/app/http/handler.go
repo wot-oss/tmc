@@ -37,17 +37,23 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 // GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
+	var page, pageSize, offset, limit int
 	filters := convertParams(params)
-	page := 1
-	if params.Page != nil && *params.Page > 0 {
-		page = *params.Page
+	if params.Page != nil || params.PageSize != nil {
+		page = 1
+		if params.Page != nil && *params.Page > 0 {
+			page = *params.Page
+		}
+		pageSize = 100
+		if params.PageSize != nil && *params.PageSize > 0 {
+			pageSize = *params.PageSize
+		}
+		offset = (page - 1) * pageSize
+		limit = pageSize
+	} else {
+		offset = -1
+		limit = -1
 	}
-	pageSize := 100
-	if params.PageSize != nil && *params.PageSize > 0 {
-		pageSize = *params.PageSize
-	}
-	offset := (page - 1) * pageSize
-	limit := pageSize
 	if h.Options.JWTValidation {
 		namespaces := extractNamespacesFromContext(r.Context())
 		if namespaces != nil {

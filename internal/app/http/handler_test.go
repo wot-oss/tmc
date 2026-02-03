@@ -200,7 +200,7 @@ func Test_Inventory(t *testing.T) {
 
 	t.Run("list all", func(t *testing.T) {
 		var search *model.Filters
-		hs.On("ListInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
+		hs.On("ListInventory", mock.Anything, "", search, -1, -1).Return(&listResult1, nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 200
@@ -221,7 +221,7 @@ func Test_Inventory(t *testing.T) {
 	})
 	t.Run("list all from single repo", func(t *testing.T) {
 		var search *model.Filters
-		hs.On("ListInventory", mock.Anything, "r1", search).Return(&listResult1, nil).Once()
+		hs.On("ListInventory", mock.Anything, "r1", search, -1, -1).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route+"?repo=r1").RunOnHandler(httpHandler)
@@ -242,7 +242,7 @@ func Test_Inventory(t *testing.T) {
 	})
 	t.Run("list all from invalid repo", func(t *testing.T) {
 		var search *model.Filters
-		hs.On("ListInventory", mock.Anything, "invalid", search).Return(nil, repos.ErrRepoNotFound).Once()
+		hs.On("ListInventory", mock.Anything, "invalid", search, -1, -1).Return(nil, repos.ErrRepoNotFound).Once()
 
 		// when: calling the route
 		rt := route + "?repo=invalid"
@@ -294,7 +294,7 @@ func Test_Inventory(t *testing.T) {
 		// and given: filters, expected to be converted from request query parameters
 		expectedFilters := model.ToFilters(&fAuthors, &fMan, &fMpn, &fProtos, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
-		hs.On("ListInventory", mock.Anything, "", expectedFilters).Return(&listResult1, nil).Once()
+		hs.On("ListInventory", mock.Anything, "", expectedFilters, -1, -1).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -307,7 +307,7 @@ func Test_Inventory(t *testing.T) {
 
 		filterRoute := fmt.Sprintf("%s?search=%s",
 			route, search)
-		hs.On("SearchInventory", mock.Anything, "", search).Return(&listResult1, nil).Once()
+		hs.On("SearchInventory", mock.Anything, "", search, -1, -1).Return(&listResult1, nil).Once()
 
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, filterRoute).RunOnHandler(httpHandler)
@@ -317,7 +317,7 @@ func Test_Inventory(t *testing.T) {
 
 	t.Run("with unknown error", func(t *testing.T) {
 		var sp *model.Filters
-		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, unknownErr).Once()
+		hs.On("ListInventory", mock.Anything, "", sp, -1, -1).Return(nil, unknownErr).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 500 and json error as body
@@ -326,7 +326,7 @@ func Test_Inventory(t *testing.T) {
 
 	t.Run("with repository access error", func(t *testing.T) {
 		var sp *model.Filters
-		hs.On("ListInventory", mock.Anything, "", sp).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
+		hs.On("ListInventory", mock.Anything, "", sp, -1, -1).Return(nil, repos.NewRepoAccessError(model.NewRepoSpec("rem"), errors.New("unexpected"))).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodGet, route).RunOnHandler(httpHandler)
 		// then: it returns status 502 and json error as body
