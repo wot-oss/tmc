@@ -134,15 +134,6 @@ type InventoryEntryVersionsResponse struct {
 type InventoryResponse struct {
 	Data []InventoryEntry `json:"data"`
 	Meta *Meta            `json:"meta,omitempty"`
-
-	// Page current page number
-	Page *int `json:"page,omitempty"`
-
-	// PageSize size of a page
-	PageSize *int `json:"pageSize,omitempty"`
-
-	// TotalCount total number of inventory entries available
-	TotalCount *int `json:"totalCount,omitempty"`
 }
 
 // ManufacturersResponse defines model for ManufacturersResponse.
@@ -159,7 +150,14 @@ type Meta struct {
 
 // MetaPage defines model for MetaPage.
 type MetaPage struct {
-	Elements int `json:"elements"`
+	// PageNumber current page number
+	PageNumber *int `json:"pageNumber,omitempty"`
+
+	// PageSize size of a page
+	PageSize *int `json:"pageSize,omitempty"`
+
+	// TotalElements total number of elements in the catalog
+	TotalElements *int `json:"totalElements,omitempty"`
 }
 
 // ModelVersion defines model for ModelVersion.

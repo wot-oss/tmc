@@ -332,6 +332,235 @@ func Test_Inventory(t *testing.T) {
 		// then: it returns status 502 and json error as body
 		assertResponse502(t, rec, route)
 	})
+
+	t.Run("pagination - first page", func(t *testing.T) {
+		var filters *model.Filters
+		page := 1
+		pageSize := 100
+		offset := (page - 1) * pageSize
+		expectedResult := createPaginatedSearchResult(listResult250Items, offset, pageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, pageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, page, pageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, pageSize)
+		assert.NotNil(t, response.Meta.Page.TotalElements)
+		assert.Equal(t, listResult250Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		assert.Equal(t, page, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		assert.Equal(t, pageSize, *response.Meta.Page.PageSize)
+		assert.Equal(t, expectedResult.Entries[0].Name, response.Data[0].TmName)
+	})
+
+	t.Run("pagination - middle page", func(t *testing.T) {
+		var filters *model.Filters
+		page := 2
+		pageSize := 50
+		offset := (page - 1) * pageSize
+		expectedResult := createPaginatedSearchResult(listResult250Items, offset, pageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, pageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, page, pageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, pageSize)
+		assert.Equal(t, listResult250Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		assert.Equal(t, page, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		assert.Equal(t, pageSize, *response.Meta.Page.PageSize)
+		assert.Equal(t, expectedResult.Entries[0].Name, response.Data[0].TmName)
+	})
+
+	t.Run("pagination - last page with fewer items", func(t *testing.T) {
+		var filters *model.Filters
+		page := 2
+		pageSize := 100
+		offset := (page - 1) * pageSize // 100
+		expectedResult := createPaginatedSearchResult(listResult150Items, offset, pageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, pageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, page, pageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, 50)
+		assert.Equal(t, listResult150Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		assert.Equal(t, page, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		assert.Equal(t, pageSize, *response.Meta.Page.PageSize)
+		assert.Equal(t, expectedResult.Entries[0].Name, response.Data[0].TmName)
+	})
+
+	t.Run("pagination - page out of range (too high)", func(t *testing.T) {
+		var filters *model.Filters
+		page := 3
+		pageSize := 100
+		offset := (page - 1) * pageSize
+		expectedResult := createPaginatedSearchResult(listResult150Items, offset, pageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, pageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, page, pageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		//expec empty data, if the page number is too high
+		assert.Len(t, response.Data, 0)
+		assert.Equal(t, listResult150Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		assert.Equal(t, page, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		assert.Equal(t, pageSize, *response.Meta.Page.PageSize)
+	})
+
+	t.Run("pagination - invalid page (negative) defaults to 1", func(t *testing.T) {
+		var filters *model.Filters
+		invalidPage := -5
+		expectedPage := 1
+		pageSize := 100
+		offset := (expectedPage - 1) * pageSize // 0
+		expectedResult := createPaginatedSearchResult(listResult250Items, offset, pageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, pageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, invalidPage, pageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, pageSize)
+		assert.Equal(t, listResult250Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		//invalid page number should result in page number defaulting to 1
+		assert.Equal(t, expectedPage, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		assert.Equal(t, pageSize, *response.Meta.Page.PageSize)
+	})
+
+	t.Run("pagination - invalid page (zero) defaults to 1", func(t *testing.T) {
+		var filters *model.Filters
+		invalidPage := 0
+		expectedPage := 1
+		pageSize := 100
+		offset := (expectedPage - 1) * pageSize // 0
+		expectedResult := createPaginatedSearchResult(listResult250Items, offset, pageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, pageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, invalidPage, pageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, pageSize)
+		assert.Equal(t, listResult250Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		//invalid page number should result in page number defaulting to 1
+		assert.Equal(t, expectedPage, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		assert.Equal(t, pageSize, *response.Meta.Page.PageSize)
+	})
+
+	t.Run("pagination - invalid pageSize (negative) defaults to 100", func(t *testing.T) {
+		var filters *model.Filters
+		page := 1
+		invalidPageSize := -10
+		expectedPageSize := 100
+		offset := (page - 1) * expectedPageSize
+		expectedResult := createPaginatedSearchResult(listResult250Items, offset, expectedPageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, expectedPageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, page, invalidPageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, expectedPageSize)
+		assert.Equal(t, listResult250Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		assert.Equal(t, page, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		//invalid page size should result in page size defaulting to 100
+		assert.Equal(t, expectedPageSize, *response.Meta.Page.PageSize)
+	})
+
+	t.Run("pagination - invalid pageSize (zero) defaults to 100", func(t *testing.T) {
+		var filters *model.Filters
+		page := 1
+		invalidPageSize := 0
+		expectedPageSize := 100
+		offset := (page - 1) * expectedPageSize
+		expectedResult := createPaginatedSearchResult(listResult250Items, offset, expectedPageSize)
+
+		hs.On("ListInventory", mock.Anything, "", filters, offset, expectedPageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?page=%d&pageSize=%d", route, page, invalidPageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, expectedPageSize)
+		assert.Equal(t, listResult250Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		assert.Equal(t, page, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		//invalid page size should result in page size defaulting to 100
+		assert.Equal(t, expectedPageSize, *response.Meta.Page.PageSize)
+	})
+
+	t.Run("pagination - with search parameter", func(t *testing.T) {
+		searchStr := "foo"
+		page := 1
+		pageSize := 10
+		offset := (page - 1) * pageSize
+		expectedResult := createPaginatedSearchResult(listResult250Items, offset, pageSize)
+
+		hs.On("SearchInventory", mock.Anything, "", searchStr, offset, pageSize).Return(expectedResult, nil).Once()
+
+		reqURL := fmt.Sprintf("%s?search=%s&page=%d&pageSize=%d", route, searchStr, page, pageSize)
+		rec := testutils.NewRequest(http.MethodGet, reqURL).RunOnHandler(httpHandler)
+		assertResponse200(t, rec)
+
+		var response server.InventoryResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &response)
+
+		assert.Len(t, response.Data, pageSize)
+		assert.Equal(t, listResult250Items.TotalCount, *response.Meta.Page.TotalElements)
+		assert.NotNil(t, response.Meta.Page.PageNumber)
+		assert.Equal(t, page, *response.Meta.Page.PageNumber)
+		assert.NotNil(t, response.Meta.Page.PageSize)
+		assert.Equal(t, pageSize, *response.Meta.Page.PageSize)
+	})
 }
 
 func Test_InventoryByName(t *testing.T) {
@@ -1570,4 +1799,64 @@ var (
 			},
 		},
 	}
+
+	listResult250Items = func() model.SearchResult {
+		entries := make([]model.FoundEntry, 250)
+		for i := 0; i < 250; i++ {
+			entries[i] = model.FoundEntry{Name: fmt.Sprintf("b-corp/eagle/PM%d", i),
+				Author:       model.SchemaAuthor{Name: "b-corp"},
+				Manufacturer: model.SchemaManufacturer{Name: "eagle"},
+				Mpn:          "PM30",
+				FoundIn:      model.FoundSource{RepoName: "r2"}}
+		}
+		return model.SearchResult{
+			LastUpdated: time.Date(2023, time.January, 1, 10, 0, 0, 0, time.UTC),
+			Entries:     entries,
+			TotalCount:  250,
+		}
+	}()
+
+	listResult150Items = func() model.SearchResult {
+		entries := make([]model.FoundEntry, 150)
+		for i := 0; i < 150; i++ {
+			entries[i] = model.FoundEntry{Name: fmt.Sprintf("b-corp/eagle/PM%d", i),
+				Author:       model.SchemaAuthor{Name: "b-corp"},
+				Manufacturer: model.SchemaManufacturer{Name: "eagle"},
+				Mpn:          "PM30",
+				FoundIn:      model.FoundSource{RepoName: "r2"}}
+		}
+		return model.SearchResult{
+			LastUpdated: time.Date(2023, time.January, 1, 10, 0, 0, 0, time.UTC),
+			Entries:     entries,
+			TotalCount:  150,
+		}
+	}()
+	listResult0Items = model.SearchResult{
+		LastUpdated: time.Date(2023, time.January, 1, 10, 0, 0, 0, time.UTC),
+		Entries:     []model.FoundEntry{},
+		TotalCount:  0,
+	}
 )
+
+func createPaginatedSearchResult(fullResult model.SearchResult, offset, limit int) *model.SearchResult {
+	start := offset
+	end := offset + limit
+	if start < 0 {
+		start = 0
+	}
+	if limit == -1 || end > len(fullResult.Entries) {
+		end = len(fullResult.Entries)
+	}
+	if start > len(fullResult.Entries) {
+		start = len(fullResult.Entries)
+	}
+	if start > end {
+		start = end
+	}
+
+	return &model.SearchResult{
+		LastUpdated: fullResult.LastUpdated,
+		Entries:     fullResult.Entries[start:end],
+		TotalCount:  fullResult.TotalCount,
+	}
+}

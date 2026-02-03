@@ -274,14 +274,11 @@ func convertParams(params any) *model.Filters {
 func toInventoryResponse(ctx context.Context, res model.SearchResult, page, pageSize int) server.InventoryResponse {
 	mapper := NewMapper(ctx)
 
-	meta := mapper.GetInventoryMeta(res)
+	meta := mapper.GetInventoryMeta(res, page, pageSize)
 	inv := mapper.GetInventoryData(res.Entries)
 	resp := server.InventoryResponse{
-		Meta:       &meta,
-		Data:       inv,
-		TotalCount: &res.TotalCount,
-		Page:       &page,
-		PageSize:   &pageSize,
+		Meta: &meta,
+		Data: inv,
 	}
 	return resp
 }

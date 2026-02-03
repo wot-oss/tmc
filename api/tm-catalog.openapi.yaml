@@ -1197,15 +1197,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InventoryEntry'
-        page:
-          type: integer
-          description: current page number
-        pageSize:
-          type: integer
-          description: size of a page
-        totalCount:
-          type: integer
-          description: total number of inventory entries available
     InventoryEntryResponse:
       type: object
       required:
@@ -1330,8 +1321,16 @@ components:
         - elements
       type: object
       properties:
-        elements:
+        pageNumber:
           type: integer
+          description: current page number
+        pageSize:
+          type: integer
+          description: size of a page
+        totalElements:
+          type: integer
+          description: total number of elements in the catalog
+        
     ModelVersion:
       required:
         - model
