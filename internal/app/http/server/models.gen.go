@@ -287,6 +287,10 @@ type GetInventoryParams struct {
 	// The filter works additive to other filters.
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
 
+	// FilterLatest Filters the inventory to return only the latest versions of data.
+	// If this filter is present in the URL (e.g., `?filter.latest`), only the latest versions will be returned. If it's not present, all versions will be included.
+	FilterLatest *bool `form:"filter.latest,omitempty" json:"filter.latest,omitempty"`
+
 	// Page Page number for pagination (starting from 1)
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
 

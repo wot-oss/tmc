@@ -102,6 +102,9 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 		utils.GetLogger(r.Context(), "handler").Info(fmt.Sprintf("filters %v", filters))
 		inv, err = h.Service.ListInventory(r.Context(), repo, filters, offset, limit)
 	}
+	if params.FilterLatest != nil && *params.FilterLatest {
+		inv = filterLatestVersions(inv)
+	}
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -111,6 +114,31 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv, page, pageSize)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
+	for i, entry := range inv.Entries {
+		filteredEntry := model.FoundEntry{}
+		if len(entry.Versions) > 1 {
+			if len(entry.Versions) > 1 {
+				var latestVersion *model.FoundVersion
+				if len(entry.Versions) > 0 {
+					latestVersion = &entry.Versions[0]
+				}
+				for i := 1; i < len(entry.Versions); i++ {
+					currentVersion := &entry.Versions[i]
+					latestTime, err := time.Parse(time.RFC3339, latestVersion.TimeStamp)
+					currentVersionTime, err2 := time.Parse(time.RFC3339, currentVersion.TimeStamp)
+					if currentVersionTime.After(latestTime) && err == nil && err2 == nil {
+						latestVersion = currentVersion
+					}
+				}
+				filteredEntry.Versions = []model.FoundVersion{*latestVersion}
+			}
+			inv.Entries[i].Versions = filteredEntry.Versions
+		}
+	}
+	return inv
 }
 
 func extractNamespacesFromContext(ctx context.Context) []string {
