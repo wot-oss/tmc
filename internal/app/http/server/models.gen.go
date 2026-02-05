@@ -33,8 +33,9 @@ type AuthorsResponse struct {
 	Data []string `json:"data"`
 }
 
-// ErrorResponse defines model for ErrorResponse.
+// ErrorResponse RFC 7807 compliant error response with additional 'code' field in case of conflicting TM.
 type ErrorResponse struct {
+	// Code Used only when the received TM already exists, thus a conflict. This will contain the id of the conflicting TM.
 	Code     *string `json:"code,omitempty"`
 	Detail   *string `json:"detail,omitempty"`
 	Instance *string `json:"instance,omitempty"`
@@ -218,7 +219,7 @@ type TMID = string
 // TMName defines model for TMName.
 type TMName = string
 
-// UnauthorizedError defines model for UnauthorizedError.
+// UnauthorizedError RFC 7807 compliant error response with additional 'code' field in case of conflicting TM.
 type UnauthorizedError = ErrorResponse
 
 // GetCompletionsParams defines parameters for GetCompletions.
@@ -278,6 +279,10 @@ type GetInventoryParams struct {
 	// FilterName Filters the inventory by inventory entry name having a prefix match of full path parts.
 	// The filter works additive to other filters.
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
+
+	// FilterLatest Filters the inventory to return only the latest versions of data.
+	// If this filter is present in the URL (e.g., `?filter.latest`), only the latest versions will be returned. If it's not present, all versions will be included.
+	FilterLatest *bool `form:"filter.latest,omitempty" json:"filter.latest,omitempty"`
 
 	// Search Searches the inventory for TMs that match the search query. Accepts queries in bleve search engine syntax.
 	// Is mutually exclusive with filters.

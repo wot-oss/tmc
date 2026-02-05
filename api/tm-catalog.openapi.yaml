@@ -80,6 +80,14 @@ paths:
           schema:
             type: string
           example: 'siemens/siemens/poc1000'
+        - name: 'filter.latest'
+          in: query
+          description: |
+            Filters the inventory to return only the latest versions of data.
+            If this filter is present in the URL (e.g., `?filter.latest=true`), only the latest versions will be returned. If it's not present, all versions will be included.
+          schema:
+            type: boolean
+          example: true
         - name: 'search'
           in: query
           description: |
