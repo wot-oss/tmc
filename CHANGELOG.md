@@ -6,6 +6,7 @@
 
 - `docker` command to build a docker image for local deployment
 - REST API: jwt authentication based on JWT scopes array
+- generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
 
 ### Fixed
 
