@@ -500,7 +500,7 @@ func TestS3Repo_Index(t *testing.T) {
 		// given: repo has no index file and names file
 		err := os.Remove(toBucketObject(r.indexFilename()))
 		assert.NoError(t, err)
-		assert.NoError(t, r.writeNamesFile(ctx, nil))
+		assert.NoError(t, r.writeHelperTxtFile(ctx, nil, ""))
 
 		// when: full index the repo with all found ThingModels in the repo
 		err = r.Index(ctx)
@@ -539,7 +539,7 @@ func TestS3Repo_Index(t *testing.T) {
 	t.Run("single id's/index must be sorted", func(t *testing.T) {
 		err := os.Remove(toBucketObject(r.indexFilename()))
 		assert.NoError(t, err)
-		assert.NoError(t, r.writeNamesFile(ctx, nil))
+		assert.NoError(t, r.writeHelperTxtFile(ctx, nil, ""))
 
 		tmName1 := "omnicorp-tm-department/omnicorp/omnilamp"
 		tmId11 := "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-e414b33a9edf.tm.json"
