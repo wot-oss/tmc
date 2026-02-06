@@ -5,7 +5,7 @@
 ### Added
 
 - REST API: jwt authentication based on JWT scopes array
-- generating `manufacturers.txt` and `mpns.txt` for UI needs
+- generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
 
 ### Fixed
 
