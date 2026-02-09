@@ -297,6 +297,18 @@ func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, param
 		HandleErrorResponse(w, r, err)
 		return
 	}
+	if params.Repo == nil {
+		h.JobManager.ReleaseExportingLock()
+		err := NewBadRequestError(nil, "missing required query parameter: repo")
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	_, err := h.Service.ListInventory(context.Background(), *params.Repo, nil)
+	if err != nil {
+		h.JobManager.ReleaseExportingLock()
+		HandleErrorResponse(w, r, err)
+		return
+	}
 	h.zipData = nil
 	h.zipDataName = fmt.Sprintf("%s.zip", *params.Repo)
 	go h.performExportCatalogAsync(convertRepoName(params.Repo))
