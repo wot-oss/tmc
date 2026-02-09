@@ -90,19 +90,31 @@ paths:
           example: true
         - name: 'page'
           in: query
-          description: Page number for pagination (starting from 1)
+          description: |
+            Page number for pagination (starting from 1)
+
+            - If `pageSize` is provided along with `page`, both values are used for pagination.
+            - If `pageSize` is provided but `page` is *not* provided, `page` will default to `1`.
+            - If `pageSize` is *not* provided but `page` *is* provided, `pageSize` will default to `100`.
+            - If *neither* `page` nor `pageSize` are provided, no pagination will be applied, and both parameters will effectively be treated as `0` (returning all results).
           schema:
             type: integer
             minimum: 1
           example: 1
         - name: 'pageSize'
           in: query
-          description: Number of items per page for pagination
+          description: |
+            Number of InventoryEntries per page for pagination.
+
+            - If `pageSize` is provided along with `page`, both values are used for pagination.
+            - If `pageSize` is provided but `page` is *not* provided, `page` will default to `1`.
+            - If `pageSize` is *not* provided but `page` *is* provided, `pageSize` will default to `100`.
+            - If *neither* `page` nor `pageSize` are provided, no pagination will be applied, and both parameters will effectively be treated as `0` (returning all results).
           schema:
             type: integer
             minimum: 1
             maximum: 100
-          example: 20
+          example: 100
         - name: 'search'
           in: query
           description: |

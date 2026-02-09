@@ -292,9 +292,19 @@ type GetInventoryParams struct {
 	FilterLatest *bool `form:"filter.latest,omitempty" json:"filter.latest,omitempty"`
 
 	// Page Page number for pagination (starting from 1)
+	//
+	// - If `pageSize` is provided along with `page`, both values are used for pagination.
+	// - If `pageSize` is provided but `page` is *not* provided, `page` will default to `1`.
+	// - If `pageSize` is *not* provided but `page` *is* provided, `pageSize` will default to `100`.
+	// - If *neither* `page` nor `pageSize` are provided, no pagination will be applied, and both parameters will effectively be treated as `0` (returning all results).
 	Page *int `form:"page,omitempty" json:"page,omitempty"`
 
-	// PageSize Number of items per page for pagination
+	// PageSize Number of InventoryEntries per page for pagination.
+	//
+	// - If `pageSize` is provided along with `page`, both values are used for pagination.
+	// - If `pageSize` is provided but `page` is *not* provided, `page` will default to `1`.
+	// - If `pageSize` is *not* provided but `page` *is* provided, `pageSize` will default to `100`.
+	// - If *neither* `page` nor `pageSize` are provided, no pagination will be applied, and both parameters will effectively be treated as `0` (returning all results).
 	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 
 	// Search Searches the inventory for TMs that match the search query. Accepts queries in bleve search engine syntax.
