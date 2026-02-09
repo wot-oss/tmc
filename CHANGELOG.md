@@ -6,6 +6,7 @@
 
 - REST API: jwt authentication based on JWT scopes array
 - REST API: pagination for inventory
+- generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
 
 ### Fixed
 
