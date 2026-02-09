@@ -86,6 +86,9 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 		utils.GetLogger(r.Context(), "handler").Info(fmt.Sprintf("filters %v", filters))
 		inv, err = h.Service.ListInventory(r.Context(), repo, filters)
 	}
+	if params.FilterLatest != nil && *params.FilterLatest {
+		inv = filterLatestVersions(inv)
+	}
 
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -107,6 +110,31 @@ func extractNamespacesFromContext(ctx context.Context) []string {
 		return nil
 	}
 	return namespaces
+}
+
+func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
+	for i, entry := range inv.Entries {
+		filteredEntry := model.FoundEntry{}
+		if len(entry.Versions) > 1 {
+			if len(entry.Versions) > 1 {
+				var latestVersion *model.FoundVersion
+				if len(entry.Versions) > 0 {
+					latestVersion = &entry.Versions[0]
+				}
+				for i := 1; i < len(entry.Versions); i++ {
+					currentVersion := &entry.Versions[i]
+					latestTime, _ := time.Parse(time.RFC3339, latestVersion.TimeStamp)
+					currentVersionTime, _ := time.Parse(time.RFC3339, currentVersion.TimeStamp)
+					if currentVersionTime.After(latestTime) {
+						latestVersion = currentVersion
+					}
+				}
+				filteredEntry.Versions = []model.FoundVersion{*latestVersion}
+			}
+			inv.Entries[i].Versions = filteredEntry.Versions
+		}
+	}
+	return inv
 }
 
 // GetInventoryByName Get an inventory entry by inventory name
