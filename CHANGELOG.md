@@ -5,6 +5,7 @@
 ### Added
 
 - REST API: jwt authentication based on JWT scopes array
+- Added `filter.latest` parameter to REST API `/inventory` listing
 - generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
 
 ### Fixed
