@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -59,16 +60,26 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 		if namespaces != nil {
 			if filters == nil {
 				filters = &model.Filters{}
-				filters.Author = namespaces
-			} else {
+				if !slices.Contains(namespaces, "*") {
+					filters.Author = namespaces
+				} else {
+					filters = nil
+				}
+			} else if filters.Author != nil {
 				authorSet := make(map[string]struct{})
 				for _, a := range filters.Author {
 					authorSet[a] = struct{}{}
 				}
 				var intersection []string
-				for _, ns := range namespaces {
-					if _, exists := authorSet[ns]; exists {
-						intersection = append(intersection, ns)
+				if slices.Contains(namespaces, "*") {
+					for _, a := range filters.Author {
+						intersection = append(intersection, a)
+					}
+				} else {
+					for _, ns := range namespaces {
+						if _, exists := authorSet[ns]; exists {
+							intersection = append(intersection, ns)
+						}
 					}
 				}
 				if len(intersection) == 0 {
@@ -101,6 +112,9 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	} else {
 		utils.GetLogger(r.Context(), "handler").Info(fmt.Sprintf("filters %v", filters))
 		inv, err = h.Service.ListInventory(r.Context(), repo, filters, offset, limit)
+	}
+	if params.FilterLatest != nil && *params.FilterLatest {
+		inv = filterLatestVersions(inv)
 	}
 	if params.FilterLatest != nil && *params.FilterLatest {
 		inv = filterLatestVersions(inv)

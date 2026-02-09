@@ -208,7 +208,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 							panic(err)
 						}
 						fmt.Println(utils.SanitizeName(tm.Author.Name))
-						if strings.EqualFold(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope)) {
+						if strings.EqualFold(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*" {
 							fmt.Println(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope))
 							r.Body = io.NopCloser(bytes.NewReader(tmbody))
 							return true, nil
@@ -217,14 +217,14 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 						}
 					}
 				}
-				if strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") {
+				if strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") || namespaceFromScope == "*" {
 					if strings.HasSuffix(scope, ".read") && r.Method == "GET" {
 						return true, nil
 					} else if strings.HasSuffix(scope, ".write") && (r.Method == "POST" || r.Method == "PUT") {
 						return true, nil
 					} else if strings.HasSuffix(scope, "attachments.delete") && r.Method == "DELETE" && (pathParts[2] == ".attachments" || pathParts[3] == ".attachments") {
 						return true, nil
-					} else if strings.HasSuffix(scope, "thingmodels.delete") && r.Method == "DELETE" && pathParts[0] == "thing-models" && len(pathParts) == 2 {
+					} else if strings.HasSuffix(scope, "thingmodels.delete") && r.Method == "DELETE" && pathParts[0] == "thing-models" {
 						return true, nil
 					}
 				}
