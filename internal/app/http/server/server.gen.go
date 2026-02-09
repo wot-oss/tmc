@@ -339,6 +339,14 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// ------------- Optional query parameter "filter.latest" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.latest", r.URL.Query(), &params.FilterLatest)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.latest", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
