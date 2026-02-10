@@ -322,7 +322,7 @@ func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, param
 		HandleErrorResponse(w, r, err)
 		return
 	}
-	_, err := h.Service.ListInventory(context.Background(), *params.Repo, nil)
+	_, err := h.Service.ListInventory(context.Background(), *params.Repo, nil, -1, -1)
 	if err != nil {
 		h.JobManager.ReleaseExportingLock()
 		HandleErrorResponse(w, r, err)
