@@ -23,10 +23,12 @@ func NewMapper(ctx context.Context) *Mapper {
 	}
 }
 
-func (m *Mapper) GetInventoryMeta(res model.SearchResult) server.Meta {
+func (m *Mapper) GetInventoryMeta(res model.SearchResult, page, pageSize int) server.Meta {
 	return server.Meta{
 		Page: &server.MetaPage{
-			Elements: len(res.Entries),
+			PageNumber:    &page,
+			PageSize:      &pageSize,
+			TotalElements: &res.TotalCount,
 		},
 		LastUpdated: res.LastUpdated.Format(time.RFC3339),
 	}

@@ -439,9 +439,9 @@ func (_m *HandlerService) ListAuthors(ctx context.Context, filters *model.Filter
 	return r0, r1
 }
 
-// ListInventory provides a mock function with given fields: ctx, repo, filters
-func (_m *HandlerService) ListInventory(ctx context.Context, repo string, filters *model.Filters) (*model.SearchResult, error) {
-	ret := _m.Called(ctx, repo, filters)
+// ListInventory provides a mock function with given fields: ctx, repo, filters, offset, limit
+func (_m *HandlerService) ListInventory(ctx context.Context, repo string, filters *model.Filters, offset int, limit int) (*model.SearchResult, error) {
+	ret := _m.Called(ctx, repo, filters, offset, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListInventory")
@@ -449,19 +449,19 @@ func (_m *HandlerService) ListInventory(ctx context.Context, repo string, filter
 
 	var r0 *model.SearchResult
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters) (*model.SearchResult, error)); ok {
-		return rf(ctx, repo, filters)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters, int, int) (*model.SearchResult, error)); ok {
+		return rf(ctx, repo, filters, offset, limit)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters) *model.SearchResult); ok {
-		r0 = rf(ctx, repo, filters)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters, int, int) *model.SearchResult); ok {
+		r0 = rf(ctx, repo, filters, offset, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.SearchResult)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, *model.Filters) error); ok {
-		r1 = rf(ctx, repo, filters)
+	if rf, ok := ret.Get(1).(func(context.Context, string, *model.Filters, int, int) error); ok {
+		r1 = rf(ctx, repo, filters, offset, limit)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -559,9 +559,9 @@ func (_m *HandlerService) ListRepos(ctx context.Context) ([]model.RepoDescriptio
 	return r0, r1
 }
 
-// SearchInventory provides a mock function with given fields: ctx, repo, query
-func (_m *HandlerService) SearchInventory(ctx context.Context, repo string, query string) (*model.SearchResult, error) {
-	ret := _m.Called(ctx, repo, query)
+// SearchInventory provides a mock function with given fields: ctx, repo, query, offset, limit
+func (_m *HandlerService) SearchInventory(ctx context.Context, repo string, query string, offset int, limit int) (*model.SearchResult, error) {
+	ret := _m.Called(ctx, repo, query, offset, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SearchInventory")
@@ -569,19 +569,19 @@ func (_m *HandlerService) SearchInventory(ctx context.Context, repo string, quer
 
 	var r0 *model.SearchResult
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*model.SearchResult, error)); ok {
-		return rf(ctx, repo, query)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int, int) (*model.SearchResult, error)); ok {
+		return rf(ctx, repo, query, offset, limit)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *model.SearchResult); ok {
-		r0 = rf(ctx, repo, query)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, int, int) *model.SearchResult); ok {
+		r0 = rf(ctx, repo, query, offset, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*model.SearchResult)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, repo, query)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, int, int) error); ok {
+		r1 = rf(ctx, repo, query, offset, limit)
 	} else {
 		r1 = ret.Error(1)
 	}

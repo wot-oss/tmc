@@ -69,7 +69,23 @@ func NewJobManager() *JobManager {
 // GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
+	var page, pageSize, offset, limit int
 	filters := convertParams(params)
+	if params.Page != nil || params.PageSize != nil {
+		page = 1
+		if params.Page != nil && *params.Page > 0 {
+			page = *params.Page
+		}
+		pageSize = 100
+		if params.PageSize != nil && *params.PageSize > 0 {
+			pageSize = *params.PageSize
+		}
+		offset = (page - 1) * pageSize
+		limit = pageSize
+	} else {
+		offset = -1
+		limit = -1
+	}
 	if h.Options.JWTValidation {
 		namespaces := extractNamespacesFromContext(r.Context())
 		if namespaces != nil {
@@ -101,7 +117,7 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 					resp := toInventoryResponse(h.createContext(r), model.SearchResult{
 						LastUpdated: time.Now(),
 						Entries:     []model.FoundEntry{},
-					})
+					}, page, pageSize)
 					HandleJsonResponse(w, r, http.StatusOK, resp)
 					return
 				}
@@ -123,10 +139,13 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	var inv *model.SearchResult
 	var err error
 	if search != "" {
-		inv, err = h.Service.SearchInventory(r.Context(), repo, search)
+		inv, err = h.Service.SearchInventory(r.Context(), repo, search, offset, limit)
 	} else {
 		utils.GetLogger(r.Context(), "handler").Info(fmt.Sprintf("filters %v", filters))
-		inv, err = h.Service.ListInventory(r.Context(), repo, filters)
+		inv, err = h.Service.ListInventory(r.Context(), repo, filters, offset, limit)
+	}
+	if params.FilterLatest != nil && *params.FilterLatest {
+		inv = filterLatestVersions(inv)
 	}
 	if params.FilterLatest != nil && *params.FilterLatest {
 		inv = filterLatestVersions(inv)
@@ -138,20 +157,8 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	}
 
 	ctx := h.createContext(r)
-	resp := toInventoryResponse(ctx, *inv)
+	resp := toInventoryResponse(ctx, *inv, page, pageSize)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
-}
-
-func extractNamespacesFromContext(ctx context.Context) []string {
-	val := ctx.Value(ContextKeyBearerAuthNamespaces)
-	if val == nil {
-		return nil
-	}
-	namespaces, ok := val.([]string)
-	if !ok {
-		return nil
-	}
-	return namespaces
 }
 
 func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
@@ -165,9 +172,9 @@ func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
 				}
 				for i := 1; i < len(entry.Versions); i++ {
 					currentVersion := &entry.Versions[i]
-					latestTime, _ := time.Parse(time.RFC3339, latestVersion.TimeStamp)
-					currentVersionTime, _ := time.Parse(time.RFC3339, currentVersion.TimeStamp)
-					if currentVersionTime.After(latestTime) {
+					latestTime, err := time.Parse(time.RFC3339, latestVersion.TimeStamp)
+					currentVersionTime, err2 := time.Parse(time.RFC3339, currentVersion.TimeStamp)
+					if currentVersionTime.After(latestTime) && err == nil && err2 == nil {
 						latestVersion = currentVersion
 					}
 				}
@@ -177,6 +184,18 @@ func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
 		}
 	}
 	return inv
+}
+
+func extractNamespacesFromContext(ctx context.Context) []string {
+	val := ctx.Value(ContextKeyBearerAuthNamespaces)
+	if val == nil {
+		return nil
+	}
+	namespaces, ok := val.([]string)
+	if !ok {
+		return nil
+	}
+	return namespaces
 }
 
 // GetInventoryByName Get an inventory entry by inventory name
@@ -303,7 +322,7 @@ func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, param
 		HandleErrorResponse(w, r, err)
 		return
 	}
-	_, err := h.Service.ListInventory(context.Background(), *params.Repo, nil)
+	_, err := h.Service.ListInventory(context.Background(), *params.Repo, nil, -1, -1)
 	if err != nil {
 		h.JobManager.ReleaseExportingLock()
 		HandleErrorResponse(w, r, err)
