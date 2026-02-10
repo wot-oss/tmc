@@ -145,6 +145,9 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" || pathParts[0] == "mpns" || pathParts[0] == ".completions" {
 		return true, nil
 	}
+	if len(scopes) == 0 && r.Method == "GET" { //if scopes are empty, allow read access to all endpoints.
+		return true, nil
+	}
 
 	if len(pathParts) > 1 {
 		if pathParts[1] == ".latest" || pathParts[1] == ".tmName" {

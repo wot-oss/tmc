@@ -241,9 +241,7 @@ The scope claim contains sufficient permissions for the requested endpoint.
 Requests without a valid Bearer token will result in an HTTP 401 Unauthorized error.
 
 #### 6. Scope Table
-
 <div style="overflow-x: auto; width: 100%;">
-
 <table style="border-collapse: collapse; width: 100%;">
   <thead>
     <tr>
@@ -310,7 +308,6 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
       <td>no</td>
       <td>no</td>
       <td>if tmID == namespace</td>
-      <td>no</td>
       <td>no</td>
       <td>no</td>
       <td>no</td>
@@ -410,9 +407,26 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
       <td>yes</td>
       <td>yes</td>
     </tr>
+    <tr>
+      <td><b>[] (scopes array is empty)</b></td>
+      <td>yes</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>no</td>
+      <td>no</td>
+      <td>yes</td>
+      <td>yes</td>
+      <td>yes</td>
+    </tr>
   </tbody>
 </table>
-
 </div>
 
 '*' can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
