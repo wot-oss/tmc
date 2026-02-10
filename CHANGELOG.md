@@ -5,6 +5,8 @@
 ### Added
 
 - REST API: jwt authentication based on JWT scopes array
+- REST API: POST `/repos/export` creates a zip for the specified repository
+- REST API: GET `/repos/export` to download archived repo
 - Added `filter.latest` parameter to REST API `/inventory` listing
 - generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
 

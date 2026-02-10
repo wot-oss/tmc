@@ -28,65 +28,27 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, out
 		return errors.New("output target folder --output is not a folder")
 	}
 
-	searchResult, err, errs := commands.List(ctx, repo, search)
+	fsTarget, err := commands.NewFileSystemExportTarget(outputPath)
 	if err != nil {
 		Stderrf("Error listing: %v", err)
 		return err
 	}
 
-	vc := 0
-	ac := 0
-	for _, m := range searchResult.Entries {
-		vc += len(m.Versions)
-		ac += len(m.Attachments)
-		for _, v := range m.Versions {
-			ac += len(v.Attachments)
-		}
-	}
-
-	if format == OutputFormatPlain {
-		if withAttachments {
-			fmt.Printf("Exporting %d ThingModels with %d versions and %d attachments...\n", len(searchResult.Entries), vc, ac)
-		} else {
-			fmt.Printf("Exporting %d ThingModels with %d versions...\n", len(searchResult.Entries), vc)
-		}
-	}
+	cmdResults, cmdErr := commands.ExportThingModels(ctx, repo, search, fsTarget, restoreId, withAttachments)
 
 	var totalRes []OperationResult
-	for _, entry := range searchResult.Entries {
-		if withAttachments {
-			spec := model.NewSpecFromFoundSource(entry.FoundIn)
-			aRes, aErr := exportAttachments(ctx, spec, outputPath, model.NewTMNameAttachmentContainerRef(entry.Name), entry.Attachments)
-			if err == nil && aErr != nil {
-				err = aErr
-			}
-			totalRes = append(totalRes, aRes...)
+	for _, cr := range cmdResults {
+		opType := opResultOK
+		text := ""
+		if cr.Error != nil {
+			opType = opResultErr
+			text = cr.Error.Error()
 		}
-		for _, version := range entry.Versions {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			default:
-			}
-			res, eErr := exportThingModel(ctx, outputPath, version, restoreId)
-			if err == nil && eErr != nil {
-				err = eErr
-			}
-			totalRes = append(totalRes, res)
-			if withAttachments {
-				spec := model.NewSpecFromFoundSource(entry.Versions[0].FoundIn)
-				aRes, aErr := exportAttachments(ctx, spec, outputPath, model.NewTMIDAttachmentContainerRef(version.TMID), version.Attachments)
-				if err == nil && aErr != nil {
-					err = aErr
-				}
-				totalRes = append(totalRes, aRes...)
-			}
-
-		}
-	}
-
-	if err == nil && len(errs) > 0 {
-		err = errs[0]
+		totalRes = append(totalRes, OperationResult{
+			Type:       opType,
+			ResourceId: cr.ResourceId,
+			Text:       text,
+		})
 	}
 
 	switch format {
@@ -97,60 +59,13 @@ func Export(ctx context.Context, repo model.RepoSpec, search *model.Filters, out
 			fmt.Println(res)
 		}
 	}
-	printErrs("Errors occurred while listing TMs for export:", errs)
 
-	return err
-}
+	if cmdErr != nil {
+		Stderrf("Error during export: %v", cmdErr)
+		return cmdErr
+	}
 
-func exportAttachments(ctx context.Context, spec model.RepoSpec, outputPath string, ref model.AttachmentContainerRef, attachments []model.Attachment) ([]OperationResult, error) {
-	relDir, err := model.RelAttachmentsDir(ref)
-	if err != nil {
-		return nil, err
-	}
-	attDir := filepath.Join(outputPath, relDir)
-	err = os.MkdirAll(attDir, 0770)
-	if err != nil {
-		Stderrf("could not create output directory %s: %v", attDir, err)
-		return nil, err
-	}
-	var results []OperationResult
-	for _, att := range attachments {
-		var bytes []byte
-		var aErr error
-		resName := fmt.Sprintf("%s/%s", relDir, att.Name)
-		finalOutput := filepath.Join(attDir, att.Name)
-		bytes, aErr = commands.AttachmentFetch(ctx, spec, ref, att.Name, false)
-		if aErr != nil {
-			aErr = fmt.Errorf("could not fetch attachment %s to %v: %w", att.Name, ref, aErr)
-			results = append(results, OperationResult{
-				Type:       opResultErr,
-				ResourceId: resName,
-				Text:       aErr.Error(),
-			})
-			if err == nil {
-				err = aErr
-			}
-			continue
-		}
-		wErr := os.WriteFile(finalOutput, bytes, 0660)
-		if wErr != nil {
-			wErr = fmt.Errorf("could not write attachment %s to %v: %w", att.Name, ref, wErr)
-			results = append(results, OperationResult{
-				Type:       opResultErr,
-				ResourceId: resName,
-				Text:       wErr.Error(),
-			})
-			if err == nil {
-				err = wErr
-			}
-			continue
-		}
-		results = append(results, OperationResult{
-			Type:       opResultOK,
-			ResourceId: resName,
-		})
-	}
-	return results, err
+	return nil
 }
 
 func exportThingModel(ctx context.Context, outputPath string, version model.FoundVersion, restoreId bool) (OperationResult, error) {
@@ -164,20 +79,16 @@ func exportThingModel(ctx context.Context, outputPath string, version model.Foun
 		return OperationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot fetch from repo %s)", version.FoundIn)}, err
 	}
 	thing = utils.ConvertToNativeLineEndings(thing)
-
 	finalOutput := filepath.Join(outputPath, id)
-
 	err = os.MkdirAll(filepath.Dir(finalOutput), 0770)
 	if err != nil {
 		Stderrf("Could not write ThingModel to file %s: %v", finalOutput, err)
 		return OperationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
 	}
-
 	err = os.WriteFile(finalOutput, thing, 0660)
 	if err != nil {
 		Stderrf("Could not write ThingModel to file %s: %v", finalOutput, err)
 		return OperationResult{opResultErr, version.TMID, fmt.Sprintf("(cannot write to ouput directory %s)", outputPath)}, err
 	}
-
 	return OperationResult{opResultOK, version.TMID, ""}, err
 }

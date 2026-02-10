@@ -44,6 +44,11 @@ type ErrorResponse struct {
 	Type     *string `json:"type,omitempty"`
 }
 
+// ExportCatalogTriggerResponse defines model for ExportCatalogTriggerResponse.
+type ExportCatalogTriggerResponse struct {
+	Status string `json:"status"`
+}
+
 // ImportThingModelResponse defines model for ImportThingModelResponse.
 type ImportThingModelResponse struct {
 	Data ImportThingModelResult `json:"data"`
@@ -338,6 +343,12 @@ type GetMpnsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
+}
+
+// ExportCatalogParams defines parameters for ExportCatalog.
+type ExportCatalogParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // ImportThingModelJSONBody defines parameters for ImportThingModel.
