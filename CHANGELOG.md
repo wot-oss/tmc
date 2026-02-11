@@ -5,6 +5,7 @@
 ### Added
 
 - REST API: jwt authentication based on JWT scopes array
+- REST API: jwt authentication default scopes for each token can be defined in a separate file using `--defaultScopesPath` flag
 - Added `filter.latest` parameter to REST API `/inventory` listing
 - generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
 

@@ -225,6 +225,18 @@ When the `--jwtValidation` flag is provided:
 ```json
 "scope":["tmc.ns.myNamespace.read","tmc.ns.myNamespace.write"]
 ```
+- Default Scopes Configuration: a set of default scopes can be defined in a separate JSON file, specified with the `--defaultScopesPath` flag. These scopes are automatically added to any user request, effectively extending the user's token scopes. This allows for defining baseline access that applies to all requests, regardless of the scopes present in the user's individual JWT.
+
+For example, a `default_scopes.json` file might look like this:
+```json
+{
+  "scopes": [
+    "tmc.ns.*.read",
+    "tmc.ns.omnicorp.write"
+  ]
+}
+```
+With this configuration, all users would implicitly gain `tmc.ns.*.read` (read access across all namespaces) and `tmc.ns.omnicorp.write` permissions, in addition to any scopes explicitly granted in their JWT.
 
 #### 4. Token Validation Details
 
@@ -403,24 +415,6 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
       <td>yes</td>
       <td>yes</td>
       <td>yes</td>
-      <td>yes</td>
-      <td>yes</td>
-      <td>yes</td>
-    </tr>
-    <tr>
-      <td><b>[] (scopes array is empty)</b></td>
-      <td>yes</td>
-      <td>no</td>
-      <td>no</td>
-      <td>yes</td>
-      <td>no</td>
-      <td>no</td>
-      <td>yes</td>
-      <td>yes</td>
-      <td>no</td>
-      <td>yes</td>
-      <td>no</td>
-      <td>no</td>
       <td>yes</td>
       <td>yes</td>
       <td>yes</td>

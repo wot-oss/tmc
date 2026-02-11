@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
+	"github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -20,6 +22,7 @@ import (
 
 var jwksKeyFunc jwt.Keyfunc
 var jwtServiceID string
+var scopesFromWhitelist []string
 
 // GetMiddleware starts a go routine that periodically fetches the JWKS
 // key set and returns a middleware that uses that keyset to validate a
@@ -27,6 +30,18 @@ var jwtServiceID string
 func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
 	jwksKeyFunc = startJWKSFetch(opts).Keyfunc
 	jwtServiceID = opts.JWTServiceID
+	if err := auth.InitializeAccessControl(opts.WhitelistFile); err != nil {
+		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to initialize access control", "error", err)
+	}
+	whitelistContent, err := os.ReadFile(opts.WhitelistFile)
+	if err != nil {
+		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to read whitelist file", "error", err)
+	}
+	scopes, err := auth.LoadScopesFromJSON(whitelistContent)
+	if err != nil {
+		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to load scopes from whitelist", "error", err)
+	}
+	scopesFromWhitelist = scopes.AllowedScopes
 	return jwtValidationMiddleware
 }
 
@@ -145,8 +160,8 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" || pathParts[0] == "mpns" || pathParts[0] == ".completions" {
 		return true, nil
 	}
-	if len(scopes) == 0 && r.Method == "GET" { //if scopes are empty, allow read access to all endpoints.
-		return true, nil
+	if len(scopesFromWhitelist) > 0 {
+		scopes = append(scopes, scopesFromWhitelist...)
 	}
 
 	if len(pathParts) > 1 {
@@ -220,7 +235,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 						}
 					}
 				}
-				if strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") || namespaceFromScope == "*" {
+				if (strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") {
 					if strings.HasSuffix(scope, ".read") && r.Method == "GET" {
 						return true, nil
 					} else if strings.HasSuffix(scope, ".write") && (r.Method == "POST" || r.Method == "PUT") {
