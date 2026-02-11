@@ -56,6 +56,12 @@ type ServerInterface interface {
 	// Get the list of repositories
 	// (GET /repos)
 	GetRepos(w http.ResponseWriter, r *http.Request)
+	// Export the whole catalog
+	// (GET /repos/export)
+	GetExportedCatalog(w http.ResponseWriter, r *http.Request)
+	// Trigger exporting the whole catalog
+	// (POST /repos/export)
+	ExportCatalog(w http.ResponseWriter, r *http.Request, params ExportCatalogParams)
 	// Import a Thing Model
 	// (POST /thing-models)
 	ImportThingModel(w http.ResponseWriter, r *http.Request, params ImportThingModelParams)
@@ -333,6 +339,30 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// ------------- Optional query parameter "filter.latest" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.latest", r.URL.Query(), &params.FilterLatest)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.latest", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "page" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "page", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "pageSize" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "pageSize", r.URL.Query(), &params.PageSize)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "pageSize", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "search", r.URL.Query(), &params.Search)
@@ -569,6 +599,53 @@ func (siw *ServerInterfaceWrapper) GetRepos(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetRepos(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetExportedCatalog operation middleware
+func (siw *ServerInterfaceWrapper) GetExportedCatalog(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetExportedCatalog(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ExportCatalog operation middleware
+func (siw *ServerInterfaceWrapper) ExportCatalog(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ExportCatalogParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ExportCatalog(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1218,6 +1295,10 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.GetThingModelById).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.DeleteThingModelById).Methods("DELETE")
+
+	r.HandleFunc(options.BaseURL+"/repos/export", wrapper.GetExportedCatalog).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/repos/export", wrapper.ExportCatalog).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/inventory/{tmID:.+}", wrapper.GetInventoryByID).Methods("GET")
 

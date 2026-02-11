@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
@@ -18,8 +20,11 @@ import (
 const ContextKeyBearerAuthNamespaces = "BearerAuth.Namespaces"
 
 type TmcHandler struct {
-	Service HandlerService
-	Options TmcHandlerOptions
+	Service     HandlerService
+	Options     TmcHandlerOptions
+	JobManager  *JobManager
+	zipData     []byte
+	zipDataName string
 }
 
 type TmcHandlerOptions struct {
@@ -27,39 +32,92 @@ type TmcHandlerOptions struct {
 	JWTValidation  bool
 }
 
+type ExportJobStatus struct {
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Error     string    `json:"error,omitempty"`
+}
+
+type JobManager struct {
+	job               ExportJobStatus
+	activeJobLock     sync.Mutex
+	isExportingActive bool
+}
+
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
 	return &TmcHandler{
-		Service: handlerService,
-		Options: options,
+		Service:     handlerService,
+		Options:     options,
+		JobManager:  NewJobManager(),
+		zipData:     make([]byte, 0),
+		zipDataName: "",
+	}
+}
+
+func NewJobManager() *JobManager {
+	return &JobManager{
+		job: ExportJobStatus{
+			Status:    "idle",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		},
+		isExportingActive: false,
 	}
 }
 
 // GetInventory returns the inventory of the catalog
 // (GET /inventory)
 func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params server.GetInventoryParams) {
+	var page, pageSize, offset, limit int
 	filters := convertParams(params)
+	if params.Page != nil || params.PageSize != nil {
+		page = 1
+		if params.Page != nil && *params.Page > 0 {
+			page = *params.Page
+		}
+		pageSize = 100
+		if params.PageSize != nil && *params.PageSize > 0 {
+			pageSize = *params.PageSize
+		}
+		offset = (page - 1) * pageSize
+		limit = pageSize
+	} else {
+		offset = -1
+		limit = -1
+	}
 	if h.Options.JWTValidation {
 		namespaces := extractNamespacesFromContext(r.Context())
 		if namespaces != nil {
 			if filters == nil {
 				filters = &model.Filters{}
-				filters.Author = namespaces
-			} else {
+				if !slices.Contains(namespaces, "*") {
+					filters.Author = namespaces
+				} else {
+					filters = nil
+				}
+			} else if filters.Author != nil {
 				authorSet := make(map[string]struct{})
 				for _, a := range filters.Author {
 					authorSet[a] = struct{}{}
 				}
 				var intersection []string
-				for _, ns := range namespaces {
-					if _, exists := authorSet[ns]; exists {
-						intersection = append(intersection, ns)
+				if slices.Contains(namespaces, "*") {
+					for _, a := range filters.Author {
+						intersection = append(intersection, a)
+					}
+				} else {
+					for _, ns := range namespaces {
+						if _, exists := authorSet[ns]; exists {
+							intersection = append(intersection, ns)
+						}
 					}
 				}
 				if len(intersection) == 0 {
 					resp := toInventoryResponse(h.createContext(r), model.SearchResult{
 						LastUpdated: time.Now(),
 						Entries:     []model.FoundEntry{},
-					})
+					}, page, pageSize)
 					HandleJsonResponse(w, r, http.StatusOK, resp)
 					return
 				}
@@ -81,10 +139,16 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	var inv *model.SearchResult
 	var err error
 	if search != "" {
-		inv, err = h.Service.SearchInventory(r.Context(), repo, search)
+		inv, err = h.Service.SearchInventory(r.Context(), repo, search, offset, limit)
 	} else {
 		utils.GetLogger(r.Context(), "handler").Info(fmt.Sprintf("filters %v", filters))
-		inv, err = h.Service.ListInventory(r.Context(), repo, filters)
+		inv, err = h.Service.ListInventory(r.Context(), repo, filters, offset, limit)
+	}
+	if params.FilterLatest != nil && *params.FilterLatest {
+		inv = filterLatestVersions(inv)
+	}
+	if params.FilterLatest != nil && *params.FilterLatest {
+		inv = filterLatestVersions(inv)
 	}
 
 	if err != nil {
@@ -93,8 +157,33 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	}
 
 	ctx := h.createContext(r)
-	resp := toInventoryResponse(ctx, *inv)
+	resp := toInventoryResponse(ctx, *inv, page, pageSize)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
+	for i, entry := range inv.Entries {
+		filteredEntry := model.FoundEntry{}
+		if len(entry.Versions) > 1 {
+			if len(entry.Versions) > 1 {
+				var latestVersion *model.FoundVersion
+				if len(entry.Versions) > 0 {
+					latestVersion = &entry.Versions[0]
+				}
+				for i := 1; i < len(entry.Versions); i++ {
+					currentVersion := &entry.Versions[i]
+					latestTime, err := time.Parse(time.RFC3339, latestVersion.TimeStamp)
+					currentVersionTime, err2 := time.Parse(time.RFC3339, currentVersion.TimeStamp)
+					if currentVersionTime.After(latestTime) && err == nil && err2 == nil {
+						latestVersion = currentVersion
+					}
+				}
+				filteredEntry.Versions = []model.FoundVersion{*latestVersion}
+			}
+			inv.Entries[i].Versions = filteredEntry.Versions
+		}
+	}
+	return inv
 }
 
 func extractNamespacesFromContext(ctx context.Context) []string {
@@ -188,6 +277,80 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 		return
 	}
 	HandleByteResponse(w, r, http.StatusOK, MimeTMJSON, data)
+}
+
+// ExportCatalog Export the entire catalog as a zip file
+// (GET /repos/export)
+func (h *TmcHandler) GetExportedCatalog(w http.ResponseWriter, r *http.Request) {
+	jobStatus := h.JobManager.GetJob()
+
+	if jobStatus.Status != "completed" {
+		err := NewConflictError(nil, "Exporting not yet complete or failed. Current status: %s", jobStatus.Status)
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	data := h.zipData
+	if len(data) == 0 {
+		fmt.Printf("Error: Zip data not found in store for completed job when trying to download.\n")
+		http.Error(w, "Internal server error: Zip data missing", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", "attachment; filename="+h.zipDataName)
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(data)))
+
+	_, err := w.Write(data)
+	if err != nil {
+		fmt.Printf("Error writing zip data to response: %v\n", err)
+	}
+}
+
+// ExportCatalog Export the entire catalog as a zip file
+// (POST /repos/export)
+func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, params server.ExportCatalogParams) {
+	if !h.JobManager.TryAcquireExportingLock() {
+		currentJobStatus := h.JobManager.GetJob()
+		err := NewConflictError(nil, "An export job is already in progress. Current status: %s", currentJobStatus.Status)
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	if params.Repo == nil {
+		h.JobManager.ReleaseExportingLock()
+		err := NewBadRequestError(nil, "missing required query parameter: repo")
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	_, err := h.Service.ListInventory(context.Background(), *params.Repo, nil, -1, -1)
+	if err != nil {
+		h.JobManager.ReleaseExportingLock()
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	h.zipData = nil
+	h.zipDataName = fmt.Sprintf("%s.zip", *params.Repo)
+	go h.performExportCatalogAsync(convertRepoName(params.Repo))
+	HandleJsonResponse(w, r, http.StatusAccepted, map[string]string{
+		"status":  "packing",
+		"message": "Exporting initiated.",
+	})
+}
+
+func (h *TmcHandler) performExportCatalogAsync(repoName string) {
+	defer h.JobManager.ReleaseExportingLock()
+
+	h.JobManager.UpdateJobStatus("packing", "Currently packing the catalog...")
+	ctx := context.Background()
+
+	data, err := h.Service.ExportCatalog(ctx, repoName)
+	if err != nil {
+		h.JobManager.MarkJobFailed(err.Error())
+		fmt.Printf("Error during async export: %v\n", err)
+		return
+	}
+	h.zipData = data
+	h.JobManager.UpdateJobStatus("completed", "Export complete. Ready for download.")
 }
 
 // DeleteThingModelById Delete a Thing Model by ID
@@ -485,4 +648,59 @@ func getRelativeDepth(path, siblingPath string) int {
 	path = path[idx:]
 	d := strings.Count(path, "/")
 	return d
+}
+
+func (jm *JobManager) TryAcquireExportingLock() bool {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+
+	if jm.isExportingActive {
+		return false
+	}
+
+	jm.isExportingActive = true
+	jm.job = ExportJobStatus{
+		Status:    "pending",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	return true
+}
+
+func (jm *JobManager) ReleaseExportingLock() {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	jm.isExportingActive = false
+}
+
+func (jm *JobManager) CreateJob() ExportJobStatus {
+	job := ExportJobStatus{
+		Status:    "pending",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	jm.job = job
+	return job
+}
+
+func (jm *JobManager) GetJob() ExportJobStatus {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	return jm.job
+}
+
+func (jm *JobManager) UpdateJobStatus(status, message string) {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	jm.job.Status = status
+	jm.job.UpdatedAt = time.Now()
+	jm.job.Error = ""
+}
+
+func (jm *JobManager) MarkJobFailed(errorMessage string) {
+	jm.activeJobLock.Lock()
+	defer jm.activeJobLock.Unlock()
+	jm.job.Status = "failed"
+	jm.job.Error = errorMessage
+	jm.job.UpdatedAt = time.Now()
 }
