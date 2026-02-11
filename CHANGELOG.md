@@ -4,6 +4,7 @@
 
 ### Added
 
+- `docker` command to build a docker image for local deployment
 - REST API: jwt authentication based on JWT scopes array
 - REST API: pagination for inventory
 - REST API: POST `/repos/export` creates a zip for the specified repository
