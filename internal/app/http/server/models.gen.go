@@ -44,6 +44,11 @@ type ErrorResponse struct {
 	Type     *string `json:"type,omitempty"`
 }
 
+// ExportCatalogTriggerResponse defines model for ExportCatalogTriggerResponse.
+type ExportCatalogTriggerResponse struct {
+	Status string `json:"status"`
+}
+
 // ImportThingModelResponse defines model for ImportThingModelResponse.
 type ImportThingModelResponse struct {
 	Data ImportThingModelResult `json:"data"`
@@ -150,7 +155,14 @@ type Meta struct {
 
 // MetaPage defines model for MetaPage.
 type MetaPage struct {
-	Elements int `json:"elements"`
+	// PageNumber current page number
+	PageNumber *int `json:"pageNumber,omitempty"`
+
+	// PageSize size of a page
+	PageSize *int `json:"pageSize,omitempty"`
+
+	// TotalElements total number of elements in the catalog
+	TotalElements *int `json:"totalElements,omitempty"`
 }
 
 // ModelVersion defines model for ModelVersion.
@@ -284,6 +296,22 @@ type GetInventoryParams struct {
 	// If this filter is present in the URL (e.g., `?filter.latest`), only the latest versions will be returned. If it's not present, all versions will be included.
 	FilterLatest *bool `form:"filter.latest,omitempty" json:"filter.latest,omitempty"`
 
+	// Page Page number for pagination (starting from 1)
+	//
+	// - If `pageSize` is provided along with `page`, both values are used for pagination.
+	// - If `pageSize` is provided but `page` is *not* provided, `page` will default to `1`.
+	// - If `pageSize` is *not* provided but `page` *is* provided, `pageSize` will default to `100`.
+	// - If *neither* `page` nor `pageSize` are provided, no pagination will be applied, and both parameters will effectively be treated as `0` (returning all results).
+	Page *int `form:"page,omitempty" json:"page,omitempty"`
+
+	// PageSize Number of InventoryEntries per page for pagination.
+	//
+	// - If `pageSize` is provided along with `page`, both values are used for pagination.
+	// - If `pageSize` is provided but `page` is *not* provided, `page` will default to `1`.
+	// - If `pageSize` is *not* provided but `page` *is* provided, `pageSize` will default to `100`.
+	// - If *neither* `page` nor `pageSize` are provided, no pagination will be applied, and both parameters will effectively be treated as `0` (returning all results).
+	PageSize *int `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+
 	// Search Searches the inventory for TMs that match the search query. Accepts queries in bleve search engine syntax.
 	// Is mutually exclusive with filters.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
@@ -338,6 +366,12 @@ type GetMpnsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
+}
+
+// ExportCatalogParams defines parameters for ExportCatalog.
+type ExportCatalogParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // ImportThingModelJSONBody defines parameters for ImportThingModel.
