@@ -11,6 +11,10 @@
 - Added `filter.latest` parameter to REST API `/inventory` listing
 - generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
 
+### Changed
+
+- default TmcVersion is set to `dev`
+- 
 ### Fixed
 
 ### Removed
