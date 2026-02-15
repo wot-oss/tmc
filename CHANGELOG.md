@@ -5,6 +5,7 @@
 ### Added
 
 - REST API: jwt authentication based on JWT scopes array
+- REST API: jwt authentication default scopes for each token can be defined in a separate file using `--defaultScopesPath` flag
 - REST API: pagination for inventory
 - REST API: POST `/repos/export` creates a zip for the specified repository
 - REST API: GET `/repos/export` to download archived repo
