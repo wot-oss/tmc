@@ -225,6 +225,18 @@ When the `--jwtValidation` flag is provided:
 ```json
 "scope":["tmc.ns.myNamespace.read","tmc.ns.myNamespace.write"]
 ```
+- Default Scopes Configuration: a set of default scopes can be defined in a separate JSON file, specified with the `--defaultScopesPath` flag. These scopes are automatically added to any user request, effectively extending the user's token scopes. This allows for defining baseline access that applies to all requests, regardless of the scopes present in the user's individual JWT.
+
+For example, a `default_scopes.json` file might look like this:
+```json
+{
+  "scopes": [
+    "tmc.ns.*.read",
+    "tmc.ns.omnicorp.write"
+  ]
+}
+```
+With this configuration, all users would implicitly gain `tmc.ns.*.read` (read access across all namespaces) and `tmc.ns.omnicorp.write` permissions, in addition to any scopes explicitly granted in their JWT. With a default configuration file, the catalog when run with `--jwtValidation` flag still requires a token, but the scopes array may be empty. In this case, the user's access will be limited solely to the endpoints defined in that default configuration file.
 
 #### 4. Token Validation Details
 
@@ -241,9 +253,7 @@ The scope claim contains sufficient permissions for the requested endpoint.
 Requests without a valid Bearer token will result in an HTTP 401 Unauthorized error.
 
 #### 6. Scope Table
-
 <div style="overflow-x: auto; width: 100%;">
-
 <table style="border-collapse: collapse; width: 100%;">
   <thead>
     <tr>
@@ -310,7 +320,6 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
       <td>no</td>
       <td>no</td>
       <td>if tmID == namespace</td>
-      <td>no</td>
       <td>no</td>
       <td>no</td>
       <td>no</td>
@@ -412,7 +421,6 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
     </tr>
   </tbody>
 </table>
-
 </div>
 
 '*' can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
