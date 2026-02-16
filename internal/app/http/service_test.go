@@ -167,8 +167,10 @@ func Test_ListInventory(t *testing.T) {
 		r.On("List", mock.Anything, filters).Return(listResult, nil).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r))
 		rMocks.MockReposGetDescriptions(t, []model.RepoDescription{{Name: "r1"}}, nil)
+		listResult.TotalCount = len(listResult.Entries)
+		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec("r1"), r, nil))
 		// when: list all
-		res, err := underTest.ListInventory(context.Background(), "", filters)
+		res, err := underTest.ListInventory(context.Background(), "r1", filters, -1, -1)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the search result is returned
@@ -184,7 +186,7 @@ func Test_ListInventory(t *testing.T) {
 		r2.On("Spec").Return(model.NewRepoSpec("r2")).Once()
 		rMocks.MockReposAll(t, rMocks.CreateMockAllFunction(nil, r, r2))
 		// when: list all
-		res, err := underTest.ListInventory(context.Background(), "", sp)
+		res, err := underTest.ListInventory(context.Background(), "", sp, -1, -1)
 		// then: there is an error of type repos.RepoAccessError
 		var aErr *repos.RepoAccessError
 		assert.ErrorAs(t, err, &aErr)
