@@ -143,7 +143,7 @@
 ### Fixed
 
 - handle timestamp collisions on push by retrying after one second, forcing generation of new id, or reporting the error if all else fails
-- Display errors when accessing remotes for list/verions instead of silently ignoring them
+- Display errors when accessing remotes for list/versions instead of silently ignoring them
 
 ## [v0.0.0-alpha.4]
 
