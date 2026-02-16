@@ -1,5 +1,0 @@
-  {
-        "scopes": [
-            "tmc.ns.*.read", "tmc.ns.omnicorp.write"
-        ]
-    }

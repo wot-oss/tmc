@@ -201,6 +201,10 @@ func NewNotFoundError(err error, detail string, args ...any) error {
 	return newBaseHttpError(err, http.StatusNotFound, Error404Title, detail, args...)
 }
 
+func NewConflictError(err error, detail string, args ...any) error {
+	return newBaseHttpError(err, http.StatusConflict, Error409Title, detail, args...)
+}
+
 func NewBadRequestError(err error, detail string, args ...any) error {
 	return newBaseHttpError(err, http.StatusBadRequest, Error400Title, detail, args...)
 }
@@ -271,10 +275,10 @@ func convertParams(params any) *model.Filters {
 		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }
 
-func toInventoryResponse(ctx context.Context, res model.SearchResult) server.InventoryResponse {
+func toInventoryResponse(ctx context.Context, res model.SearchResult, page, pageSize int) server.InventoryResponse {
 	mapper := NewMapper(ctx)
 
-	meta := mapper.GetInventoryMeta(res)
+	meta := mapper.GetInventoryMeta(res, page, pageSize)
 	inv := mapper.GetInventoryData(res.Entries)
 	resp := server.InventoryResponse{
 		Meta: &meta,
