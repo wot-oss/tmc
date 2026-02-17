@@ -47,8 +47,8 @@
 - added possibility to define configuration parameters of repositories by referencing environment variables
 - added flag to change commands' output format to JSON
 - `list`, `copy`, `export`: added filtering by protocols supported by TMs
-- added `create-si` command to initially create a bleve search index for repositories
-- added `search` command to search for TMs by a text search query using bleve syntax
+- added `create-si` command to initially create a `bleve` search index for repositories
+- added `search` command to search for TMs by a text search query using `bleve` syntax
 - added a `s3` (AWS S3) repository type
 - added a check for directory or repo before serving
 - added importing attachments in a directory of TMs when importing TMs
@@ -59,12 +59,12 @@
 - `check`: removed subcommands of `check` command, unifying both into the parent command
 - `repo`: reorganized commands that change repo config: renamed/created `config auth`, `config description`, and `config headers` commands
 - `list`, `copy`, `export`: removed text search query parameter
-- removed 'search' parameter from '/authors', '/manufacturers', and '/mpns' API endpoints
-- '/inventory': make 'search' parameter use bleve query syntax and make it mutually exclusive with filter parameters
+- removed `search` parameter from `/authors`, `/manufacturers`, and `/mpns` API endpoints
+- `/inventory`: make `search` parameter use `bleve` query syntax and make it mutually exclusive with filter parameters
 
 ### Fixed
 
-- return "application/tm+json" as MIME type when fetching TMs via API
+- return `"application/tm+json"` as MIME type when fetching TMs via API
 
 ## [v0.1.2]
 
@@ -77,7 +77,6 @@
 ### Added
 
 - `import`: added flag `--ignore-existing` to ignore TMs that have conflicts with existing TMs instead of returning an error code
-
 
 ## [v0.1.0]
 
@@ -92,8 +91,8 @@
 
 ### Changed
 
-- `push`: renamed "push" to "import"
-- `pull`: renamed "pull" to "export"
+- `push`: renamed `push` to `import`
+- `pull`: renamed `pull` to `export`
 - `push`: always reject pushing TMs with same TM name, semantic version and digest by default, but can be enforced by flag `--force`
 - `push`: shows a warning if there is a timestamp collision (retrying after a second has been removed)
 - `list, pull, versions`: return exit code 1 if at least one repo returns an error
@@ -107,9 +106,9 @@
 
 ### Added
 
-- Added verb ```check``` with sub-commands ```index``` and ```resources```
-- ```check index```: validates the index wrt stored Thing Models
-- ```check resources```: validates stored Thing Models (path, name, syntax etc.)
+- Added verb `check` with sub-commands `index` and `resources`
+- `check index`: validates the index wrt stored Thing Models
+- `check resources`: validates stored Thing Models (path, name, syntax etc.)
 - Put a limit on importable TM name length at 255 characters
 
 ### Changed
@@ -121,7 +120,7 @@
 
 ### Changed
 
-- Renamed the go module to "github.com/wot-oss/tmc"
+- Renamed the go module to `github.com/wot-oss/tmc`
 - Renamed command `remote` to `repo`
 - Renamed command `update-toc` to `index`
 - Tab-completions now only complete a path segment instead of the full name to resemble shell completion in a file system
@@ -166,22 +165,22 @@
 
 - Building docker base image for releases to enable catalog hosting
 - Implemented file locking to avoid data races (guaranteed for Linux/MacOSX)
-- Implemented ```pull``` command to fetch and save multiple thing models at once
+- Implemented `pull` command to fetch and save multiple thing models at once
 - Implemented setting CORS options for API
 - Implemented fetching a TM by a \[partial\] semantic version also in REST API
 - Print information about used config file in `help`
-- Implemented a 'tmc' remote type, which uses our own REST API as the underlying TM storage
-- Added 'filter.name' parameter to REST API '/inventory' listing
-- Added '--exact' flag to `list` and `pull`
+- Implemented a `tmc` remote type, which uses our own REST API as the underlying TM storage
+- Added `filter.name` parameter to REST API `/inventory` listing
+- Added `--exact` flag to `list` and `pull`
 
 ### Changed
 
-- ```create-toc```: renamed to ```update-toc``` and allow for partial updates
-- ```list```: allows now listing by name pattern
-- ```serve```: separate configuration of the remote(s) to be served from the target remote for push
-- ```fetch```: ```--output``` now accepts only a target folder to save TM to, ```--with-path``` has been removed
-- ```list, pull```: removed filter flag `filter.externalID`, search for externalID has now to be done by query search `-s`
-- REST API:  removed filter parameter filter.externalID from `/inventory`, `/authors`, `/manufacturers`, `/mpns`,     
+- `create-toc`: renamed to `update-toc` and allow for partial updates
+- `list`: allows now listing by name pattern
+- `serve`: separate configuration of the remote(s) to be served from the target remote for push
+- `fetch`: `--output` now accepts only a target folder to save TM to, `--with-path` has been removed
+- `list, pull`: removed filter flag `filter.externalID`, search for externalID has now to be done by query search `-s`
+- REST API:  removed filter parameter filter.externalID from `/inventory`, `/authors`, `/manufacturers`, `/mpns`,
   search for externalID has now to be done by query parameter `search`
 - enable/disable logging is now done only by setting a loglevel
 
@@ -189,28 +188,27 @@
 
 - count only enabled remotes when checking if empty remote specification is unambiguous
 - make fetch by partial semantic version match the most recent version beginning with given string
-- (BREAKING!) ```push```: file hash calculation has been made more reliable and idempotent. Consequently, some files if pushed to TMC, may receive a new version hash, despite no change in contents
-- ```fetch```: fixed "Unable to parse TMID..." error when fetching an official TM by content hash
-- prevent ```serve``` from using one of remotes from config as push target when '-r' or '-d' are given
-- print the actual error if updating TOC after ```push``` fails
+- (BREAKING!) `push`: file hash calculation has been made more reliable and idempotent. Consequently, some files if pushed to TMC, may receive a new version hash, despite no change in contents
+- `fetch`: fixed `"Unable to parse TMID..."` error when fetching an official TM by content hash
+- prevent `serve` from using one of remotes from config as push target when `-r` or `-d` are given
+- print the actual error if updating TOC after `push` fails
 
 ## [v0.0.0-alpha.2] - 2023-01-15
 
 ### Fixed
 
 - config is now created if not existing
-- Adding ".exe" to Windows binaries 
-
+- Adding `.exe` to Windows binaries
 
 ## [v0.0.0-alpha.1] - 2023-01-15
 
-This the first alpha release, which implements the most basic verbs to create and interact with a thing model catalog. 
+This the first alpha release, which implements the most basic verbs to create and interact with a thing model catalog.
 
 ### Added
 
-- Verbs: create-toc, fetch, list, push, remote, serve, validate, versions 
-- Target local catalogs with the '--directory' flag
-- fetch can now create a file instead of printing to stdout 
+- Verbs: create-toc, fetch, list, push, remote, serve, validate, versions
+- Target local catalogs with the `--directory` flag
+- fetch can now create a file instead of printing to stdout
 - serve now exposes a REST API
 
 See README.md for a description of all current features.

@@ -4,13 +4,13 @@ permalink: /gettingstarted
 title: Getting Started
 ---
 
-The ```tmc``` helps you to interact with a Thing Model catalog, which may be hosted on any git forge like GitHub or create your own catalog in a git repository of your choosing.
+The `tmc` helps you to interact with a Thing Model catalog, which may be hosted on any git forge like GitHub or create your own catalog in a git repository of your choosing.
 
-To integrate publicly available and your own private Thing Models into your product, the ```tmc``` can be run as a server, exposing a REST API that can be protected with JWT tokens.
+To integrate publicly available and your own private Thing Models into your product, the `tmc` can be run as a server, exposing a REST API that can be protected with JWT tokens.
 
 ## Configure Autocompletion (Optional)
 
-1. Read the help of the ```completion``` command to find out which shells are supported
+1. Read the help of the `completion` command to find out which shells are supported
     ```bash
     tmc completion -h
     ```
@@ -43,7 +43,7 @@ The listed names are formatted as follows
 <author>/<manufacturer>/<model>[/<optional-path>]
 ```
 
-You can specify a part of that path after the ```list``` command to filter the list for only parts of the list tree (
+You can specify a part of that path after the `list` command to filter the list for only parts of the list tree (
 use tab to auto-complete path parts):
 
 ```
@@ -55,7 +55,7 @@ There are other options to list a subset of available TMs from a catalog. See `t
 ### List Versions
 
 Every model entry in the list may contain multiple versions, reflecting the evolution of the Thing Model (bugfixes,
-additions, changes in the device itself ...). List the available versions with the ```versions``` command:
+additions, changes in the device itself ...). List the available versions with the `versions` command:
 
 ```bash
 tmc versions omnicorp/omnicorp/lightall
@@ -63,7 +63,7 @@ tmc versions omnicorp/omnicorp/lightall
 
 ### Fetch a Thing Model
 
-Like what you see? Fetch and store locally using the ```fetch``` command. It will print the Thing Model to stdout to
+Like what you see? Fetch and store locally using the `fetch` command. It will print the Thing Model to stdout to
 enable unix-like piping:
 
 ```bash
@@ -77,7 +77,7 @@ tmc fetch omnicorp/omnicorp/lightall
 ```
 
 You can fetch the latest TM matching a specific semantic version or part of it by adding the version to the TM name,
-separated by a colon. For example, all the following commands fetch the same version 'v2.0.1'.
+separated by a colon. For example, all the following commands fetch the same version `v2.0.1`.
 
 ```bash
 tmc fetch omnicorp/omnicorp/lightall:v2
@@ -85,7 +85,7 @@ tmc fetch omnicorp/omnicorp/lightall:v2.0
 tmc fetch omnicorp/omnicorp/lightall:v2.0.1
 ```
 
-To store the Thing Model locally instead of printing to stdout, specify the ```-o``` flag and point it to a
+To store the Thing Model locally instead of printing to stdout, specify the `-o` flag and point it to a
 directory:
 
 ```bash
@@ -100,7 +100,7 @@ and then host it using one of the two options:
 1. [A simple read-only catalog hosted by your favorite git forge][1]
 2. [A catalog served by the TMC REST API][2]
 
-You can configure those as a repo of type 'http' or 'tmc', respectively.
+You can configure those as a repo of type `http` or `tmc`, respectively.
 The figure below also demonstrates different ways to use the TMC or TMs hosted by a TMC instance.
 
 ![Thing Model Catalog Usage Methods]({{site.baseurl}}/media/usage.png)

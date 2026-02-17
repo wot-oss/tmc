@@ -13,7 +13,7 @@ tmc <command> --help
 
 ## Create a Repository
 
-To create an empty repository named 'my-catalog' in the folder 'tm-catalog' under your user home directory, execute
+To create an empty repository named `my-catalog` in the folder `tm-catalog` under your user home directory, execute
 
 ```bash
 tmc repo add --type file my-catalog ~/tm-catalog
@@ -70,7 +70,7 @@ tmc import ./my-tms
 
 ### Attachments
 
-When importing a folder, the `import` command can be used with the `--with-attachments` flag to import attachments along with the TMs. An attachment is linked to a TM by placing it into a subfolder whose name exactly matches the TM's filename (including its extension). 
+When importing a folder, the `import` command can be used with the `--with-attachments` flag to import attachments along with the TMs. An attachment is linked to a TM by placing it into a subfolder whose name exactly matches the TM's filename (including its extension).
 For example:
 
 -  If your TM file is: `../example-catalog/.tmc/omniuser/omnicorp/senseall/v1.0.0-20241008124326-15af48381cf7.tm.json`
@@ -122,13 +122,13 @@ echo "*.lock" >> .gitignore
 To use the published catalog as a "http" repository on the consumer side, you have to use the URL, under which all files
 of the git repository can be retrieved by HTTP GET request by either appending their relative paths to the URL or
 substituting a placeholder with the relative path. This URL will differ between different git forges.
-For example, for GitHub, it has this form ```https://raw.githubusercontent.com/<group>/<repository>/refs/heads/main```,
+For example, for GitHub, it has this form `https://raw.githubusercontent.com/<group>/<repository>/refs/heads/main`,
 where you should substitute `<group>` and `<repository>` with actual names. For GitLab, you can use the REST API
 endpoint
 `https://gitlab.example.com/api/v4/projects/<project-id>/repository/files/{% raw %}{{ID}}{% endraw %}?ref=main`, where
 you replace `<project-id>` with the numeric id of the GitLab project.
 
-If the git repository is private, an access token needs to be configured using ```tmc remote set-auth```
+If the git repository is private, an access token needs to be configured using `tmc remote set-auth`
 
 This method has the advantage that the infrastructure of the forges is used and no custom infrastructure needs to be
 maintained by the creator. The downside is that any contribution has to go through a git workflow, which might not be an
@@ -143,12 +143,12 @@ tmc serve
 ```
 An OpenAPI description of the API [is available][3] for ease of integration.
 
-Once a catalog is exposed with `tmc serve`, it can be configured as a repository of type 'tmc' on other clients. Users
+Once a catalog is exposed with `tmc serve`, it can be configured as a repository of type `tmc` on other clients. Users
 can push to a hosted catalog using the REST API, without using git workflow and hosting can happen on the edge within a
 product.
 
-To make things easier, we build a ```tmc``` [container image][4] which runs the cli as a server. That image doesn't
-have any TMs inside it. A creator can then simply serve a 'file' or local repository, by mapping its directory
+To make things easier, we build a `tmc` [container image][4] which runs the cli as a server. That image doesn't
+have any TMs inside it. A creator can then simply serve a `file` or local repository, by mapping its directory
 or volume into the container as follows:
 
 ```bash
@@ -423,7 +423,7 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 </table>
 </div>
 
-'*' can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
+`*` can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
 
 [1]: https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json
 [2]: https://schema.org
