@@ -10,6 +10,7 @@ import (
 type JWTValidationOpts struct {
 	JWTServiceID  string
 	JWKSURLString string
+	ScopesPrefix  string
 	WhitelistFile string
 }
 

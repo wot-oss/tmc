@@ -35,6 +35,7 @@ func init() {
 	serveCmd.Flags().Int(config.KeyCorsMaxAge, 0, "set how long result of CORS preflight request can be cached in seconds (default 0, max 600) (env varTMC_CORSMAXAGE)")
 	serveCmd.Flags().Bool(config.KeyJWTValidation, false, "If set to 'true', jwt tokens are used to grant access to the API (env var TMC_JWTVALIDATION)")
 	serveCmd.Flags().String(config.KeyJWTServiceID, "", "If set to an identifier, value will be compared to 'aud' claim in validated JWT (env var TMC_JWTSERVICEID)")
+	serveCmd.Flags().String(config.KeyJWTScopesPrefix, "", "If set to a prefix, scopes in validated JWT are expected to start with this prefix (env var TMC_JWTSCOPESPREFIX)")
 	serveCmd.Flags().String(config.KeyJWKSURL, "", "URL to periodically fetch JSON Web Key Sets for token validation (env var TMC_JWKSURL)")
 	serveCmd.Flags().String(config.KeyDefaultScopes, config.DefaultScopesPath, "path to the default scopes file")
 
@@ -45,6 +46,7 @@ func init() {
 	_ = viper.BindPFlag(config.KeyCorsMaxAge, serveCmd.Flags().Lookup(config.KeyCorsMaxAge))
 	_ = viper.BindPFlag(config.KeyJWTValidation, serveCmd.Flags().Lookup(config.KeyJWTValidation))
 	_ = viper.BindPFlag(config.KeyJWTServiceID, serveCmd.Flags().Lookup(config.KeyJWTServiceID))
+	_ = viper.BindPFlag(config.KeyJWTScopesPrefix, serveCmd.Flags().Lookup(config.KeyJWTScopesPrefix))
 	_ = viper.BindPFlag(config.KeyJWKSURL, serveCmd.Flags().Lookup(config.KeyJWKSURL))
 	_ = viper.BindPFlag(config.KeyDefaultScopes, serveCmd.Flags().Lookup(config.KeyDefaultScopes))
 }
@@ -87,6 +89,7 @@ func getJWKSOptions() jwt.JWTValidationOpts {
 	opts := jwt.JWTValidationOpts{}
 	opts.JWTServiceID = viper.GetString(config.KeyJWTServiceID)
 	opts.JWKSURLString = viper.GetString(config.KeyJWKSURL)
+	opts.ScopesPrefix = viper.GetString(config.KeyJWTScopesPrefix)
 	opts.WhitelistFile = viper.GetString(config.KeyDefaultScopes)
 	return opts
 }
