@@ -23,6 +23,7 @@ import (
 var jwksKeyFunc jwt.Keyfunc
 var jwtServiceID string
 var scopesFromWhitelist []string
+var scopesPrefix string
 
 // GetMiddleware starts a go routine that periodically fetches the JWKS
 // key set and returns a middleware that uses that keyset to validate a
@@ -30,6 +31,11 @@ var scopesFromWhitelist []string
 func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
 	jwksKeyFunc = startJWKSFetch(opts).Keyfunc
 	jwtServiceID = opts.JWTServiceID
+	if opts.ScopesPrefix != "" {
+		scopesPrefix = opts.ScopesPrefix + "."
+	} else {
+		scopesPrefix = ""
+	}
 	if err := auth.InitializeAccessControl(opts.WhitelistFile); err != nil {
 		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to initialize access control", "error", err)
 	}
@@ -177,10 +183,10 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	if pathParts[0] == "inventory" && r.Method == "GET" {
 		var allowedNamespaces []string
 		for _, scope := range scopes {
-			if scope == "tmc.admin" {
+			if scope == scopesPrefix+"tmc.admin" {
 				return true, nil
 			}
-			if strings.HasPrefix(scope, "tmc.ns.") && strings.HasSuffix(scope, ".read") {
+			if strings.HasPrefix(scope, scopesPrefix+"tmc.ns.") && strings.HasSuffix(scope, ".read") {
 				parts := strings.Split(scope, ".")
 				if len(parts) >= 4 {
 					namespace := parts[2]
@@ -197,19 +203,19 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	}
 
 	for _, scope := range scopes {
-		if scope == "tmc.admin" {
+		if scope == scopesPrefix+"tmc.admin" {
 			return true, nil
 		}
-		if scope == "tmc.repos.read" && pathParts[0] == "repos" && r.Method == "GET" {
+		if scope == scopesPrefix+"tmc.repos.read" && pathParts[0] == "repos" && r.Method == "GET" {
 			return true, nil
 		}
-		if scope == "tmc.internal.read" && pathParts[0] == "info" && r.Method == "GET" {
+		if scope == scopesPrefix+"tmc.internal.read" && pathParts[0] == "info" && r.Method == "GET" {
 			return true, nil
 		}
-		if (scope == "tmc.health.read") && pathParts[0] == "healthz" && r.Method == "GET" {
+		if (scope == scopesPrefix+"tmc.health.read") && pathParts[0] == "healthz" && r.Method == "GET" {
 			return true, nil
 		}
-		if strings.HasPrefix(scope, "tmc.ns.") {
+		if strings.HasPrefix(scope, scopesPrefix+"tmc.ns.") {
 			parts := strings.Split(scope, ".")
 			if len(parts) >= 4 {
 				namespaceFromScope := parts[2]
