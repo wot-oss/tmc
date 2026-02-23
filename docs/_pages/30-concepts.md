@@ -46,14 +46,14 @@ When there are multiple repositories defined in the config file, then, depending
 list of repositories to operate on (e.g. `tmc list`), or it will require that you specify one of the
 repositories by name using the `--repo` flag (e.g. `tmc import`).
 You can still constrain the commands like `tmc list` or `tmc versions` to operate on a single repository using the same 
-`--repo` flag even though it's not mandatory.
+`--repo` flag even though it is not mandatory.
 
 ## TM IDs and Structure of Repositories
 
 When you import TMs into a repository, they are given a generated ID, which is based on the key fields, optional 
 additional path (see `tmc help import`), timestamp, and a hash of the TM contents. See the [proposal][1] for details and 
 the reasoning behind.
-If a TM already has an ID when it's imported, the original ID will be moved to a field 'externalID' and can be restored 
+If a TM already has an ID when it is imported, the original ID will be moved to a field `externalID` and can be restored 
 when the TM is fetched or exported from TMC. See `tmc help fetch` and `tmc help export`.
 
 The IDs given to TMs define the storage structure of the files in file-based repositories.
