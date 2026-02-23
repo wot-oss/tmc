@@ -237,6 +237,7 @@ For example, a `default_scopes.json` file might look like this:
 }
 ```
 With this configuration, all users would implicitly gain `tmc.ns.*.read` (read access across all namespaces) and `tmc.ns.omnicorp.write` permissions, in addition to any scopes explicitly granted in their JWT. With a default configuration file, the catalog when run with `--jwtValidation` flag still requires a token, but the scopes array may be empty. In this case, the user's access will be limited solely to the endpoints defined in that default configuration file.
+- Additionally, the scope prefix can be configured by setting `--jwtScopesPrefix` flag. E.g., when set to `--jwtScopesPrefix "myScopePrefix"`, all scopes are expected to be `myScopePrefix.tmc.*`
 
 #### 4. Token Validation Details
 
