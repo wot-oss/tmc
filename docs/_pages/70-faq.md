@@ -20,7 +20,7 @@ tmc import lightall-http.json --opt-path http
 tmc import lightall-modbus.json --opt-path modbus
 ```
 
-This will result in each TM having a different TM name (e.g. "omnicorp/omnicorp/lightall/**modbus**") and thus having
+This will result in each TM having a different TM name (e.g. `omnicorp/omnicorp/lightall/modbus`) and thus having
 independent lists of versions. You can then select the right TM for you based on the TM name, fetch the latest version
 for the TM name, etc.
 
@@ -49,7 +49,7 @@ For completeness' sake, the option of defining and using a convention in your TM
 mentioned.
 
 You can include the protocol name in the semantic version (e.g. `v1.0.0-modbus`) or prefix the TM's description with
-it (e.g. "modbus: Omnicorp Lightall..."). The TMs in this case will all have the same TM name and thus the different
+it (e.g. `"modbus: Omnicorp Lightall..."`). The TMs in this case will all have the same TM name and thus the different
 versions will all be listed together. Listing the versions by `tmc versions` will allow to visually recognize which
 version has which protocol. However, automatically checking for latest version of a TM for a certain protocol will
 require some scripting on your part.
