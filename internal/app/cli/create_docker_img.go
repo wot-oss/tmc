@@ -16,7 +16,7 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageTag string, outputFile string, format string, inputName, inputMaintainer, inputVersion string) error {
+func CreateDockerImage(ctx context.Context, repo *model.RepoSpec, imageTag string, outputFile string, format string, inputName, inputMaintainer, inputVersion string) error {
 	defer func() {
 		fmt.Println("Cleaning up ./docker_context directory")
 		if err := os.RemoveAll("./docker_context/"); err != nil {
@@ -27,45 +27,50 @@ func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageTag string
 	repos, _ := repos.ReadConfig()
 
 	fmt.Println("Processing repositories")
-	for name, repo := range repos {
-		repoType, _ := repo["type"].(string)
+	for name, configuredRepo := range repos {
+		if repo.RepoName() != "" {
+			if name != repo.RepoName() {
+				continue
+			}
+		}
+		repoType, _ := configuredRepo["type"].(string)
 		switch repoType {
 		case "file":
 			fmt.Printf("Copying local file/directory for repo: %s\n", name)
-			if err := copyLocalRepo(repo["loc"].(string), "./docker_context/data/"+name); err != nil {
+			if err := copyLocalRepo(configuredRepo["loc"].(string), "./docker_context/data/"+name); err != nil {
 				return fmt.Errorf("failed to copy local repo: %w", err)
 			}
-			repo["type"] = "file"
-			repo["loc"] = "/docker/repos/" + name
-			repo["description"] = ""
+			configuredRepo["type"] = "file"
+			configuredRepo["loc"] = "/docker/repos/" + name
+			configuredRepo["description"] = ""
 		case "http":
 			fmt.Printf("Downloading HTTP repo for: %s\n", name)
-			if err := pullRemoteRepo(repo["loc"].(string), "./docker_context/data/"+name); err != nil {
+			if err := pullRemoteRepo(configuredRepo["loc"].(string), "./docker_context/data/"+name); err != nil {
 				return fmt.Errorf("failed to pull remote repo: %w", err)
 			}
-			repo["type"] = "file"
-			repo["loc"] = "/docker/repos/" + name
-			repo["description"] = ""
+			configuredRepo["type"] = "file"
+			configuredRepo["loc"] = "/docker/repos/" + name
+			configuredRepo["description"] = ""
 		case "s3":
 			fmt.Printf("Downloading from s3 bucket for repo: %s\n", name)
 
-			bucket, ok := repo["aws_bucket"].(string)
+			bucket, ok := configuredRepo["aws_bucket"].(string)
 			if !ok {
 				return fmt.Errorf("missing AWS bucket name for repo: %s", name)
 			}
-			region, ok := repo["aws_region"].(string)
+			region, ok := configuredRepo["aws_region"].(string)
 			if !ok {
 				return fmt.Errorf("missing AWS region for repo: %s", name)
 			}
-			accesskey, ok := repo["aws_access_key_id"].(string)
+			accesskey, ok := configuredRepo["aws_access_key_id"].(string)
 			if !ok {
 				return fmt.Errorf("missing AWS access key ID for repo: %s", name)
 			}
-			secret, ok := repo["aws_secret_access_key"].(string)
+			secret, ok := configuredRepo["aws_secret_access_key"].(string)
 			if !ok {
 				return fmt.Errorf("missing AWS secret access key for repo: %s", name)
 			}
-			endpoint, ok := repo["aws_endpoint"].(string)
+			endpoint, ok := configuredRepo["aws_endpoint"].(string)
 			if !ok {
 				return fmt.Errorf("missing AWS endpoint for repo: %s", name)
 			}
@@ -142,6 +147,7 @@ func CreateDockerImage(ctx context.Context, repo model.RepoSpec, imageTag string
 
 	fmt.Println("Building Docker image")
 	buildCmd := exec.Command("docker", buildCmdArgs...)
+	buildCmd.Env = append(os.Environ(), "DOCKER_BUILDKIT=1")
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
 	if err := buildCmd.Run(); err != nil {
