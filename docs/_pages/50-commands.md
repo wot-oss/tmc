@@ -112,5 +112,14 @@ in `.tmc` folder under file repository's root. If you do want to store some othe
 under the repo's root, you should add corresponding lines to `.tmcignore`. It has the same pattern format as
 [`.gitignore`][2], but the paths are always relative to repo's root, instead of to directory where `.tmcignore` resides.
 
+## `docker`
+The `tmc docker` command creates a docker image containing your current TMC configuration. It packages all configured repositories into a single docker image.
+This command allows users to:
+- share complete TMC setup as a containerized application
+- deploy consistent TMC configurations across different environments
+- create portable snapshots of repository configurations
+- version TMC configurations using docker image labels
+The output TAR file can be loaded into docker using `docker load -i <output-tar>`
+
 [1]: ./workflows#publish-a-catalog-to-a-git-forge
 [2]: https://git-scm.com/docs/gitignore#_pattern_format
