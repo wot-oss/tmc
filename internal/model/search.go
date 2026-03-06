@@ -173,9 +173,9 @@ func (sr *SearchResult) FilterByQuery(query, indexPath string) error {
 		var newEntries []FoundEntry
 		for _, entry := range sr.Entries {
 			var newVersions []FoundVersion
-			for _, version := range entry.Versions {
-				if matcher(version) {
-					newVersions = append(newVersions, version)
+			for i := range entry.Versions {
+				if matcher(&entry.Versions[i]) {
+					newVersions = append(newVersions, entry.Versions[i])
 				}
 			}
 			if len(newVersions) > 0 {
@@ -188,7 +188,56 @@ func (sr *SearchResult) FilterByQuery(query, indexPath string) error {
 	return nil
 }
 
-func getMatcherByBleveSearch(query, indexPath string) (func(e FoundVersion) bool, error) {
+func extractMPNFromTMID(tmid string) string {
+	parts := strings.Split(tmid, "/")
+	if len(parts) >= 3 {
+		return parts[2]
+	}
+	return tmid
+}
+
+func matchesMpnPattern(query, mpnPattern string) bool {
+	queryIdx := 0
+	patternIdx := 0
+	query = strings.ToLower(query)
+	mpnPattern = strings.ToLower(mpnPattern)
+
+	for patternIdx < len(mpnPattern) {
+		if patternIdx+1 < len(mpnPattern) && mpnPattern[patternIdx:patternIdx+2] == "{{" {
+			closeIdx := strings.Index(mpnPattern[patternIdx:], "}}")
+			if queryIdx >= len(query) {
+				return false
+			}
+			queryIdx++
+			patternIdx += closeIdx + 2
+		} else if patternIdx+1 < len(mpnPattern) && mpnPattern[patternIdx:patternIdx+2] == "__" {
+			closeIdx := strings.Index(mpnPattern[patternIdx+2:], "__")
+			if closeIdx != -1 {
+				if queryIdx >= len(query) {
+					return false
+				}
+				queryIdx++
+				patternIdx += closeIdx + 4
+			} else {
+				if queryIdx >= len(query) || query[queryIdx] != mpnPattern[patternIdx] {
+					return false
+				}
+				queryIdx++
+				patternIdx++
+			}
+		} else {
+			if queryIdx >= len(query) || query[queryIdx] != mpnPattern[patternIdx] {
+				return false
+			}
+			queryIdx++
+			patternIdx++
+		}
+	}
+	match := queryIdx == len(query)
+	return match
+}
+
+func getMatcherByBleveSearch(query, indexPath string) (func(e *FoundVersion) bool, error) {
 	_, err := os.Stat(indexPath)
 	if err != nil {
 		return nil, ErrSearchIndexNotFound
@@ -206,19 +255,35 @@ func getMatcherByBleveSearch(query, indexPath string) (func(e FoundVersion) bool
 		if err != nil {
 			return nil, fmt.Errorf("error in content search: %w", err)
 		}
-
 		scores := make(map[string]*search.DocumentMatch)
+		var matchingPatterns []string
+
 		for _, hit := range sr.Hits {
 			scores[hit.ID] = hit
 		}
 
-		matcher := func(v FoundVersion) bool {
-			if sr.Hits.Len() == 0 {
+		allDocsQuery := bleve.NewWildcardQuery("*")
+		allDocsReq := bleve.NewSearchRequestOptions(allDocsQuery, 100000, 0, false)
+		patternSr, _ := bleveIdx.Search(allDocsReq)
+		if patternSr != nil {
+			for _, hit := range patternSr.Hits {
+				if _, alreadyInScores := scores[hit.ID]; !alreadyInScores {
+					mpn := extractMPNFromTMID(hit.ID)
+					matches := matchesMpnPattern(query, mpn)
+					if matches {
+						matchingPatterns = append(matchingPatterns, hit.ID)
+					}
+				}
+			}
+		}
+
+		matcher := func(v *FoundVersion) bool {
+			if len(scores) == 0 && len(matchingPatterns) == 0 {
 				return false
 			}
 			if hit, ok := scores[v.TMID]; ok {
 				var locs []string
-				for field, _ := range hit.Locations {
+				for field := range hit.Locations {
 					locs = append(locs, field)
 				}
 				slices.Sort(locs)
@@ -227,6 +292,15 @@ func getMatcherByBleveSearch(query, indexPath string) (func(e FoundVersion) bool
 					Locations: locs,
 				}
 				return true
+			}
+			for _, pattern := range matchingPatterns {
+				if v.ExternalID == pattern || v.TMID == pattern {
+					v.SearchMatch = &SearchMatch{
+						Score:     -1, //pattern match, not from bleve
+						Locations: []string{"mpn"},
+					}
+					return true
+				}
 			}
 			return false
 		}

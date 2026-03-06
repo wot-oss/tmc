@@ -207,6 +207,7 @@ var (
 	removableChars   = regexp.MustCompile(`[^\[a-zA-Z0-9-]`)
 	replaceableChars = regexp.MustCompile(`[ &_=+:/]`)
 	dashes           = regexp.MustCompile(`[\-]+`)
+	template         = false
 
 	accents = map[rune]string{
 		'à': "a",
@@ -259,9 +260,23 @@ func SanitizeName(name string) string {
 	name = strings.ToLower(name)
 	name = replaceableChars.ReplaceAllString(name, "-")
 	name = sanitizeAccents(name)
-	name = removableChars.ReplaceAllString(name, "")
+	if !template {
+		name = removableChars.ReplaceAllString(name, "")
+	} else {
+		re := regexp.MustCompile(`\{\{.*?\}\}`)
+		name = re.ReplaceAllString(name, "?")
+		template = false
+	}
 	name = dashes.ReplaceAllString(name, "-")
+	fmt.Printf("Sanitized name: %s\n", name)
 	return name
+}
+
+func SanitizeTemplate(name string) string {
+	removableCharsWithException := regexp.MustCompile(`[^\[a-zA-Z0-9-{}]`)
+	name = removableCharsWithException.ReplaceAllString(name, "")
+	template = true
+	return SanitizeName(name)
 }
 
 func sanitizeAccents(s string) string {

@@ -27,7 +27,7 @@ func NewTMID(author, manufacturer, mpn, optPath string, version TMVersion) TMID 
 	for i, p := range optPathParts {
 		optPathParts[i] = utils.SanitizeName(p)
 	}
-	parts := []string{utils.SanitizeName(author), utils.SanitizeName(manufacturer), utils.SanitizeName(mpn)}
+	parts := []string{utils.SanitizeName(author), utils.SanitizeName(manufacturer), mpn}
 	parts = append(parts, optPathParts...)
 	name := JoinSkippingEmpty(parts, "/")
 	id := TMID{

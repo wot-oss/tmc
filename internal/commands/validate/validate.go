@@ -4,6 +4,8 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -89,6 +91,7 @@ func shouldTryModbus(raw []byte) bool {
 }
 
 func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) {
+	fmt.Println("Validating thing model as tmc importable")
 	err := tmcMandatoryValidator.Validate(parsed)
 	if err != nil {
 		return nil, err
@@ -100,13 +103,19 @@ func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) 
 	}
 	tm.Author.Name = utils.SanitizeName(tm.Author.Name)
 	tm.Manufacturer.Name = utils.SanitizeName(tm.Manufacturer.Name)
-	tm.Mpn = utils.SanitizeName(tm.Mpn)
+	templatePattern := regexp.MustCompile(`\{\{.+?\}\}`)
+	if !templatePattern.MatchString(tm.Mpn) {
+		tm.Mpn = utils.SanitizeName(tm.Mpn)
+	} else {
+		tm.Mpn = utils.SanitizeTemplate(tm.Mpn)
+	}
 	return tm, nil
 }
 
 // ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.
 // Returns parsed *model.ThingModel, where the author name, manufacturer name, and mpn have been sanitized for use in filenames
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
+	fmt.Println("Validating thing model()")
 	var parsed any
 	err := json.Unmarshal(raw, &parsed)
 	if err != nil {
