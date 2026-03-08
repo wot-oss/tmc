@@ -263,8 +263,8 @@ func SanitizeName(name string) string {
 	if !template {
 		name = removableChars.ReplaceAllString(name, "")
 	} else {
-		re := regexp.MustCompile(`\{\{.*?\}\}`)
-		name = re.ReplaceAllString(name, "?")
+		name = strings.ReplaceAll(name, "{", "_")
+		name = strings.ReplaceAll(name, "}", "_")
 		template = false
 	}
 	name = dashes.ReplaceAllString(name, "-")
