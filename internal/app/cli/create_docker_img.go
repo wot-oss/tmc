@@ -147,7 +147,15 @@ func CreateDockerImage(ctx context.Context, repo *model.RepoSpec, imageTag strin
 
 	fmt.Println("Building Docker image")
 	buildCmd := exec.Command("docker", buildCmdArgs...)
-	buildCmd.Env = append(os.Environ(), "DOCKER_BUILDKIT=0")
+
+	var cleanEnv []string
+	for _, env := range os.Environ() {
+		if !strings.HasPrefix(env, "DOCKER_BUILDKIT=") {
+			cleanEnv = append(cleanEnv, env)
+		}
+	}
+	buildCmd.Env = append(cleanEnv, "DOCKER_BUILDKIT=0")
+
 	buildCmd.Stdout = os.Stdout
 	buildCmd.Stderr = os.Stderr
 	if err := buildCmd.Run(); err != nil {
