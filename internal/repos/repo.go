@@ -600,7 +600,7 @@ func UpdateRepoIndex(ctx context.Context, repo Repo) error {
 				continue
 			}
 			// fetch document
-			id, thing, err := repo.Fetch(ctx, strings.ReplaceAll(version.TMID, "?", "__x__"))
+			id, thing, err := repo.Fetch(ctx, version.TMID)
 			_ = id
 			if err != nil {
 				log.Warn("can't fetch TM", "error", err)

@@ -64,8 +64,7 @@ func (f *FileRepo) Import(ctx context.Context, id model.TMID, raw []byte, opts I
 		err := fmt.Errorf("nothing to write for id %v", id)
 		return ImportResultFromError(err)
 	}
-	idS := strings.ReplaceAll(id.String(), "?", "__x__")
-	//idS := id.String()
+	idS := id.String()
 	fullPath, dir, _ := f.filenames(idS)
 	err := os.MkdirAll(dir, defaultDirPermissions)
 	if err != nil {
@@ -693,9 +692,6 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 			manufacturers = append(manufacturers, d.Manufacturer.Name)
 		}
 		if !slices.Contains(mpns, d.Mpn) {
-			if strings.Contains(d.Mpn, "?") {
-				d.Mpn = strings.ReplaceAll(d.Mpn, "?", ".")
-			}
 			mpns = append(mpns, d.Mpn)
 		}
 	}
@@ -746,8 +742,8 @@ func (f *FileRepo) indexUpdaterForIds(ids ...string) indexUpdater {
 					})
 				} else if id.Name != "" {
 					newNames = append(newNames, id.Name)
-					updatedAttContainers[model.NewTMIDAttachmentContainerRef(strings.ReplaceAll(id.String(), "?", "__x__"))] = struct{}{}
-					updatedAttContainers[model.NewTMNameAttachmentContainerRef(strings.ReplaceAll(id.Name, "?", "__x__"))] = struct{}{}
+					updatedAttContainers[model.NewTMIDAttachmentContainerRef(id.String())] = struct{}{}
+					updatedAttContainers[model.NewTMNameAttachmentContainerRef(id.Name)] = struct{}{}
 				}
 			}
 		}
@@ -825,7 +821,7 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 		if upd {
 			fileCount++
 			names = append(names, id.Name)
-			updatedAttContainers[model.NewTMIDAttachmentContainerRef(strings.ReplaceAll(id.String(), "?", "__x__"))] = struct{}{}
+			updatedAttContainers[model.NewTMIDAttachmentContainerRef(id.String())] = struct{}{}
 			updatedAttContainers[model.NewTMNameAttachmentContainerRef(id.Name)] = struct{}{}
 		}
 		return nil
@@ -857,8 +853,6 @@ func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRe
 			a := model.Attachment{Name: na, MediaType: mediaType}
 			atts = append(atts, a)
 		}
-		ref.TMID = strings.ReplaceAll(ref.TMID, "__x__", "?")
-		ref.TMName = strings.ReplaceAll(ref.TMName, "__x__", "?")
 
 		err = newIndex.InsertAttachments(ref, atts...)
 		if err != nil {

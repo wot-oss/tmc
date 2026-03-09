@@ -268,7 +268,6 @@ func SanitizeName(name string) string {
 		template = false
 	}
 	name = dashes.ReplaceAllString(name, "-")
-	fmt.Printf("Sanitized name: %s\n", name)
 	return name
 }
 

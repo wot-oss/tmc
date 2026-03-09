@@ -4,7 +4,6 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -91,7 +90,6 @@ func shouldTryModbus(raw []byte) bool {
 }
 
 func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) {
-	fmt.Println("Validating thing model as tmc importable")
 	err := tmcMandatoryValidator.Validate(parsed)
 	if err != nil {
 		return nil, err
@@ -115,7 +113,6 @@ func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) 
 // ValidateThingModel validates the presence of the mandatory fields in the TM to be imported.
 // Returns parsed *model.ThingModel, where the author name, manufacturer name, and mpn have been sanitized for use in filenames
 func ValidateThingModel(raw []byte) (*model.ThingModel, error) {
-	fmt.Println("Validating thing model()")
 	var parsed any
 	err := json.Unmarshal(raw, &parsed)
 	if err != nil {
