@@ -138,7 +138,6 @@ func CreateDockerImage(ctx context.Context, repo *model.RepoSpec, imageTag strin
 	}
 	buildCmdArgs := []string{
 		"build",
-		"--progress=plain",
 		"--no-cache",
 		"-t", imageTag,
 	}
