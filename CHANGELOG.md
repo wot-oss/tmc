@@ -4,6 +4,7 @@
 
 ### Added
 
+- `docker` command to build a docker image for local deployment
 - REST API: jwt authentication based on JWT scopes array
 - REST API: jwt authentication default scopes for each token can be defined in a separate file using `--defaultScopesPath` flag
 - REST API: pagination for inventory
