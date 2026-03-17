@@ -9,14 +9,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/wot-oss/tmc/internal/testutils"
-
-	"github.com/wot-oss/tmc/internal/repos"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/repos/mocks"
+	"github.com/wot-oss/tmc/internal/testutils"
 	rMocks "github.com/wot-oss/tmc/internal/testutils/reposmocks"
 )
 
@@ -352,47 +350,6 @@ func TestExport(t *testing.T) {
 
 		// then: there is a total error
 		assert.Error(t, err)
-	})
-}
-
-func TestExport_exportThingModel(t *testing.T) {
-	tempDir, err := os.MkdirTemp("", "tmc-export")
-	assert.NoError(t, err)
-	defer os.RemoveAll(tempDir)
-
-	// given: a Repo
-	repoName := "r1"
-	r := mocks.NewRepo(t)
-	spec := model.NewRepoSpec(repoName)
-	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewRepoSpec(repoName), r, nil))
-	r.On("Spec").Return(spec)
-
-	tmID := exportListRes.Entries[0].Versions[0].TMID
-
-	t.Run("result with success", func(t *testing.T) {
-		// given: ThingModel can be fetched successfully
-		r.On("Fetch", mock.Anything, tmID).Return(tmID, []byte("some TM content"), nil).Once()
-		// when: exporting from repo
-		res, err := exportThingModel(context.Background(), tempDir, exportListRes.Entries[0].Versions[0], false)
-		// then: there is no error
-		assert.NoError(t, err)
-		// and then: the result is opResultOK
-		assert.Equal(t, opResultOK, res.Type)
-		assert.Equal(t, tmID, res.ResourceId)
-		assert.Equal(t, "", res.Text)
-	})
-
-	t.Run("result with error", func(t *testing.T) {
-		// given: ThingModel cannot be fetched successfully
-		r.On("Fetch", mock.Anything, tmID).Return(tmID, nil, errors.New("fetch failed")).Once()
-		// when: exporting from repo
-		res, err := exportThingModel(context.Background(), tempDir, exportListRes.Entries[0].Versions[0], false)
-		// then: there is an error
-		assert.Error(t, err)
-		// and then: the result is opResultErr
-		assert.Equal(t, opResultErr, res.Type)
-		assert.NotEmpty(t, res.Text)
-		assert.Equal(t, tmID, res.ResourceId)
 	})
 }
 

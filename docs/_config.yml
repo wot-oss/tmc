@@ -28,6 +28,7 @@ url: "https://wot-oss.github.io" # the base hostname & protocol for your site, e
 # Build settings
 #theme: minima
 remote_theme: sighingnow/jekyll-gitbook
+syntax_highlighter_style: github
 plugins:
   - jekyll-feed
 

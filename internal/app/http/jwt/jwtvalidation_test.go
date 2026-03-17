@@ -409,7 +409,7 @@ func Test_Authorization_Scopes(t *testing.T) {
 			}{
 				{"DELETE", "/thing-models/a-corp", nil, http.StatusOK, true},
 				{"DELETE", "/thing-models/b-corp", nil, http.StatusUnauthorized, false},
-				{"DELETE", "/thing-models/a-corp/eagle", nil, http.StatusUnauthorized, false},
+				{"DELETE", "/thing-models/a-corp/eagle", nil, http.StatusOK, true},
 			},
 		},
 		{

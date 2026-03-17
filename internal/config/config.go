@@ -20,7 +20,9 @@ const (
 	KeyCorsMaxAge           = "corsMaxAge"
 	KeyJWTValidation        = "jwtValidation"
 	KeyJWTServiceID         = "jwtServiceID"
+	KeyJWTScopesPrefix      = "jwtScopesPrefix"
 	KeyJWKSURL              = "jwksURL"
+	KeyDefaultScopes        = "defaultScopesPath"
 	KeyColumnWidth          = "columnWidth"
 	EnvPrefix               = "tmc"
 	LogLevelOff             = "off"
@@ -30,8 +32,10 @@ const (
 )
 
 var ConfigDir string
+var DefaultScopesFile string
 
 const DefaultConfigDir = "~/.tm-catalog"
+const DefaultScopesPath = ""
 
 func init() {
 	viper.SetDefault(KeyLogLevel, LogLevelOff)
@@ -55,8 +59,10 @@ func init() {
 	_ = viper.BindEnv(KeyCorsMaxAge)           // env variable name = tmc_corsmaxage
 	_ = viper.BindEnv(KeyJWTValidation)        // env variable name = tmc_jwtvalidation
 	_ = viper.BindEnv(KeyJWTServiceID)         // env variable name = tmc_jwtvalidation
+	_ = viper.BindEnv(KeyJWTScopesPrefix)      // env variable name = tmc_jwtScopesPrefix
 	_ = viper.BindEnv(KeyJWKSURL)              // env variable name = tmc_jwksurl
 	_ = viper.BindEnv(KeyColumnWidth)          // env variable name = tmc_columnwidth
+	_ = viper.BindEnv(KeyDefaultScopes)
 }
 
 func ReadInConfig() {
@@ -80,6 +86,15 @@ func ReadInConfig() {
 			}
 		}
 	}
+	wlPath := viper.GetString(KeyDefaultScopes)
+	if wlPath == "" {
+		wlPath = DefaultScopesPath
+	}
+	wlPath, err = utils.ExpandHome(wlPath)
+	if err != nil {
+		panic(err)
+	}
+	DefaultScopesFile = wlPath
 }
 
 func Save(key string, data any) error {

@@ -8,9 +8,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
+	"github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -20,6 +22,8 @@ import (
 
 var jwksKeyFunc jwt.Keyfunc
 var jwtServiceID string
+var scopesFromWhitelist []string
+var scopesPrefix string
 
 // GetMiddleware starts a go routine that periodically fetches the JWKS
 // key set and returns a middleware that uses that keyset to validate a
@@ -27,6 +31,23 @@ var jwtServiceID string
 func GetMiddleware(opts JWTValidationOpts) server.MiddlewareFunc {
 	jwksKeyFunc = startJWKSFetch(opts).Keyfunc
 	jwtServiceID = opts.JWTServiceID
+	if opts.ScopesPrefix != "" {
+		scopesPrefix = opts.ScopesPrefix + "."
+	} else {
+		scopesPrefix = ""
+	}
+	if err := auth.InitializeAccessControl(opts.WhitelistFile); err != nil {
+		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to initialize access control", "error", err)
+	}
+	whitelistContent, err := os.ReadFile(opts.WhitelistFile)
+	if err != nil {
+		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to read whitelist file", "error", err)
+	}
+	scopes, err := auth.LoadScopesFromJSON(whitelistContent)
+	if err != nil {
+		utils.GetLogger(context.Background(), "jwt.validation.init").Warn("failed to load scopes from whitelist", "error", err)
+	}
+	scopesFromWhitelist = scopes.AllowedScopes
 	return jwtValidationMiddleware
 }
 
@@ -145,6 +166,9 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" || pathParts[0] == "mpns" || pathParts[0] == ".completions" {
 		return true, nil
 	}
+	if len(scopesFromWhitelist) > 0 {
+		scopes = append(scopes, scopesFromWhitelist...)
+	}
 
 	if len(pathParts) > 1 {
 		if pathParts[1] == ".latest" || pathParts[1] == ".tmName" {
@@ -159,10 +183,10 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	if pathParts[0] == "inventory" && r.Method == "GET" {
 		var allowedNamespaces []string
 		for _, scope := range scopes {
-			if scope == "tmc.admin" {
+			if scope == scopesPrefix+"tmc.admin" {
 				return true, nil
 			}
-			if strings.HasPrefix(scope, "tmc.ns.") && strings.HasSuffix(scope, ".read") {
+			if strings.HasPrefix(scope, scopesPrefix+"tmc.ns.") && strings.HasSuffix(scope, ".read") {
 				parts := strings.Split(scope, ".")
 				if len(parts) >= 4 {
 					namespace := parts[2]
@@ -179,19 +203,19 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	}
 
 	for _, scope := range scopes {
-		if scope == "tmc.admin" {
+		if scope == scopesPrefix+"tmc.admin" {
 			return true, nil
 		}
-		if scope == "tmc.repos.read" && pathParts[0] == "repos" && r.Method == "GET" {
+		if scope == scopesPrefix+"tmc.repos.read" && pathParts[0] == "repos" && r.Method == "GET" {
 			return true, nil
 		}
-		if scope == "tmc.internal.read" && pathParts[0] == "info" && r.Method == "GET" {
+		if scope == scopesPrefix+"tmc.internal.read" && pathParts[0] == "info" && r.Method == "GET" {
 			return true, nil
 		}
-		if (scope == "tmc.health.read") && pathParts[0] == "healthz" && r.Method == "GET" {
+		if (scope == scopesPrefix+"tmc.health.read") && pathParts[0] == "healthz" && r.Method == "GET" {
 			return true, nil
 		}
-		if strings.HasPrefix(scope, "tmc.ns.") {
+		if strings.HasPrefix(scope, scopesPrefix+"tmc.ns.") {
 			parts := strings.Split(scope, ".")
 			if len(parts) >= 4 {
 				namespaceFromScope := parts[2]
@@ -208,7 +232,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 							panic(err)
 						}
 						fmt.Println(utils.SanitizeName(tm.Author.Name))
-						if strings.EqualFold(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope)) {
+						if strings.EqualFold(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*" {
 							fmt.Println(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope))
 							r.Body = io.NopCloser(bytes.NewReader(tmbody))
 							return true, nil
@@ -217,14 +241,14 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 						}
 					}
 				}
-				if strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") {
+				if (strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") {
 					if strings.HasSuffix(scope, ".read") && r.Method == "GET" {
 						return true, nil
 					} else if strings.HasSuffix(scope, ".write") && (r.Method == "POST" || r.Method == "PUT") {
 						return true, nil
 					} else if strings.HasSuffix(scope, "attachments.delete") && r.Method == "DELETE" && (pathParts[2] == ".attachments" || pathParts[3] == ".attachments") {
 						return true, nil
-					} else if strings.HasSuffix(scope, "thingmodels.delete") && r.Method == "DELETE" && pathParts[0] == "thing-models" && len(pathParts) == 2 {
+					} else if strings.HasSuffix(scope, "thingmodels.delete") && r.Method == "DELETE" && pathParts[0] == "thing-models" {
 						return true, nil
 					}
 				}

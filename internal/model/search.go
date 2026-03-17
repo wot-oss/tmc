@@ -25,6 +25,7 @@ var ErrSearchIndexNotFound = errors.New("search index not found. Use `tmc create
 type SearchResult struct {
 	LastUpdated time.Time
 	Entries     []FoundEntry
+	TotalCount  int
 }
 
 type FoundEntry struct {
