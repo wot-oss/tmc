@@ -52,6 +52,7 @@ const (
 	RepoConfDir               = ".tmc"
 	IndexFilename             = "tm-catalog.toc.json"
 	TmNamesFile               = "tmnames.txt"
+	TmAuthorsFile             = "authors.txt"
 	TmManufacturersFile       = "manufacturers.txt"
 	TmMpnsFile                = "mpns.txt"
 	TmIgnoreFile              = ".tmcignore"
@@ -568,7 +569,7 @@ func UpdateRepoIndex(ctx context.Context, repo Repo) error {
 	log := utils.GetLogger(ctx, "UpdateRepoIndex")
 	searchResult, err := repo.List(ctx, nil)
 	if err != nil {
-		os.Exit(1)
+		return fmt.Errorf("can't list repo: %w", err)
 	}
 	// try to open index, if it not there create a fresh one
 	indexPath := BleveIndexPath(repo)

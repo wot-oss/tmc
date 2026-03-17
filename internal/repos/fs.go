@@ -658,6 +658,7 @@ func makeAbs(dir string) (string, error) {
 
 func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
 	// Prepare data collection for logging stats
+	var authors []string
 	var manufacturers []string
 	var mpns []string
 	start := time.Now()
@@ -688,6 +689,9 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 		return nil, err
 	}
 	for _, d := range newIndex.Data {
+		if !slices.Contains(authors, d.Author.Name) {
+			authors = append(authors, d.Author.Name)
+		}
 		if !slices.Contains(manufacturers, d.Manufacturer.Name) {
 			manufacturers = append(manufacturers, d.Manufacturer.Name)
 		}
@@ -696,6 +700,10 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 		}
 	}
 	err = f.writeHelperTxtFile(names, TmNamesFile)
+	if err != nil {
+		return nil, err
+	}
+	err = f.writeHelperTxtFile(authors, TmAuthorsFile)
 	if err != nil {
 		return nil, err
 	}
