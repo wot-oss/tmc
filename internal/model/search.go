@@ -150,7 +150,6 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 		if !matchesProtocolFilter(filters.Protocol, entry) {
 			return true
 		}
-
 		return false
 	}
 	sr.Entries = slices.DeleteFunc(sr.Entries, func(entry FoundEntry) bool {

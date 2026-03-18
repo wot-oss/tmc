@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentListCmd = &cobra.Command{
-	Use:   "list <tm-name-or-id>",
+	Use:   "list <identifier> -t <type>",
 	Short: "List attachments",
 	Long:  `List attachments to given inventory TM name or id`,
 	Args:  cobra.ExactArgs(1),
@@ -31,8 +31,14 @@ var attachmentListCmd = &cobra.Command{
 func attachmentList(command *cobra.Command, args []string) {
 	spec := cmd.RepoSpecFromFlags(command)
 	format := command.Flag("format").Value.String()
+	attTypeStr := command.Flag("type").Value.String()
+	attType, err := parseAttachmentType(attTypeStr)
+	if err != nil {
+		cli.Stderrf("%v", err)
+		os.Exit(1)
+	}
 
-	err := cli.AttachmentList(context.Background(), spec, args[0], format)
+	err = cli.AttachmentList(context.Background(), spec, args[0], attType, format)
 	if err != nil {
 		cli.Stderrf("attachment list failed")
 		os.Exit(1)
@@ -42,5 +48,7 @@ func attachmentList(command *cobra.Command, args []string) {
 func init() {
 	cmd.AddRepoDisambiguatorFlags(attachmentListCmd)
 	cmd.AddOutputFormatFlag(attachmentListCmd)
+	attachmentListCmd.Flags().StringP("type", "t", "", "Type of attachment container: id, name, author, manufacturer")
+	attachmentListCmd.MarkFlagRequired("type")
 	attachmentCmd.AddCommand(attachmentListCmd)
 }

@@ -268,14 +268,17 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
 	err := f.checkRootValid()
 	if err != nil {
+		fmt.Println("Root invalid:", err)
 		return err
 	}
 	unlock, err := f.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
+		fmt.Println("Could not acquire index lock:", err)
 		return err
 	}
 
+	fmt.Println("Updating index...")
 	if len(ids) == 0 {
 		_, err = f.updateIndex(ctx, f.fullIndexRebuild)
 		return err
@@ -666,6 +669,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	oldNames := f.readNamesFile()
 	oldIndex, err := f.readIndex()
 	if err != nil {
+		fmt.Println("No existing index found, starting from empty index")
 		oldIndex = &model.Index{
 			Meta: model.IndexMeta{Created: time.Now()},
 			Data: []*model.IndexEntry{},
@@ -674,6 +678,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 
 	newIndex, names, fileCount, err := updater(ctx, oldIndex, oldNames)
 	if err != nil {
+		fmt.Println("Error while updating index:", err)
 		return nil, err
 	}
 
@@ -686,6 +691,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
 	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
 	if err != nil {
+		fmt.Println("Error while writing index:", err)
 		return nil, err
 	}
 	for _, d := range newIndex.Data {
