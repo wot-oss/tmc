@@ -4,13 +4,14 @@
 
 ### Added
 
+- `docker` command to build a docker image for local deployment
 - REST API: jwt authentication based on JWT scopes array
 - REST API: jwt authentication default scopes for each token can be defined in a separate file using `--defaultScopesPath` flag
 - REST API: pagination for inventory
 - REST API: POST `/repos/export` creates a zip for the specified repository
 - REST API: GET `/repos/export` to download archived repo
 - Added `filter.latest` parameter to REST API `/inventory` listing
-- generating `manufacturers.txt` and `mpns.txt` for improving static hosting (e.g. github, github pages)
+- generating `authors.txt`, `manufacturers.txt`, and `mpns.txt` for improving static hosting (e.g. github, github pages)
 - `jwtScopesPrefix` flag to set default prefix for scopes authentication
 
 ### Changed
