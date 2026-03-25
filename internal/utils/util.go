@@ -19,7 +19,7 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
-var TmcVersion = "n/a"
+var TmcVersion = "dev"
 
 func GetTmcVersion() string {
 	v, err := semver.NewVersion(TmcVersion)

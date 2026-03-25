@@ -171,8 +171,14 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 			return true
 		}
 
-		if !matchesMpnFilter(filters.Mpn, entry.Mpn) {
+		if !matchesFilter(filters.Mpn, entry.Mpn) {
 			return true
+		}
+
+		if (entry.Mpn != "" && strings.Contains(entry.Mpn, "{{")) && (len(filters.Mpn) > 0) {
+			if !matchesMpnFilter(filters.Mpn, entry.Mpn) {
+				return true
+			}
 		}
 
 		if !matchesProtocolFilter(filters.Protocol, entry) {

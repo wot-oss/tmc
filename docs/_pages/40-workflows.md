@@ -13,7 +13,7 @@ tmc <command> --help
 
 ## Create a Repository
 
-To create an empty repository named 'my-catalog' in the folder 'tm-catalog' under your user home directory, execute
+To create an empty repository named `my-catalog` in the folder `tm-catalog` under your user home directory, execute
 
 ```bash
 tmc repo add --type file my-catalog ~/tm-catalog
@@ -70,7 +70,7 @@ tmc import ./my-tms
 
 ### Attachments
 
-When importing a folder, the `import` command can be used with the `--with-attachments` flag to import attachments along with the TMs. An attachment is linked to a TM by placing it into a subfolder whose name exactly matches the TM's filename (including its extension). 
+When importing a folder, the `import` command can be used with the `--with-attachments` flag to import attachments along with the TMs. An attachment is linked to a TM by placing it into a subfolder whose name exactly matches the TM's filename (including its extension).
 For example:
 
 -  If your TM file is: `../example-catalog/.tmc/omniuser/omnicorp/senseall/v1.0.0-20241008124326-15af48381cf7.tm.json`
@@ -122,13 +122,13 @@ echo "*.lock" >> .gitignore
 To use the published catalog as a "http" repository on the consumer side, you have to use the URL, under which all files
 of the git repository can be retrieved by HTTP GET request by either appending their relative paths to the URL or
 substituting a placeholder with the relative path. This URL will differ between different git forges.
-For example, for GitHub, it has this form ```https://raw.githubusercontent.com/<group>/<repository>/refs/heads/main```,
+For example, for GitHub, it has this form `https://raw.githubusercontent.com/<group>/<repository>/refs/heads/main`,
 where you should substitute `<group>` and `<repository>` with actual names. For GitLab, you can use the REST API
 endpoint
 `https://gitlab.example.com/api/v4/projects/<project-id>/repository/files/{% raw %}{{ID}}{% endraw %}?ref=main`, where
 you replace `<project-id>` with the numeric id of the GitLab project.
 
-If the git repository is private, an access token needs to be configured using ```tmc remote set-auth```
+If the git repository is private, an access token needs to be configured using `tmc remote set-auth`
 
 This method has the advantage that the infrastructure of the forges is used and no custom infrastructure needs to be
 maintained by the creator. The downside is that any contribution has to go through a git workflow, which might not be an
@@ -143,12 +143,12 @@ tmc serve
 ```
 An OpenAPI description of the API [is available][3] for ease of integration.
 
-Once a catalog is exposed with `tmc serve`, it can be configured as a repository of type 'tmc' on other clients. Users
+Once a catalog is exposed with `tmc serve`, it can be configured as a repository of type `tmc` on other clients. Users
 can push to a hosted catalog using the REST API, without using git workflow and hosting can happen on the edge within a
 product.
 
-To make things easier, we build a ```tmc``` [container image][4] which runs the cli as a server. That image doesn't
-have any TMs inside it. A creator can then simply serve a 'file' or local repository, by mapping its directory
+To make things easier, we build a `tmc` [container image][4] which runs the cli as a server. That image doesn't
+have any TMs inside it. A creator can then simply serve a `file` or local repository, by mapping its directory
 or volume into the container as follows:
 
 ```bash
@@ -225,6 +225,19 @@ When the `--jwtValidation` flag is provided:
 ```json
 "scope":["tmc.ns.myNamespace.read","tmc.ns.myNamespace.write"]
 ```
+- Default Scopes Configuration: a set of default scopes can be defined in a separate JSON file, specified with the `--defaultScopesPath` flag. These scopes are automatically added to any user request, effectively extending the user's token scopes. This allows for defining baseline access that applies to all requests, regardless of the scopes present in the user's individual JWT.
+
+For example, a `default_scopes.json` file might look like this:
+```json
+{
+  "scopes": [
+    "tmc.ns.*.read",
+    "tmc.ns.omnicorp.write"
+  ]
+}
+```
+With this configuration, all users would implicitly gain `tmc.ns.*.read` (read access across all namespaces) and `tmc.ns.omnicorp.write` permissions, in addition to any scopes explicitly granted in their JWT. With a default configuration file, the catalog when run with `--jwtValidation` flag still requires a token, but the scopes array may be empty. In this case, the user's access will be limited solely to the endpoints defined in that default configuration file.
+- Additionally, the scope prefix can be configured by setting `--jwtScopesPrefix` flag. E.g., when set to `--jwtScopesPrefix "myScopePrefix"`, all scopes are expected to be `myScopePrefix.tmc.*`
 
 #### 4. Token Validation Details
 
@@ -241,9 +254,7 @@ The scope claim contains sufficient permissions for the requested endpoint.
 Requests without a valid Bearer token will result in an HTTP 401 Unauthorized error.
 
 #### 6. Scope Table
-
 <div style="overflow-x: auto; width: 100%;">
-
 <table style="border-collapse: collapse; width: 100%;">
   <thead>
     <tr>
@@ -310,7 +321,6 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
       <td>no</td>
       <td>no</td>
       <td>if tmID == namespace</td>
-      <td>no</td>
       <td>no</td>
       <td>no</td>
       <td>no</td>
@@ -412,10 +422,83 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
     </tr>
   </tbody>
 </table>
-
 </div>
 
-'*' can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
+`*` can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
+
+## Load Test Script
+
+### Overview
+
+`/resources/vegeta-load-tests.sh` script automates API load testing using [Vegeta](https://github.com/tsenart/vegeta). It fires configurable requests against one or more endpoints of a target TMC service, collects raw binary results, and generates a human-readable performance report. 
+
+---
+
+### Usage
+
+```bash
+./vegeta-load-tests.sh [OPTIONS]
+```
+
+### Options
+
+| Flag | Long Form | Description | Default |
+|------|-----------|-------------|---------|
+| `-r` | `--rate` | Request rate per second | `50` |
+| `-d` | `--duration` | Attack duration in seconds | `10` |
+| `-u` | `--url` | Base URL of the target service | `http://localhost:8080` |
+| `-w` | `--workers` | Number of concurrent Vegeta workers | `30` |
+| `-e` | `--endpoints` | Comma-separated list of endpoints to test | `inventory,repos,authors,manufacturers,mpns,healthz` |
+| `-t` | `--token` | Bearer token for authentication (optional) | *(none)* |
+| `-h` | `--help` | Display help message and exit | — |
+
+---
+
+### Examples
+
+**Basic run with defaults:**
+```bash
+./vegeta-load-tests.sh
+```
+
+**Custom rate, duration, and target URL:**
+```bash
+./vegeta-load-tests.sh -r 100 -d 20 -u http://my-tmc-service:8080
+```
+
+**Test specific endpoints only:**
+```bash
+./vegeta-load-tests.sh -e repos,authors -r 75 -d 30
+```
+
+**With Bearer token authentication:**
+```bash
+./vegeta-load-tests.sh -r 100 -d 20 -u http://my-tmc-service:8080 -t YOUR_BEARER_TOKEN
+```
+
+**Full example with all options:**
+```bash
+./vegeta-load-tests.sh \
+  -r 100 \
+  -d 20 \
+  -u http://my-tmc-service:8080 \
+  -w 50 \
+  -e inventory,repos,healthz \
+  -t YOUR_BEARER_TOKEN
+```
+
+---
+
+### Output
+
+After execution, all results are saved under the `tests/` directory:
+
+| File | Description |
+|------|-------------|
+| `tests/report_rate_<RATE>_workers_<WORKERS>.txt` | Human-readable summary report for all endpoints |
+| `tests/results_rate_<RATE>_workers_<WORKERS>_<endpoint>.bin` | Raw Vegeta binary results per endpoint |
+
+> **Note:** Ensure that [Vegeta](https://github.com/tsenart/vegeta) is installed and available in your `$PATH` before running the script
 
 [1]: https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json
 [2]: https://schema.org
