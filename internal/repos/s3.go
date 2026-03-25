@@ -544,6 +544,7 @@ func (s *S3Repo) getAttachmentsDir(ref model.AttachmentContainerRef) (string, er
 
 func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
 	// Prepare data collection for logging stats
+	var authors []string
 	var manufacturers []string
 	var mpns []string
 	start := time.Now()
@@ -573,6 +574,9 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.
 		return nil, err
 	}
 	for _, d := range newIndex.Data {
+		if !slices.Contains(authors, d.Author.Name) {
+			authors = append(authors, d.Author.Name)
+		}
 		if !slices.Contains(manufacturers, d.Manufacturer.Name) {
 			manufacturers = append(manufacturers, d.Manufacturer.Name)
 		}
@@ -581,6 +585,10 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.
 		}
 	}
 	err = s.writeHelperTxtFile(ctx, names, TmNamesFile)
+	if err != nil {
+		return nil, err
+	}
+	err = s.writeHelperTxtFile(ctx, authors, TmAuthorsFile)
 	if err != nil {
 		return nil, err
 	}
