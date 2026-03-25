@@ -103,6 +103,28 @@ func prepareIndex() *Index {
 					},
 				},
 			},
+			{
+				Name:         "aut1/man1/mpn321",
+				Manufacturer: SchemaManufacturer{"man1"},
+				Mpn:          "mpn3{{x}}1",
+				Author:       SchemaAuthor{"aut1"},
+				Versions: []*IndexVersion{
+					{
+						Description: "d5",
+						Version:     Version{"1.0.0"},
+						TMID:        "aut1/man1/mpn3/v1.0.0-20231023121314-abcd12345680.tm.json",
+						Digest:      "abcd12345680",
+						TimeStamp:   "20231023121314",
+					},
+					{
+						Description: "d6",
+						Version:     Version{"1.0.1"},
+						TMID:        "aut1/man1/mpn3/v1.0.1-20231024121314-abcd12345681.tm.json",
+						Digest:      "abcd12345681",
+						TimeStamp:   "20231024121314",
+					},
+				},
+			},
 		},
 	}
 	idx.Sort()

@@ -13,6 +13,7 @@
 - Added `filter.latest` parameter to REST API `/inventory` listing
 - generating `authors.txt`, `manufacturers.txt`, and `mpns.txt` for improving static hosting (e.g. github, github pages)
 - `jwtScopesPrefix` flag to set default prefix for scopes authentication
+- support for storing and searching/filtering TMs with MPN variations/placeholders
 
 ### Changed
 

@@ -861,7 +861,6 @@ func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRe
 			a := model.Attachment{Name: na, MediaType: mediaType}
 			atts = append(atts, a)
 		}
-
 		err = newIndex.InsertAttachments(ref, atts...)
 		if err != nil {
 			return err
