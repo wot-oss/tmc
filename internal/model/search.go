@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -124,6 +125,33 @@ type FilterOptions struct {
 	NameFilterType FilterType
 }
 
+func convertMpnPatternToRegex(pattern string) *regexp.Regexp {
+	escaped := regexp.QuoteMeta(pattern)
+	re := regexp.MustCompile(`\\\{\\\{[^}]+\\\}\\\}`)
+	regexPattern := re.ReplaceAllString(escaped, ".")
+	regexPattern = "^(?i)" + regexPattern + "$"
+	return regexp.MustCompile(regexPattern)
+}
+
+func matchesMpnFilter(filterMpn []string, entryMpn string) bool {
+	if strings.Contains(entryMpn, "{{") {
+		pattern := convertMpnPatternToRegex(entryMpn)
+		for _, mpn := range filterMpn {
+			if pattern.MatchString(mpn) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, mpn := range filterMpn {
+		if mpn == entryMpn {
+			return true
+		}
+	}
+	return false
+}
+
 // Filter deletes all entries from this SearchResult that don't match the filters
 func (sr *SearchResult) Filter(filters *Filters) error {
 	if filters == nil {
@@ -143,7 +171,7 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 			return true
 		}
 
-		if !matchesFilter(filters.Mpn, entry.Mpn) {
+		if !matchesMpnFilter(filters.Mpn, entry.Mpn) {
 			return true
 		}
 
