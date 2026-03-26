@@ -426,6 +426,80 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 
 `*` can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
 
+## Load Test Script
+
+### Overview
+
+`/resources/vegeta-load-tests.sh` script automates API load testing using [Vegeta](https://github.com/tsenart/vegeta). It fires configurable requests against one or more endpoints of a target TMC service, collects raw binary results, and generates a human-readable performance report. 
+
+---
+
+### Usage
+
+```bash
+./vegeta-load-tests.sh [OPTIONS]
+```
+
+### Options
+
+| Flag | Long Form | Description | Default |
+|------|-----------|-------------|---------|
+| `-r` | `--rate` | Request rate per second | `50` |
+| `-d` | `--duration` | Attack duration in seconds | `10` |
+| `-u` | `--url` | Base URL of the target service | `http://localhost:8080` |
+| `-w` | `--workers` | Number of concurrent Vegeta workers | `30` |
+| `-e` | `--endpoints` | Comma-separated list of endpoints to test | `inventory,repos,authors,manufacturers,mpns,healthz` |
+| `-t` | `--token` | Bearer token for authentication (optional) | *(none)* |
+| `-h` | `--help` | Display help message and exit | — |
+
+---
+
+### Examples
+
+**Basic run with defaults:**
+```bash
+./vegeta-load-tests.sh
+```
+
+**Custom rate, duration, and target URL:**
+```bash
+./vegeta-load-tests.sh -r 100 -d 20 -u http://my-tmc-service:8080
+```
+
+**Test specific endpoints only:**
+```bash
+./vegeta-load-tests.sh -e repos,authors -r 75 -d 30
+```
+
+**With Bearer token authentication:**
+```bash
+./vegeta-load-tests.sh -r 100 -d 20 -u http://my-tmc-service:8080 -t YOUR_BEARER_TOKEN
+```
+
+**Full example with all options:**
+```bash
+./vegeta-load-tests.sh \
+  -r 100 \
+  -d 20 \
+  -u http://my-tmc-service:8080 \
+  -w 50 \
+  -e inventory,repos,healthz \
+  -t YOUR_BEARER_TOKEN
+```
+
+---
+
+### Output
+
+After execution, all results are saved under the `tests/` directory:
+
+| File | Description |
+|------|-------------|
+| `tests/report_rate_<RATE>_workers_<WORKERS>.txt` | Human-readable summary report for all endpoints |
+| `tests/results_rate_<RATE>_workers_<WORKERS>_<endpoint>.bin` | Raw Vegeta binary results per endpoint |
+
+> **Note:** Ensure that [Vegeta](https://github.com/tsenart/vegeta) is installed and available in your `$PATH` before running the script
+
 [1]: https://github.com/w3c/wot-thing-description/blob/main/validation/tm-json-schema-validation.json
 [2]: https://schema.org
 [3]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
