@@ -153,6 +153,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - inventory
+      summary: Update index of the catalog
+      description: Updates the index of the catalog
+      operationId: updateInventory
+      parameters:
+        - $ref: '#/components/parameters/RepoConstraint'
+      responses:
+        '202':
+          description: Index update successfully triggered
+        '400':
+          description: Invalid filter or search parameter supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '502':
+          description: Upstream repository error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
   /inventory/{tmID}:
     get:
       tags:

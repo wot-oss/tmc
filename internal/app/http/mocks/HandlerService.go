@@ -589,6 +589,24 @@ func (_m *HandlerService) SearchInventory(ctx context.Context, repo string, quer
 	return r0, r1
 }
 
+// UpdateInventory provides a mock function with given fields: ctx, repo
+func (_m *HandlerService) UpdateInventory(ctx context.Context, repo string) error {
+	ret := _m.Called(ctx, repo)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateInventory")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, repo)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewHandlerService creates a new instance of HandlerService. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewHandlerService(t interface {

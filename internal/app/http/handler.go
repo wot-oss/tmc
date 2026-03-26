@@ -32,17 +32,30 @@ type TmcHandlerOptions struct {
 	JWTValidation  bool
 }
 
-type ExportJobStatus struct {
+type AsyncJobStatus struct {
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Error     string    `json:"error,omitempty"`
 }
 
+type AsyncJobType string
+
+const (
+	Export AsyncJobType = "export"
+	Index  AsyncJobType = "index"
+)
+
+type JobLock struct {
+	Export sync.Mutex
+	Index  sync.Mutex
+}
+
 type JobManager struct {
-	job               ExportJobStatus
-	activeJobLock     sync.Mutex
-	isExportingActive bool
+	job              map[AsyncJobType]AsyncJobStatus
+	activeJobLock    JobLock
+	isAsyncJobActive map[AsyncJobType]bool
+	jobType          AsyncJobType
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
@@ -57,12 +70,19 @@ func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *Tm
 
 func NewJobManager() *JobManager {
 	return &JobManager{
-		job: ExportJobStatus{
-			Status:    "idle",
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+		job: map[AsyncJobType]AsyncJobStatus{
+			Export: {
+				Status:    "idle",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			Index: {
+				Status:    "idle",
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
 		},
-		isExportingActive: false,
+		isAsyncJobActive: make(map[AsyncJobType]bool),
 	}
 }
 
@@ -159,6 +179,42 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv, page, pageSize)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+// GetInventory updates index of the catalog
+// (POST /inventory)
+func (h *TmcHandler) UpdateInventory(w http.ResponseWriter, r *http.Request, params server.UpdateInventoryParams) {
+	if !h.JobManager.TryAcquireAsyncJobLock(Index) {
+		currentJobStatus := h.JobManager.GetJob(Index)
+		err := NewConflictError(nil, "An indexing job is already in progress. Current status: %s", currentJobStatus.Status)
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	if params.Repo == nil {
+		h.JobManager.ReleaseAsyncJobLock(Index)
+		err := NewBadRequestError(nil, "missing required query parameter: repo")
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	go h.performUpdateIndexCatalogAsync(convertRepoName(params.Repo))
+	HandleJsonResponse(w, r, http.StatusAccepted, map[string]string{
+		"status":  "updating index",
+		"message": "Update index initiated.",
+	})
+}
+
+func (h *TmcHandler) performUpdateIndexCatalogAsync(repoName string) {
+	defer h.JobManager.ReleaseAsyncJobLock(Index)
+
+	h.JobManager.UpdateJobStatus(Index, "updating", "Currently updating the index...")
+	ctx := context.Background()
+	err := h.Service.UpdateInventory(ctx, repoName)
+	if err != nil {
+		h.JobManager.MarkJobFailed(Index, err.Error())
+		fmt.Println(fmt.Sprintf("Error during async index update: %v\n", err))
+		return
+	}
+	h.JobManager.UpdateJobStatus(Index, "completed", "Index update complete.")
 }
 
 func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
@@ -282,7 +338,7 @@ func (h *TmcHandler) GetThingModelById(w http.ResponseWriter, r *http.Request, i
 // ExportCatalog Export the entire catalog as a zip file
 // (GET /repos/export)
 func (h *TmcHandler) GetExportedCatalog(w http.ResponseWriter, r *http.Request) {
-	jobStatus := h.JobManager.GetJob()
+	jobStatus := h.JobManager.GetJob(Export)
 
 	if jobStatus.Status != "completed" {
 		err := NewConflictError(nil, "Exporting not yet complete or failed. Current status: %s", jobStatus.Status)
@@ -310,21 +366,21 @@ func (h *TmcHandler) GetExportedCatalog(w http.ResponseWriter, r *http.Request) 
 // ExportCatalog Export the entire catalog as a zip file
 // (POST /repos/export)
 func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, params server.ExportCatalogParams) {
-	if !h.JobManager.TryAcquireExportingLock() {
-		currentJobStatus := h.JobManager.GetJob()
+	if !h.JobManager.TryAcquireAsyncJobLock(Export) {
+		currentJobStatus := h.JobManager.GetJob(Export)
 		err := NewConflictError(nil, "An export job is already in progress. Current status: %s", currentJobStatus.Status)
 		HandleErrorResponse(w, r, err)
 		return
 	}
 	if params.Repo == nil {
-		h.JobManager.ReleaseExportingLock()
+		h.JobManager.ReleaseAsyncJobLock(Export)
 		err := NewBadRequestError(nil, "missing required query parameter: repo")
 		HandleErrorResponse(w, r, err)
 		return
 	}
 	_, err := h.Service.ListInventory(context.Background(), *params.Repo, nil, -1, -1)
 	if err != nil {
-		h.JobManager.ReleaseExportingLock()
+		h.JobManager.ReleaseAsyncJobLock(Export)
 		HandleErrorResponse(w, r, err)
 		return
 	}
@@ -338,19 +394,19 @@ func (h *TmcHandler) ExportCatalog(w http.ResponseWriter, r *http.Request, param
 }
 
 func (h *TmcHandler) performExportCatalogAsync(repoName string) {
-	defer h.JobManager.ReleaseExportingLock()
+	defer h.JobManager.ReleaseAsyncJobLock(Export)
 
-	h.JobManager.UpdateJobStatus("packing", "Currently packing the catalog...")
+	h.JobManager.UpdateJobStatus(Export, "packing", "Currently packing the catalog...")
 	ctx := context.Background()
 
 	data, err := h.Service.ExportCatalog(ctx, repoName)
 	if err != nil {
-		h.JobManager.MarkJobFailed(err.Error())
+		h.JobManager.MarkJobFailed(Export, err.Error())
 		fmt.Printf("Error during async export: %v\n", err)
 		return
 	}
 	h.zipData = data
-	h.JobManager.UpdateJobStatus("completed", "Export complete. Ready for download.")
+	h.JobManager.UpdateJobStatus(Export, "completed", "Export complete. Ready for download.")
 }
 
 // DeleteThingModelById Delete a Thing Model by ID
@@ -650,16 +706,21 @@ func getRelativeDepth(path, siblingPath string) int {
 	return d
 }
 
-func (jm *JobManager) TryAcquireExportingLock() bool {
-	jm.activeJobLock.Lock()
-	defer jm.activeJobLock.Unlock()
-
-	if jm.isExportingActive {
-		return false
+func (jm *JobManager) TryAcquireAsyncJobLock(jobType AsyncJobType) bool {
+	switch jobType {
+	case Export:
+		jm.activeJobLock.Export.Lock()
+		defer jm.activeJobLock.Export.Unlock()
+	case Index:
+		jm.activeJobLock.Index.Lock()
+		defer jm.activeJobLock.Index.Unlock()
 	}
 
-	jm.isExportingActive = true
-	jm.job = ExportJobStatus{
+	if jm.isAsyncJobActive[jobType] {
+		return false
+	}
+	jm.isAsyncJobActive[jobType] = true
+	jm.job[jobType] = AsyncJobStatus{
 		Status:    "pending",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -667,40 +728,64 @@ func (jm *JobManager) TryAcquireExportingLock() bool {
 	return true
 }
 
-func (jm *JobManager) ReleaseExportingLock() {
-	jm.activeJobLock.Lock()
-	defer jm.activeJobLock.Unlock()
-	jm.isExportingActive = false
+func (jm *JobManager) ReleaseAsyncJobLock(jobType AsyncJobType) {
+	switch jobType {
+	case Export:
+		jm.activeJobLock.Export.Lock()
+		defer jm.activeJobLock.Export.Unlock()
+	case Index:
+		jm.activeJobLock.Index.Lock()
+		defer jm.activeJobLock.Index.Unlock()
+	}
+	jm.isAsyncJobActive[jobType] = false
 }
 
-func (jm *JobManager) CreateJob() ExportJobStatus {
-	job := ExportJobStatus{
+func (jm *JobManager) CreateJob(jobType AsyncJobType) AsyncJobStatus {
+	job := AsyncJobStatus{
 		Status:    "pending",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	jm.job = job
+	jm.job[jobType] = job
 	return job
 }
 
-func (jm *JobManager) GetJob() ExportJobStatus {
-	jm.activeJobLock.Lock()
-	defer jm.activeJobLock.Unlock()
-	return jm.job
+func (jm *JobManager) GetJob(jobType AsyncJobType) AsyncJobStatus {
+	switch jobType {
+	case Export:
+		jm.activeJobLock.Export.Lock()
+		defer jm.activeJobLock.Export.Unlock()
+	case Index:
+		jm.activeJobLock.Index.Lock()
+		defer jm.activeJobLock.Index.Unlock()
+	}
+	return jm.job[jobType]
 }
 
-func (jm *JobManager) UpdateJobStatus(status, message string) {
-	jm.activeJobLock.Lock()
-	defer jm.activeJobLock.Unlock()
-	jm.job.Status = status
-	jm.job.UpdatedAt = time.Now()
-	jm.job.Error = ""
+func (jm *JobManager) UpdateJobStatus(jobType AsyncJobType, status, message string) {
+	switch jobType {
+	case Export:
+		jm.activeJobLock.Export.Lock()
+		defer jm.activeJobLock.Export.Unlock()
+	case Index:
+		jm.activeJobLock.Index.Lock()
+		defer jm.activeJobLock.Index.Unlock()
+	}
+	job := jm.job[jobType]
+	job.Status = status
+	job.UpdatedAt = time.Now()
+	job.Error = ""
+	jm.job[jobType] = job
 }
 
-func (jm *JobManager) MarkJobFailed(errorMessage string) {
-	jm.activeJobLock.Lock()
-	defer jm.activeJobLock.Unlock()
-	jm.job.Status = "failed"
-	jm.job.Error = errorMessage
-	jm.job.UpdatedAt = time.Now()
+func (jm *JobManager) MarkJobFailed(jobType AsyncJobType, errorMessage string) {
+	if jobType == Export {
+		jm.activeJobLock.Export.Lock()
+		defer jm.activeJobLock.Export.Unlock()
+	}
+	job := jm.job[jobType]
+	job.Status = "failed"
+	job.Error = errorMessage
+	job.UpdatedAt = time.Now()
+	jm.job[jobType] = job
 }
