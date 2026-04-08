@@ -109,6 +109,16 @@ tmc fetch siemens/siemens/poc1000:v1
 tmc fetch siemens/siemens/poc1000:v1.0.1
 ```
 
+### MPN variations
+When multiple product variants share the same Thing Model but differ only in certain characters of their MPN (e.g., mounting style, housing type), you can use placeholder syntax.
+
+```json
+"schema:mpn": "5SL6{{x1}}{{x2}}{{x3}}{{x4}}ME"
+```
+
+matches `5SL64327ME`, `5SL61111ME`, `5SL6abcdME`.
+Each {{placeholder}} matches exactly one character. Matching is case-insensitive and works with search and with filters: `--filter.mpn 5SL61111ME`
+
 ## Publish a Catalog to a Git Forge
 
 Initialize the directory where your file repository is located as a git repository and use the git workflows to commit and push it to

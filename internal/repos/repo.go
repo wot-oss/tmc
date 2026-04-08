@@ -584,12 +584,26 @@ func UpdateRepoIndex(ctx context.Context, repo Repo) error {
 		}
 	}
 
+	indexMasked, err := bleve.Open(indexPath + "_masked")
+
+	if err != nil {
+		_ = os.MkdirAll(filepath.Dir(indexPath), 0755)
+		// open a new index
+		indexMasked, err = bleve.New(indexPath+"_masked", bleve.NewIndexMapping())
+		if err != nil {
+			return err
+		}
+	}
+
 	defer index.Close()
+	defer indexMasked.Close()
 
 	contents := searchResult.Entries
-	var batch *bleve.Batch
+	var mainBatch *bleve.Batch
+	var maskedBatch *bleve.Batch
 
 	indexedCount, batchCount, totalCount := 0, 0, 0
+	maskedIndexedCount, maskedBatchCount := 0, 0
 
 	for _, value := range contents {
 		for _, version := range value.Versions {
@@ -614,30 +628,63 @@ func UpdateRepoIndex(ctx context.Context, repo Repo) error {
 				continue
 			}
 
-			if batch == nil {
-				batch = index.NewBatch()
+			if mainBatch == nil {
+				mainBatch = index.NewBatch()
 			}
-			var idxErr error
-			idxErr = batch.Index(version.TMID, data)
-			if idxErr != nil {
-				return fmt.Errorf("can't index TM: %w", idxErr)
+			if maskedBatch == nil {
+				maskedBatch = indexMasked.NewBatch()
 			}
-			batchCount++
-			indexedCount++
-			if batchCount >= maxIndexingBatchSize {
-				batchCount = 0
-				err = index.Batch(batch)
-				if err != nil {
-					return fmt.Errorf("can't run batch: %w", err)
+			var maskPattern = regexp.MustCompile(`__\w+__`)
+			if !maskPattern.MatchString(version.TMID) {
+				if mainBatch == nil {
+					mainBatch = index.NewBatch()
 				}
-				batch = nil
+
+				idxErr := mainBatch.Index(version.TMID, data)
+				if idxErr != nil {
+					return fmt.Errorf("can't index TM to main: %w", idxErr)
+				}
+				batchCount++
+				indexedCount++
+				if batchCount >= maxIndexingBatchSize {
+					batchCount = 0
+					err = index.Batch(mainBatch)
+					if err != nil {
+						return fmt.Errorf("can't run main batch: %w", err)
+					}
+					mainBatch = nil
+				}
+			} else {
+				if maskedBatch == nil {
+					maskedBatch = indexMasked.NewBatch()
+				}
+				idxErr := maskedBatch.Index(version.TMID, data)
+				if idxErr != nil {
+					return fmt.Errorf("can't index TM to masked: %w", idxErr)
+				}
+				maskedBatchCount++
+				maskedIndexedCount++
+				if maskedBatchCount >= maxIndexingBatchSize {
+					maskedBatchCount = 0
+					err = indexMasked.Batch(maskedBatch)
+					if err != nil {
+						return fmt.Errorf("can't run masked batch: %w", err)
+					}
+					maskedBatch = nil
+				}
 			}
 		}
 	}
-	if batch != nil {
-		err = index.Batch(batch)
+	if mainBatch != nil {
+		err = index.Batch(mainBatch)
 		if err != nil {
-			return fmt.Errorf("can't run batch: %w", err)
+			return fmt.Errorf("can't run main batch: %w", err)
+		}
+	}
+	if maskedBatch != nil {
+		err = indexMasked.Batch(maskedBatch)
+		if err != nil {
+			return fmt.Errorf("can't run masked batch: %w", err)
 		}
 	}
 	lu := searchResult.LastUpdated.Format(time.RFC3339Nano)

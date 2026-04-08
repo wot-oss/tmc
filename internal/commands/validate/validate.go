@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"regexp"
 	"strings"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
@@ -100,7 +101,12 @@ func ValidateAsTmcImportable(raw []byte, parsed any) (*model.ThingModel, error) 
 	}
 	tm.Author.Name = utils.SanitizeName(tm.Author.Name)
 	tm.Manufacturer.Name = utils.SanitizeName(tm.Manufacturer.Name)
-	tm.Mpn = utils.SanitizeName(tm.Mpn)
+	templatePattern := regexp.MustCompile(`\{\{.+?\}\}`)
+	if !templatePattern.MatchString(tm.Mpn) {
+		tm.Mpn = utils.SanitizeName(tm.Mpn)
+	} else {
+		tm.Mpn = utils.SanitizeTemplate(tm.Mpn)
+	}
 	return tm, nil
 }
 

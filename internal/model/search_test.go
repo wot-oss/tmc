@@ -67,6 +67,21 @@ func TestSearchResult_Filter(t *testing.T) {
 			assert.Equal(t, "aut2/man/mpn", sr.Entries[3].Name)
 		}
 	})
+	t.Run("filter by mpn with wildcards", func(t *testing.T) {
+		sr := prepareSearchResult()
+		_ = sr.Filter(&Filters{Mpn: []string{"mpn361"}})
+		if assert.Len(t, sr.Entries, 1) {
+			assert.Equal(t, "aut1/man1/mpn321", sr.Entries[0].Name)
+		}
+		_ = sr.Filter(&Filters{Mpn: []string{"mpn3x1"}})
+		if assert.Len(t, sr.Entries, 1) {
+			assert.Equal(t, "aut1/man1/mpn321", sr.Entries[0].Name)
+		}
+		_ = sr.Filter(&Filters{Mpn: []string{"mpn3ab1"}})
+		assert.Len(t, sr.Entries, 0)
+		_ = sr.Filter(&Filters{Mpn: []string{"mpn31"}})
+		assert.Len(t, sr.Entries, 0)
+	})
 	t.Run("filter by manufacturer", func(t *testing.T) {
 		sr := prepareSearchResult()
 		_ = sr.Filter(&Filters{Manufacturer: []string{"man"}})

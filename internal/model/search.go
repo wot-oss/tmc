@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -124,6 +125,33 @@ type FilterOptions struct {
 	NameFilterType FilterType
 }
 
+func convertMpnPatternToRegex(pattern string) *regexp.Regexp {
+	escaped := regexp.QuoteMeta(pattern)
+	re := regexp.MustCompile(`\\\{\\\{[^}]+\\\}\\\}`)
+	regexPattern := re.ReplaceAllString(escaped, ".")
+	regexPattern = "^(?i)" + regexPattern + "$"
+	return regexp.MustCompile(regexPattern)
+}
+
+func matchesMpnFilter(filterMpn []string, entryMpn string) bool {
+	if strings.Contains(entryMpn, "{{") {
+		pattern := convertMpnPatternToRegex(entryMpn)
+		for _, mpn := range filterMpn {
+			if pattern.MatchString(mpn) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, mpn := range filterMpn {
+		if mpn == entryMpn {
+			return true
+		}
+	}
+	return false
+}
+
 // Filter deletes all entries from this SearchResult that don't match the filters
 func (sr *SearchResult) Filter(filters *Filters) error {
 	if filters == nil {
@@ -143,7 +171,11 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 			return true
 		}
 
-		if !matchesFilter(filters.Mpn, entry.Mpn) {
+		if (entry.Mpn != "" && strings.Contains(entry.Mpn, "{{")) && (len(filters.Mpn) > 0) {
+			if !matchesMpnFilter(filters.Mpn, entry.Mpn) {
+				return true
+			}
+		} else if !matchesFilter(filters.Mpn, entry.Mpn) {
 			return true
 		}
 
@@ -173,9 +205,9 @@ func (sr *SearchResult) FilterByQuery(query, indexPath string) error {
 		var newEntries []FoundEntry
 		for _, entry := range sr.Entries {
 			var newVersions []FoundVersion
-			for _, version := range entry.Versions {
-				if matcher(version) {
-					newVersions = append(newVersions, version)
+			for i := range entry.Versions {
+				if matcher(&entry.Versions[i]) {
+					newVersions = append(newVersions, entry.Versions[i])
 				}
 			}
 			if len(newVersions) > 0 {
@@ -188,7 +220,56 @@ func (sr *SearchResult) FilterByQuery(query, indexPath string) error {
 	return nil
 }
 
-func getMatcherByBleveSearch(query, indexPath string) (func(e FoundVersion) bool, error) {
+func extractMPNFromTMID(tmid string) string {
+	parts := strings.Split(tmid, "/")
+	if len(parts) >= 3 {
+		return parts[2]
+	}
+	return tmid
+}
+
+func matchesMpnPattern(query, mpnPattern string) bool {
+	queryIdx := 0
+	patternIdx := 0
+	query = strings.ToLower(query)
+	mpnPattern = strings.ToLower(mpnPattern)
+
+	for patternIdx < len(mpnPattern) {
+		if patternIdx+1 < len(mpnPattern) && mpnPattern[patternIdx:patternIdx+2] == "{{" {
+			closeIdx := strings.Index(mpnPattern[patternIdx:], "}}")
+			if queryIdx >= len(query) {
+				return false
+			}
+			queryIdx++
+			patternIdx += closeIdx + 2
+		} else if patternIdx+1 < len(mpnPattern) && mpnPattern[patternIdx:patternIdx+2] == "__" {
+			closeIdx := strings.Index(mpnPattern[patternIdx+2:], "__")
+			if closeIdx != -1 {
+				if queryIdx >= len(query) {
+					return false
+				}
+				queryIdx++
+				patternIdx += closeIdx + 4
+			} else {
+				if queryIdx >= len(query) || query[queryIdx] != mpnPattern[patternIdx] {
+					return false
+				}
+				queryIdx++
+				patternIdx++
+			}
+		} else {
+			if queryIdx >= len(query) || query[queryIdx] != mpnPattern[patternIdx] {
+				return false
+			}
+			queryIdx++
+			patternIdx++
+		}
+	}
+	match := queryIdx == len(query)
+	return match
+}
+
+func getMatcherByBleveSearch(query, indexPath string) (func(e *FoundVersion) bool, error) {
 	_, err := os.Stat(indexPath)
 	if err != nil {
 		return nil, ErrSearchIndexNotFound
@@ -196,42 +277,72 @@ func getMatcherByBleveSearch(query, indexPath string) (func(e FoundVersion) bool
 	bleveIdx, errOpen := bleve.Open(indexPath)
 	if errOpen != nil {
 		return nil, fmt.Errorf("couldn't open bleve index: %w", errOpen)
-	} else {
-		defer bleveIdx.Close()
-		q := bleve.NewQueryStringQuery(query)
-		req := bleve.NewSearchRequestOptions(q, 100000, 0, false)
-		req.IncludeLocations = true
-		sr, err := bleveIdx.Search(req)
+	}
+	defer bleveIdx.Close()
+	q := bleve.NewQueryStringQuery(query)
+	req := bleve.NewSearchRequestOptions(q, 100000, 0, false)
+	req.IncludeLocations = true
+	sr, err := bleveIdx.Search(req)
 
-		if err != nil {
-			return nil, fmt.Errorf("error in content search: %w", err)
-		}
+	if err != nil {
+		return nil, fmt.Errorf("error in content search: %w", err)
+	}
+	scores := make(map[string]*search.DocumentMatch)
+	var matchingPatterns []string
 
-		scores := make(map[string]*search.DocumentMatch)
-		for _, hit := range sr.Hits {
-			scores[hit.ID] = hit
-		}
+	for _, hit := range sr.Hits {
+		scores[hit.ID] = hit
+	}
 
-		matcher := func(v FoundVersion) bool {
-			if sr.Hits.Len() == 0 {
-				return false
-			}
-			if hit, ok := scores[v.TMID]; ok {
-				var locs []string
-				for field, _ := range hit.Locations {
-					locs = append(locs, field)
+	bleveMaskedIdx, errOpen := bleve.Open(indexPath + "_masked")
+	if errOpen != nil {
+		return nil, fmt.Errorf("couldn't open bleve index: %w", errOpen)
+	}
+	defer bleveMaskedIdx.Close()
+	allDocsQuery := bleve.NewWildcardQuery("*")
+	allDocsReq := bleve.NewSearchRequestOptions(allDocsQuery, 100000, 0, false)
+	patternSr, _ := bleveMaskedIdx.Search(allDocsReq)
+	if patternSr != nil {
+		for _, hit := range patternSr.Hits {
+			if _, alreadyInScores := scores[hit.ID]; !alreadyInScores {
+				mpn := extractMPNFromTMID(hit.ID)
+				matches := matchesMpnPattern(query, mpn)
+				if matches {
+					matchingPatterns = append(matchingPatterns, hit.ID)
 				}
-				slices.Sort(locs)
+			}
+		}
+	}
+
+	matcher := func(v *FoundVersion) bool {
+		if len(scores) == 0 && len(matchingPatterns) == 0 {
+			return false
+		}
+		if hit, ok := scores[v.TMID]; ok {
+			var locs []string
+			for field := range hit.Locations {
+				locs = append(locs, field)
+			}
+			slices.Sort(locs)
+			v.SearchMatch = &SearchMatch{
+				Score:     float32(hit.Score),
+				Locations: locs,
+			}
+			return true
+		}
+		for _, pattern := range matchingPatterns {
+			if v.ExternalID == pattern || v.TMID == pattern {
 				v.SearchMatch = &SearchMatch{
-					Score:     float32(hit.Score),
-					Locations: locs,
+					Score:     -1, //pattern match, not from bleve
+					Locations: []string{"mpn"},
 				}
 				return true
 			}
-			return false
 		}
-		return matcher, nil
+		return false
 	}
+	return matcher, nil
+
 }
 
 func matchesProtocolFilter(protos []string, entry FoundEntry) bool {
