@@ -84,10 +84,11 @@ type FilterFlags struct {
 	FilterManufacturer string
 	FilterMpn          string
 	FilterProtocol     string
+	FilterChangedSince string
 }
 
 func CreateFiltersFromCLI(flags FilterFlags, name string) *model.Filters {
-	return model.ToFilters(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name, nil,
+	return model.ToFilters(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name, &flags.FilterChangedSince,
 		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }
 
@@ -117,4 +118,5 @@ func AddTMFilterFlags(cmd *cobra.Command, flags *FilterFlags) {
 	cmd.Flags().StringVar(&flags.FilterManufacturer, "filter.manufacturer", "", "filter TMs by one or more comma-separated manufacturers")
 	cmd.Flags().StringVar(&flags.FilterMpn, "filter.mpn", "", "filter TMs by one or more comma-separated mpn (manufacturer part number)")
 	cmd.Flags().StringVar(&flags.FilterProtocol, "filter.protocol", "", "filter TMs by one or more comma-separated supported protocol schemes")
+	cmd.Flags().StringVar(&flags.FilterChangedSince, "filter.changedSince", "", "filter TMs changed since the given timestamp (format: YYYYMMDDhhmmss)")
 }
