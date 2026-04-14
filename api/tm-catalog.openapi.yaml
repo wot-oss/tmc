@@ -88,6 +88,14 @@ paths:
           schema:
             type: boolean
           example: true
+        - name: 'filter.changedSince'
+          in: query
+          description: |
+            Filters the inventory to return only the entries that have changed since the specified date.
+            If this filter is present in the URL (e.g., `?filter.changedSince=20260101000000`), only the entries that have changed since that date will be returned. If it's not present, all versions will be included.
+          schema:
+            type: string
+          example: '20260101000000'
         - name: 'page'
           in: query
           description: |

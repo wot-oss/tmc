@@ -293,13 +293,17 @@ type GetInventoryParams struct {
 	FilterName *string `form:"filter.name,omitempty" json:"filter.name,omitempty"`
 
 	// FilterLatest Filters the inventory to return only the latest versions of data.
-	// If this filter is present in the URL (e.g., `?filter.latest`), only the latest versions will be returned. If it's not present, all versions will be included.
+	// If this filter is present in the URL (e.g., `?filter.latest=true`), only the latest versions will be returned. If it's not present, all versions will be included.
 	FilterLatest *bool `form:"filter.latest,omitempty" json:"filter.latest,omitempty"`
+
+	// FilterChangedSince Filters the inventory to return only the entries that have changed since the specified date.
+	// If this filter is present in the URL (e.g., `?filter.changedSince=1776115388`), only the entries that have changed since that date will be returned. If it's not present, all versions will be included.
+	FilterChangedSince *string `form:"filter.changedSince,omitempty" json:"filter.changedSince,omitempty"`
 
 	// Page Page number for pagination (starting from 1)
 	//
 	// - If `pageSize` is provided along with `page`, both values are used for pagination.
-	// - If `pageSize` is provided but `page` is *not* provided, `page` will default to `1`.
+	// - If `pageSize` **is** provided but `page` is *not* provided, `page` will default to `1`.
 	// - If `pageSize` is *not* provided but `page` *is* provided, `pageSize` will default to `100`.
 	// - If *neither* `page` nor `pageSize` are provided, no pagination will be applied, and both parameters will effectively be treated as `0` (returning all results).
 	Page *int `form:"page,omitempty" json:"page,omitempty"`

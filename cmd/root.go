@@ -87,7 +87,7 @@ type FilterFlags struct {
 }
 
 func CreateFiltersFromCLI(flags FilterFlags, name string) *model.Filters {
-	return model.ToFilters(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name,
+	return model.ToFilters(&flags.FilterAuthor, &flags.FilterManufacturer, &flags.FilterMpn, &flags.FilterProtocol, &name, nil,
 		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }
 
