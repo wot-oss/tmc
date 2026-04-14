@@ -91,8 +91,9 @@ paths:
         - name: 'filter.changedSince'
           in: query
           description: |
-            Filters the inventory to return only the entries that have changed since the specified date.
+            Filters the inventory to return only the entries that have changed since the specified date (given in YYYYMMDDhhmmss format).
             If this filter is present in the URL (e.g., `?filter.changedSince=20260101000000`), only the entries that have changed since that date will be returned. If it's not present, all versions will be included.
+            Also, providing only YYYY, or YYYYMM, or YYYYMMDD, etc. is accepted, and the missing time parts are automatically filled with zeros, resulting in filtering for changes since the provided date with a precision corresponding to the provided time parts. For example, `?filter.changedSince=202601` will filter for entries changed since January 1st, 2026, 00:00:00.
           schema:
             type: string
           example: '20260101000000'

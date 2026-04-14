@@ -256,6 +256,9 @@ func matchesChangedSinceFilter(changedSince string, entry FoundEntry) bool {
 	if changedSince == "" {
 		return true
 	}
+	if len(changedSince) <= 14 {
+		changedSince = changedSince + strings.Repeat("0", 14-len(changedSince))
+	}
 	for _, v := range entry.Versions {
 		if t1, err := strconv.Atoi(v.TimeStamp); err == nil {
 			if t2, err := strconv.Atoi(changedSince); err == nil {
