@@ -12,6 +12,7 @@ import (
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 //go:generate mockery --name HandlerService --outpkg mocks --output mocks
@@ -87,6 +88,14 @@ func (dhs *defaultHandlerService) UpdateInventory(ctx context.Context, repo stri
 	r, err := repos.Get(spec)
 	if err != nil {
 		return err
+	}
+	cr, err := r.CheckIntegrity(ctx, nil)
+	for _, res := range cr {
+		if res.Typ == model.CheckErr {
+			//utils.GetLogger(r.Context(), "http.serve").Info("processed request")
+			utils.GetLogger(ctx, "http.updateInventory").Error("repo integrity check failed: " + res.String())
+			return err
+		}
 	}
 	err = repos.UpdateRepoIndex(ctx, r)
 	if err != nil {

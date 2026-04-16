@@ -263,7 +263,7 @@ type CheckResult struct {
 }
 
 func (r CheckResult) String() string {
-	return fmt.Sprintf("%v \t%s: %s", r.Typ, r.ResourceName, r.Message)
+	return fmt.Sprintf("%v %s: %s", r.Typ, r.ResourceName, r.Message)
 }
 
 // ResourceFilter is a function which determines whether a named resource should be processed or not
