@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -107,6 +108,7 @@ type Filters struct {
 	Mpn          []string
 	Protocol     []string
 	Name         string
+	ChangedSince string
 	Options      FilterOptions
 }
 
@@ -134,7 +136,9 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 		if !matchesNameFilter(filters.Name, entry.Name, filters.Options) {
 			return true
 		}
-
+		if !matchesChangedSinceFilter(filters.ChangedSince, entry) {
+			return true
+		}
 		if !matchesFilter(filters.Author, entry.Author.Name) {
 			return true
 		}
@@ -248,6 +252,25 @@ func matchesProtocolFilter(protos []string, entry FoundEntry) bool {
 	return false
 }
 
+func matchesChangedSinceFilter(changedSince string, entry FoundEntry) bool {
+	if changedSince == "" {
+		return true
+	}
+	if len(changedSince) <= 14 {
+		changedSince = changedSince + strings.Repeat("0", 14-len(changedSince))
+	}
+	for _, v := range entry.Versions {
+		if t1, err := strconv.Atoi(v.TimeStamp); err == nil {
+			if t2, err := strconv.Atoi(changedSince); err == nil {
+				if t1 > t2 {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func matchesNameFilter(acceptedValue string, value string, options FilterOptions) bool {
 	if len(acceptedValue) == 0 {
 		return true
@@ -276,10 +299,10 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-func ToFilters(author, manufacturer, mpn, protocol, name *string, opts *FilterOptions) *Filters {
+func ToFilters(author, manufacturer, mpn, protocol, name, changedSince *string, opts *FilterOptions) *Filters {
 	var search *Filters
 	isSet := func(s *string) bool { return s != nil && *s != "" }
-	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(protocol) || isSet(name) {
+	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(protocol) || isSet(name) || isSet(changedSince) {
 		search = &Filters{}
 		if isSet(author) {
 			search.Author = strings.Split(*author, DefaultListSeparator)
@@ -295,6 +318,9 @@ func ToFilters(author, manufacturer, mpn, protocol, name *string, opts *FilterOp
 		}
 		if isSet(name) {
 			search.Name = *name
+		}
+		if isSet(changedSince) {
+			search.ChangedSince = *changedSince
 		}
 		if opts != nil {
 			search.Options = *opts

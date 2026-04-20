@@ -165,13 +165,13 @@ func TestSearchResult_Filter(t *testing.T) {
 		mpn := "M/PN"
 		r := NewIndexToFoundMapper(EmptySpec.ToFoundSource()).ToSearchResult(*idx)
 		sr := &r
-		_ = sr.Filter(ToFilters(&author, &manuf, &mpn, nil, nil, nil))
+		_ = sr.Filter(ToFilters(&author, &manuf, &mpn, nil, nil, nil, nil))
 		assert.Len(t, sr.Entries, 1)
 
 		author = "Aut%hor"
 		manuf = "Man-ufacturer"
 		mpn = "M&pN"
-		_ = sr.Filter(ToFilters(&author, &manuf, &mpn, nil, nil, nil))
+		_ = sr.Filter(ToFilters(&author, &manuf, &mpn, nil, nil, nil, nil))
 		assert.Len(t, sr.Entries, 1)
 	})
 }
