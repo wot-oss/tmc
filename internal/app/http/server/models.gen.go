@@ -322,6 +322,12 @@ type GetInventoryParams struct {
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
 }
 
+// UpdateInventoryParams defines parameters for UpdateInventory.
+type UpdateInventoryParams struct {
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
 // GetInventoryByFetchNameParams defines parameters for GetInventoryByFetchName.
 type GetInventoryByFetchNameParams struct {
 	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'

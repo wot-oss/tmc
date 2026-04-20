@@ -12,11 +12,13 @@ import (
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
+	"github.com/wot-oss/tmc/internal/utils"
 )
 
 //go:generate mockery --name HandlerService --outpkg mocks --output mocks
 type HandlerService interface {
 	ListInventory(ctx context.Context, repo string, filters *model.Filters, offset, limit int) (*model.SearchResult, error)
+	UpdateInventory(ctx context.Context, repo string) error
 	SearchInventory(ctx context.Context, repo, query string, offset, limit int) (*model.SearchResult, error)
 	ListAuthors(ctx context.Context, filters *model.Filters) ([]string, error)
 	ListManufacturers(ctx context.Context, filters *model.Filters) ([]string, error)
@@ -76,6 +78,31 @@ func (dhs *defaultHandlerService) ListInventory(ctx context.Context, repo string
 	}
 
 	return &res, nil
+}
+
+func (dhs *defaultHandlerService) UpdateInventory(ctx context.Context, repo string) error {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return err
+	}
+	r, err := repos.Get(spec)
+	if err != nil {
+		return err
+	}
+	cr, err := r.CheckIntegrity(ctx, nil)
+	for _, res := range cr {
+		if res.Typ == model.CheckErr {
+			//utils.GetLogger(r.Context(), "http.serve").Info("processed request")
+			utils.GetLogger(ctx, "http.updateInventory").Error("repo integrity check failed: " + res.String())
+			return err
+		}
+	}
+	err = repos.UpdateRepoIndex(ctx, r)
+	if err != nil {
+		return err
+	}
+	r.Index(ctx)
+	return nil
 }
 
 func (dhs *defaultHandlerService) SearchInventory(ctx context.Context, repo, query string, offset, limit int) (*model.SearchResult, error) {
