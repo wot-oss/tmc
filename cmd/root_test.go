@@ -173,6 +173,7 @@ func TestConvertFilters(t *testing.T) {
 	flags.FilterManufacturer = "some manufacturer"
 	flags.FilterMpn = "some mpn"
 	flags.FilterProtocol = "http"
+	flags.FilterChangedSince = "20240101000000"
 	name := "omni-corp/omni"
 	// when: converting to Filters
 	params = CreateFiltersFromCLI(flags, name)
@@ -182,6 +183,7 @@ func TestConvertFilters(t *testing.T) {
 	assert.Equal(t, []string{flags.FilterManufacturer}, params.Manufacturer)
 	assert.Equal(t, []string{flags.FilterMpn}, params.Mpn)
 	assert.Equal(t, name, params.Name)
+	assert.Equal(t, flags.FilterChangedSince, params.ChangedSince)
 	assert.Equal(t, model.PrefixMatch, params.Options.NameFilterType)
 	assert.Equal(t, []string{flags.FilterProtocol}, params.Protocol)
 
@@ -191,6 +193,7 @@ func TestConvertFilters(t *testing.T) {
 	flags.FilterManufacturer = "some manufacturer 1,some manufacturer 2"
 	flags.FilterMpn = "some mpn 1,some mpn 2,some mpn 3"
 	flags.FilterProtocol = "http,https"
+	flags.FilterChangedSince = "20240101000000"
 	// when: converting to Filters
 	params = CreateFiltersFromCLI(flags, "")
 	// then: the multiple filter values are converted correctly
@@ -199,4 +202,5 @@ func TestConvertFilters(t *testing.T) {
 	assert.Equal(t, strings.Split(flags.FilterManufacturer, ","), params.Manufacturer)
 	assert.Equal(t, strings.Split(flags.FilterMpn, ","), params.Mpn)
 	assert.Equal(t, strings.Split(flags.FilterProtocol, ","), params.Protocol)
+	assert.Equal(t, flags.FilterChangedSince, params.ChangedSince)
 }

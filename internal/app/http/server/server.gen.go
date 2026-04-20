@@ -350,6 +350,14 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// ------------- Optional query parameter "filter.changedSince" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.changedSince", r.URL.Query(), &params.FilterChangedSince)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.changedSince", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "page" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
