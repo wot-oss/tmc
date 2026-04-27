@@ -831,6 +831,8 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 			names = append(names, id.Name)
 			updatedAttContainers[model.NewTMIDAttachmentContainerRef(id.String())] = struct{}{}
 			updatedAttContainers[model.NewTMNameAttachmentContainerRef(id.Name)] = struct{}{}
+			updatedAttContainers[model.NewAuthorAttachmentContainerRef(strings.Split(id.Name, "/")[0])] = struct{}{}
+			updatedAttContainers[model.NewManufacturerAttachmentContainerRef(strings.Split(id.Name, "/")[0]+"/"+strings.Split(id.Name, "/")[1])] = struct{}{}
 		}
 		return nil
 	})
