@@ -413,6 +413,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /thing-models/{tmID}/.attachments:
+    get:
+      tags:
+        - attachments
+      summary: Get the list of attachments to a Thing Model
+      description: Returns the list of attachments to a Thing Model
+      operationId: listThingModelAttachmentsById
+      parameters:
+        - $ref: '#/components/parameters/TMID'
+        - $ref: '#/components/parameters/RepoConstraint'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentsResponse'
+              examples:
+                attachments:
+                  $ref: '#/components/examples/AttachmentsResponseExample'
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /thing-models/{tmID}/.attachments/{attachmentFileName}:
     get:
       tags:
@@ -519,6 +559,52 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: Thing Model or inventory name or attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /thing-models/.tmName/{tmName}/.attachments:
+    get:
+      tags:
+        - attachments
+      summary: Get the list of attachments to a TM name
+      description: Returns the list of attachments to a TM name from all repositories
+      operationId: listTMNameAttachmentsByName
+      parameters:
+        - name: tmName
+          in: path
+          description: Name of inventory entry
+          required: true
+          schema:
+            type: string
+          example: 'siemens/siemens/poc1000'
+        - $ref: '#/components/parameters/RepoConstraint'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentsResponse'
+              examples:
+                attachments:
+                  $ref: '#/components/examples/AttachmentsResponseExample'
+        '400':
+          description: Invalid TM name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: TM name not found
           content:
             application/json:
               schema:
