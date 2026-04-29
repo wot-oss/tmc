@@ -14,6 +14,7 @@
 - generating `authors.txt`, `manufacturers.txt`, and `mpns.txt` for improving static hosting (e.g. github, github pages)
 - `jwtScopesPrefix` flag to set default prefix for scopes authentication
 - higher-level attachments import/fetch/delete/list in CLI
+- Added `filter.changedSince` parameter to REST API `/inventory` listing and to CLI
 
 ### Changed
 
