@@ -292,7 +292,7 @@ func Test_Inventory(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s",
 			route, fAuthors, fMan, fMpn, fProtos)
 		// and given: filters, expected to be converted from request query parameters
-		expectedFilters := model.ToFilters(&fAuthors, &fMan, &fMpn, &fProtos, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
+		expectedFilters := model.ToFilters(&fAuthors, &fMan, &fMpn, &fProtos, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListInventory", mock.Anything, "", expectedFilters, -1, -1).Return(&listResult1, nil).Once()
 
@@ -635,7 +635,7 @@ func Test_Authors(t *testing.T) {
 			route, fMan, fMpn)
 
 		// and given: filters, expected to be converted from request query parameters
-		expectedFilters := model.ToFilters(nil, &fMan, &fMpn, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
+		expectedFilters := model.ToFilters(nil, &fMan, &fMpn, nil, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListAuthors", mock.Anything, expectedFilters).Return(authors, nil).Once()
 
