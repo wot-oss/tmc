@@ -10,7 +10,6 @@ import (
 
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
-	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
@@ -31,36 +30,7 @@ func AttachmentList(ctx context.Context, spec model.RepoSpec, identifier string,
 		return ErrInvalidOutputFormat
 	}
 
-	var atts []model.FoundAttachment
-	var err error
-	switch ref.Kind() {
-	case model.AttachmentContainerKindTMID:
-		var fvs []model.FoundVersion
-		var errs []*repos.RepoAccessError
-		fvs, err, errs = commands.GetTMMetadata(ctx, spec, identifier)
-		defer printErrs("Errors occurred while getting TM metadata:", errs)
-		for _, m := range fvs {
-			for _, a := range m.Attachments {
-				atts = append(atts, model.FoundAttachment{
-					Attachment: a,
-					FoundIn:    m.FoundIn,
-				})
-			}
-		}
-	case model.AttachmentContainerKindAuthor, model.AttachmentContainerKindManufacturer, model.AttachmentContainerKindTMName:
-		var res model.SearchResult
-		var errs []*repos.RepoAccessError
-		res, err, errs = commands.List(ctx, spec, &model.Filters{Name: identifier})
-		defer printErrs("Errors occurred while listing:", errs)
-		for _, m := range res.Entries {
-			for _, a := range m.Attachments {
-				atts = append(atts, model.FoundAttachment{
-					Attachment: a,
-					FoundIn:    m.FoundIn,
-				})
-			}
-		}
-	}
+	atts, err := commands.ListAttachments(ctx, spec, identifier, ref)
 	if err != nil {
 		Stderrf("Could not list attachments for %s: %v", identifier, err)
 		return err

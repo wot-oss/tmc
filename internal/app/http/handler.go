@@ -565,6 +565,24 @@ func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request,
 	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, concat)
 }
 
+func (h *TmcHandler) ListTMNameAttachmentsByName(w http.ResponseWriter, r *http.Request, tmName string, params server.ListTMNameAttachmentsByNameParams) {
+	atts, err := h.Service.ListTMNameAttachmentsByName(r.Context(), convertRepoName(params.Repo), tmName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	HandleJsonResponse(w, r, http.StatusOK, atts)
+}
+
+func (h *TmcHandler) ListThingModelAttachmentsById(w http.ResponseWriter, r *http.Request, tmID server.TMID, params server.ListThingModelAttachmentsByIdParams) {
+	atts, err := h.Service.ListTMIDAttachmentsByID(r.Context(), convertRepoName(params.Repo), tmID)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	HandleJsonResponse(w, r, http.StatusOK, atts)
+}
+
 func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) {
 	data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName, concat)
 	if err != nil {

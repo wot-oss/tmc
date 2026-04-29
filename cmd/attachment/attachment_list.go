@@ -8,6 +8,8 @@ import (
 	"github.com/wot-oss/tmc/cmd"
 	"github.com/wot-oss/tmc/cmd/completion"
 	"github.com/wot-oss/tmc/internal/app/cli"
+	"github.com/wot-oss/tmc/internal/commands"
+	"github.com/wot-oss/tmc/internal/model"
 )
 
 var attachmentListCmd = &cobra.Command{
@@ -43,6 +45,10 @@ func attachmentList(command *cobra.Command, args []string) {
 		cli.Stderrf("attachment list failed")
 		os.Exit(1)
 	}
+}
+
+func ListAttachments(ctx context.Context, spec model.RepoSpec, identifier string, ref model.AttachmentContainerRef) ([]model.FoundAttachment, error) {
+	return commands.ListAttachments(ctx, spec, identifier, ref)
 }
 
 func init() {

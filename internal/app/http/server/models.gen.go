@@ -403,6 +403,12 @@ type GetThingModelByFetchNameParams struct {
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
 }
 
+// ListTMNameAttachmentsByNameParams defines parameters for ListTMNameAttachmentsByName.
+type ListTMNameAttachmentsByNameParams struct {
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
 // DeleteTMNameAttachmentParams defines parameters for DeleteTMNameAttachment.
 type DeleteTMNameAttachmentParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
@@ -443,6 +449,12 @@ type GetThingModelByIdParams struct {
 
 	// RestoreId restore the TM's original external id, if it had one
 	RestoreId *bool `form:"restoreId,omitempty" json:"restoreId,omitempty"`
+}
+
+// ListThingModelAttachmentsByIdParams defines parameters for ListThingModelAttachmentsById.
+type ListThingModelAttachmentsByIdParams struct {
+	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
+	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // DeleteThingModelAttachmentByNameParams defines parameters for DeleteThingModelAttachmentByName.

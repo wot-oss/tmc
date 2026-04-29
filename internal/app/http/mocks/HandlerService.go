@@ -559,6 +559,66 @@ func (_m *HandlerService) ListRepos(ctx context.Context) ([]model.RepoDescriptio
 	return r0, r1
 }
 
+// ListTMIDAttachmentsByID provides a mock function with given fields: ctx, repo, tmID
+func (_m *HandlerService) ListTMIDAttachmentsByID(ctx context.Context, repo string, tmID string) ([]model.FoundAttachment, error) {
+	ret := _m.Called(ctx, repo, tmID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListTMIDAttachmentsByID")
+	}
+
+	var r0 []model.FoundAttachment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]model.FoundAttachment, error)); ok {
+		return rf(ctx, repo, tmID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.FoundAttachment); ok {
+		r0 = rf(ctx, repo, tmID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.FoundAttachment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, repo, tmID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ListTMNameAttachmentsByName provides a mock function with given fields: ctx, repo, tmName
+func (_m *HandlerService) ListTMNameAttachmentsByName(ctx context.Context, repo string, tmName string) ([]model.FoundAttachment, error) {
+	ret := _m.Called(ctx, repo, tmName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListTMNameAttachmentsByName")
+	}
+
+	var r0 []model.FoundAttachment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]model.FoundAttachment, error)); ok {
+		return rf(ctx, repo, tmName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.FoundAttachment); ok {
+		r0 = rf(ctx, repo, tmName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.FoundAttachment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, repo, tmName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SearchInventory provides a mock function with given fields: ctx, repo, query, offset, limit
 func (_m *HandlerService) SearchInventory(ctx context.Context, repo string, query string, offset int, limit int) (*model.SearchResult, error) {
 	ret := _m.Called(ctx, repo, query, offset, limit)

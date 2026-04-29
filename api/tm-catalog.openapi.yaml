@@ -438,10 +438,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AttachmentsResponse'
-              examples:
-                attachments:
-                  $ref: '#/components/examples/AttachmentsResponseExample'
+                $ref: '#/components/schemas/AttachmentsList'
         '400':
           description: Invalid ID supplied
           content:
@@ -600,10 +597,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AttachmentsResponse'
-              examples:
-                attachments:
-                  $ref: '#/components/examples/AttachmentsResponseExample'
+                $ref: '#/components/schemas/AttachmentsList'
         '400':
           description: Invalid TM name supplied
           content:
