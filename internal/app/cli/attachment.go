@@ -10,49 +10,29 @@ import (
 
 	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
-	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-func AttachmentList(ctx context.Context, spec model.RepoSpec, tmNameOrId, format string) error {
-	ref := toAttachmentContainerRef(tmNameOrId)
+type AttachmentContainerType int
+
+const (
+	AttachmentTypeInvalid = iota
+	AttachmentTypeAuthor
+	AttachmentTypeManufacturer
+	AttachmentTypeTMName
+	AttachmentTypeTMID
+)
+
+func AttachmentList(ctx context.Context, spec model.RepoSpec, identifier string, attType AttachmentContainerType, format string) error {
+	ref := toAttachmentContainerRef(identifier, attType)
 	if !IsValidOutputFormat(format) {
 		Stderrf("%v", ErrInvalidOutputFormat)
 		return ErrInvalidOutputFormat
 	}
 
-	var atts []model.FoundAttachment
-	var err error
-	switch ref.Kind() {
-	case model.AttachmentContainerKindTMID:
-		var fvs []model.FoundVersion
-		var errs []*repos.RepoAccessError
-		fvs, err, errs = commands.GetTMMetadata(ctx, spec, tmNameOrId)
-		defer printErrs("Errors occurred while getting TM metadata:", errs)
-		for _, m := range fvs {
-			for _, a := range m.Attachments {
-				atts = append(atts, model.FoundAttachment{
-					Attachment: a,
-					FoundIn:    m.FoundIn,
-				})
-			}
-		}
-	case model.AttachmentContainerKindTMName:
-		var res model.SearchResult
-		var errs []*repos.RepoAccessError
-		res, err, errs = commands.List(ctx, spec, &model.Filters{Name: tmNameOrId})
-		defer printErrs("Errors occurred while listing:", errs)
-		for _, m := range res.Entries {
-			for _, a := range m.Attachments {
-				atts = append(atts, model.FoundAttachment{
-					Attachment: a,
-					FoundIn:    m.FoundIn,
-				})
-			}
-		}
-	}
+	atts, err := commands.ListAttachments(ctx, spec, identifier, ref)
 	if err != nil {
-		Stderrf("Could not list attachments for %s: %v", tmNameOrId, err)
+		Stderrf("Could not list attachments for %s: %v", identifier, err)
 		return err
 	}
 
@@ -80,7 +60,7 @@ func printAttachments(atts []model.FoundAttachment) {
 
 }
 
-func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, filename, attachmentName, mediaType string, force bool) error {
+func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId string, attType AttachmentContainerType, filename, attachmentName, mediaType string, force bool) error {
 	abs, err := filepath.Abs(filename)
 	if err != nil {
 		Stderrf("Error expanding file name %s: %v", filename, err)
@@ -99,7 +79,7 @@ func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, file
 	if attachmentName == "" {
 		attachmentName = filepath.Base(filename)
 	}
-	err = commands.ImportAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), model.Attachment{
+	err = commands.ImportAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId, attType), model.Attachment{
 		Name:      attachmentName,
 		MediaType: mediaType,
 	}, raw, force)
@@ -109,16 +89,16 @@ func AttachmentImport(ctx context.Context, spec model.RepoSpec, tmNameOrId, file
 
 	return err
 }
-func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string) error {
-	err := commands.DeleteAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName)
+func AttachmentDelete(ctx context.Context, spec model.RepoSpec, tmNameOrId string, attType AttachmentContainerType, attachmentName string) error {
+	err := commands.DeleteAttachment(ctx, spec, toAttachmentContainerRef(tmNameOrId, attType), attachmentName)
 	if err != nil {
 		Stderrf("Failed to delete attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 	}
 
 	return err
 }
-func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attachmentName string, concat bool, outputPath string) error {
-	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId), attachmentName, concat)
+func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId string, attType AttachmentContainerType, attachmentName string, concat bool, outputPath string) error {
+	content, err := commands.AttachmentFetch(ctx, spec, toAttachmentContainerRef(tmNameOrId, attType), attachmentName, concat)
 	if err != nil {
 		Stderrf("Failed to fetch attachment %s to %s: %v", attachmentName, tmNameOrId, err)
 		return err
@@ -151,10 +131,22 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, tmNameOrId, attac
 	return nil
 }
 
-func toAttachmentContainerRef(tmNameOrId string) model.AttachmentContainerRef {
-	_, err := model.ParseTMID(tmNameOrId)
-	if err != nil {
-		return model.NewTMNameAttachmentContainerRef(tmNameOrId)
+func toAttachmentContainerRef(identifier string, containerType AttachmentContainerType) model.AttachmentContainerRef {
+	switch containerType {
+	case AttachmentTypeAuthor:
+		return model.NewAuthorAttachmentContainerRef(identifier)
+	case AttachmentTypeManufacturer:
+		return model.NewManufacturerAttachmentContainerRef(identifier)
+	case AttachmentTypeTMName:
+		return model.NewTMNameAttachmentContainerRef(identifier)
+	case AttachmentTypeTMID:
+		_, err := model.ParseTMID(identifier)
+		if err != nil {
+			Stderrf("could not parse TM id, while creating attachment container reference for %s", identifier)
+			return model.AttachmentContainerRef{}
+		}
+		return model.NewTMIDAttachmentContainerRef(identifier)
+	default:
+		panic(fmt.Sprintf("invalid attachment container type: %v", containerType))
 	}
-	return model.NewTMIDAttachmentContainerRef(tmNameOrId)
 }

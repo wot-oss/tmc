@@ -354,10 +354,12 @@ func TestFileRepo_Index(t *testing.T) {
 		assert.NoError(t, err)
 		zeroTime := time.Time{}
 		assert.True(t, idx.Meta.Created.After(zeroTime))
-		assert.Equal(t, 1, len(idx.Data))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
-		assert.Equal(t, 1, len(idx.Data[0].Versions))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json", idx.Data[0].Versions[0].TMID)
+		assert.Equal(t, 3, len(idx.Data))
+		assert.Equal(t, "omnicorp-tm-department", idx.Data[0].Name)
+		assert.Equal(t, "omnicorp-tm-department/omnicorp", idx.Data[1].Name)
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[2].Name)
+		assert.Equal(t, 1, len(idx.Data[2].Versions))
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json", idx.Data[2].Versions[0].TMID)
 
 		names := r.readNamesFile()
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp/subfolder"}, names)
@@ -369,9 +371,9 @@ func TestFileRepo_Index(t *testing.T) {
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(idx.Data))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
-		assert.Equal(t, 2, len(idx.Data[0].Versions))
+		assert.Equal(t, 3, len(idx.Data))
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[2].Name)
+		assert.Equal(t, 2, len(idx.Data[2].Versions))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp/subfolder"}, names)
 	})
@@ -382,7 +384,7 @@ func TestFileRepo_Index(t *testing.T) {
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(idx.Data))
+		assert.Equal(t, 4, len(idx.Data))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{
 			"omnicorp-tm-department/omnicorp/omnilamp",
@@ -407,7 +409,7 @@ func TestFileRepo_Index(t *testing.T) {
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(idx.Data))
+		assert.Equal(t, 4, len(idx.Data))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{
 			"omnicorp-tm-department/omnicorp/omnilamp",
@@ -451,15 +453,15 @@ func TestFileRepo_Index(t *testing.T) {
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(idx.Data))
+		assert.Equal(t, 4, len(idx.Data))
 
-		assert.Equal(t, tmName1, idx.Data[0].Name)
-		assert.Equal(t, tmId13, idx.Data[0].Versions[0].TMID)
-		assert.Equal(t, tmId12, idx.Data[0].Versions[1].TMID)
-		assert.Equal(t, tmId11, idx.Data[0].Versions[2].TMID)
-		assert.Equal(t, tmName2, idx.Data[1].Name)
-		assert.Equal(t, tmId22, idx.Data[1].Versions[0].TMID)
-		assert.Equal(t, tmId21, idx.Data[1].Versions[1].TMID)
+		assert.Equal(t, tmName1, idx.Data[2].Name)
+		assert.Equal(t, tmId13, idx.Data[2].Versions[0].TMID)
+		assert.Equal(t, tmId12, idx.Data[2].Versions[1].TMID)
+		assert.Equal(t, tmId11, idx.Data[2].Versions[2].TMID)
+		assert.Equal(t, tmName2, idx.Data[3].Name)
+		assert.Equal(t, tmId22, idx.Data[3].Versions[0].TMID)
+		assert.Equal(t, tmId21, idx.Data[3].Versions[1].TMID)
 	})
 }
 
@@ -635,8 +637,8 @@ func TestFileRepo_Index_Parallel(t *testing.T) {
 	idx, err := r.readIndex()
 	assert.NoError(t, err)
 
-	assert.Equal(t, 1, len(idx.Data))
-	assert.Equal(t, N, len(idx.Data[0].Versions))
+	assert.Equal(t, 3, len(idx.Data))
+	assert.Equal(t, N, len(idx.Data[2].Versions))
 	names := r.readNamesFile()
 	assert.Equal(t, 1, len(names))
 }

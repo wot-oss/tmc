@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentDeleteCmd = &cobra.Command{
-	Use:   "delete <tm-name-or-id> <attachment-name>",
+	Use:   "delete <identifier> <filename> -t <type>",
 	Short: "Delete an attachment",
 	Long:  `Delete an attachment`,
 	Args:  cobra.ExactArgs(2),
@@ -32,8 +32,14 @@ var attachmentDeleteCmd = &cobra.Command{
 
 func attachmentDelete(command *cobra.Command, args []string) {
 	spec := cmd.RepoSpecFromFlags(command)
+	attTypeStr := command.Flag("type").Value.String()
+	attType, err := parseAttachmentType(attTypeStr)
+	if err != nil {
+		cli.Stderrf("%v", err)
+		os.Exit(1)
+	}
 
-	err := cli.AttachmentDelete(context.Background(), spec, args[0], args[1])
+	err = cli.AttachmentDelete(context.Background(), spec, args[0], attType, args[1])
 	if err != nil {
 		cli.Stderrf("attachment delete failed")
 		os.Exit(1)
@@ -42,5 +48,7 @@ func attachmentDelete(command *cobra.Command, args []string) {
 
 func init() {
 	cmd.AddRepoDisambiguatorFlags(attachmentDeleteCmd)
+	attachmentDeleteCmd.Flags().StringP("type", "t", "", "Type of attachment container: id, name, author, manufacturer")
+	attachmentDeleteCmd.MarkFlagRequired("type")
 	attachmentCmd.AddCommand(attachmentDeleteCmd)
 }

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -147,6 +148,263 @@ func TestIndex_InsertAttachments(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, nameAtts, (*cnt).Attachments)
 
+	authorAtts := []Attachment{{
+		Name:      "LICENSE.txt",
+		MediaType: "text/plain",
+	}}
+	authorRef := NewAuthorAttachmentContainerRef("aut")
+	err = idx.InsertAttachments(authorRef, authorAtts...)
+	assert.NoError(t, err)
+	cnt, _, err = idx.FindAttachmentContainer(authorRef)
+	assert.NoError(t, err)
+	assert.Equal(t, authorAtts, (*cnt).Attachments)
+
+	manufacturerAtts := []Attachment{{
+		Name:      "MANUFACTURER_INFO.md",
+		MediaType: "Message/markdown",
+	}}
+	manufacturerRef := NewManufacturerAttachmentContainerRef("aut/man")
+	err = idx.InsertAttachments(manufacturerRef, manufacturerAtts...)
+	assert.NoError(t, err)
+	cnt, _, err = idx.FindAttachmentContainer(manufacturerRef)
+	assert.NoError(t, err)
+	assert.Equal(t, manufacturerAtts, (*cnt).Attachments)
+}
+
+func TestIndex_FetchAttachments(t *testing.T) {
+	idx := &Index{}
+	tmName := "aut/man/mpn"
+	id := tmName + "/v1.2.5-20231023121314-abcd12345678.tm.json"
+	err := idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{Name: "aut"},
+		Links:        []Link{{Rel: "original", HRef: "externalID"}},
+		ID:           id,
+		Description:  "descr",
+	})
+	assert.NoError(t, err)
+
+	atts := []Attachment{{
+		Name:      "README.md",
+		MediaType: "Message/markdown",
+	}, {
+		Name:      "User Guide.pdf",
+		MediaType: "application/pdf",
+	}}
+	idRef := NewTMIDAttachmentContainerRef(id)
+	err = idx.InsertAttachments(idRef, atts...)
+	assert.NoError(t, err)
+
+	nameAtts := []Attachment{{
+		Name:      "CHANGELOG.md",
+		MediaType: "Message/markdown",
+	}}
+	nameRef := NewTMNameAttachmentContainerRef(tmName)
+	err = idx.InsertAttachments(nameRef, nameAtts...)
+	assert.NoError(t, err)
+
+	authorAtts := []Attachment{{
+		Name:      "LICENSE.txt",
+		MediaType: "text/plain",
+	}}
+	authorRef := NewAuthorAttachmentContainerRef("aut")
+	err = idx.InsertAttachments(authorRef, authorAtts...)
+	assert.NoError(t, err)
+
+	manufacturerAtts := []Attachment{{
+		Name:      "MANUFACTURER_INFO.md",
+		MediaType: "Message/markdown",
+	}}
+	manufacturerRef := NewManufacturerAttachmentContainerRef("aut/man")
+	err = idx.InsertAttachments(manufacturerRef, manufacturerAtts...)
+	assert.NoError(t, err)
+
+	cnt, _, err := idx.FindAttachmentContainer(idRef)
+	assert.NoError(t, err)
+	att, found := cnt.FindAttachment("README.md")
+	assert.True(t, found)
+	assert.Equal(t, "README.md", att.Name)
+	assert.Equal(t, "Message/markdown", att.MediaType)
+
+	cnt, _, err = idx.FindAttachmentContainer(nameRef)
+	assert.NoError(t, err)
+	att, found = cnt.FindAttachment("CHANGELOG.md")
+	assert.True(t, found)
+	assert.Equal(t, "CHANGELOG.md", att.Name)
+	assert.Equal(t, "Message/markdown", att.MediaType)
+
+	cnt, _, err = idx.FindAttachmentContainer(authorRef)
+	assert.NoError(t, err)
+	att, found = cnt.FindAttachment("LICENSE.txt")
+	assert.True(t, found)
+	assert.Equal(t, "LICENSE.txt", att.Name)
+	assert.Equal(t, "text/plain", att.MediaType)
+
+	cnt, _, err = idx.FindAttachmentContainer(manufacturerRef)
+	assert.NoError(t, err)
+	att, found = cnt.FindAttachment("MANUFACTURER_INFO.md")
+	assert.True(t, found)
+	assert.Equal(t, "MANUFACTURER_INFO.md", att.Name)
+	assert.Equal(t, "Message/markdown", att.MediaType)
+
+	att, found = cnt.FindAttachment("NON_EXISTENT.txt")
+	assert.False(t, found)
+	assert.Equal(t, Attachment{}, att)
+}
+
+func TestIndex_DeleteAttachments(t *testing.T) {
+	idx := &Index{}
+	tmName := "aut/man/mpn"
+	id := tmName + "/v1.2.5-20231023121314-abcd12345678.tm.json"
+	err := idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{Name: "aut"},
+		Links:        []Link{{Rel: "original", HRef: "externalID"}},
+		ID:           id,
+		Description:  "descr",
+	})
+	assert.NoError(t, err)
+
+	atts := []Attachment{{
+		Name:      "README.md",
+		MediaType: "Message/markdown",
+	}, {
+		Name:      "User Guide.pdf",
+		MediaType: "application/pdf",
+	}}
+	idRef := NewTMIDAttachmentContainerRef(id)
+	err = idx.InsertAttachments(idRef, atts...)
+	assert.NoError(t, err)
+
+	nameAtts := []Attachment{{
+		Name:      "CHANGELOG.md",
+		MediaType: "Message/markdown",
+	}}
+	nameRef := NewTMNameAttachmentContainerRef(tmName)
+	err = idx.InsertAttachments(nameRef, nameAtts...)
+	assert.NoError(t, err)
+
+	authorAtts := []Attachment{{
+		Name:      "LICENSE.txt",
+		MediaType: "text/plain",
+	}}
+	authorRef := NewAuthorAttachmentContainerRef("aut")
+	err = idx.InsertAttachments(authorRef, authorAtts...)
+	assert.NoError(t, err)
+
+	manufacturerAtts := []Attachment{{
+		Name:      "MANUFACTURER_INFO.md",
+		MediaType: "Message/markdown",
+	}}
+	manufacturerRef := NewManufacturerAttachmentContainerRef("aut/man")
+	err = idx.InsertAttachments(manufacturerRef, manufacturerAtts...)
+	assert.NoError(t, err)
+
+	cnt, _, err := idx.FindAttachmentContainer(idRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(cnt.Attachments))
+	cnt.Attachments = slices.DeleteFunc(cnt.Attachments, func(att Attachment) bool {
+		return att.Name == "README.md"
+	})
+	assert.Equal(t, 1, len(cnt.Attachments))
+	assert.Equal(t, "User Guide.pdf", cnt.Attachments[0].Name)
+
+	cnt, _, err = idx.FindAttachmentContainer(nameRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(cnt.Attachments))
+	cnt.Attachments = slices.DeleteFunc(cnt.Attachments, func(att Attachment) bool {
+		return att.Name == "CHANGELOG.md"
+	})
+	assert.Equal(t, 0, len(cnt.Attachments))
+
+	cnt, _, err = idx.FindAttachmentContainer(authorRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(cnt.Attachments))
+	cnt.Attachments = slices.DeleteFunc(cnt.Attachments, func(att Attachment) bool {
+		return att.Name == "LICENSE.txt"
+	})
+	assert.Equal(t, 0, len(cnt.Attachments))
+
+	cnt, _, err = idx.FindAttachmentContainer(manufacturerRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(cnt.Attachments))
+	cnt.Attachments = slices.DeleteFunc(cnt.Attachments, func(att Attachment) bool {
+		return att.Name == "MANUFACTURER_INFO.md"
+	})
+	assert.Equal(t, 0, len(cnt.Attachments))
+}
+
+func TestIndex_ListAttachments(t *testing.T) {
+	idx := &Index{}
+	tmName := "aut/man/mpn"
+	id := tmName + "/v1.2.5-20231023121314-abcd12345678.tm.json"
+	err := idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{Name: "aut"},
+		Links:        []Link{{Rel: "original", HRef: "externalID"}},
+		ID:           id,
+		Description:  "descr",
+	})
+	assert.NoError(t, err)
+
+	atts := []Attachment{{
+		Name:      "README.md",
+		MediaType: "Message/markdown",
+	}, {
+		Name:      "User Guide.pdf",
+		MediaType: "application/pdf",
+	}}
+	idRef := NewTMIDAttachmentContainerRef(id)
+	err = idx.InsertAttachments(idRef, atts...)
+	assert.NoError(t, err)
+
+	nameAtts := []Attachment{{
+		Name:      "CHANGELOG.md",
+		MediaType: "Message/markdown",
+	}}
+	nameRef := NewTMNameAttachmentContainerRef(tmName)
+	err = idx.InsertAttachments(nameRef, nameAtts...)
+	assert.NoError(t, err)
+
+	authorAtts := []Attachment{{
+		Name:      "LICENSE.txt",
+		MediaType: "text/plain",
+	}}
+	authorRef := NewAuthorAttachmentContainerRef("aut")
+	err = idx.InsertAttachments(authorRef, authorAtts...)
+	assert.NoError(t, err)
+
+	manufacturerAtts := []Attachment{{
+		Name:      "MANUFACTURER_INFO.md",
+		MediaType: "Message/markdown",
+	}}
+	manufacturerRef := NewManufacturerAttachmentContainerRef("aut/man")
+	err = idx.InsertAttachments(manufacturerRef, manufacturerAtts...)
+	assert.NoError(t, err)
+
+	cnt, _, err := idx.FindAttachmentContainer(idRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(cnt.Attachments))
+	assert.Equal(t, "README.md", cnt.Attachments[0].Name)
+	assert.Equal(t, "User Guide.pdf", cnt.Attachments[1].Name)
+
+	cnt, _, err = idx.FindAttachmentContainer(nameRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(cnt.Attachments))
+	assert.Equal(t, "CHANGELOG.md", cnt.Attachments[0].Name)
+
+	cnt, _, err = idx.FindAttachmentContainer(authorRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(cnt.Attachments))
+	assert.Equal(t, "LICENSE.txt", cnt.Attachments[0].Name)
+
+	cnt, _, err = idx.FindAttachmentContainer(manufacturerRef)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(cnt.Attachments))
+	assert.Equal(t, "MANUFACTURER_INFO.md", cnt.Attachments[0].Name)
 }
 func TestIndex_Insert(t *testing.T) {
 	idx := &Index{}
@@ -161,7 +419,7 @@ func TestIndex_Insert(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(idx.Data))
+	assert.Equal(t, 3, len(idx.Data))
 	assert.Equal(t, "aut/man/mpn", idx.Data[0].Name)
 	assert.Equal(t, 1, len(idx.Data[0].Versions))
 	err = idx.InsertAttachments(NewTMIDAttachmentContainerRef("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"), Attachment{Name: "README.md", MediaType: "Message/markdown"}, Attachment{Name: "User Guide.pdf", MediaType: "application/pdf"})
@@ -188,7 +446,7 @@ func TestIndex_Insert(t *testing.T) {
 		Description:  "descr",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(idx.Data))
+	assert.Equal(t, 3, len(idx.Data))
 	assert.Equal(t, 2, len(idx.Data[0].Versions))
 
 	err = idx.Insert(&ThingModel{
@@ -200,10 +458,10 @@ func TestIndex_Insert(t *testing.T) {
 		Description:  "descr",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(idx.Data))
-	assert.Equal(t, "aut/man/mpn/opt", idx.Data[1].Name)
+	assert.Equal(t, 4, len(idx.Data))
+	assert.Equal(t, "aut/man/mpn/opt", idx.Data[3].Name)
 	assert.Equal(t, 2, len(idx.Data[0].Versions))
-	assert.Equal(t, 1, len(idx.Data[1].Versions))
+	assert.Equal(t, 1, len(idx.Data[3].Versions))
 }
 
 func TestIndex_Delete(t *testing.T) {

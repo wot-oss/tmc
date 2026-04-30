@@ -146,7 +146,7 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 					fmt.Printf("%s: unknown MIME type for extension '%s'\n", d.Name(), ext)
 					mimeType = "application/octet-stream"
 				}
-				err = AttachmentImport(ctx, repo.Spec(), uuidToTmNameMap[filepath.Base(filepath.Dir(path))], path, d.Name(), mimeType, true)
+				err = AttachmentImport(ctx, repo.Spec(), uuidToTmNameMap[filepath.Base(filepath.Dir(path))], AttachmentTypeTMName, path, d.Name(), mimeType, true)
 				if err != nil {
 					fmt.Printf("File ignored while attachment import -- no mapping to TM possible %s: %v\n", d.Name(), err)
 					return nil
