@@ -267,6 +267,12 @@ type GetAuthorsParams struct {
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
 }
 
+// ListAuthorsAttachmentsParams defines parameters for ListAuthorsAttachments.
+type ListAuthorsAttachmentsParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
 // GetInventoryParams defines parameters for GetInventory.
 type GetInventoryParams struct {
 	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
@@ -357,6 +363,12 @@ type GetManufacturersParams struct {
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
 }
 
+// ListManufacturersAttachmentsParams defines parameters for ListManufacturersAttachments.
+type ListManufacturersAttachmentsParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
 // GetMpnsParams defines parameters for GetMpns.
 type GetMpnsParams struct {
 	// FilterAuthor Filters the mpns according to whether they belong to at least one of the given authors with an exact match.
@@ -405,8 +417,8 @@ type GetThingModelByFetchNameParams struct {
 
 // ListTMNameAttachmentsByNameParams defines parameters for ListTMNameAttachmentsByName.
 type ListTMNameAttachmentsByNameParams struct {
-	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
-	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // DeleteTMNameAttachmentParams defines parameters for DeleteTMNameAttachment.
@@ -453,8 +465,8 @@ type GetThingModelByIdParams struct {
 
 // ListThingModelAttachmentsByIdParams defines parameters for ListThingModelAttachmentsById.
 type ListThingModelAttachmentsByIdParams struct {
-	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
-	Repo *RepoConstraint `form:"repo,omitempty" json:"repo,omitempty"`
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
 // DeleteThingModelAttachmentByNameParams defines parameters for DeleteThingModelAttachmentByName.

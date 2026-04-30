@@ -431,7 +431,7 @@ paths:
       operationId: listThingModelAttachmentsById
       parameters:
         - $ref: '#/components/parameters/TMID'
-        - $ref: '#/components/parameters/RepoConstraint'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -590,7 +590,7 @@ paths:
           schema:
             type: string
           example: 'siemens/siemens/poc1000'
-        - $ref: '#/components/parameters/RepoConstraint'
+        - $ref: '#/components/parameters/RepoDisambiguator'
       responses:
         '200':
           description: Successful operation
@@ -912,6 +912,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /authors/{authorName}/.attachments:
+    get:
+      tags:
+        - attachments
+      summary: Get the list of attachments to authors
+      description: Returns the list of attachments to authors
+      operationId: listAuthorsAttachments
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentsList'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: No authors found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /manufacturers:
     get:
       tags:
@@ -964,6 +1007,56 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /manufacturers/{authorName}/{manufacturerName}/.attachments:
+    get:
+      tags:
+        - attachments
+      summary: Get the list of attachments to manufacturers
+      description: Returns the list of attachments to manufacturers
+      operationId: listManufacturersAttachments
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: manufacturerName
+          in: path
+          description: Name of manufacturer
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AttachmentsList'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: No manufacturers found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Internal error
           content:

@@ -556,6 +556,7 @@ func (h *TmcHandler) GetThingModelAttachmentByName(w http.ResponseWriter, r *htt
 	ref := model.NewTMIDAttachmentContainerRef(tmid)
 	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, false)
 }
+
 func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.GetTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
 	concat := false
@@ -563,6 +564,15 @@ func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request,
 		concat = *params.Concat
 	}
 	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, concat)
+}
+
+func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) {
+	data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName, concat)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	HandleByteResponse(w, r, http.StatusOK, MimeOctetStream, data)
 }
 
 func (h *TmcHandler) ListTMNameAttachmentsByName(w http.ResponseWriter, r *http.Request, tmName string, params server.ListTMNameAttachmentsByNameParams) {
@@ -583,13 +593,28 @@ func (h *TmcHandler) ListThingModelAttachmentsById(w http.ResponseWriter, r *htt
 	HandleJsonResponse(w, r, http.StatusOK, atts)
 }
 
-func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) {
-	data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName, concat)
+func (h *TmcHandler) ListAuthorsAttachments(w http.ResponseWriter, r *http.Request, authorName string, params server.ListAuthorsAttachmentsParams) {
+	atts, err := h.Service.ListAuthorsAttachments(r.Context(), convertRepoName(params.Repo), authorName)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
 	}
-	HandleByteResponse(w, r, http.StatusOK, MimeOctetStream, data)
+	if atts == nil {
+		atts = []model.FoundAttachment{}
+	}
+	HandleJsonResponse(w, r, http.StatusOK, atts)
+}
+
+func (h *TmcHandler) ListManufacturersAttachments(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, params server.ListManufacturersAttachmentsParams) {
+	atts, err := h.Service.ListManufacturersAttachments(r.Context(), convertRepoName(params.Repo), authorName, manufacturerName)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	if atts == nil {
+		atts = []model.FoundAttachment{}
+	}
+	HandleJsonResponse(w, r, http.StatusOK, atts)
 }
 
 func (h *TmcHandler) deleteAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string) {
