@@ -955,6 +955,157 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /authors/{authorName}/.attachments/{attachmentFileName}:
+    get:
+      tags:
+        - attachments
+      summary: Get the actual content of an attachment to an author
+      description:
+        Returns the content of an attachment to an author
+      operationId: getAuthorAttachmentByName
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: attachmentFileName
+          in: path
+          description: Name of attachment file
+          required: true
+          schema:
+            type: string
+          example: 'datasheet.pdf'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid ID requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Author or attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - attachments
+      summary: Upload an attachment to an author
+      description: Upload an attachment to an author
+      operationId: putAuthorAttachmentByName
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: attachmentFileName
+          in: path
+          description: Name of attachment file
+          required: true
+          schema:
+            type: string
+          example: 'datasheet.pdf'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/ForceImport'
+      requestBody:
+        description: Add a new attachment or overwrite an existing one
+        content:
+          '*/*':
+            schema:
+              type: string
+              format: binary
+        required: true
+      responses:
+        '204':
+          description: Successfully added
+        '400':
+          description: Invalid author name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Conflict, attachment already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - attachments
+      summary: Delete an attachment to an author
+      description: Delete an attachment to an author
+      operationId: deleteAuthorAttachmentByName
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: attachmentFileName
+          in: path
+          description: Name of attachment file
+          required: true
+          schema:
+            type: string
+          example: 'datasheet.pdf'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid author name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Author or attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /manufacturers:
     get:
       tags:
@@ -1053,6 +1204,178 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: No manufacturers found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName}:
+    get:
+      tags:
+        - attachments
+      summary: Get the actual content of an attachment to a manufacturer
+      description:
+        Returns the content of an attachment to a manufacturer
+      operationId: getManufacturerAttachmentByName
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: manufacturerName
+          in: path
+          description: Name of manufacturer
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: attachmentFileName
+          in: path
+          description: Name of attachment file
+          required: true
+          schema:
+            type: string
+          example: 'datasheet.pdf'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Invalid ID requested
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Manufacturer or attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - attachments
+      summary: Upload an attachment to a manufacturer
+      description: Upload an attachment to a manufacturer
+      operationId: putManufacturerAttachmentByName
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: manufacturerName
+          in: path
+          description: Name of manufacturer
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: attachmentFileName
+          in: path
+          description: Name of attachment file
+          required: true
+          schema:
+            type: string
+          example: 'datasheet.pdf'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/ForceImport'
+      requestBody:
+        description: Add a new attachment or overwrite an existing one
+        content:
+          '*/*':
+            schema:
+              type: string
+              format: binary
+        required: true
+      responses:
+        '204':
+          description: Successfully added
+        '400':
+          description: Invalid author or manufacturer name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          description: Conflict, attachment already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - attachments
+      summary: Delete an attachment to a manufacturer
+      description: Delete an attachment to a manufacturer
+      operationId: deleteManufacturerAttachmentByName
+      parameters:
+        - name: authorName
+          in: path
+          description: Name of author
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: manufacturerName
+          in: path
+          description: Name of manufacturer
+          required: true
+          schema:
+            type: string
+          example: 'siemens'
+        - name: attachmentFileName
+          in: path
+          description: Name of attachment file
+          required: true
+          schema:
+            type: string
+          example: 'datasheet.pdf'
+        - $ref: '#/components/parameters/RepoDisambiguator'
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid author or manufacturer name supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Manufacturer or attachment not found
           content:
             application/json:
               schema:

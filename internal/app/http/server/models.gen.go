@@ -273,6 +273,27 @@ type ListAuthorsAttachmentsParams struct {
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 }
 
+// DeleteAuthorAttachmentByNameParams defines parameters for DeleteAuthorAttachmentByName.
+type DeleteAuthorAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// GetAuthorAttachmentByNameParams defines parameters for GetAuthorAttachmentByName.
+type GetAuthorAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// PutAuthorAttachmentByNameParams defines parameters for PutAuthorAttachmentByName.
+type PutAuthorAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// Force flag to force the import, ignoring any conflicts with existing data
+	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
+}
+
 // GetInventoryParams defines parameters for GetInventory.
 type GetInventoryParams struct {
 	// Repo Source repository name. Optionally constrains the results to only those from given named repository. See '/repos'
@@ -367,6 +388,27 @@ type GetManufacturersParams struct {
 type ListManufacturersAttachmentsParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// DeleteManufacturerAttachmentByNameParams defines parameters for DeleteManufacturerAttachmentByName.
+type DeleteManufacturerAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// GetManufacturerAttachmentByNameParams defines parameters for GetManufacturerAttachmentByName.
+type GetManufacturerAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+}
+
+// PutManufacturerAttachmentByNameParams defines parameters for PutManufacturerAttachmentByName.
+type PutManufacturerAttachmentByNameParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// Force flag to force the import, ignoring any conflicts with existing data
+	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
 // GetMpnsParams defines parameters for GetMpns.

@@ -566,6 +566,16 @@ func (h *TmcHandler) GetTMNameAttachment(w http.ResponseWriter, r *http.Request,
 	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, concat)
 }
 
+func (h *TmcHandler) GetAuthorAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, attachmentFileName string, params server.GetAuthorAttachmentByNameParams) {
+	ref := model.NewAuthorAttachmentContainerRef(authorName)
+	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, false)
+}
+
+func (h *TmcHandler) GetManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, attachmentFileName string, params server.GetManufacturerAttachmentByNameParams) {
+	ref := model.NewManufacturerAttachmentContainerRef(authorName + "/" + manufacturerName)
+	h.fetchAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, false)
+}
+
 func (h *TmcHandler) fetchAttachment(w http.ResponseWriter, r *http.Request, repo string, ref model.AttachmentContainerRef, attachmentFileName string, concat bool) {
 	data, err := h.Service.FetchAttachment(r.Context(), repo, ref, attachmentFileName, concat)
 	if err != nil {
@@ -637,6 +647,16 @@ func (h *TmcHandler) DeleteTMNameAttachment(w http.ResponseWriter, r *http.Reque
 	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
 }
 
+func (h *TmcHandler) DeleteAuthorAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, attachmentFileName string, params server.DeleteAuthorAttachmentByNameParams) {
+	ref := model.NewAuthorAttachmentContainerRef(authorName)
+	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+}
+
+func (h *TmcHandler) DeleteManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, attachmentFileName string, params server.DeleteManufacturerAttachmentByNameParams) {
+	ref := model.NewManufacturerAttachmentContainerRef(authorName + "/" + manufacturerName)
+	h.deleteAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName)
+}
+
 func (h *TmcHandler) PutTMIDAttachment(w http.ResponseWriter, r *http.Request, tmID string, attachmentFileName string, params server.PutTMIDAttachmentParams) {
 	ref := model.NewTMIDAttachmentContainerRef(tmID)
 	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
@@ -644,6 +664,16 @@ func (h *TmcHandler) PutTMIDAttachment(w http.ResponseWriter, r *http.Request, t
 
 func (h *TmcHandler) PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName server.TMName, attachmentFileName server.AttachmentFileName, params server.PutTMNameAttachmentParams) {
 	ref := model.NewTMNameAttachmentContainerRef(tmName)
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
+}
+
+func (h *TmcHandler) PutAuthorAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, attachmentFileName string, params server.PutAuthorAttachmentByNameParams) {
+	ref := model.NewAuthorAttachmentContainerRef(authorName)
+	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
+}
+
+func (h *TmcHandler) PutManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, attachmentFileName string, params server.PutManufacturerAttachmentByNameParams) {
+	ref := model.NewManufacturerAttachmentContainerRef(authorName + "/" + manufacturerName)
 	h.putAttachment(w, r, convertRepoName(params.Repo), ref, attachmentFileName, r.Header.Get(HeaderContentType), convertForceParam(params.Force))
 }
 

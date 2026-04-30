@@ -346,6 +346,7 @@ func (dhs *defaultHandlerService) FetchAttachment(ctx context.Context, repo stri
 	content, err := commands.AttachmentFetch(ctx, spec, ref, attachmentFileName, concat)
 	return content, err
 }
+
 func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
@@ -354,6 +355,7 @@ func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, repo str
 	err = commands.DeleteAttachment(ctx, spec, ref, attachmentFileName)
 	return err
 }
+
 func (dhs *defaultHandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string, force bool) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
