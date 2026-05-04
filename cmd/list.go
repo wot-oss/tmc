@@ -36,6 +36,7 @@ func executeList(cmd *cobra.Command, args []string) {
 	if len(args) > 0 {
 		name = args[0]
 	}
+
 	spec := RepoSpecFromFlags(cmd)
 	format := cmd.Flag("format").Value.String()
 

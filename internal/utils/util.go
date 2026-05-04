@@ -255,7 +255,6 @@ var (
 )
 
 func SanitizeName(name string) string {
-	fmt.Println("Sanitizing name:", name, " template:", template)
 	name = strings.TrimSpace(name)
 	if len(name) == 0 {
 		return name
@@ -278,7 +277,6 @@ func SanitizeName(name string) string {
 }
 
 func SanitizeTemplate(name string) string {
-	fmt.Printf("Sanitizing template: ", name)
 	removableCharsWithException := regexp.MustCompile(`[^\[a-zA-Z0-9-{}]`)
 	name = removableCharsWithException.ReplaceAllString(name, "")
 	template = true
