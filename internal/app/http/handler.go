@@ -688,7 +688,6 @@ func (h *TmcHandler) putAttachment(w http.ResponseWriter, r *http.Request, repo 
 		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
 		return
 	}
-
 	err = h.Service.ImportAttachment(r.Context(), repo, ref, attachmentFileName, b, contentType, force)
 	if err != nil {
 		HandleErrorResponse(w, r, err)

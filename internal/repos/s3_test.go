@@ -367,7 +367,8 @@ func TestS3Repo_Delete(t *testing.T) {
 	r := S3Repo{bucket: bucket, client: c}
 	ctx := context.Background()
 	// and given: the repo has an index
-	assert.NoError(t, r.Index(ctx))
+	_, _, _, err := r.Index(ctx)
+	assert.NoError(t, err)
 
 	t.Run("invalid id", func(t *testing.T) {
 		err := r.Delete(ctx, "invalid-id")
@@ -434,7 +435,7 @@ func TestS3Repo_Index(t *testing.T) {
 
 	t.Run("single id/no index file", func(t *testing.T) {
 		// when: index the repo with a single id
-		err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is created
@@ -455,7 +456,7 @@ func TestS3Repo_Index(t *testing.T) {
 
 	t.Run("single id/existing index file", func(t *testing.T) {
 		// when: index the repo with another version
-		err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
@@ -475,7 +476,7 @@ func TestS3Repo_Index(t *testing.T) {
 
 	t.Run("full update/existing index file", func(t *testing.T) {
 		// when: full index the repo with all found ThingModels in the repo
-		err := r.Index(ctx)
+		_, _, _, err := r.Index(ctx)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
@@ -505,7 +506,7 @@ func TestS3Repo_Index(t *testing.T) {
 		assert.NoError(t, r.writeHelperTxtFile(ctx, nil, ""))
 
 		// when: full index the repo with all found ThingModels in the repo
-		err = r.Index(ctx)
+		_, _, _, err = r.Index(ctx)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
@@ -526,7 +527,7 @@ func TestS3Repo_Index(t *testing.T) {
 		assert.NoError(t, os.WriteFile(attPath, []byte("Read This, or Else"), defaultFilePermissions))
 
 		// when: index the repo with a single id
-		err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
@@ -553,7 +554,7 @@ func TestS3Repo_Index(t *testing.T) {
 		tmId22 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json"
 
 		// update index with unordered ID's
-		err = r.Index(ctx, tmId21, tmId12, tmId22, tmId13, tmId11)
+		_, _, _, err = r.Index(ctx, tmId21, tmId12, tmId22, tmId13, tmId11)
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex(ctx)
@@ -769,7 +770,7 @@ func TestS3Repo_CheckIntegrity(t *testing.T) {
 
 		// given: a clean repository with index
 		r := S3Repo{bucket: bucket, client: c}
-		_ = r.Index(ctx)
+		_, _, _, _ = r.Index(ctx)
 
 		// when checking the integrity
 		res, err := r.CheckIntegrity(ctx, nil)

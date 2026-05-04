@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/model"
@@ -12,6 +13,12 @@ import (
 
 func ImportAttachment(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, att model.Attachment, content []byte, force bool) error {
 	repo, err := repos.Get(spec)
+
+	if err != nil {
+		return err
+	}
+
+	err = CheckAttachmentRefByType(ctx, repo, ref)
 	if err != nil {
 		return err
 	}
@@ -24,6 +31,12 @@ func ImportAttachment(ctx context.Context, spec model.RepoSpec, ref model.Attach
 
 func DeleteAttachment(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string) error {
 	repo, err := repos.Get(spec)
+
+	err = CheckAttachmentRefByType(ctx, repo, ref)
+	if err != nil {
+		return err
+	}
+
 	if err != nil {
 		return err
 	}
@@ -33,6 +46,11 @@ func DeleteAttachment(ctx context.Context, spec model.RepoSpec, ref model.Attach
 }
 func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string, concat bool) ([]byte, error) {
 	repo, err := repos.Get(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	err = CheckAttachmentRefByType(ctx, repo, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -74,4 +92,31 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 		return nil, model.ErrAttachmentNotFound
 	}
 	return att, nil
+}
+
+func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef) error {
+	authors, manufacturers, _, err := repo.Index(ctx)
+	if err != nil {
+		return err
+	}
+	switch ref.Kind() {
+	case model.AttachmentContainerKindAuthor:
+		if !slices.Contains(authors, ref.Author) {
+			return errors.New("author not found in repo")
+		}
+	case model.AttachmentContainerKindManufacturer:
+		if !slices.Contains(authors, strings.Split(ref.Manufacturer, "/")[0]) || !slices.Contains(manufacturers, strings.Split(ref.Manufacturer, "/")[1]) {
+			return errors.New("manufacturer not found in repo")
+		}
+	case model.AttachmentContainerKindTMName:
+		// no need
+	case model.AttachmentContainerKindTMID:
+		// no need to check existence of TM ID as it will be checked when trying to import the attachment
+	default:
+		return errors.New("invalid attachment container type")
+	}
+	if err != nil {
+		return err
+	}
+	return nil
 }

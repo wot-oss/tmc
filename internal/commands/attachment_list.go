@@ -4,11 +4,20 @@ import (
 	"context"
 
 	"github.com/wot-oss/tmc/internal/model"
+	"github.com/wot-oss/tmc/internal/repos"
 )
 
 func ListAttachments(ctx context.Context, spec model.RepoSpec, identifier string, ref model.AttachmentContainerRef) ([]model.FoundAttachment, error) {
 	var atts []model.FoundAttachment
 	var err error
+	repo, err := repos.Get(spec)
+	if err != nil {
+		return nil, err
+	}
+	err = CheckAttachmentRefByType(ctx, repo, ref)
+	if err != nil {
+		return nil, err
+	}
 
 	switch ref.Kind() {
 	case model.AttachmentContainerKindTMID:

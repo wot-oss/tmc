@@ -107,42 +107,6 @@ func (_m *HandlerService) DeleteAttachment(ctx context.Context, repo string, ref
 	return r0
 }
 
-// DeleteAuthorAttachmentByName provides a mock function with given fields: ctx, repo, authorName, attachmentFileName
-func (_m *HandlerService) DeleteAuthorAttachmentByName(ctx context.Context, repo string, authorName string, attachmentFileName string) error {
-	ret := _m.Called(ctx, repo, authorName, attachmentFileName)
-
-	if len(ret) == 0 {
-		panic("no return value specified for DeleteAuthorAttachmentByName")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
-		r0 = rf(ctx, repo, authorName, attachmentFileName)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// DeleteManufacturerAttachmentByName provides a mock function with given fields: ctx, repo, authorName, manufacturerName, attachmentFileName
-func (_m *HandlerService) DeleteManufacturerAttachmentByName(ctx context.Context, repo string, authorName string, manufacturerName string, attachmentFileName string) error {
-	ret := _m.Called(ctx, repo, authorName, manufacturerName, attachmentFileName)
-
-	if len(ret) == 0 {
-		panic("no return value specified for DeleteManufacturerAttachmentByName")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
-		r0 = rf(ctx, repo, authorName, manufacturerName, attachmentFileName)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
 // DeleteThingModel provides a mock function with given fields: ctx, repo, tmID
 func (_m *HandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string) error {
 	ret := _m.Called(ctx, repo, tmID)
@@ -221,36 +185,6 @@ func (_m *HandlerService) FetchAttachment(ctx context.Context, repo string, ref 
 	return r0, r1
 }
 
-// FetchAuthorAttachmentByName provides a mock function with given fields: ctx, repo, authorName, attachmentFileName
-func (_m *HandlerService) FetchAuthorAttachmentByName(ctx context.Context, repo string, authorName string, attachmentFileName string) ([]byte, error) {
-	ret := _m.Called(ctx, repo, authorName, attachmentFileName)
-
-	if len(ret) == 0 {
-		panic("no return value specified for FetchAuthorAttachmentByName")
-	}
-
-	var r0 []byte
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) ([]byte, error)); ok {
-		return rf(ctx, repo, authorName, attachmentFileName)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) []byte); ok {
-		r0 = rf(ctx, repo, authorName, attachmentFileName)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
-		r1 = rf(ctx, repo, authorName, attachmentFileName)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // FetchLatestThingModel provides a mock function with given fields: ctx, repo, fetchName, restoreId
 func (_m *HandlerService) FetchLatestThingModel(ctx context.Context, repo string, fetchName string, restoreId bool) ([]byte, error) {
 	ret := _m.Called(ctx, repo, fetchName, restoreId)
@@ -274,36 +208,6 @@ func (_m *HandlerService) FetchLatestThingModel(ctx context.Context, repo string
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
 		r1 = rf(ctx, repo, fetchName, restoreId)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// FetchManufacturerAttachmentByName provides a mock function with given fields: ctx, repo, authorName, manufacturerName, attachmentFileName
-func (_m *HandlerService) FetchManufacturerAttachmentByName(ctx context.Context, repo string, authorName string, manufacturerName string, attachmentFileName string) ([]byte, error) {
-	ret := _m.Called(ctx, repo, authorName, manufacturerName, attachmentFileName)
-
-	if len(ret) == 0 {
-		panic("no return value specified for FetchManufacturerAttachmentByName")
-	}
-
-	var r0 []byte
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) ([]byte, error)); ok {
-		return rf(ctx, repo, authorName, manufacturerName, attachmentFileName)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) []byte); ok {
-		r0 = rf(ctx, repo, authorName, manufacturerName, attachmentFileName)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, string) error); ok {
-		r1 = rf(ctx, repo, authorName, manufacturerName, attachmentFileName)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -470,42 +374,6 @@ func (_m *HandlerService) ImportAttachment(ctx context.Context, repo string, ref
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, model.AttachmentContainerRef, string, []byte, string, bool) error); ok {
 		r0 = rf(ctx, repo, ref, attachmentFileName, content, contentType, force)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// ImportAuthorAttachmentByName provides a mock function with given fields: ctx, repo, authorName, attachmentFileName, content, contentType, force
-func (_m *HandlerService) ImportAuthorAttachmentByName(ctx context.Context, repo string, authorName string, attachmentFileName string, content []byte, contentType string, force bool) error {
-	ret := _m.Called(ctx, repo, authorName, attachmentFileName, content, contentType, force)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ImportAuthorAttachmentByName")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, []byte, string, bool) error); ok {
-		r0 = rf(ctx, repo, authorName, attachmentFileName, content, contentType, force)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// ImportManufacturerAttachmentByName provides a mock function with given fields: ctx, repo, authorName, manufacturerName, attachmentFileName, content, contentType, force
-func (_m *HandlerService) ImportManufacturerAttachmentByName(ctx context.Context, repo string, authorName string, manufacturerName string, attachmentFileName string, content []byte, contentType string, force bool) error {
-	ret := _m.Called(ctx, repo, authorName, manufacturerName, attachmentFileName, content, contentType, force)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ImportManufacturerAttachmentByName")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, []byte, string, bool) error); ok {
-		r0 = rf(ctx, repo, authorName, manufacturerName, attachmentFileName, content, contentType, force)
 	} else {
 		r0 = ret.Error(0)
 	}

@@ -82,7 +82,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 
 			if !tmExisted {
 				copiedIDs = append(copiedIDs, res.TmID)
-				iErr := target.Index(ctx, res.TmID) // need to index the TM to be able to push attachments to it
+				_, _, _, iErr := target.Index(ctx, res.TmID) // need to index the TM to be able to push attachments to it
 				if iErr != nil {
 					totalRes = append(totalRes, OperationResult{opResultErr, res.TmID, "could not update index"})
 					continue
@@ -121,7 +121,7 @@ func Copy(ctx context.Context, repo model.RepoSpec, toRepo model.RepoSpec, searc
 	}
 
 	if len(copiedIDs) > 0 {
-		indexErr := target.Index(ctx, copiedIDs...)
+		_, _, _, indexErr := target.Index(ctx, copiedIDs...)
 		if indexErr != nil {
 			Stderrf("Cannot update index: %v", indexErr)
 			return indexErr

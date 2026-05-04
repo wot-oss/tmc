@@ -239,7 +239,7 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 		return res, err
 	}
 	if res.IsSuccessful() {
-		err = repo.Index(ctx, res.TmID)
+		_, _, _, err = repo.Index(ctx, res.TmID)
 		if err != nil {
 			return repos.ImportResultFromError(err)
 		}
