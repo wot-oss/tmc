@@ -250,6 +250,7 @@ func convertParams(params any) *model.Filters {
 	var filterMpn *string
 	var filterProtocol *string
 	var filterName *string
+	var filterChangedSince *string
 
 	if invParams, ok := params.(server.GetInventoryParams); ok {
 		filterAuthor = invParams.FilterAuthor
@@ -257,6 +258,7 @@ func convertParams(params any) *model.Filters {
 		filterMpn = invParams.FilterMpn
 		filterProtocol = invParams.FilterProtocol
 		filterName = invParams.FilterName
+		filterChangedSince = invParams.FilterChangedSince
 	} else if authorsParams, ok := params.(server.GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
@@ -271,7 +273,7 @@ func convertParams(params any) *model.Filters {
 		filterProtocol = mpnsParams.FilterProtocol
 	}
 
-	return model.ToFilters(filterAuthor, filterManufacturer, filterMpn, filterProtocol, filterName,
+	return model.ToFilters(filterAuthor, filterManufacturer, filterMpn, filterProtocol, filterName, filterChangedSince,
 		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }
 

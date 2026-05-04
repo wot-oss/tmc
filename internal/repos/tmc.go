@@ -406,6 +406,9 @@ func addFilters(u *url.URL, search *model.Filters) {
 	if search.Name != "" {
 		vals := u.Query()
 		vals.Set("filter.name", search.Name)
+		if search.ChangedSince != "" {
+			vals.Set("filter.changedSince", search.ChangedSince)
+		}
 		u.RawQuery = vals.Encode()
 	}
 	appendQueryArray(u, "filter.author", search.Author)

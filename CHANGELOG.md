@@ -14,11 +14,12 @@
 - generating `authors.txt`, `manufacturers.txt`, and `mpns.txt` for improving static hosting (e.g. github, github pages)
 - `jwtScopesPrefix` flag to set default prefix for scopes authentication
 - support for storing and searching/filtering TMs with MPN variations/placeholders
+- Added `filter.changedSince` parameter to REST API `/inventory` listing and to CLI
 
 ### Changed
 
 - default TmcVersion is set to `dev`
-- 
+
 ### Fixed
 
 ### Removed
