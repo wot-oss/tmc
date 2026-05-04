@@ -27,7 +27,7 @@ func TestImportExecutor_Import(t *testing.T) {
 		id := "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id)
 		r.On("Import", mock.Anything, tmid, mock.Anything, repos.ImportOptions{}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: id}, nil)
-		r.On("Index", mock.Anything, id).Return(nil)
+		r.On("Index", mock.Anything, id).Return([]string{}, []string{}, []string{}, nil)
 
 		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatPlain)
 		assert.NoError(t, err)
@@ -42,7 +42,7 @@ func TestImportExecutor_Import(t *testing.T) {
 		id := "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"
 		tmid := model.MustParseTMID(id)
 		r.On("Import", mock.Anything, tmid, mock.Anything, repos.ImportOptions{}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: id}, nil)
-		r.On("Index", mock.Anything, id).Return(nil)
+		r.On("Index", mock.Anything, id).Return([]string{}, []string{}, []string{}, nil)
 
 		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatJSON)
 		assert.NoError(t, err)
@@ -112,7 +112,7 @@ func TestImportExecutor_Import(t *testing.T) {
 		tmid := model.MustParseTMID(id)
 		opts := repos.ImportOptions{OptPath: "a/b/c"}
 		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: id}, nil)
-		r.On("Index", mock.Anything, id).Return(nil)
+		r.On("Index", mock.Anything, id).Return([]string{}, []string{}, []string{}, nil)
 
 		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.NoError(t, err)
@@ -156,7 +156,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 			}, cErr)
 		r.On("Index", mock.Anything,
 			"omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
-			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
+			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return([]string{}, []string{}, []string{}, nil)
 
 		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.Error(t, err)
@@ -199,7 +199,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 			}, cErr)
 		r.On("Index", mock.Anything,
 			"omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json",
-			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return(nil)
+			"omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json").Return([]string{}, []string{}, []string{}, nil)
 
 		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.NoError(t, err)
@@ -227,7 +227,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 		id4 := "omnicorp-tm-department/omnicorp/omnilamp/opt/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4)
 		r.On("Import", mock.Anything, tmid, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid.String()}, nil)
-		r.On("Index", mock.Anything, id1, id2, id3, id4).Return(nil)
+		r.On("Index", mock.Anything, id1, id2, id3, id4).Return([]string{}, []string{}, []string{}, nil)
 
 		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), false, opts, OutputFormatPlain)
 		assert.NoError(t, err)
@@ -253,7 +253,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 		id4 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20231110123246-575dfac219e2.tm.json"
 		tmid = model.MustParseTMID(id4)
 		r.On("Import", mock.Anything, tmid, mock.Anything, repos.ImportOptions{OptPath: "/subfolder"}).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid.String()}, nil)
-		r.On("Index", mock.Anything, id1, id2, id3, id4).Return(nil)
+		r.On("Index", mock.Anything, id1, id2, id3, id4).Return([]string{}, []string{}, []string{}, nil)
 
 		res, err := e.Import(context.Background(), "../../../test/data/import", model.NewRepoSpec("repo"), true, repos.ImportOptions{}, OutputFormatPlain)
 		assert.NoError(t, err)
@@ -276,8 +276,8 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 		r.On("Import", mock.Anything, tmid1, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid1.String()}, nil)
 		tmid2 := model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json")
 		r.On("Import", mock.Anything, tmid2, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid2.String()}, nil)
-		r.On("Index", mock.Anything).Return(nil)
-		r.On("Index", mock.Anything, tmid1.String(), tmid2.String()).Return(nil)
+		r.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil)
+		r.On("Index", mock.Anything, tmid1.String(), tmid2.String()).Return([]string{}, []string{}, []string{}, nil)
 		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid1.Name), model.Attachment{Name: "test.svg", MediaType: "image/svg+xml"}, mock.Anything, mock.Anything).Return(nil)
 		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid2.Name), model.Attachment{Name: "test.svg", MediaType: "image/svg+xml"}, mock.Anything, mock.Anything).Return(nil)
 		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid2.Name), model.Attachment{Name: "test.txt", MediaType: "text/plain; charset=utf-8"}, mock.Anything, mock.Anything).Return(nil)

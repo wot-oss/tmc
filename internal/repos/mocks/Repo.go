@@ -244,7 +244,7 @@ func (_m *Repo) ImportAttachment(ctx context.Context, container model.Attachment
 }
 
 // Index provides a mock function with given fields: ctx, updatedIds
-func (_m *Repo) Index(ctx context.Context, updatedIds ...string) error {
+func (_m *Repo) Index(ctx context.Context, updatedIds ...string) ([]string, []string, []string, error) {
 	_va := make([]interface{}, len(updatedIds))
 	for _i := range updatedIds {
 		_va[_i] = updatedIds[_i]
@@ -258,14 +258,44 @@ func (_m *Repo) Index(ctx context.Context, updatedIds ...string) error {
 		panic("no return value specified for Index")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, ...string) error); ok {
+	var r0 []string
+	var r1 []string
+	var r2 []string
+	var r3 error
+	if rf, ok := ret.Get(0).(func(context.Context, ...string) ([]string, []string, []string, error)); ok {
+		return rf(ctx, updatedIds...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, ...string) []string); ok {
 		r0 = rf(ctx, updatedIds...)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, ...string) []string); ok {
+		r1 = rf(ctx, updatedIds...)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(2).(func(context.Context, ...string) []string); ok {
+		r2 = rf(ctx, updatedIds...)
+	} else {
+		if ret.Get(2) != nil {
+			r2 = ret.Get(2).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(3).(func(context.Context, ...string) error); ok {
+		r3 = rf(ctx, updatedIds...)
+	} else {
+		r3 = ret.Error(3)
+	}
+
+	return r0, r1, r2, r3
 }
 
 // List provides a mock function with given fields: ctx, search

@@ -2,6 +2,7 @@ package repo
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -11,7 +12,7 @@ import (
 )
 
 var attachmentImportCmd = &cobra.Command{
-	Use:   "import <tm-name-or-id> <filename>",
+	Use:   "import <identifier> <filename> -t <type>",
 	Short: "Import an attachment",
 	Long:  `Add or replace an attachment`,
 	Args:  cobra.ExactArgs(2),
@@ -35,10 +36,31 @@ func attachmentImport(command *cobra.Command, args []string) {
 	mediaType := command.Flag("media-type").Value.String()
 	name := command.Flag("name").Value.String()
 	force, _ := command.Flags().GetBool("force")
-	err := cli.AttachmentImport(context.Background(), spec, args[0], args[1], name, mediaType, force)
+	attTypeStr := command.Flag("type").Value.String()
+	attType, err := parseAttachmentType(attTypeStr)
+	if err != nil {
+		cli.Stderrf("%v", err)
+		os.Exit(1)
+	}
+	err = cli.AttachmentImport(context.Background(), spec, args[0], attType, args[1], name, mediaType, force)
 	if err != nil {
 		cli.Stderrf("attachment import failed")
 		os.Exit(1)
+	}
+}
+
+func parseAttachmentType(s string) (cli.AttachmentContainerType, error) {
+	switch s {
+	case "id":
+		return cli.AttachmentTypeTMID, nil
+	case "name":
+		return cli.AttachmentTypeTMName, nil
+	case "author":
+		return cli.AttachmentTypeAuthor, nil
+	case "manufacturer":
+		return cli.AttachmentTypeManufacturer, nil
+	default:
+		return cli.AttachmentTypeInvalid, fmt.Errorf("invalid type: %s, must be one of id, name, author, manufacturer", s)
 	}
 }
 
@@ -48,4 +70,6 @@ func init() {
 	attachmentImportCmd.Flags().StringP("media-type", "m", "", "Media type of the attachment. Guessed automatically, if the flag is not set.")
 	attachmentImportCmd.Flags().StringP("name", "n", "", "Use this name for the attachment instead of the original file name")
 	attachmentImportCmd.Flags().Bool("force", false, `Force import, even if there is conflict with existing attachment.`)
+	attachmentImportCmd.Flags().StringP("type", "t", "", "Type of attachment container: id, name, author, manufacturer")
+	attachmentImportCmd.MarkFlagRequired("type")
 }
