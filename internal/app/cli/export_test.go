@@ -138,6 +138,7 @@ func TestExport(t *testing.T) {
 		r.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
+		r.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Twice()
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(exportListRes.Entries[0].Name), "README.md").Return(readmeContent, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_2), "CHANGELOG.md").Return(changelogContent, nil).Once()
 
@@ -179,6 +180,7 @@ func TestExport(t *testing.T) {
 		r.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
 		r.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
+		r.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Twice()
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(exportListRes.Entries[0].Name), "README.md").Return(readmeContent, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_2), "CHANGELOG.md").Return(changelogContent, nil).Once()
 
@@ -341,6 +343,7 @@ func TestExport(t *testing.T) {
 		var sp *model.Filters
 		r.On("List", mock.Anything, sp).Return(exportSingleListRes, nil).Once()
 		r.On("Fetch", mock.Anything, tmID).Return(tmID, tmContent, nil).Once()
+		r.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Once()
 
 		// and given: repo returns an error when fetching an Attachment
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID), "README.md").Return(nil, errors.New("no attachment for you")).Once()

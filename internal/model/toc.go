@@ -9,15 +9,32 @@ import (
 )
 
 type Index struct {
-	Meta       IndexMeta     `json:"meta"`
-	Data       []*IndexEntry `json:"data"`
-	dataByName map[string]*IndexEntry
+	Meta                    IndexMeta     `json:"meta"`
+	Data                    []*IndexEntry `json:"data"`
+	dataByName              map[string]*IndexEntry
+	authorAttachments       map[string]*IndexEntry
+	manufacturerAttachments map[string]*IndexEntry
 }
 
 func (idx *Index) reindexData() {
 	idx.dataByName = make(map[string]*IndexEntry)
+	idx.authorAttachments = make(map[string]*IndexEntry)
+	idx.manufacturerAttachments = make(map[string]*IndexEntry)
 	for _, v := range idx.Data {
 		idx.dataByName[v.Name] = v
+		parts := strings.Split(v.Name, "/")
+		if len(parts) >= 1 {
+			authorName := parts[0]
+			if _, exists := idx.authorAttachments[authorName]; !exists {
+				idx.authorAttachments[authorName] = v
+			}
+		}
+		if len(parts) >= 2 {
+			manufacturerName := parts[0] + "/" + parts[1]
+			if _, exists := idx.manufacturerAttachments[manufacturerName]; !exists {
+				idx.manufacturerAttachments[manufacturerName] = v
+			}
+		}
 	}
 }
 
@@ -43,8 +60,8 @@ func (ac *AttachmentContainer) FindAttachment(name string) (att Attachment, foun
 
 type IndexEntry struct {
 	Name         string             `json:"name"`
-	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
-	Mpn          string             `json:"schema:mpn" validate:"required"`
+	Manufacturer SchemaManufacturer `json:"schema:manufacturer"`
+	Mpn          string             `json:"schema:mpn"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Versions     []*IndexVersion    `json:"versions"`
 	AttachmentContainer
@@ -58,18 +75,28 @@ type Attachment struct {
 // AttachmentContainerRef contains a reference to an entity which can have file attachments
 // Either TMName field must be not empty, or TMID. Never both and never none.
 type AttachmentContainerRef struct {
-	TMName string
-	TMID   string
+	Author       string
+	Manufacturer string
+	TMName       string
+	TMID         string
 }
 
 type AttachmentContainerKind byte
 
 const (
 	AttachmentContainerKindInvalid AttachmentContainerKind = iota
+	AttachmentContainerKindAuthor
+	AttachmentContainerKindManufacturer
 	AttachmentContainerKindTMName
 	AttachmentContainerKindTMID
 )
 
+func NewAuthorAttachmentContainerRef(author string) AttachmentContainerRef {
+	return AttachmentContainerRef{TMName: author, Author: author}
+}
+func NewManufacturerAttachmentContainerRef(manufacturer string) AttachmentContainerRef {
+	return AttachmentContainerRef{TMName: manufacturer, Manufacturer: manufacturer}
+}
 func NewTMIDAttachmentContainerRef(tmid string) AttachmentContainerRef {
 	return AttachmentContainerRef{TMID: tmid}
 }
@@ -80,6 +107,10 @@ func (r AttachmentContainerRef) String() string {
 	switch r.Kind() {
 	case AttachmentContainerKindInvalid:
 		return fmt.Sprintf("invalid AttachmentContainerRef (TMID=%s, TMName=%s)", r.TMID, r.TMName)
+	case AttachmentContainerKindAuthor:
+		return fmt.Sprintf("Author=%s", r.Author)
+	case AttachmentContainerKindManufacturer:
+		return fmt.Sprintf("Manufacturer=%s", r.Manufacturer)
 	case AttachmentContainerKindTMID:
 		return fmt.Sprintf("TMID=%s", r.TMID)
 	case AttachmentContainerKindTMName:
@@ -90,8 +121,14 @@ func (r AttachmentContainerRef) String() string {
 }
 
 func (r AttachmentContainerRef) Kind() AttachmentContainerKind {
-	if (r.TMID != "" && r.TMName != "") || (r.TMID == "" && r.TMName == "") {
+	if (r.Author != "" && r.Manufacturer != "" && r.TMID != "" && r.TMName != "") || (r.Author == "" && r.Manufacturer == "" && r.TMID == "" && r.TMName == "") {
 		return AttachmentContainerKindInvalid
+	}
+	if r.Author != "" {
+		return AttachmentContainerKindAuthor
+	}
+	if r.Manufacturer != "" {
+		return AttachmentContainerKindManufacturer
 	}
 	if r.TMName != "" {
 		return AttachmentContainerKindTMName
@@ -147,6 +184,20 @@ func (idx *Index) FindByName(name string) *IndexEntry {
 	return idx.dataByName[name]
 }
 
+func (idx *Index) findByAuthor(author string) *IndexEntry {
+	if idx.authorAttachments == nil {
+		idx.reindexData()
+	}
+	return idx.authorAttachments[author]
+}
+
+func (idx *Index) findByManufacturer(manufacturer string) *IndexEntry {
+	if idx.manufacturerAttachments == nil {
+		idx.reindexData()
+	}
+	return idx.manufacturerAttachments[manufacturer]
+}
+
 // FindByTMID searches by TM name and returns a pointer to the IndexVersion if found.
 // returns nil if tmID is not valid or not found in
 func (idx *Index) FindByTMID(tmID string) *IndexVersion {
@@ -184,6 +235,32 @@ func (idx *Index) Insert(ctm *ThingModel) error {
 		}
 		idx.Data = append(idx.Data, idxEntry)
 		idx.dataByName[idxEntry.Name] = idxEntry
+	}
+	parts := strings.Split(tmid.Name, "/")
+	if len(parts) >= 1 {
+		authorName := parts[0]
+		idxEntry := idx.findByAuthor(authorName)
+		if idxEntry == nil {
+			idxEntry = &IndexEntry{
+				Name:   parts[0],
+				Author: SchemaAuthor{Name: parts[0]},
+			}
+			idx.Data = append(idx.Data, idxEntry)
+			idx.authorAttachments[idxEntry.Name] = idxEntry
+		}
+	}
+	if len(parts) >= 2 {
+		manufacturerName := parts[0] + "/" + parts[1]
+		idxEntry := idx.findByManufacturer(manufacturerName)
+		if idxEntry == nil {
+			idxEntry = &IndexEntry{
+				Name:         parts[0] + "/" + parts[1],
+				Author:       SchemaAuthor{Name: parts[0]},
+				Manufacturer: SchemaManufacturer{Name: parts[1]},
+			}
+			idx.Data = append(idx.Data, idxEntry)
+			idx.manufacturerAttachments[idxEntry.Name] = idxEntry
+		}
 	}
 	// TODO: check if id already exists?
 	// Append version information to entry
@@ -258,7 +335,15 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 			idx.Data = slices.DeleteFunc(idx.Data, func(entry *IndexEntry) bool {
 				return entry.Name == name
 			})
-			delete(idx.dataByName, name)
+			if _, exists := idx.dataByName[name]; exists {
+				delete(idx.dataByName, name)
+			}
+			if _, exists := idx.authorAttachments[name]; exists {
+				delete(idx.authorAttachments, name)
+			}
+			if _, exists := idx.manufacturerAttachments[name]; exists {
+				delete(idx.manufacturerAttachments, name)
+			}
 			return updated, name, nil
 		}
 	}
@@ -267,27 +352,34 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 
 func (idx *Index) FindAttachmentContainer(ref AttachmentContainerRef) (*AttachmentContainer, *IndexEntry, error) {
 	k := ref.Kind()
-	var tmName string
+	var indexEntry *IndexEntry
 	switch k {
 	case AttachmentContainerKindInvalid:
 		return nil, nil, ErrInvalidIdOrName
+	case AttachmentContainerKindAuthor:
+		indexEntry = idx.findByAuthor(ref.Author)
+	case AttachmentContainerKindManufacturer:
+		indexEntry = idx.findByManufacturer(ref.Manufacturer)
 	case AttachmentContainerKindTMID:
 		id, err := ParseTMID(ref.TMID)
 		if err != nil {
 			return nil, nil, err
 		}
-		tmName = id.Name
+		indexEntry = idx.FindByName(id.Name)
 	case AttachmentContainerKindTMName:
 		fn, err := ParseFetchName(ref.TMName)
 		if err != nil || fn.Semver != "" {
 			return nil, nil, ErrInvalidIdOrName
 		}
-		tmName = ref.TMName
+		indexEntry = idx.FindByName(ref.TMName)
 	}
 
-	indexEntry := idx.FindByName(tmName)
 	if indexEntry == nil {
-		if ref.Kind() == AttachmentContainerKindTMID {
+		if ref.Kind() == AttachmentContainerKindAuthor {
+			return nil, nil, ErrAuthorNotFound
+		} else if ref.Kind() == AttachmentContainerKindManufacturer {
+			return nil, nil, ErrManufacturerNotFound
+		} else if ref.Kind() == AttachmentContainerKindTMID {
 			return nil, nil, ErrTMNotFound
 		} else {
 			return nil, nil, ErrTMNameNotFound
@@ -315,6 +407,10 @@ func RelAttachmentsDir(ref AttachmentContainerRef) (string, error) {
 	switch ref.Kind() {
 	case AttachmentContainerKindInvalid:
 		return "", fmt.Errorf("invalid attachment container reference: %w: %v", ErrInvalidIdOrName, ref)
+	case AttachmentContainerKindAuthor:
+		attDir = fmt.Sprintf("%s/%s", ref.Author, AttachmentsDir)
+	case AttachmentContainerKindManufacturer:
+		attDir = fmt.Sprintf("%s/%s", ref.Manufacturer, AttachmentsDir)
 	case AttachmentContainerKindTMID:
 		id, err := ParseTMID(ref.TMID)
 		if err != nil {

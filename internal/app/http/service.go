@@ -38,6 +38,10 @@ type HandlerService interface {
 	ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string, force bool) error
 	DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error
 	ListRepos(ctx context.Context) ([]model.RepoDescription, error)
+	ListTMNameAttachmentsByName(ctx context.Context, repo string, tmName string) ([]model.FoundAttachment, error)
+	ListTMIDAttachmentsByID(ctx context.Context, repo string, tmID string) ([]model.FoundAttachment, error)
+	ListAuthorsAttachments(ctx context.Context, repo string, authorName string) ([]model.FoundAttachment, error)
+	ListManufacturersAttachments(ctx context.Context, repo string, authorName string, manufacturerName string) ([]model.FoundAttachment, error)
 }
 
 type defaultHandlerService struct {
@@ -235,7 +239,7 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 		return res, err
 	}
 	if res.IsSuccessful() {
-		err = repo.Index(ctx, res.TmID)
+		_, _, _, err = repo.Index(ctx, res.TmID)
 		if err != nil {
 			return repos.ImportResultFromError(err)
 		}
@@ -342,6 +346,7 @@ func (dhs *defaultHandlerService) FetchAttachment(ctx context.Context, repo stri
 	content, err := commands.AttachmentFetch(ctx, spec, ref, attachmentFileName, concat)
 	return content, err
 }
+
 func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
@@ -350,6 +355,7 @@ func (dhs *defaultHandlerService) DeleteAttachment(ctx context.Context, repo str
 	err = commands.DeleteAttachment(ctx, spec, ref, attachmentFileName)
 	return err
 }
+
 func (dhs *defaultHandlerService) ImportAttachment(ctx context.Context, repo string, ref model.AttachmentContainerRef, attachmentFileName string, content []byte, contentType string, force bool) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
@@ -360,6 +366,38 @@ func (dhs *defaultHandlerService) ImportAttachment(ctx context.Context, repo str
 		MediaType: contentType,
 	}, content, force)
 	return err
+}
+
+func (dhs *defaultHandlerService) ListTMNameAttachmentsByName(ctx context.Context, repo string, tmName string) ([]model.FoundAttachment, error) {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	return commands.ListAttachments(ctx, spec, tmName, model.NewTMNameAttachmentContainerRef(tmName))
+}
+
+func (dhs *defaultHandlerService) ListTMIDAttachmentsByID(ctx context.Context, repo string, tmID string) ([]model.FoundAttachment, error) {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	return commands.ListAttachments(ctx, spec, tmID, model.NewTMIDAttachmentContainerRef(tmID))
+}
+
+func (dhs *defaultHandlerService) ListAuthorsAttachments(ctx context.Context, repo string, authorName string) ([]model.FoundAttachment, error) {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	return commands.ListAttachments(ctx, spec, authorName, model.NewAuthorAttachmentContainerRef(authorName))
+}
+
+func (dhs *defaultHandlerService) ListManufacturersAttachments(ctx context.Context, repo string, authorName string, manufacturerName string) ([]model.FoundAttachment, error) {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	return commands.ListAttachments(ctx, spec, authorName+"/"+manufacturerName, model.NewManufacturerAttachmentContainerRef(authorName+"/"+manufacturerName))
 }
 
 func (dhs *defaultHandlerService) CheckHealth(ctx context.Context) error {
