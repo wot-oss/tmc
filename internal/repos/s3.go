@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"slices"
 	"strings"
@@ -24,6 +25,14 @@ import (
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 )
+
+type lockMetadata struct {
+	Owner      string    `json:"owner"`
+	AcquiredAt time.Time `json:"acquired_at"`
+	ExpiresAt  time.Time `json:"expires_at"`
+	Hostname   string    `json:"hostname"`
+	PID        int       `json:"pid"`
+}
 
 var ErrS3NotExists = errors.New("file does not exist in S3")
 var ErrS3Op = errors.New("operational error")
@@ -64,6 +73,7 @@ type S3Client interface {
 	DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
 	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
 	HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error)
+	CopyObject(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options)) (*s3.CopyObjectOutput, error)
 	Options() s3.Options
 }
 
@@ -784,13 +794,289 @@ func (s *S3Repo) updateIndexWithFile(ctx context.Context, idx *model.Index, id s
 }
 
 func (s *S3Repo) lockIndex(ctx context.Context) (unlockFunc, error) {
-	// todo: locking index not yet implemented for S3, compare with fs_repo.go!
-	ctx, cancel := context.WithTimeout(ctx, indexLockTimeout)
+	confPath := s.repoConfPath()
+	if err := s.ensureRepoConfDir(ctx, confPath); err != nil {
+		err := fmt.Errorf("couldn't create repo config dir %s: %w", confPath, err)
+		return func() {}, err
+	}
+	lockPath := s.indexLockPath()
+
+	lockCtx, cancel := context.WithTimeout(ctx, indexLockTimeout)
+	renewalCtx, renewalCancel := context.WithCancel(context.Background())
+	renewalDone := make(chan struct{})
+	go s.renewLockPeriodically(renewalCtx, lockPath, renewalDone)
 	unlock := func() {
+		renewalCancel()
+		<-renewalDone
 		cancel()
+		_ = s.releaseLock(context.Background(), lockPath)
 		s.idx = nil
 	}
+	locked, err := s.tryLockWithRetry(lockCtx, lockPath, indexLockRetryDelay)
+	if err != nil || !locked {
+		err = fmt.Errorf("failed to lock index file %s: %w", s.indexFilename(), err)
+		return unlock, err
+	}
+
+	s.moveOldIndex(ctx, s.indexFilename())
 	return unlock, nil
+}
+
+func (s *S3Repo) repoConfPath() string {
+	return RepoConfDir + "/"
+}
+
+func (s *S3Repo) indexLockPath() string {
+	return s.indexFilename() + ".lock"
+}
+
+func (s *S3Repo) getOwnerID() string {
+	hostname, _ := os.Hostname()
+	return fmt.Sprintf("%s-%d", hostname, os.Getpid())
+}
+
+func (s *S3Repo) ensureRepoConfDir(ctx context.Context, confPath string) error {
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(confPath),
+	})
+
+	if err == nil {
+		return nil
+	}
+
+	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(confPath),
+		Body:        bytes.NewReader([]byte{}),
+		ContentType: aws.String("application/x-directory"),
+	})
+
+	return err
+}
+
+func (s *S3Repo) moveOldIndex(ctx context.Context, idxFile string) {
+	// Check if old index exists
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(idxFile + ".old"),
+	})
+
+	if err != nil {
+		return
+	}
+
+	backupKey := fmt.Sprintf("%s.backup.%d", idxFile, time.Now().Unix())
+	_, err = s.client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     aws.String(s.bucket),
+		CopySource: aws.String(fmt.Sprintf("%s/%s", s.bucket, idxFile+".old")),
+		Key:        aws.String(backupKey),
+	})
+
+	if err == nil {
+		_, _ = s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    aws.String(idxFile + ".old"),
+		})
+	}
+}
+
+func (s *S3Repo) renewLockPeriodically(ctx context.Context, lockPath string, done chan struct{}) {
+	defer close(done)
+
+	ticker := time.NewTicker(lockRenewalInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if err := s.renewLock(ctx, lockPath); err != nil {
+				// continue - unlock will clean up
+				fmt.Errorf("Warning: failed to renew lock %s: %v", lockPath, err)
+			}
+		}
+	}
+}
+
+func (s *S3Repo) renewLock(ctx context.Context, lockPath string) error {
+	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(lockPath),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to read lock for renewal: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var lock lockMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&lock); err != nil {
+		return fmt.Errorf("failed to parse lock metadata: %w", err)
+	}
+
+	if lock.Owner != s.getOwnerID() {
+		return fmt.Errorf("cannot renew lock owned by %s", lock.Owner)
+	}
+
+	lock.ExpiresAt = time.Now().Add(lockLeaseTime)
+	lockJSON, err := json.Marshal(lock)
+	if err != nil {
+		return err
+	}
+
+	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(lockPath),
+		Body:        bytes.NewReader(lockJSON),
+		ContentType: aws.String("application/json"),
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to update lock expiration: %w", err)
+	}
+
+	return nil
+}
+
+func (s *S3Repo) releaseLock(ctx context.Context, lockPath string) error {
+	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(lockPath),
+	})
+
+	if err == nil {
+		defer resp.Body.Close()
+		var lock lockMetadata
+		if json.NewDecoder(resp.Body).Decode(&lock) == nil {
+			if lock.Owner != s.getOwnerID() {
+				return fmt.Errorf("cannot release lock owned by %s", lock.Owner)
+			}
+		}
+	}
+
+	_, err = s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(lockPath),
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to delete lock file: %w", err)
+	}
+
+	return nil
+}
+
+func (s *S3Repo) tryLockWithRetry(ctx context.Context, lockPath string, retryDelay time.Duration) (bool, error) {
+	ticker := time.NewTicker(retryDelay)
+	defer ticker.Stop()
+
+	if locked, err := s.tryAcquireLock(ctx, lockPath); err == nil {
+		if locked {
+			return true, nil
+		}
+		if s.isLockStale(ctx, lockPath) {
+			_ = s.breakStaleLock(ctx, lockPath)
+		}
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			return false, ctx.Err()
+
+		case <-ticker.C:
+			locked, err := s.tryAcquireLock(ctx, lockPath)
+			if err != nil {
+				if s.isLockStale(ctx, lockPath) {
+					if breakErr := s.breakStaleLock(ctx, lockPath); breakErr == nil {
+						continue
+					}
+				}
+				continue
+			}
+
+			if !locked {
+				if s.isLockStale(ctx, lockPath) {
+					if breakErr := s.breakStaleLock(ctx, lockPath); breakErr == nil {
+						continue
+					}
+				}
+				continue
+			}
+
+			return true, nil
+		}
+	}
+}
+
+func (s *S3Repo) tryAcquireLock(ctx context.Context, lockPath string) (bool, error) {
+	hostname, _ := os.Hostname()
+
+	lockData := lockMetadata{
+		Owner:      s.getOwnerID(),
+		AcquiredAt: time.Now(),
+		ExpiresAt:  time.Now().Add(lockLeaseTime),
+		Hostname:   hostname,
+		PID:        os.Getpid(),
+	}
+
+	lockJSON, err := json.Marshal(lockData)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal lock metadata: %w", err)
+	}
+
+	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(lockPath),
+		Body:        bytes.NewReader(lockJSON),
+		ContentType: aws.String("application/json"),
+		IfNoneMatch: aws.String("*"),
+	})
+
+	if err != nil {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			// some other process holds the lock
+			if apiErr.ErrorCode() == "PreconditionFailed" {
+				return false, nil
+			}
+		}
+		return false, fmt.Errorf("failed to create lock file: %w", err)
+	}
+
+	return true, nil
+}
+
+func (s *S3Repo) isLockStale(ctx context.Context, lockPath string) bool {
+	resp, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(lockPath),
+	})
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+
+	var lock lockMetadata
+	if err := json.NewDecoder(resp.Body).Decode(&lock); err != nil {
+		return true
+	}
+
+	return time.Now().After(lock.ExpiresAt)
+}
+
+func (s *S3Repo) breakStaleLock(ctx context.Context, lockPath string) error {
+	if !s.isLockStale(ctx, lockPath) {
+		return fmt.Errorf("lock is not stale, cannot break")
+	}
+
+	_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(lockPath),
+	})
+
+	return err
 }
 
 func (s *S3Repo) readNamesFile(ctx context.Context) []string {

@@ -3,6 +3,7 @@ package repos
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -174,6 +175,9 @@ func TestS3Repo_ListByName(t *testing.T) {
 	assert.NoError(t, err)
 
 	c := s3mocks.NewS3Client(t)
+	c.On("HeadObject", mock.Anything, mock.Anything).Return((*s3.HeadObjectOutput)(nil), errors.New("not found")).Maybe()
+	c.On("PutObject", mock.Anything, mock.Anything).Return(&s3.PutObjectOutput{}, nil).Maybe()
+	c.On("DeleteObject", mock.Anything, mock.Anything).Return(&s3.DeleteObjectOutput{}, nil).Maybe()
 	c.On("GetObject", mock.Anything, mock.Anything).Return(&s3.GetObjectOutput{Body: io.NopCloser(bytes.NewBuffer(idx))}, nil)
 	r := S3Repo{bucket: bucket, client: c}
 
@@ -192,6 +196,9 @@ func TestS3Repo_Versions(t *testing.T) {
 	assert.NoError(t, err)
 
 	c := s3mocks.NewS3Client(t)
+	c.On("HeadObject", mock.Anything, mock.Anything).Return((*s3.HeadObjectOutput)(nil), errors.New("not found")).Maybe()
+	c.On("PutObject", mock.Anything, mock.Anything).Return(&s3.PutObjectOutput{}, nil).Maybe()
+	c.On("DeleteObject", mock.Anything, mock.Anything).Return(&s3.DeleteObjectOutput{}, nil).Maybe()
 	r := S3Repo{bucket: bucket, client: c}
 	ctx := context.Background()
 
@@ -226,6 +233,9 @@ func TestS3Repo_GetTMMetadata(t *testing.T) {
 	assert.NoError(t, err)
 
 	c := s3mocks.NewS3Client(t)
+	c.On("HeadObject", mock.Anything, mock.Anything).Return((*s3.HeadObjectOutput)(nil), errors.New("not found")).Maybe()
+	c.On("PutObject", mock.Anything, mock.Anything).Return(&s3.PutObjectOutput{}, nil).Maybe()
+	c.On("DeleteObject", mock.Anything, mock.Anything).Return(&s3.DeleteObjectOutput{}, nil).Maybe()
 	c.On("GetObject", mock.Anything, mock.Anything).Return(&s3.GetObjectOutput{Body: io.NopCloser(bytes.NewBuffer(idx))}, nil)
 
 	r := S3Repo{bucket: bucket, client: c}
@@ -909,6 +919,83 @@ func TestS3Repo_ListCompletions(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp:v0.0.1", "omnicorp-tm-department/omnicorp/omnilamp:v1.0.0", "omnicorp-tm-department/omnicorp/omnilamp:v1.2.1"}, fNames)
 	})
+}
+
+func TestS3Repo_tryAcquireLock_Success(t *testing.T) {
+	mockClient := s3mocks.NewS3Client(t)
+
+	repo := &S3Repo{
+		bucket: "test-bucket",
+		client: mockClient,
+	}
+
+	ctx := context.Background()
+	lockPath := "test/.repo/index.json.lock"
+
+	// Mock successful lock acquisition
+	mockClient.On("PutObject", ctx, mock.MatchedBy(func(input *s3.PutObjectInput) bool {
+		return *input.Bucket == "test-bucket" &&
+			*input.Key == lockPath &&
+			*input.IfNoneMatch == "*"
+	}), mock.Anything).Return(&s3.PutObjectOutput{}, nil)
+
+	acquired, err := repo.tryAcquireLock(ctx, lockPath)
+
+	assert.NoError(t, err)
+	assert.True(t, acquired)
+	mockClient.AssertExpectations(t)
+}
+
+func TestS3Repo_tryAcquireLock_AlreadyLocked(t *testing.T) {
+	mockClient := s3mocks.NewS3Client(t)
+
+	repo := &S3Repo{
+		bucket: "test-bucket",
+		client: mockClient,
+	}
+
+	ctx := context.Background()
+	lockPath := "test/.repo/index.json.lock"
+
+	// Mock precondition failed (lock already exists)
+	preconditionErr := &smithy.GenericAPIError{
+		Code:    "PreconditionFailed",
+		Message: "At least one of the pre-conditions you specified did not hold",
+	}
+
+	mockClient.On("PutObject", ctx, mock.Anything, mock.Anything).
+		Return((*s3.PutObjectOutput)(nil), preconditionErr)
+
+	acquired, err := repo.tryAcquireLock(ctx, lockPath)
+
+	assert.NoError(t, err)
+	assert.False(t, acquired)
+	mockClient.AssertExpectations(t)
+}
+
+func TestS3Repo_tryAcquireLock_OtherError(t *testing.T) {
+	mockClient := s3mocks.NewS3Client(t)
+
+	repo := &S3Repo{
+		bucket: "test-bucket",
+		client: mockClient,
+	}
+
+	ctx := context.Background()
+	lockPath := "test/.repo/index.json.lock"
+
+	// Mock network error
+	networkErr := errors.New("network timeout")
+
+	mockClient.On("PutObject", ctx, mock.Anything, mock.Anything).
+		Return((*s3.PutObjectOutput)(nil), networkErr)
+
+	acquired, err := repo.tryAcquireLock(ctx, lockPath)
+
+	assert.Error(t, err)
+	assert.False(t, acquired)
+	assert.Contains(t, err.Error(), "failed to create lock file")
+	mockClient.AssertExpectations(t)
 }
 
 func getS3Mock(t *testing.T, filePath string) *s3mocks.S3Client {
