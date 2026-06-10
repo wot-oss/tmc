@@ -799,8 +799,8 @@ paths:
     get:
       tags:
         - repos
-      summary: Export the whole catalog
-      description: Export the whole catalog as a zip file
+      summary: Get exported catalog
+      description: Download the whole catalog as a zip file after a succesful export request
       operationId: getExportedCatalog
       responses:
         '200':
@@ -820,7 +820,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     post:
       tags:
-        - thing-models
+        - repos
       summary: Trigger exporting the whole catalog
       description: Trigger exporting the whole catalog as a zip file
       operationId: exportCatalog
