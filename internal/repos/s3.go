@@ -199,7 +199,7 @@ func (s *S3Repo) Delete(ctx context.Context, id string) error {
 		}
 	}
 
-	_, err = s.updateIndex(ctx, s.indexUpdaterForIds(id))
+	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForIds(id))
 	return err
 }
 
@@ -278,20 +278,20 @@ func (s *S3Repo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	return actualId, b, err
 }
 
-func (s *S3Repo) Index(ctx context.Context, ids ...string) error {
+func (s *S3Repo) Index(ctx context.Context, ids ...string) (authors, manufacturers, mpns []string, err error) {
 
 	unlock, err := s.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
-		return err
+		return nil, nil, nil, err
 	}
 
 	if len(ids) == 0 {
-		_, err = s.updateIndex(ctx, s.fullIndexRebuild)
-		return err
+		_, aut, man, mpns, err := s.updateIndex(ctx, s.fullIndexRebuild)
+		return aut, man, mpns, err
 	}
-	_, err = s.updateIndex(ctx, s.indexUpdaterForIds(ids...))
-	return err
+	_, aut, man, mpns, err := s.updateIndex(ctx, s.indexUpdaterForIds(ids...))
+	return aut, man, mpns, err
 }
 
 func (s *S3Repo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
@@ -422,7 +422,7 @@ func (s *S3Repo) ImportAttachment(ctx context.Context, container model.Attachmen
 		return err
 	}
 
-	_, err = s.updateIndex(ctx, s.indexUpdaterForImportAttachment(container, attachment, content))
+	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForImportAttachment(container, attachment, content))
 	if err != nil {
 		return err
 	}
@@ -505,7 +505,7 @@ func (s *S3Repo) DeleteAttachment(ctx context.Context, ref model.AttachmentConta
 		return err
 	}
 
-	_, err = s.updateIndex(ctx, s.indexUpdaterForDeleteAttachment(ref, attachmentName))
+	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForDeleteAttachment(ref, attachmentName))
 	if err != nil {
 		return err
 	}
@@ -542,7 +542,7 @@ func (s *S3Repo) getAttachmentsDir(ref model.AttachmentContainerRef) (string, er
 	return model.RelAttachmentsDir(ref)
 }
 
-func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
+func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (index *model.Index, authorsList, manufacturersList, mpnsList []string, err error) {
 	// Prepare data collection for logging stats
 	var authors []string
 	var manufacturers []string
@@ -560,7 +560,7 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.
 
 	newIndex, names, fileCount, err := updater(ctx, oldIndex, oldNames)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 
 	newIndex.Sort()
@@ -571,7 +571,7 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.
 	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
 	err = s3WriteObject(ctx, s.client, s.bucket, s.indexFilename(), newIndexJson)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	for _, d := range newIndex.Data {
 		if !slices.Contains(authors, d.Author.Name) {
@@ -586,25 +586,25 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (*model.
 	}
 	err = s.writeHelperTxtFile(ctx, names, TmNamesFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	err = s.writeHelperTxtFile(ctx, authors, TmAuthorsFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	err = s.writeHelperTxtFile(ctx, manufacturers, TmManufacturersFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	err = s.writeHelperTxtFile(ctx, mpns, TmMpnsFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 
 	msg := fmt.Sprintf("Updated index with %d records in %s ", fileCount, duration.String())
 	utils.GetLogger(ctx, "S3Repo").Debug(msg)
 
-	return newIndex, nil
+	return newIndex, authors, manufacturers, mpns, nil
 }
 
 func (s *S3Repo) indexUpdaterForIds(ids ...string) indexUpdater {
@@ -715,6 +715,8 @@ func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ 
 			names = append(names, id.Name)
 			updatedAttContainers[model.NewTMIDAttachmentContainerRef(id.String())] = struct{}{}
 			updatedAttContainers[model.NewTMNameAttachmentContainerRef(id.Name)] = struct{}{}
+			updatedAttContainers[model.NewAuthorAttachmentContainerRef(strings.Split(id.Name, "/")[0])] = struct{}{}
+			updatedAttContainers[model.NewManufacturerAttachmentContainerRef(strings.Split(id.Name, "/")[0]+"/"+strings.Split(id.Name, "/")[1])] = struct{}{}
 		}
 	}
 

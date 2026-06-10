@@ -139,7 +139,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	_ = rmEmptyDirs(dir, f.root)
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(id))
+	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForIds(id))
 	return err
 }
 
@@ -265,23 +265,23 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 	return actualId, b, err
 }
 
-func (f *FileRepo) Index(ctx context.Context, ids ...string) error {
-	err := f.checkRootValid()
+func (f *FileRepo) Index(ctx context.Context, ids ...string) (authorsList, manufacturersList, mpnsList []string, err error) {
+	err = f.checkRootValid()
 	if err != nil {
-		return err
+		return nil, nil, nil, err
 	}
 	unlock, err := f.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
-		return err
+		return nil, nil, nil, err
 	}
 
 	if len(ids) == 0 {
-		_, err = f.updateIndex(ctx, f.fullIndexRebuild)
-		return err
+		_, aut, man, mpns, err := f.updateIndex(ctx, f.fullIndexRebuild)
+		return aut, man, mpns, err
 	}
-	_, err = f.updateIndex(ctx, f.indexUpdaterForIds(ids...))
-	return err
+	_, aut, man, mpns, err := f.updateIndex(ctx, f.indexUpdaterForIds(ids...))
+	return aut, man, mpns, err
 }
 
 func (f *FileRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
@@ -429,7 +429,7 @@ func (f *FileRepo) ImportAttachment(ctx context.Context, container model.Attachm
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(container, attachment, content))
+	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(container, attachment, content))
 	if err != nil {
 		return err
 	}
@@ -521,7 +521,7 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentCon
 		return err
 	}
 
-	_, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ref, attachmentName))
+	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ref, attachmentName))
 	if err != nil {
 		return err
 	}
@@ -656,7 +656,7 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*model.Index, error) {
+func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (index *model.Index, authorsList, manufacturersList, mpnsList []string, err error) {
 	// Prepare data collection for logging stats
 	var authors []string
 	var manufacturers []string
@@ -674,7 +674,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 
 	newIndex, names, fileCount, err := updater(ctx, oldIndex, oldNames)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 
 	newIndex.Sort()
@@ -686,7 +686,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
 	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	for _, d := range newIndex.Data {
 		if !slices.Contains(authors, d.Author.Name) {
@@ -701,25 +701,25 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (*mode
 	}
 	err = f.writeHelperTxtFile(names, TmNamesFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	err = f.writeHelperTxtFile(authors, TmAuthorsFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	err = f.writeHelperTxtFile(manufacturers, TmManufacturersFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 	err = f.writeHelperTxtFile(mpns, TmMpnsFile)
 	if err != nil {
-		return nil, err
+		return nil, authors, manufacturers, mpns, err
 	}
 
 	msg := fmt.Sprintf("Updated index with %d records in %s ", fileCount, duration.String())
 	utils.GetLogger(ctx, "FileRepo").Debug(msg)
 
-	return newIndex, nil
+	return newIndex, authors, manufacturers, mpns, nil
 }
 
 type indexUpdater func(ctx context.Context, oldIndex *model.Index, oldNames []string) (newIndex *model.Index, newNames []string, updatedFileCount int, err error)
@@ -831,6 +831,8 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 			names = append(names, id.Name)
 			updatedAttContainers[model.NewTMIDAttachmentContainerRef(id.String())] = struct{}{}
 			updatedAttContainers[model.NewTMNameAttachmentContainerRef(id.Name)] = struct{}{}
+			updatedAttContainers[model.NewAuthorAttachmentContainerRef(strings.Split(id.Name, "/")[0])] = struct{}{}
+			updatedAttContainers[model.NewManufacturerAttachmentContainerRef(strings.Split(id.Name, "/")[0]+"/"+strings.Split(id.Name, "/")[1])] = struct{}{}
 		}
 		return nil
 	})

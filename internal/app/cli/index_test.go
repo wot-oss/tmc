@@ -26,14 +26,14 @@ func TestIndex(t *testing.T) {
 	t.Run("error building index", func(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
 
-		r.On("Index", mock.Anything).Return(errors.New("something failed")).Once()
+		r.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, errors.New("something failed")).Once()
 		err := Index(context.Background(), model.NewDirSpec("somewhere"))
 		assert.ErrorContains(t, err, "something failed")
 	})
 
 	t.Run("ok", func(t *testing.T) {
 		rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, model.NewDirSpec("somewhere"), r, nil))
-		r.On("Index", mock.Anything).Return(nil).Once()
+		r.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Once()
 		err := Index(context.Background(), model.NewDirSpec("somewhere"))
 		assert.NoError(t, err)
 	})

@@ -75,8 +75,8 @@ func (h *HttpRepo) buildUrl(fileId string) string {
 	return h.parsedRoot.JoinPath(fileId).String()
 }
 
-func (h *HttpRepo) Index(context.Context, ...string) error {
-	return ErrNotSupported
+func (h *HttpRepo) Index(context.Context, ...string) (authorsList, manufacturersList, mpnsList []string, err error) {
+	return nil, nil, nil, ErrNotSupported
 }
 
 func (h *HttpRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
