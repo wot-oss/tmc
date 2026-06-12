@@ -2096,6 +2096,7 @@ components:
             'schema:manufacturer':
               'schema:name': 'siemens'
             'schema:mpn': 'POC1000'
+            'hasVariant': []
             'versions':
               - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
                 'digest': '2cd14601ef09'
@@ -2189,6 +2190,7 @@ components:
             'schema:manufacturer':
               'schema:name': 'siemens'
             'schema:mpn': 'POC1000'
+            'hasVariant': []
             'versions':
               - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
                 'digest': '2cd14601ef09'
@@ -2234,6 +2236,7 @@ components:
             'schema:manufacturer':
               'schema:name': 'BarTech'
             'schema:mpn': 'BazLamp'
+            'hasVariant': []
             'versions':
                - 'description': 'The BarTech BazLamp is a modern smart floor lamp.'
                  'digest': '1fc13316b7d8'
@@ -2282,6 +2285,7 @@ components:
         'schema:manufacturer':
           'schema:name': 'BarTech'
         'schema:mpn': 'BazLamp'
+        hasVariant: []
         'version':
           'model': 'v0.0.1'
         'properties':
