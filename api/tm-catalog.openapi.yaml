@@ -1655,6 +1655,7 @@ components:
         - schema:manufacturer
         - schema:mpn
         - versions
+        - hasVariant
       type: object
       properties:
         tmName:
@@ -1673,10 +1674,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InventoryEntryVersion'
+        hasVariant:
+          type: array
+          items:
+            $ref: '#/components/schemas/Variant'
+          default: []
+          example: []
         links:
           $ref: '#/components/schemas/InventoryEntryLinks'
         attachments:
-          $ref: "#/components/schemas/AttachmentsList"
+          $ref: "#/components/schemas/AttachmentsList"    
+    Variant:
+      type: object
+      required:
+        - variant-id
+      properties:
+        variant-id:
+          type: string
+          description: The TMID of the variant Thing Model
+          example: 'siemens/siemens/poc1000-variant1/v1.0.0-20231201133246-e1594d08a01b.tm.json'
     InventoryEntryVersionResponse:
       type: object
       required:

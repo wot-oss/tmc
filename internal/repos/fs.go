@@ -395,6 +395,22 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 	return nil, model.ErrTMNotFound
 }
 
+func (f *FileRepo) AddVariant(ctx context.Context, tmID string, variantID string) error {
+	err := f.checkRootValid()
+	if err != nil {
+		return err
+	}
+
+	unlock, err := f.lockIndex(ctx)
+	defer unlock()
+	if err != nil {
+		return err
+	}
+
+	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForAddVariant(tmID, variantID))
+	return err
+}
+
 func (f *FileRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
 	err := f.checkRootValid()
 	if err != nil {
@@ -805,6 +821,21 @@ func (f *FileRepo) indexUpdaterForImportAttachment(ref model.AttachmentContainer
 		a := model.Attachment{Name: att.Name, MediaType: mediaType}
 		err := oldIndex.InsertAttachments(ref, a)
 		return oldIndex, oldNames, 1, err
+	}
+}
+
+func (f *FileRepo) indexUpdaterForAddVariant(tmID string, variantID string) indexUpdater {
+	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
+		select {
+		case <-ctx.Done():
+			return nil, nil, 0, ctx.Err()
+		default:
+		}
+		err := oldIndex.InsertVariant(tmID, variantID)
+		if err != nil {
+			return oldIndex, oldNames, 0, err
+		}
+		return oldIndex, oldNames, 1, nil
 	}
 }
 

@@ -104,28 +104,6 @@ func prepareIndex() *Index {
 					},
 				},
 			},
-			{
-				Name:         "aut1/man1/mpn321",
-				Manufacturer: SchemaManufacturer{"man1"},
-				Mpn:          "mpn3{{x}}1",
-				Author:       SchemaAuthor{"aut1"},
-				Versions: []*IndexVersion{
-					{
-						Description: "d5",
-						Version:     Version{"1.0.0"},
-						TMID:        "aut1/man1/mpn3/v1.0.0-20231023121314-abcd12345680.tm.json",
-						Digest:      "abcd12345680",
-						TimeStamp:   "20231023121314",
-					},
-					{
-						Description: "d6",
-						Version:     Version{"1.0.1"},
-						TMID:        "aut1/man1/mpn3/v1.0.1-20231024121314-abcd12345681.tm.json",
-						Digest:      "abcd12345681",
-						TimeStamp:   "20231024121314",
-					},
-				},
-			},
 		},
 	}
 	idx.Sort()
@@ -484,6 +462,43 @@ func TestIndex_Insert(t *testing.T) {
 	assert.Equal(t, "aut/man/mpn/opt", idx.Data[3].Name)
 	assert.Equal(t, 2, len(idx.Data[0].Versions))
 	assert.Equal(t, 1, len(idx.Data[3].Versions))
+}
+
+func TestIndex_InsertVariant(t *testing.T) {
+	idx := &Index{}
+	parentID := "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"
+	variantID := "aut/man/mpn-variant/v1.0.0-20231023121314-qwerty1234ab.tm.json"
+
+	err := idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn",
+		Author:       SchemaAuthor{Name: "aut"},
+		ID:           parentID,
+		Description:  "base",
+	})
+	assert.NoError(t, err)
+	err = idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn-variant",
+		Author:       SchemaAuthor{Name: "aut"},
+		ID:           variantID,
+		Description:  "variant",
+	})
+	assert.NoError(t, err)
+
+	err = idx.InsertVariant(parentID, variantID)
+	assert.NoError(t, err)
+
+	e := idx.FindByName("aut/man/mpn")
+	assert.NotNil(t, e)
+	assert.Equal(t, []Variant{{VariantID: variantID}}, e.Variants)
+
+	err = idx.InsertVariant(parentID, variantID)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(e.Variants))
+
+	err = idx.InsertVariant("aut/man/missing/v1.0.0-20231023121314-qwerty1234ab.tm.json", variantID)
+	assert.ErrorIs(t, err, ErrTMNotFound)
 }
 
 func TestIndex_Delete(t *testing.T) {

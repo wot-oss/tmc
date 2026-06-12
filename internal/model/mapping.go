@@ -33,6 +33,7 @@ func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 		Manufacturer:        e.Manufacturer,
 		Mpn:                 e.Mpn,
 		Author:              e.Author,
+		Variants:            e.Variants,
 		Versions:            m.ToFoundVersions(e.Versions),
 		FoundIn:             m.foundIn,
 		AttachmentContainer: e.AttachmentContainer,
@@ -90,12 +91,24 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryE
 		Manufacturer: SchemaManufacturer{Name: e.SchemaManufacturer.SchemaName},
 		Mpn:          e.SchemaMpn,
 		Author:       SchemaAuthor{Name: e.SchemaAuthor.SchemaName},
+		Variants:     m.ToVariants(e.HasVariant),
 		Versions:     m.ToFoundVersions(e.Versions),
 		AttachmentContainer: AttachmentContainer{
 			Attachments: m.ToFoundVersionAttachments(e.Attachments),
 		},
 		FoundIn: m.subRepoFoundSource(e.Repo),
 	}
+}
+
+func (m *InventoryResponseToSearchResultMapper) ToVariants(variants []server.Variant) []Variant {
+	if len(variants) == 0 {
+		return nil
+	}
+	var r []Variant
+	for _, variant := range variants {
+		r = append(r, Variant{VariantID: variant.VariantId})
+	}
+	return r
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundVersions(versions []server.InventoryEntryVersion) []FoundVersion {

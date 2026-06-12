@@ -77,6 +77,7 @@ type InfoVersion struct {
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
 	Attachments *AttachmentsList     `json:"attachments,omitempty"`
+	HasVariant  []Variant            `json:"hasVariant"`
 	Links       *InventoryEntryLinks `json:"links,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
@@ -209,6 +210,12 @@ type SearchMatch struct {
 // May be left empty when there is only a single repository served by the backend and thus there is not need for
 // disambiguation. See also '/repos'
 type SourceRepository = string
+
+// Variant defines model for Variant.
+type Variant struct {
+	// VariantId The TMID of the variant Thing Model
+	VariantId string `json:"variant-id"`
+}
 
 // AttachmentFileName defines model for AttachmentFileName.
 type AttachmentFileName = string

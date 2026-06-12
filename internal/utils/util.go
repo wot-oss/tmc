@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -208,8 +207,6 @@ var (
 	removableChars   = regexp.MustCompile(`[^\[a-zA-Z0-9-]`)
 	replaceableChars = regexp.MustCompile(`[ &_=+:/]`)
 	dashes           = regexp.MustCompile(`[\-]+`)
-	template         = false
-	savedTemplates   = []string{}
 
 	accents = map[rune]string{
 		'à': "a",
@@ -259,28 +256,12 @@ func SanitizeName(name string) string {
 	if len(name) == 0 {
 		return name
 	}
-	if !slices.Contains(savedTemplates, name) {
-		name = strings.ToLower(name)
-		name = replaceableChars.ReplaceAllString(name, "-")
-		name = sanitizeAccents(name)
-		if !template {
-			name = removableChars.ReplaceAllString(name, "")
-		} else {
-			name = strings.ReplaceAll(name, "{", "_")
-			name = strings.ReplaceAll(name, "}", "_")
-			template = false
-			savedTemplates = append(savedTemplates, name)
-		}
-		name = dashes.ReplaceAllString(name, "-")
-	}
+	name = strings.ToLower(name)
+	name = replaceableChars.ReplaceAllString(name, "-")
+	name = sanitizeAccents(name)
+	name = removableChars.ReplaceAllString(name, "")
+	name = dashes.ReplaceAllString(name, "-")
 	return name
-}
-
-func SanitizeTemplate(name string) string {
-	removableCharsWithException := regexp.MustCompile(`[^\[a-zA-Z0-9-{}]`)
-	name = removableCharsWithException.ReplaceAllString(name, "")
-	template = true
-	return SanitizeName(name)
 }
 
 func sanitizeAccents(s string) string {

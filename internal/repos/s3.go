@@ -397,6 +397,17 @@ func (s *S3Repo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundV
 	return nil, model.ErrTMNotFound
 }
 
+func (s *S3Repo) AddVariant(ctx context.Context, tmID string, variantID string) error {
+	unlock, err := s.lockIndex(ctx)
+	defer unlock()
+	if err != nil {
+		return err
+	}
+
+	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForAddVariant(tmID, variantID))
+	return err
+}
+
 func (s *S3Repo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
 	unlock, err := s.lockIndex(ctx)
 	defer unlock()
@@ -686,6 +697,21 @@ func (s *S3Repo) indexUpdaterForImportAttachment(ref model.AttachmentContainerRe
 		a := model.Attachment{Name: att.Name, MediaType: mediaType}
 		err := oldIndex.InsertAttachments(ref, a)
 		return oldIndex, oldNames, 1, err
+	}
+}
+
+func (s *S3Repo) indexUpdaterForAddVariant(tmID string, variantID string) indexUpdater {
+	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
+		select {
+		case <-ctx.Done():
+			return nil, nil, 0, ctx.Err()
+		default:
+		}
+		err := oldIndex.InsertVariant(tmID, variantID)
+		if err != nil {
+			return oldIndex, oldNames, 0, err
+		}
+		return oldIndex, oldNames, 1, nil
 	}
 }
 

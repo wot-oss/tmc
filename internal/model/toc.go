@@ -58,12 +58,17 @@ func (ac *AttachmentContainer) FindAttachment(name string) (att Attachment, foun
 	return Attachment{}, false
 }
 
+type Variant struct {
+	VariantID string `json:"variant-id"`
+}
+
 type IndexEntry struct {
 	Name         string             `json:"name"`
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer"`
 	Mpn          string             `json:"schema:mpn"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	Versions     []*IndexVersion    `json:"versions"`
+	Variants     []Variant          `json:"hasVariant,omitempty"`
 	AttachmentContainer
 }
 
@@ -286,6 +291,32 @@ func (idx *Index) Insert(ctm *ThingModel) error {
 	} else {
 		idxEntry.Versions[idx] = tv
 	}
+	return nil
+}
+
+func (idx *Index) InsertVariant(tmID string, variantID string) error {
+	_, err := ParseTMID(variantID)
+	if err != nil {
+		return err
+	}
+	v := idx.FindByTMID(tmID)
+	if v == nil {
+		return ErrTMNotFound
+	}
+	parentID, err := ParseTMID(tmID)
+	if err != nil {
+		return err
+	}
+	e := idx.FindByName(parentID.Name)
+	if e == nil {
+		return ErrTMNameNotFound
+	}
+	if slices.ContainsFunc(e.Variants, func(v Variant) bool {
+		return v.VariantID == variantID
+	}) {
+		return nil
+	}
+	e.Variants = append(e.Variants, Variant{VariantID: variantID})
 	return nil
 }
 
