@@ -18,14 +18,6 @@ import (
 	"github.com/wot-oss/tmc/internal/utils"
 )
 
-const (
-	defaultDirPermissions  = 0775
-	defaultFilePermissions = 0664
-	indexLockTimeout       = 5 * time.Second
-	indexLocRetryDelay     = 13 * time.Millisecond
-	TMExt                  = ".tm.json"
-)
-
 var ErrRootInvalid = errors.New("root is not a directory")
 var osStat = os.Stat         // mockable for testing
 var osReadFile = os.ReadFile // mockable for testing
@@ -956,7 +948,7 @@ func (f *FileRepo) lockIndex(ctx context.Context) (unlockFunc, error) {
 		_ = fl.Unlock()
 		f.idx = nil
 	}
-	locked, err := fl.TryLockContext(ctx, indexLocRetryDelay)
+	locked, err := fl.TryLockContext(ctx, indexLockRetryDelay)
 	if err != nil || !locked {
 		err = fmt.Errorf("failed to lock index file %s: %w", idxFile, err)
 		return unlock, err
