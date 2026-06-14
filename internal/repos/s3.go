@@ -65,7 +65,6 @@ func createS3RepoConfig(bytes []byte) (ConfigMap, error) {
 	return rc, nil
 }
 
-//go:generate mockery --name S3Client --outpkg s3mocks --output ../testutils/s3mocks
 type S3Client interface {
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)

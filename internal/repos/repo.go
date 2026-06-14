@@ -124,7 +124,6 @@ func (r ImportResult) IsSuccessful() bool {
 	return r.Type == ImportResultOK || r.Type == ImportResultWarning
 }
 
-//go:generate mockery --name Repo --outpkg mocks --output mocks
 type Repo interface {
 	// Import writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
