@@ -749,12 +749,29 @@ func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ 
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	s.preserveVariants(oldIndex, newIndex)
 	err = s.reindexAttachments(ctx, updatedAttContainers, oldIndex, newIndex)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
 	return newIndex, names, fileCount, nil
+}
+
+func (s *S3Repo) preserveVariants(oldIndex *model.Index, newIndex *model.Index) {
+	if oldIndex == nil || newIndex == nil {
+		return
+	}
+	for _, entry := range newIndex.Data {
+		if len(entry.Versions) == 0 {
+			continue
+		}
+		oldEntry := oldIndex.FindByName(entry.Name)
+		if oldEntry == nil || len(oldEntry.Variants) == 0 {
+			continue
+		}
+		entry.Variants = slices.Clone(oldEntry.Variants)
+	}
 }
 
 func (s *S3Repo) reindexAttachments(ctx context.Context, containers map[model.AttachmentContainerRef]struct{}, oldIndex *model.Index, newIndex *model.Index) error {

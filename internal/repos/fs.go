@@ -870,12 +870,29 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	f.preserveVariants(oldIndex, newIndex)
 	err = f.reindexAttachments(updatedAttContainers, oldIndex, newIndex)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
 	return newIndex, names, fileCount, nil
+}
+
+func (f *FileRepo) preserveVariants(oldIndex *model.Index, newIndex *model.Index) {
+	if oldIndex == nil || newIndex == nil {
+		return
+	}
+	for _, entry := range newIndex.Data {
+		if len(entry.Versions) == 0 {
+			continue
+		}
+		oldEntry := oldIndex.FindByName(entry.Name)
+		if oldEntry == nil || len(oldEntry.Variants) == 0 {
+			continue
+		}
+		entry.Variants = slices.Clone(oldEntry.Variants)
+	}
 }
 
 func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRef]struct{}, oldIndex *model.Index, newIndex *model.Index) error {
