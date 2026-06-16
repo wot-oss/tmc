@@ -14,7 +14,6 @@ import (
 	"github.com/wot-oss/tmc/internal/repos"
 )
 
-//go:generate mockery --name HandlerService --outpkg mocks --output mocks
 type HandlerService interface {
 	ListInventory(ctx context.Context, repo string, filters *model.Filters, offset, limit int) (*model.SearchResult, error)
 	SearchInventory(ctx context.Context, repo, query string, offset, limit int) (*model.SearchResult, error)
