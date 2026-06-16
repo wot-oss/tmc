@@ -64,6 +64,7 @@ func (dhs *defaultHandlerService) ListInventory(ctx context.Context, repo string
 	if err != nil {
 		return nil, err
 	}
+	filterAutManEntries(&res)
 	res.TotalCount = len(res.Entries)
 	if offset > 0 {
 		if offset >= len(res.Entries) {
@@ -91,6 +92,7 @@ func (dhs *defaultHandlerService) SearchInventory(ctx context.Context, repo, que
 	if err != nil {
 		return nil, err
 	}
+	filterAutManEntries(&res)
 	res.TotalCount = len(res.Entries)
 	if offset > 0 {
 		if offset >= len(res.Entries) {
@@ -108,6 +110,12 @@ func (dhs *defaultHandlerService) SearchInventory(ctx context.Context, repo, que
 	}
 
 	return &res, nil
+}
+
+func filterAutManEntries(res *model.SearchResult) {
+	res.Entries = slices.DeleteFunc(res.Entries, func(entry model.FoundEntry) bool {
+		return entry.IsAuthorOrManufacturerIndexEntry()
+	})
 }
 
 func (dhs *defaultHandlerService) ListAuthors(ctx context.Context, filters *model.Filters) ([]string, error) {
