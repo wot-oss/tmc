@@ -134,7 +134,7 @@ func TestAddVariantToRepo_CreateFromParent(t *testing.T) {
 	err := addVariantToRepo(context.Background(), repo, parentTMID, AddVariantOptions{
 		Mpn:         "5mn512mb",
 		Description: "variant description",
-		Author:      "mynewco",
+		Title:       "mytitle",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, parentTMID, repo.lastFetchID)
@@ -143,7 +143,7 @@ func TestAddVariantToRepo_CreateFromParent(t *testing.T) {
 		importedID := repo.importedTMIDs[0]
 		parsedID, parseErr := model.ParseTMID(importedID)
 		assert.NoError(t, parseErr)
-		assert.Equal(t, "mynewco/bartech/5mn512mb/special", parsedID.Name)
+		assert.Equal(t, "mycompany/bartech/5mn512mb/special", parsedID.Name)
 		if assert.NotNil(t, parsedID.Version.Base) {
 			assert.Equal(t, "v0.0.1", parsedID.Version.Base.Original())
 		}
@@ -153,7 +153,7 @@ func TestAddVariantToRepo_CreateFromParent(t *testing.T) {
 			assert.NoError(t, parseTMErr)
 			assert.Equal(t, "5mn512mb", parsedTM.Mpn)
 			assert.Equal(t, "variant description", parsedTM.Description)
-			assert.Equal(t, "mynewco", parsedTM.Author.Name)
+			assert.Equal(t, "mytitle", parsedTM.Title)
 
 			var doc map[string]any
 			assert.NoError(t, json.Unmarshal(repo.importedRaws[0], &doc))
@@ -189,13 +189,13 @@ func TestApplyVariantOverrides_UpdatesExpectedFields(t *testing.T) {
 	input := []byte(`{
 		"description":"parent",
 		"schema:mpn":"old",
-		"schema:author":{"schema:name":"old-author"}
+		"title":"old-title"
 	}`)
 
 	output, err := applyVariantOverrides(input, AddVariantOptions{
 		Mpn:         "new-mpn",
 		Description: "new-desc",
-		Author:      "new-author",
+		Title:       "new-title",
 	})
 	assert.NoError(t, err)
 
@@ -203,8 +203,5 @@ func TestApplyVariantOverrides_UpdatesExpectedFields(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(output, &doc))
 	assert.Equal(t, "new-desc", doc["description"])
 	assert.Equal(t, "new-mpn", doc["schema:mpn"])
-	authorObj, ok := doc["schema:author"].(map[string]any)
-	if assert.True(t, ok) {
-		assert.Equal(t, "new-author", authorObj["schema:name"])
-	}
+	assert.Equal(t, "new-title", doc["title"])
 }

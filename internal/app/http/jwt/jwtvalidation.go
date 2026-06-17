@@ -175,6 +175,8 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 			if len(pathParts) > 2 {
 				namespaceFromPath = pathParts[2]
 			}
+		} else if pathParts[0] == "thing-models" && pathParts[1] == "variations" && r.Method == "POST" {
+			namespaceFromPath = ""
 		} else {
 			namespaceFromPath = pathParts[1]
 		}
@@ -221,6 +223,31 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 				namespaceFromScope := parts[2]
 				if namespaceFromPath == "" && r.Method == "POST" && pathParts[0] == "thing-models" {
 					if strings.HasSuffix(scope, ".write") {
+						if len(pathParts) > 1 && pathParts[1] == "variations" {
+							extractAuthor := func(id string) string {
+								return strings.SplitN(strings.TrimSpace(id), "/", 2)[0]
+							}
+							tmAuthor := extractAuthor(r.URL.Query().Get("tm-id"))
+							if tmAuthor == "" {
+								return false, fmt.Errorf("missing tm-id")
+							}
+							if !(strings.EqualFold(utils.SanitizeName(tmAuthor), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") {
+								return false, fmt.Errorf("user cannot modify thing models in this namespace: %s", tmAuthor)
+							}
+							variantID := r.URL.Query().Get("variant-id")
+							if strings.TrimSpace(variantID) != "" {
+								variantAuthor := extractAuthor(variantID)
+								if variantAuthor == "" {
+									return false, fmt.Errorf("empty variant-id")
+								}
+								if !(strings.EqualFold(utils.SanitizeName(variantAuthor), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") {
+									return false, fmt.Errorf("user cannot link variants from this namespace: %s", variantAuthor)
+								}
+							}
+
+							return true, nil
+						}
+
 						tmbody, err := io.ReadAll(r.Body)
 						if err != nil {
 							panic(err)

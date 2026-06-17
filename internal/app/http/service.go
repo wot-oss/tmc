@@ -25,6 +25,7 @@ type HandlerService interface {
 	FetchThingModel(ctx context.Context, repo, tmID string, restoreId bool) ([]byte, error)
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
 	ImportThingModel(ctx context.Context, repo string, file []byte, opts repos.ImportOptions) (repos.ImportResult, error)
+	AddThingModelVariation(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error
 	DeleteThingModel(ctx context.Context, repo string, tmID string) error
 	ExportCatalog(ctx context.Context, repo string) ([]byte, error)
 	CheckHealth(ctx context.Context) error
@@ -246,6 +247,15 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 	}
 
 	return res, nil
+}
+
+func (dhs *defaultHandlerService) AddThingModelVariation(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {
+	spec, err := dhs.inferTargetRepo(ctx, repo)
+	if err != nil {
+		return err
+	}
+	err = commands.AddVariant(ctx, spec, tmID, opts)
+	return err
 }
 
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string) error {

@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -43,6 +45,13 @@ type JobManager struct {
 	job               ExportJobStatus
 	activeJobLock     sync.Mutex
 	isExportingActive bool
+}
+
+type addThingModelVariationRequest struct {
+	VariantID   string `json:"variant-id"`
+	Mpn         string `json:"mpn"`
+	Description string `json:"description"`
+	Title       string `json:"title"`
 }
 
 func NewTmcHandler(handlerService HandlerService, options TmcHandlerOptions) *TmcHandler {
@@ -408,6 +417,69 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
 
+}
+
+// POST /thing-models/variations Add a variant to a Thing Model
+func (h *TmcHandler) AddThingModelVariation(w http.ResponseWriter, r *http.Request, params server.AddThingModelVariationParams) {
+	contentType := r.Header.Get(HeaderContentType)
+
+	if contentType != MimeJSON {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "Invalid Content-Type header: %s", contentType))
+		return
+	}
+
+	tmID := strings.TrimSpace(params.TmId)
+	if tmID == "" {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "missing required query parameter: tm-id"))
+		return
+	}
+
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
+	err = r.Body.Close()
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	if len(b) == 0 {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
+		return
+	}
+
+	var req addThingModelVariationRequest
+	decoder := json.NewDecoder(bytes.NewReader(b))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		HandleErrorResponse(w, r, NewBadRequestError(err, "invalid request body: %v", err))
+		return
+	}
+
+	queryVariantID := ""
+	if params.VariantId != nil {
+		queryVariantID = strings.TrimSpace(*params.VariantId)
+	}
+	variantID := strings.TrimSpace(req.VariantID)
+	if queryVariantID != "" {
+		if variantID != "" && variantID != queryVariantID {
+			HandleErrorResponse(w, r, NewBadRequestError(nil, "variant-id differs between query and body"))
+			return
+		}
+		variantID = queryVariantID
+	}
+
+	err = h.Service.AddThingModelVariation(r.Context(), convertRepoName(params.Repo), tmID, commands.AddVariantOptions{
+		VariantID:   variantID,
+		Mpn:         strings.TrimSpace(req.Mpn),
+		Description: req.Description,
+		Title:       req.Title,
+	})
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {

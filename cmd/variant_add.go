@@ -10,9 +10,9 @@ import (
 )
 
 var variantAddCmd = &cobra.Command{
-	Use:   "add --tm-id <tm-id> [--variant-id <variant-id> | --mpn <mpn> [--description <description>] [--author <author>]]",
+	Use:   "add --tm-id <tm-id> [--variant-id <variant-id> | --mpn <mpn> [--description <description>] [--title <title>]]",
 	Short: "Add a variant to an index entry",
-	Long:  `Either link an existing variant TMID with --variant-id, or create a new variant from the parent Thing Model with --mpn (optional --description and --author) and link it.`,
+	Long:  `Either link an existing variant TMID with --variant-id, or create a new variant from the parent Thing Model with --mpn (optional --description and --title) and link it.`,
 	Args:  cobra.NoArgs,
 	Run:   addVariant,
 }
@@ -24,13 +24,13 @@ func addVariant(command *cobra.Command, _ []string) {
 	variantID, _ := command.Flags().GetString("variant-id")
 	mpn, _ := command.Flags().GetString("mpn")
 	description, _ := command.Flags().GetString("description")
-	author, _ := command.Flags().GetString("author")
+	title, _ := command.Flags().GetString("title")
 
 	opts := commands.AddVariantOptions{
 		VariantID:   variantID,
 		Mpn:         mpn,
 		Description: description,
-		Author:      author,
+		Title:       title,
 	}
 
 	if opts.VariantID == "" && opts.Mpn == "" {
@@ -41,8 +41,8 @@ func addVariant(command *cobra.Command, _ []string) {
 		cli.Stderrf("--variant-id and --mpn are mutually exclusive")
 		os.Exit(1)
 	}
-	if opts.VariantID != "" && (opts.Description != "" || opts.Author != "") {
-		cli.Stderrf("--description and --author can only be used with --mpn")
+	if opts.VariantID != "" && (opts.Description != "" || opts.Title != "") {
+		cli.Stderrf("--description and --title can only be used with --mpn")
 		os.Exit(1)
 	}
 
@@ -59,7 +59,7 @@ func init() {
 	variantAddCmd.Flags().String("variant-id", "", "TMID of an existing variant Thing Model to link")
 	variantAddCmd.Flags().String("mpn", "", "MPN for a new variant created from the parent Thing Model")
 	variantAddCmd.Flags().String("description", "", "Optional description override for a newly created variant")
-	variantAddCmd.Flags().String("author", "", "Optional author override for a newly created variant")
+	variantAddCmd.Flags().String("title", "", "Optional title override for a newly created variant")
 	variantAddCmd.MarkFlagRequired("tm-id")
 	variantCmd.AddCommand(variantAddCmd)
 }

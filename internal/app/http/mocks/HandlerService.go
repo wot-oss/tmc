@@ -7,6 +7,7 @@ import (
 
 	mock "github.com/stretchr/testify/mock"
 
+	commands "github.com/wot-oss/tmc/internal/commands"
 	model "github.com/wot-oss/tmc/internal/model"
 
 	repos "github.com/wot-oss/tmc/internal/repos"
@@ -118,6 +119,24 @@ func (_m *HandlerService) DeleteThingModel(ctx context.Context, repo string, tmI
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
 		r0 = rf(ctx, repo, tmID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// AddThingModelVariation provides a mock function with given fields: ctx, repo, tmID, opts
+func (_m *HandlerService) AddThingModelVariation(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {
+	ret := _m.Called(ctx, repo, tmID, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddThingModelVariation")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, commands.AddVariantOptions) error); ok {
+		r0 = rf(ctx, repo, tmID, opts)
 	} else {
 		r0 = ret.Error(0)
 	}

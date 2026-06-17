@@ -80,7 +80,7 @@ type ServerInterface interface {
 	// Get the list of repositories
 	// (GET /repos)
 	GetRepos(w http.ResponseWriter, r *http.Request)
-	// Export the whole catalog
+	// Get exported catalog
 	// (GET /repos/export)
 	GetExportedCatalog(w http.ResponseWriter, r *http.Request)
 	// Trigger exporting the whole catalog
@@ -104,6 +104,9 @@ type ServerInterface interface {
 	// Upload an attachment to a TM name
 	// (PUT /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName})
 	PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName TMName, attachmentFileName AttachmentFileName, params PutTMNameAttachmentParams)
+	// Add or create a variation for a Thing Model
+	// (POST /thing-models/variations)
+	AddThingModelVariation(w http.ResponseWriter, r *http.Request, params AddThingModelVariationParams)
 	// Delete a Thing Model by ID
 	// (DELETE /thing-models/{tmID})
 	DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmID TMID, params DeleteThingModelByIdParams)
@@ -1403,6 +1406,59 @@ func (siw *ServerInterfaceWrapper) PutTMNameAttachment(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// AddThingModelVariation operation middleware
+func (siw *ServerInterfaceWrapper) AddThingModelVariation(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AddThingModelVariationParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	// ------------- Required query parameter "tm-id" -------------
+
+	if paramValue := r.URL.Query().Get("tm-id"); paramValue != "" {
+
+	} else {
+		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "tm-id"})
+		return
+	}
+
+	err = runtime.BindQueryParameter("form", true, true, "tm-id", r.URL.Query(), &params.TmId)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tm-id", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "variant-id" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "variant-id", r.URL.Query(), &params.VariantId)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "variant-id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddThingModelVariation(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // DeleteThingModelById operation middleware
 func (siw *ServerInterfaceWrapper) DeleteThingModelById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1849,6 +1905,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.GetThingModelById).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.DeleteThingModelById).Methods("DELETE")
+
+	r.HandleFunc(options.BaseURL+"/thing-models/variations", wrapper.AddThingModelVariation).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/repos/export", wrapper.GetExportedCatalog).Methods("GET")
 

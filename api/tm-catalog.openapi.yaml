@@ -795,6 +795,67 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /thing-models/variations:
+    post:
+      tags:
+        - thing-models
+      summary: Add or create a variation for a Thing Model
+      description: |
+        Adds a variation link to a parent Thing Model.
+
+        Use `variant-id` to link an existing variation TMID,
+        or provide `mpn` (plus optional `title` and `description`) to create a new
+        variation from the parent and link it.
+      operationId: addThingModelVariation
+      parameters:
+        - $ref: '#/components/parameters/RepoDisambiguator'
+        - name: tm-id
+          in: query
+          description: TMID of the parent Thing Model
+          required: true
+          schema:
+            type: string
+        - name: variant-id
+          in: query
+          description: TMID of an existing variation Thing Model to link
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddThingModelVariationRequest'
+      responses:
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /repos/export:
     get:
       tags:
@@ -1812,6 +1873,21 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/ImportThingModelResult'
+    AddThingModelVariationRequest:
+      type: object
+      properties:
+        variant-id:
+          type: string
+          description: TMID of an existing variation Thing Model to link
+        mpn:
+          type: string
+          description: MPN for a new variation created from the parent Thing Model
+        title:
+          type: string
+          description: Optional title override for a newly created variation
+        description:
+          type: string
+          description: Optional description override for a newly created variation
     AuthorsResponse:
       type: object
       required:

@@ -1193,6 +1193,55 @@ func Test_ImportThingModel(t *testing.T) {
 		assertResponse500(t, rec, route)
 	})
 }
+
+func Test_AddThingModelVariation(t *testing.T) {
+	parentTMID := "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccc.tm.json"
+	route := "/thing-models/variations?tm-id=" + url.QueryEscape(parentTMID)
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("link existing variant from query parameter", func(t *testing.T) {
+		routeWithVariant := route + "&variant-id=" + url.QueryEscape("a-corp/eagle/bt2000-special/v1.0.0-20240108140117-243d1b462ccd.tm.json")
+		hs.On("AddThingModelVariation", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			VariantID: "a-corp/eagle/bt2000-special/v1.0.0-20240108140117-243d1b462ccd.tm.json",
+		}).Return(nil).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, routeWithVariant).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{}`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, 0, rec.Body.Len())
+	})
+
+	t.Run("create variant from mpn and body overrides", func(t *testing.T) {
+		hs.On("AddThingModelVariation", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			Mpn:         "bt2000-special",
+			Title:       "new title",
+			Description: "blablabla",
+		}).Return(nil).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"mpn":"bt2000-special","title":"new title","description":"blablabla"}`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, 0, rec.Body.Len())
+	})
+
+	t.Run("fails without tm-id", func(t *testing.T) {
+		rec := testutils.NewRequest(http.MethodPost, "/thing-models/variations?variant-id=xzy.tm.jsonld").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"title":"new title","description":"blablabla"}`)).
+			RunOnHandler(httpHandler)
+
+		assertResponse400(t, rec, "/thing-models/variations?variant-id=xzy.tm.jsonld")
+	})
+}
+
 func Test_ImportAttachment(t *testing.T) {
 
 	attContent := []byte("# readme.md file")

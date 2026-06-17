@@ -13,6 +13,21 @@ const (
 	Names      GetCompletionsParamsKind = "names"
 )
 
+// AddThingModelVariationRequest defines model for AddThingModelVariationRequest.
+type AddThingModelVariationRequest struct {
+	// Description Optional description override for a newly created variation
+	Description *string `json:"description,omitempty"`
+
+	// Mpn MPN for a new variation created from the parent Thing Model
+	Mpn *string `json:"mpn,omitempty"`
+
+	// Title Optional title override for a newly created variation
+	Title *string `json:"title,omitempty"`
+
+	// VariantId TMID of an existing variation Thing Model to link
+	VariantId *string `json:"variant-id,omitempty"`
+}
+
 // AttachmentLinks defines model for AttachmentLinks.
 type AttachmentLinks struct {
 	Content string `json:"content"`
@@ -494,6 +509,18 @@ type PutTMNameAttachmentParams struct {
 	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
+// AddThingModelVariationParams defines parameters for AddThingModelVariation.
+type AddThingModelVariationParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// TmId TMID of the parent Thing Model
+	TmId string `form:"tm-id" json:"tm-id"`
+
+	// VariantId TMID of an existing variation Thing Model to link
+	VariantId *string `form:"variant-id,omitempty" json:"variant-id,omitempty"`
+}
+
 // DeleteThingModelByIdParams defines parameters for DeleteThingModelById.
 type DeleteThingModelByIdParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
@@ -541,3 +568,6 @@ type PutTMIDAttachmentParams struct {
 
 // ImportThingModelJSONRequestBody defines body for ImportThingModel for application/json ContentType.
 type ImportThingModelJSONRequestBody = ImportThingModelJSONBody
+
+// AddThingModelVariationJSONRequestBody defines body for AddThingModelVariation for application/json ContentType.
+type AddThingModelVariationJSONRequestBody = AddThingModelVariationRequest

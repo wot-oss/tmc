@@ -22,7 +22,7 @@ type AddVariantOptions struct {
 	VariantID   string
 	Mpn         string
 	Description string
-	Author      string
+	Title       string
 }
 
 func (o AddVariantOptions) checkOptions() error {
@@ -32,8 +32,8 @@ func (o AddVariantOptions) checkOptions() error {
 	if o.VariantID != "" && o.Mpn != "" {
 		return errors.New("variantID and mpn are mutually exclusive")
 	}
-	if o.VariantID != "" && (o.Description != "" || o.Author != "") {
-		return errors.New("description and author can only be used when creating a variant via mpn")
+	if o.VariantID != "" && (o.Description != "" || o.Title != "") {
+		return errors.New("description and title can only be used when creating a variant via mpn")
 	}
 	if o.VariantID != "" {
 		if _, err := model.ParseTMID(o.VariantID); err != nil {
@@ -97,7 +97,7 @@ func createVariantFromParent(ctx context.Context, repo repos.Repo, tmID string, 
 	variantRaw, err := applyVariantOverrides(parentRaw, AddVariantOptions{
 		Mpn:         strings.TrimSpace(opts.Mpn),
 		Description: opts.Description,
-		Author:      opts.Author,
+		Title:       opts.Title,
 	})
 	if err != nil {
 		return "", err
@@ -154,12 +154,12 @@ func applyVariantOverrides(parentRaw []byte, opts AddVariantOptions) ([]byte, er
 		}
 	}
 
-	if opts.Author != "" {
-		author, err := json.Marshal(opts.Author)
+	if opts.Title != "" {
+		title, err := json.Marshal(opts.Title)
 		if err != nil {
 			return nil, err
 		}
-		modified, err = jsonparser.Set(modified, author, "schema:author", "schema:name")
+		modified, err = jsonparser.Set(modified, title, "title")
 		if err != nil {
 			return nil, err
 		}
