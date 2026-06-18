@@ -25,6 +25,19 @@ type AddVariantOptions struct {
 	Title       string
 }
 
+type AddVariantBatchRequest struct {
+	TmID        string `json:"tm-id"`
+	Mpn         string `json:"mpn"`
+	Description string `json:"description,omitempty"`
+	Title       string `json:"title,omitempty"`
+}
+
+type AddVariantBatchResult struct {
+	TmID      string `json:"tm-id"`
+	VariantID string `json:"variant-id"`
+	Error     string `json:"error,omitempty"`
+}
+
 func (o AddVariantOptions) checkOptions() error {
 	if o.VariantID == "" && o.Mpn == "" {
 		return errors.New("either variantID or mpn must be provided")
@@ -54,12 +67,100 @@ func AddVariant(ctx context.Context, spec model.RepoSpec, tmID string, opts AddV
 	return addVariantToRepo(ctx, repo, tmID, opts)
 }
 
+func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, requests []AddVariantBatchRequest) []AddVariantBatchResult {
+	var results []AddVariantBatchResult
+	repo, err := repos.Get(spec)
+	if err != nil {
+		return []AddVariantBatchResult{{Error: fmt.Sprintf("failed to initialize repo: %v", err)}}
+	}
+
+	for _, req := range requests {
+		tmID := strings.TrimSpace(req.TmID)
+		if tmID == "" {
+			results = append(results, AddVariantBatchResult{
+				TmID:  req.TmID,
+				Error: "tm-id is required",
+			})
+			continue
+		}
+
+		if _, err := model.ParseTMID(tmID); err != nil {
+			results = append(results, AddVariantBatchResult{
+				TmID:  req.TmID,
+				Error: fmt.Sprintf("invalid tm-id: %v", err),
+			})
+			continue
+		}
+
+		opts := AddVariantOptions{
+			Mpn:         strings.TrimSpace(req.Mpn),
+			Description: strings.TrimSpace(req.Description),
+			Title:       strings.TrimSpace(req.Title),
+		}
+
+		if opts.Mpn == "" {
+			results = append(results, AddVariantBatchResult{
+				TmID:  req.TmID,
+				Error: "mpn is required for variant creation",
+			})
+			continue
+		}
+
+		variantID, err := createVariantFromParent(ctx, repo, tmID, opts)
+		if err != nil {
+			results = append(results, AddVariantBatchResult{
+				TmID:  req.TmID,
+				Error: fmt.Sprintf("failed to create variant: %v", err),
+			})
+			continue
+		}
+
+		_, _, _, err = repo.Index(ctx, variantID)
+		if err != nil {
+			results = append(results, AddVariantBatchResult{
+				TmID:  req.TmID,
+				Error: fmt.Sprintf("failed to index variant: %v", err),
+			})
+			continue
+		}
+
+		variantAdder, _ := repo.(variantAdder)
+		err = variantAdder.AddVariant(ctx, tmID, variantID)
+		if err != nil {
+			results = append(results, AddVariantBatchResult{
+				TmID:  req.TmID,
+				Error: fmt.Sprintf("failed to link variant: %v", err),
+			})
+			continue
+		}
+
+		results = append(results, AddVariantBatchResult{
+			TmID:      req.TmID,
+			VariantID: variantID,
+		})
+	}
+
+	return results
+}
+
 func addVariantToRepo(ctx context.Context, repo repos.Repo, tmID string, opts AddVariantOptions) error {
-	if _, err := model.ParseTMID(tmID); err != nil {
+	parentTMID, err := model.ParseTMID(tmID)
+	if err != nil {
 		return err
 	}
 	if err := opts.checkOptions(); err != nil {
 		return err
+	}
+	if opts.VariantID != "" {
+		variantTMID, err := model.ParseTMID(opts.VariantID)
+		if err != nil {
+			return err
+		}
+		parentParts := strings.Split(parentTMID.Name, "/")
+		variantParts := strings.Split(variantTMID.Name, "/")
+		if !(parentParts[0] == variantParts[0] && parentParts[1] == variantParts[1]) {
+			return errors.New("variant-id must match parent tm-id author and manufacturer")
+		}
 	}
 
 	r, ok := repo.(variantAdder)
@@ -68,7 +169,6 @@ func addVariantToRepo(ctx context.Context, repo repos.Repo, tmID string, opts Ad
 	}
 
 	variantID := opts.VariantID
-	var err error
 	if variantID == "" {
 		variantID, err = createVariantFromParent(ctx, repo, tmID, opts)
 		if err != nil {

@@ -120,6 +120,18 @@ func TestAddVariantToRepo_WithExistingVariantID(t *testing.T) {
 	assert.Empty(t, repo.indexIDs)
 }
 
+func TestAddVariantToRepo_WithExistingVariantID_MismatchedManufacturer(t *testing.T) {
+	repo := &stubVariantRepo{}
+	parentTMID := "aut/man-a/mpn/v1.0.0-20260326150433-965fd7c3238b.tm.json"
+	variantTMID := "aut/man-b/mpn-variant/v1.0.0-20260326150433-965fd7c3238c.tm.json"
+
+	err := addVariantToRepo(context.Background(), repo, parentTMID, AddVariantOptions{VariantID: variantTMID})
+	assert.ErrorContains(t, err, "variant-id must match parent tm-id author and manufacturer")
+	assert.Empty(t, repo.variantCalls)
+	assert.Empty(t, repo.importedTMIDs)
+	assert.Empty(t, repo.indexIDs)
+}
+
 func TestAddVariantToRepo_CreateFromParent(t *testing.T) {
 	repo := &stubVariantRepo{fetchRaw: []byte(`{
 		"id":"mycompany/bartech/5mn512me/special/v0.0.1-20260326150433-965fd7c3238b.tm.json",

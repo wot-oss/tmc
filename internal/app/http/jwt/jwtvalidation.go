@@ -14,6 +14,7 @@ import (
 	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	"github.com/wot-oss/tmc/internal/app/http/auth"
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/utils"
 
@@ -224,11 +225,43 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 				if namespaceFromPath == "" && r.Method == "POST" && pathParts[0] == "thing-models" {
 					if strings.HasSuffix(scope, ".write") {
 						if len(pathParts) > 1 && pathParts[1] == "variations" {
-							extractAuthor := func(id string) string {
-								return strings.SplitN(strings.TrimSpace(id), "/", 2)[0]
+							extractAuthorManufacturer := func(id string) (string, string) {
+								parts := strings.Split(strings.TrimSpace(id), "/")
+								if len(parts) < 3 {
+									return "", ""
+								}
+								return parts[0], parts[1]
 							}
-							tmAuthor := extractAuthor(r.URL.Query().Get("tm-id"))
-							if tmAuthor == "" {
+							tmbody, err := io.ReadAll(r.Body)
+							if err != nil {
+								return false, fmt.Errorf("failed to read request body: %v", err)
+							}
+							r.Body = io.NopCloser(bytes.NewReader(tmbody))
+							trimmed := bytes.TrimSpace(tmbody)
+							if len(trimmed) > 0 && trimmed[0] == '[' {
+								var items []commands.AddVariantBatchRequest
+								err = json.Unmarshal(trimmed, &items)
+								if err != nil {
+									return false, fmt.Errorf("invalid batch request body: %v", err)
+								}
+								if len(items) == 0 {
+									return false, fmt.Errorf("empty batch request body")
+								}
+								for _, item := range items {
+									tmAuthor, tmManufacturer := extractAuthorManufacturer(item.TmID)
+									if tmAuthor == "" || tmManufacturer == "" {
+										return false, fmt.Errorf("missing tm-id")
+									}
+									if !(strings.EqualFold(utils.SanitizeName(tmAuthor), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") {
+										return false, fmt.Errorf("user cannot modify thing models in this namespace: %s", tmAuthor)
+									}
+								}
+								r.Body = io.NopCloser(bytes.NewReader(tmbody))
+								return true, nil
+							}
+							tmID := r.URL.Query().Get("tm-id")
+							tmAuthor, tmManufacturer := extractAuthorManufacturer(tmID)
+							if tmAuthor == "" || tmManufacturer == "" {
 								return false, fmt.Errorf("missing tm-id")
 							}
 							if !(strings.EqualFold(utils.SanitizeName(tmAuthor), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") {
@@ -236,12 +269,15 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 							}
 							variantID := r.URL.Query().Get("variant-id")
 							if strings.TrimSpace(variantID) != "" {
-								variantAuthor := extractAuthor(variantID)
-								if variantAuthor == "" {
+								variantAuthor, variantManufacturer := extractAuthorManufacturer(variantID)
+								if variantAuthor == "" || variantManufacturer == "" {
 									return false, fmt.Errorf("empty variant-id")
 								}
 								if !(strings.EqualFold(utils.SanitizeName(variantAuthor), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") {
 									return false, fmt.Errorf("user cannot link variants from this namespace: %s", variantAuthor)
+								}
+								if variantAuthor != tmAuthor || variantManufacturer != tmManufacturer {
+									return false, fmt.Errorf("variant-id must match tm-id author and manufacturer")
 								}
 							}
 
@@ -250,13 +286,13 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 
 						tmbody, err := io.ReadAll(r.Body)
 						if err != nil {
-							panic(err)
+							return false, fmt.Errorf("failed to read request body: %v", err)
 						}
 						r.Body = io.NopCloser(bytes.NewReader(tmbody))
 						var tm model.ThingModel
 						err = json.Unmarshal(tmbody, &tm)
 						if err != nil {
-							panic(err)
+							return false, fmt.Errorf("invalid request body: %v", err)
 						}
 						fmt.Println(utils.SanitizeName(tm.Author.Name))
 						if strings.EqualFold(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*" {

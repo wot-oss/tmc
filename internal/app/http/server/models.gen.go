@@ -13,18 +13,30 @@ const (
 	Names      GetCompletionsParamsKind = "names"
 )
 
-// AddThingModelVariationRequest defines model for AddThingModelVariationRequest.
-type AddThingModelVariationRequest struct {
-	// Description Optional description override for a newly created variation
+// AddVariantBatchRequest defines model for AddVariantBatchRequest.
+type AddVariantBatchRequest struct {
+	// Description Optional description override for the new variation
 	Description *string `json:"description,omitempty"`
 
-	// Mpn MPN for a new variation created from the parent Thing Model
-	Mpn *string `json:"mpn,omitempty"`
+	// Mpn MPN for the new variation
+	Mpn string `json:"mpn"`
 
-	// Title Optional title override for a newly created variation
+	// Title Optional title override for the new variation
 	Title *string `json:"title,omitempty"`
 
-	// VariantId TMID of an existing variation Thing Model to link
+	// TmId TMID of the parent Thing Model
+	TmId string `json:"tm-id"`
+}
+
+// AddVariantBatchResult defines model for AddVariantBatchResult.
+type AddVariantBatchResult struct {
+	// Error Error message if the operation failed (only present on failure)
+	Error *string `json:"error,omitempty"`
+
+	// TmId TMID of the parent Thing Model from the request
+	TmId string `json:"tm-id"`
+
+	// VariantId TMID of the created variant (only present on success)
 	VariantId *string `json:"variant-id,omitempty"`
 }
 
@@ -509,15 +521,18 @@ type PutTMNameAttachmentParams struct {
 	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
+// AddThingModelVariationJSONBody defines parameters for AddThingModelVariation.
+type AddThingModelVariationJSONBody = []AddVariantBatchRequest
+
 // AddThingModelVariationParams defines parameters for AddThingModelVariation.
 type AddThingModelVariationParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 
-	// TmId TMID of the parent Thing Model
-	TmId string `form:"tm-id" json:"tm-id"`
+	// TmId TMID of the parent Thing Model. Required for single-object request bodies.
+	TmId *string `form:"tm-id,omitempty" json:"tm-id,omitempty"`
 
-	// VariantId TMID of an existing variation Thing Model to link
+	// VariantId TMID of an existing variation Thing Model to link (single-object requests only)
 	VariantId *string `form:"variant-id,omitempty" json:"variant-id,omitempty"`
 }
 
@@ -570,4 +585,4 @@ type PutTMIDAttachmentParams struct {
 type ImportThingModelJSONRequestBody = ImportThingModelJSONBody
 
 // AddThingModelVariationJSONRequestBody defines body for AddThingModelVariation for application/json ContentType.
-type AddThingModelVariationJSONRequestBody = AddThingModelVariationRequest
+type AddThingModelVariationJSONRequestBody = AddThingModelVariationJSONBody

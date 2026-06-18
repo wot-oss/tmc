@@ -806,18 +806,22 @@ paths:
         Use `variant-id` to link an existing variation TMID,
         or provide `mpn` (plus optional `title` and `description`) to create a new
         variation from the parent and link it.
+
+        This endpoint also supports batch requests by posting a JSON array of
+        `{ tm-id, mpn, description, title }` objects, where only `tm-id`
+        and `mpn` are required.
       operationId: addThingModelVariation
       parameters:
         - $ref: '#/components/parameters/RepoDisambiguator'
         - name: tm-id
           in: query
-          description: TMID of the parent Thing Model
-          required: true
+          description: TMID of the parent Thing Model. Required for single-object request bodies.
+          required: false
           schema:
             type: string
         - name: variant-id
           in: query
-          description: TMID of an existing variation Thing Model to link
+          description: TMID of an existing variation Thing Model to link (single-object requests only)
           required: false
           schema:
             type: string
@@ -826,8 +830,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AddThingModelVariationRequest'
+              type: array
+              items:
+                $ref: '#/components/schemas/AddVariantBatchRequest'
       responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddVariantBatchResult'
         '204':
           description: Successful operation
         '400':
@@ -1888,6 +1902,38 @@ components:
         description:
           type: string
           description: Optional description override for a newly created variation
+    AddVariantBatchRequest:
+      type: object
+      required:
+        - tm-id
+        - mpn
+      properties:
+        tm-id:
+          type: string
+          description: TMID of the parent Thing Model
+        mpn:
+          type: string
+          description: MPN for the new variation
+        title:
+          type: string
+          description: Optional title override for the new variation
+        description:
+          type: string
+          description: Optional description override for the new variation
+    AddVariantBatchResult:
+      type: object
+      required:
+        - tm-id
+      properties:
+        tm-id:
+          type: string
+          description: TMID of the parent Thing Model from the request
+        variant-id:
+          type: string
+          description: TMID of the created variant (only present on success)
+        error:
+          type: string
+          description: Error message if the operation failed (only present on failure)
     AuthorsResponse:
       type: object
       required:

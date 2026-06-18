@@ -428,14 +428,14 @@ func (h *TmcHandler) AddThingModelVariation(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	tmID := strings.TrimSpace(params.TmId)
-	if tmID == "" {
-		HandleErrorResponse(w, r, NewBadRequestError(nil, "missing required query parameter: tm-id"))
-		return
+	tmID := ""
+	if params.TmId != nil {
+		tmID = strings.TrimSpace(*params.TmId)
 	}
 
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
+	b = bytes.TrimSpace(b)
 	err = r.Body.Close()
 	if err != nil {
 		HandleErrorResponse(w, r, err)
@@ -443,6 +443,30 @@ func (h *TmcHandler) AddThingModelVariation(w http.ResponseWriter, r *http.Reque
 	}
 	if len(b) == 0 {
 		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
+		return
+	}
+
+	if b[0] == '[' {
+		if params.VariantId != nil && strings.TrimSpace(*params.VariantId) != "" {
+			HandleErrorResponse(w, r, NewBadRequestError(nil, "variant-id query parameter is not supported for batch requests"))
+			return
+		}
+
+		var requests []commands.AddVariantBatchRequest
+		decoder := json.NewDecoder(bytes.NewReader(b))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&requests); err != nil {
+			HandleErrorResponse(w, r, NewBadRequestError(err, "invalid request body: %v", err))
+			return
+		}
+
+		results := h.Service.AddThingModelVariationBatch(r.Context(), convertRepoName(params.Repo), requests)
+		HandleJsonResponse(w, r, http.StatusOK, results)
+		return
+	}
+
+	if tmID == "" {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "missing required query parameter: tm-id for single-variation request"))
 		return
 	}
 

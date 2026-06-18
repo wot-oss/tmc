@@ -1425,16 +1425,9 @@ func (siw *ServerInterfaceWrapper) AddThingModelVariation(w http.ResponseWriter,
 		return
 	}
 
-	// ------------- Required query parameter "tm-id" -------------
+	// ------------- Optional query parameter "tm-id" -------------
 
-	if paramValue := r.URL.Query().Get("tm-id"); paramValue != "" {
-
-	} else {
-		siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "tm-id"})
-		return
-	}
-
-	err = runtime.BindQueryParameter("form", true, true, "tm-id", r.URL.Query(), &params.TmId)
+	err = runtime.BindQueryParameter("form", true, false, "tm-id", r.URL.Query(), &params.TmId)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tm-id", Err: err})
 		return

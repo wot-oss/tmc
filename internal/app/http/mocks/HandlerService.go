@@ -74,6 +74,56 @@ func (_c *HandlerService_AddThingModelVariation_Call) RunAndReturn(run func(cont
 	return _c
 }
 
+// AddThingModelVariationBatch provides a mock function with given fields: ctx, repo, requests
+func (_m *HandlerService) AddThingModelVariationBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
+	ret := _m.Called(ctx, repo, requests)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddThingModelVariationBatch")
+	}
+
+	var r0 []commands.AddVariantBatchResult
+	if rf, ok := ret.Get(0).(func(context.Context, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult); ok {
+		r0 = rf(ctx, repo, requests)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]commands.AddVariantBatchResult)
+		}
+	}
+
+	return r0
+}
+
+// HandlerService_AddThingModelVariationBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariationBatch'
+type HandlerService_AddThingModelVariationBatch_Call struct {
+	*mock.Call
+}
+
+// AddThingModelVariationBatch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - repo string
+//   - requests []commands.AddVariantBatchRequest
+func (_e *HandlerService_Expecter) AddThingModelVariationBatch(ctx interface{}, repo interface{}, requests interface{}) *HandlerService_AddThingModelVariationBatch_Call {
+	return &HandlerService_AddThingModelVariationBatch_Call{Call: _e.mock.On("AddThingModelVariationBatch", ctx, repo, requests)}
+}
+
+func (_c *HandlerService_AddThingModelVariationBatch_Call) Run(run func(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest)) *HandlerService_AddThingModelVariationBatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].([]commands.AddVariantBatchRequest))
+	})
+	return _c
+}
+
+func (_c *HandlerService_AddThingModelVariationBatch_Call) Return(_a0 []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariationBatch_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *HandlerService_AddThingModelVariationBatch_Call) RunAndReturn(run func(context.Context, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariationBatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CheckHealth provides a mock function with given fields: ctx
 func (_m *HandlerService) CheckHealth(ctx context.Context) error {
 	ret := _m.Called(ctx)

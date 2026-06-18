@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -62,4 +64,72 @@ func init() {
 	variantAddCmd.Flags().String("title", "", "Optional title override for a newly created variant")
 	variantAddCmd.MarkFlagRequired("tm-id")
 	variantCmd.AddCommand(variantAddCmd)
+
+	AddRepoDisambiguatorFlags(variantAddBatchCmd)
+	variantAddBatchCmd.Flags().String("json-file", "", "Path to JSON file with variants")
+	variantCmd.AddCommand(variantAddBatchCmd)
+}
+
+var variantAddBatchCmd = &cobra.Command{
+	Use:   "add-batch --json-file <file>",
+	Short: "Add multiple variants to Thing Models from JSON",
+	Long:  `Add multiple variants from a JSON file. Each variant requires tm-id and mpn, with optional description and title.`,
+	Args:  cobra.NoArgs,
+	Run:   addVariantBatch,
+}
+
+func addVariantBatch(command *cobra.Command, _ []string) {
+	spec := RepoSpecFromFlags(command)
+
+	jsonFile, _ := command.Flags().GetString("json-file")
+
+	var jsonData []byte
+	var err error
+
+	if jsonFile != "" {
+		jsonData, err = os.ReadFile(jsonFile)
+		if err != nil {
+			cli.Stderrf("failed to read JSON file: %v", err)
+			os.Exit(1)
+		}
+	} else {
+		cli.Stderrf("JSON file must be provided with --json-file")
+		os.Exit(1)
+	}
+
+	var requests []commands.AddVariantBatchRequest
+	if err := json.Unmarshal(jsonData, &requests); err != nil {
+		cli.Stderrf("failed to parse JSON: %v", err)
+		os.Exit(1)
+	}
+
+	if len(requests) == 0 {
+		cli.Stderrf("no variants provided in JSON")
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	successCount := 0
+	failureCount := 0
+
+	for _, req := range requests {
+		opts := commands.AddVariantOptions{
+			Mpn:         req.Mpn,
+			Description: req.Description,
+			Title:       req.Title,
+		}
+		err := cli.VariantAdd(ctx, spec, req.TmID, opts)
+		if err != nil {
+			failureCount++
+		} else {
+			successCount++
+			fmt.Printf("Successfully added variant for %s\n", req.TmID)
+		}
+	}
+
+	fmt.Printf("\nBatch variant addition completed: %d succeeded, %d failed\n", successCount, failureCount)
+
+	if failureCount > 0 {
+		os.Exit(1)
+	}
 }
