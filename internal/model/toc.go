@@ -67,6 +67,7 @@ type IndexEntry struct {
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer"`
 	Mpn          string             `json:"schema:mpn"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
+	IsVariantOf  string             `json:"isVariantOf,omitempty"`
 	Versions     []*IndexVersion    `json:"versions"`
 	Variants     []Variant          `json:"hasVariant,omitempty"`
 	AttachmentContainer
@@ -237,6 +238,10 @@ func (idx *Index) Insert(ctm *ThingModel) error {
 			Manufacturer: SchemaManufacturer{Name: ctm.Manufacturer.Name},
 			Mpn:          ctm.Mpn,
 			Author:       SchemaAuthor{Name: ctm.Author.Name},
+			IsVariantOf:  ctm.IsVariantOf,
+		}
+		if idxEntry.IsVariantOf == "" {
+			idxEntry.IsVariantOf = ctm.IsVariantOf
 		}
 		idx.Data = append(idx.Data, idxEntry)
 		idx.dataByName[idxEntry.Name] = idxEntry

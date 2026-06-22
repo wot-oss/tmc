@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/url"
 	"path"
+	"slices"
 	"strings"
 	"time"
 
@@ -35,9 +36,22 @@ func (m *Mapper) GetInventoryMeta(res model.SearchResult, page, pageSize int) se
 }
 
 func (m *Mapper) GetInventoryData(entries []model.FoundEntry) []server.InventoryEntry {
+	variantIDs := map[string]struct{}{}
+	for _, entry := range entries {
+		if entry.IsVariantOf != "" {
+			for _, version := range entry.Versions {
+				variantIDs[version.TMID] = struct{}{}
+			}
+		}
+	}
 	data := []server.InventoryEntry{}
 	for _, v := range entries {
-		data = append(data, m.GetInventoryEntry(v))
+		filtered := v
+		filtered.Variants = slices.DeleteFunc(filtered.Variants, func(variant model.Variant) bool {
+			_, found := variantIDs[variant.VariantID]
+			return found
+		})
+		data = append(data, m.GetInventoryEntry(filtered))
 	}
 
 	return data
@@ -49,6 +63,7 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 	invEntry.SchemaAuthor.SchemaName = entry.Author.Name
 	invEntry.SchemaManufacturer.SchemaName = entry.Manufacturer.Name
 	invEntry.SchemaMpn = entry.Mpn
+	invEntry.IsVariantOf = entry.IsVariantOf
 	invEntry.HasVariant = m.GetVariants(entry.Variants)
 	invEntry.Versions = m.GetInventoryEntryVersions(entry.Versions)
 	if entry.FoundIn.RepoName != "" {

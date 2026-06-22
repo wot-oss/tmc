@@ -825,6 +825,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: with-attachments
+          in: query
+          description: Whether to also link the attachments of the parent TM to the variation TM (defaults to false)
+          required: false
+          schema:
+            type: boolean
       requestBody:
         required: true
         content:
@@ -1731,6 +1737,7 @@ components:
         - schema:mpn
         - versions
         - hasVariant
+        - isVariantOf
       type: object
       properties:
         tmName:
@@ -1755,6 +1762,10 @@ components:
             $ref: '#/components/schemas/Variant'
           default: []
           example: []
+        isVariantOf:
+          type: string
+          description: TMID of the parent Thing Model if this entry is a variant, otherwise empty
+          example: 'siemens/siemens/poc1000/v0.0.0-20231201133246-e1594d08a01b.tm.json'
         links:
           $ref: '#/components/schemas/InventoryEntryLinks'
         attachments:

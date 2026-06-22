@@ -33,6 +33,7 @@ func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 		Manufacturer:        e.Manufacturer,
 		Mpn:                 e.Mpn,
 		Author:              e.Author,
+		IsVariantOf:         e.IsVariantOf,
 		Variants:            e.Variants,
 		Versions:            m.ToFoundVersions(e.Versions),
 		FoundIn:             m.foundIn,
@@ -91,6 +92,7 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryE
 		Manufacturer: SchemaManufacturer{Name: e.SchemaManufacturer.SchemaName},
 		Mpn:          e.SchemaMpn,
 		Author:       SchemaAuthor{Name: e.SchemaAuthor.SchemaName},
+		IsVariantOf:  e.IsVariantOf,
 		Variants:     m.ToVariants(e.HasVariant),
 		Versions:     m.ToFoundVersions(e.Versions),
 		AttachmentContainer: AttachmentContainer{

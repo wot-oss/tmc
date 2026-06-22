@@ -492,10 +492,11 @@ func (h *TmcHandler) AddThingModelVariation(w http.ResponseWriter, r *http.Reque
 	}
 
 	err = h.Service.AddThingModelVariation(r.Context(), convertRepoName(params.Repo), tmID, commands.AddVariantOptions{
-		VariantID:   variantID,
-		Mpn:         strings.TrimSpace(req.Mpn),
-		Description: req.Description,
-		Title:       req.Title,
+		VariantID:       variantID,
+		Mpn:             strings.TrimSpace(req.Mpn),
+		Description:     req.Description,
+		Title:           req.Title,
+		WithAttachments: params.WithAttachments != nil && *params.WithAttachments,
 	})
 	if err != nil {
 		HandleErrorResponse(w, r, err)

@@ -1441,6 +1441,14 @@ func (siw *ServerInterfaceWrapper) AddThingModelVariation(w http.ResponseWriter,
 		return
 	}
 
+	// ------------- Optional query parameter "with-attachments" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "with-attachments", r.URL.Query(), &params.WithAttachments)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "with-attachments", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.AddThingModelVariation(w, r, params)
 	}))

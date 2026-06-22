@@ -103,8 +103,11 @@ type InfoVersion struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
-	Attachments *AttachmentsList     `json:"attachments,omitempty"`
-	HasVariant  []Variant            `json:"hasVariant"`
+	Attachments *AttachmentsList `json:"attachments,omitempty"`
+	HasVariant  []Variant        `json:"hasVariant"`
+
+	// IsVariantOf TMID of the parent Thing Model if this entry is a variant, otherwise empty
+	IsVariantOf string               `json:"isVariantOf"`
 	Links       *InventoryEntryLinks `json:"links,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
@@ -534,6 +537,9 @@ type AddThingModelVariationParams struct {
 
 	// VariantId TMID of an existing variation Thing Model to link (single-object requests only)
 	VariantId *string `form:"variant-id,omitempty" json:"variant-id,omitempty"`
+
+	// WithAttachments Whether to also link the attachments of the parent TM to the variation TM (defaults to false)
+	WithAttachments *bool `form:"with-attachments,omitempty" json:"with-attachments,omitempty"`
 }
 
 // DeleteThingModelByIdParams defines parameters for DeleteThingModelById.

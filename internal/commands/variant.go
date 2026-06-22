@@ -19,17 +19,19 @@ type variantAdder interface {
 }
 
 type AddVariantOptions struct {
-	VariantID   string
-	Mpn         string
-	Description string
-	Title       string
+	VariantID       string
+	Mpn             string
+	Description     string
+	Title           string
+	WithAttachments bool
 }
 
 type AddVariantBatchRequest struct {
-	TmID        string `json:"tm-id"`
-	Mpn         string `json:"mpn"`
-	Description string `json:"description,omitempty"`
-	Title       string `json:"title,omitempty"`
+	TmID            string `json:"tm-id"`
+	Mpn             string `json:"mpn"`
+	Description     string `json:"description,omitempty"`
+	Title           string `json:"title,omitempty"`
+	WithAttachments bool   `json:"with-attachments,omitempty"`
 }
 
 type AddVariantBatchResult struct {
@@ -123,6 +125,16 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, requests []AddVa
 			})
 			continue
 		}
+		if opts.WithAttachments {
+			err = copyVariantAttachments(ctx, repo, tmID, variantID)
+			if err != nil {
+				results = append(results, AddVariantBatchResult{
+					TmID:  req.TmID,
+					Error: fmt.Sprintf("failed to copy variant attachments: %v", err),
+				})
+				continue
+			}
+		}
 
 		variantAdder, _ := repo.(variantAdder)
 		err = variantAdder.AddVariant(ctx, tmID, variantID)
@@ -178,9 +190,79 @@ func addVariantToRepo(ctx context.Context, repo repos.Repo, tmID string, opts Ad
 		if err != nil {
 			return err
 		}
+		if opts.WithAttachments {
+			err = copyVariantAttachments(ctx, repo, tmID, variantID)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return r.AddVariant(ctx, tmID, variantID)
+}
+
+func copyVariantAttachments(ctx context.Context, repo repos.Repo, parentTMID string, variantID string) error {
+	parsedParentTMID, err := model.ParseTMID(parentTMID)
+	if err != nil {
+		return err
+	}
+
+	versions, err := repo.GetTMMetadata(ctx, parentTMID)
+	if err != nil {
+		return err
+	}
+
+	parentTMIDRef := model.NewTMIDAttachmentContainerRef(parentTMID)
+	parentTMNameRef := model.NewTMNameAttachmentContainerRef(parsedParentTMID.Name)
+	variantRef := model.NewTMIDAttachmentContainerRef(variantID)
+	copied := map[string]struct{}{}
+
+	searchResult, err := repo.List(ctx, &model.Filters{Name: parsedParentTMID.Name, Options: model.FilterOptions{NameFilterType: model.FullMatch}})
+	if err != nil {
+		return err
+	}
+	for _, entry := range searchResult.Entries {
+		if entry.Name != parsedParentTMID.Name {
+			continue
+		}
+		for _, attachment := range entry.Attachments {
+			if _, exists := copied[attachment.Name]; exists {
+				continue
+			}
+			content, err := repo.FetchAttachment(ctx, parentTMNameRef, attachment.Name)
+			if err != nil {
+				return err
+			}
+			err = repo.ImportAttachment(ctx, variantRef, attachment, content, false)
+			if err != nil && !errors.Is(err, repos.ErrAttachmentExists) {
+				return err
+			}
+			copied[attachment.Name] = struct{}{}
+		}
+	}
+
+	for _, version := range versions {
+		if version.TMID != parentTMID {
+			continue
+		}
+		for _, attachment := range version.Attachments {
+			if _, exists := copied[attachment.Name]; exists {
+				continue
+			}
+			content, err := repo.FetchAttachment(ctx, parentTMIDRef, attachment.Name)
+			if err != nil {
+				return err
+			}
+			err = repo.ImportAttachment(ctx, variantRef, attachment, content, false)
+			if err != nil && !errors.Is(err, repos.ErrAttachmentExists) {
+				return err
+			}
+			copied[attachment.Name] = struct{}{}
+		}
+		return nil
+	}
+
+	return model.ErrTMNotFound
 }
 
 func createVariantFromParent(ctx context.Context, repo repos.Repo, tmID string, opts AddVariantOptions) (string, error) {
@@ -195,9 +277,10 @@ func createVariantFromParent(ctx context.Context, repo repos.Repo, tmID string, 
 	}
 
 	variantRaw, err := applyVariantOverrides(parentRaw, AddVariantOptions{
-		Mpn:         strings.TrimSpace(opts.Mpn),
-		Description: opts.Description,
-		Title:       opts.Title,
+		Mpn:             strings.TrimSpace(opts.Mpn),
+		Description:     opts.Description,
+		Title:           opts.Title,
+		WithAttachments: opts.WithAttachments,
 	})
 	if err != nil {
 		return "", err
@@ -218,7 +301,7 @@ func createVariantFromParent(ctx context.Context, repo repos.Repo, tmID string, 
 
 	optPath := variantOptPathFromParent(parentTMID.Name)
 	variantID := model.NewTMID(variantTM.Author.Name, variantTM.Manufacturer.Name, variantTM.Mpn, optPath, ver)
-	finalRaw, err := setIDField(normalized, variantID.String())
+	finalRaw, err := setField(normalized, "id", variantID.String())
 	if err != nil {
 		return "", err
 	}
@@ -268,12 +351,12 @@ func applyVariantOverrides(parentRaw []byte, opts AddVariantOptions) ([]byte, er
 	return modified, nil
 }
 
-func setIDField(raw []byte, id string) ([]byte, error) {
+func setField(raw []byte, fieldName string, value any) ([]byte, error) {
 	var doc map[string]any
 	if err := json.Unmarshal(raw, &doc); err != nil {
 		return nil, err
 	}
-	doc["id"] = id
+	doc[fieldName] = value
 	return json.MarshalIndent(doc, "", "  ")
 }
 

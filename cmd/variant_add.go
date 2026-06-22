@@ -12,9 +12,9 @@ import (
 )
 
 var variantAddCmd = &cobra.Command{
-	Use:   "add --tm-id <tm-id> [--variant-id <variant-id> | --mpn <mpn> [--description <description>] [--title <title>]]",
+	Use:   "add --tm-id <tm-id> [--variant-id <variant-id> --with-attachments | --mpn <mpn> [--description <description>] [--title <title>] [--with-attachments]]",
 	Short: "Add a variant to an index entry",
-	Long:  `Either link an existing variant TMID with --variant-id, or create a new variant from the parent Thing Model with --mpn (optional --description and --title) and link it.`,
+	Long:  `Either link an existing variant TMID with --variant-id, or create a new variant from the parent Thing Model with --mpn (optional --description and --title) and link it. Optionally, include attachments from the parent TM with --with-attachments.`,
 	Args:  cobra.NoArgs,
 	Run:   addVariant,
 }
@@ -29,10 +29,11 @@ func addVariant(command *cobra.Command, _ []string) {
 	title, _ := command.Flags().GetString("title")
 
 	opts := commands.AddVariantOptions{
-		VariantID:   variantID,
-		Mpn:         mpn,
-		Description: description,
-		Title:       title,
+		VariantID:       variantID,
+		Mpn:             mpn,
+		Description:     description,
+		Title:           title,
+		WithAttachments: command.Flags().Changed("with-attachments"),
 	}
 
 	if opts.VariantID == "" && opts.Mpn == "" {
@@ -62,6 +63,7 @@ func init() {
 	variantAddCmd.Flags().String("mpn", "", "MPN for a new variant created from the parent Thing Model")
 	variantAddCmd.Flags().String("description", "", "Optional description override for a newly created variant")
 	variantAddCmd.Flags().String("title", "", "Optional title override for a newly created variant")
+	variantAddCmd.Flags().Bool("with-attachments", false, "Include attachments from the parent Thing Model")
 	variantAddCmd.MarkFlagRequired("tm-id")
 	variantCmd.AddCommand(variantAddCmd)
 
@@ -73,7 +75,7 @@ func init() {
 var variantAddBatchCmd = &cobra.Command{
 	Use:   "add-batch --json-file <file>",
 	Short: "Add multiple variants to Thing Models from JSON",
-	Long:  `Add multiple variants from a JSON file. Each variant requires tm-id and mpn, with optional description and title.`,
+	Long:  `Add multiple variants from a JSON file. Each variant requires tm-id and mpn, with optional description, title, and attachments.`,
 	Args:  cobra.NoArgs,
 	Run:   addVariantBatch,
 }
@@ -114,9 +116,10 @@ func addVariantBatch(command *cobra.Command, _ []string) {
 
 	for _, req := range requests {
 		opts := commands.AddVariantOptions{
-			Mpn:         req.Mpn,
-			Description: req.Description,
-			Title:       req.Title,
+			Mpn:             req.Mpn,
+			Description:     req.Description,
+			Title:           req.Title,
+			WithAttachments: req.WithAttachments,
 		}
 		err := cli.VariantAdd(ctx, spec, req.TmID, opts)
 		if err != nil {
