@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/model"
@@ -95,18 +94,16 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 }
 
 func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef) error {
-	authors, manufacturers, _, err := repo.Index(ctx)
-	if err != nil {
-		return err
-	}
 	switch ref.Kind() {
 	case model.AttachmentContainerKindAuthor:
-		if !slices.Contains(authors, ref.Author) {
-			return errors.New("author not found in repo")
+		_, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}})
+		if err != nil {
+			return err
 		}
 	case model.AttachmentContainerKindManufacturer:
-		if !slices.Contains(authors, strings.Split(ref.Manufacturer, "/")[0]) || !slices.Contains(manufacturers, strings.Split(ref.Manufacturer, "/")[1]) {
-			return errors.New("manufacturer not found in repo")
+		_, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}, Manufacturer: []string{ref.Manufacturer}})
+		if err != nil {
+			return err
 		}
 	case model.AttachmentContainerKindTMName:
 		// no need
@@ -114,9 +111,6 @@ func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.At
 		// no need to check existence of TM ID as it will be checked when trying to import the attachment
 	default:
 		return errors.New("invalid attachment container type")
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
