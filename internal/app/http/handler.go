@@ -47,7 +47,7 @@ type JobManager struct {
 	isExportingActive bool
 }
 
-type addThingModelVariationRequest struct {
+type addThingModelVariantRequest struct {
 	VariantID   string `json:"variant-id"`
 	Mpn         string `json:"mpn"`
 	Description string `json:"description"`
@@ -419,8 +419,8 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 
 }
 
-// POST /thing-models/variations Add a variant to a Thing Model
-func (h *TmcHandler) AddThingModelVariation(w http.ResponseWriter, r *http.Request, params server.AddThingModelVariationParams) {
+// POST /thing-models/Variants Add a variant to a Thing Model
+func (h *TmcHandler) AddThingModelVariant(w http.ResponseWriter, r *http.Request, params server.AddThingModelVariantParams) {
 	contentType := r.Header.Get(HeaderContentType)
 
 	if contentType != MimeJSON {
@@ -460,17 +460,17 @@ func (h *TmcHandler) AddThingModelVariation(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		results := h.Service.AddThingModelVariationBatch(r.Context(), convertRepoName(params.Repo), requests)
+		results := h.Service.AddThingModelVariantBatch(r.Context(), convertRepoName(params.Repo), requests)
 		HandleJsonResponse(w, r, http.StatusOK, results)
 		return
 	}
 
 	if tmID == "" {
-		HandleErrorResponse(w, r, NewBadRequestError(nil, "missing required query parameter: tm-id for single-variation request"))
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "missing required query parameter: tm-id for single-Variant request"))
 		return
 	}
 
-	var req addThingModelVariationRequest
+	var req addThingModelVariantRequest
 	decoder := json.NewDecoder(bytes.NewReader(b))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
@@ -491,7 +491,7 @@ func (h *TmcHandler) AddThingModelVariation(w http.ResponseWriter, r *http.Reque
 		variantID = queryVariantID
 	}
 
-	err = h.Service.AddThingModelVariation(r.Context(), convertRepoName(params.Repo), tmID, commands.AddVariantOptions{
+	err = h.Service.AddThingModelVariant(r.Context(), convertRepoName(params.Repo), tmID, commands.AddVariantOptions{
 		VariantID:       variantID,
 		Mpn:             strings.TrimSpace(req.Mpn),
 		Description:     req.Description,

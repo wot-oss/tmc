@@ -24,8 +24,8 @@ type HandlerService interface {
 	FetchThingModel(ctx context.Context, repo, tmID string, restoreId bool) ([]byte, error)
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
 	ImportThingModel(ctx context.Context, repo string, file []byte, opts repos.ImportOptions) (repos.ImportResult, error)
-	AddThingModelVariation(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error
-	AddThingModelVariationBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult
+	AddThingModelVariant(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error
+	AddThingModelVariantBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult
 	DeleteThingModel(ctx context.Context, repo string, tmID string) error
 	ExportCatalog(ctx context.Context, repo string) ([]byte, error)
 	CheckHealth(ctx context.Context) error
@@ -257,7 +257,7 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 	return res, nil
 }
 
-func (dhs *defaultHandlerService) AddThingModelVariation(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {
+func (dhs *defaultHandlerService) AddThingModelVariant(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		return err
@@ -266,7 +266,7 @@ func (dhs *defaultHandlerService) AddThingModelVariation(ctx context.Context, re
 	return err
 }
 
-func (dhs *defaultHandlerService) AddThingModelVariationBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
+func (dhs *defaultHandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		var results []commands.AddVariantBatchResult

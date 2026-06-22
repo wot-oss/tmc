@@ -15,13 +15,13 @@ const (
 
 // AddVariantBatchRequest defines model for AddVariantBatchRequest.
 type AddVariantBatchRequest struct {
-	// Description Optional description override for the new variation
+	// Description Optional description override for the new variant
 	Description *string `json:"description,omitempty"`
 
-	// Mpn MPN for the new variation
+	// Mpn MPN for the new variant
 	Mpn string `json:"mpn"`
 
-	// Title Optional title override for the new variation
+	// Title Optional title override for the new variant
 	Title *string `json:"title,omitempty"`
 
 	// TmId TMID of the parent Thing Model
@@ -524,21 +524,21 @@ type PutTMNameAttachmentParams struct {
 	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
-// AddThingModelVariationJSONBody defines parameters for AddThingModelVariation.
-type AddThingModelVariationJSONBody = []AddVariantBatchRequest
+// AddThingModelVariantJSONBody defines parameters for AddThingModelVariant.
+type AddThingModelVariantJSONBody = []AddVariantBatchRequest
 
-// AddThingModelVariationParams defines parameters for AddThingModelVariation.
-type AddThingModelVariationParams struct {
+// AddThingModelVariantParams defines parameters for AddThingModelVariant.
+type AddThingModelVariantParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 
 	// TmId TMID of the parent Thing Model. Required for single-object request bodies.
 	TmId *string `form:"tm-id,omitempty" json:"tm-id,omitempty"`
 
-	// VariantId TMID of an existing variation Thing Model to link (single-object requests only)
+	// VariantId TMID of an existing variant Thing Model to link (single-object requests only)
 	VariantId *string `form:"variant-id,omitempty" json:"variant-id,omitempty"`
 
-	// WithAttachments Whether to also link the attachments of the parent TM to the variation TM (defaults to false)
+	// WithAttachments Whether to also link the attachments of the parent TM to the variant TM (defaults to false)
 	WithAttachments *bool `form:"with-attachments,omitempty" json:"with-attachments,omitempty"`
 }
 
@@ -590,5 +590,5 @@ type PutTMIDAttachmentParams struct {
 // ImportThingModelJSONRequestBody defines body for ImportThingModel for application/json ContentType.
 type ImportThingModelJSONRequestBody = ImportThingModelJSONBody
 
-// AddThingModelVariationJSONRequestBody defines body for AddThingModelVariation for application/json ContentType.
-type AddThingModelVariationJSONRequestBody = AddThingModelVariationJSONBody
+// AddThingModelVariantJSONRequestBody defines body for AddThingModelVariant for application/json ContentType.
+type AddThingModelVariantJSONRequestBody = AddThingModelVariantJSONBody

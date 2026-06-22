@@ -25,12 +25,12 @@ func (_m *HandlerService) EXPECT() *HandlerService_Expecter {
 	return &HandlerService_Expecter{mock: &_m.Mock}
 }
 
-// AddThingModelVariation provides a mock function with given fields: ctx, repo, tmID, opts
-func (_m *HandlerService) AddThingModelVariation(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {
+// AddThingModelVariant provides a mock function with given fields: ctx, repo, tmID, opts
+func (_m *HandlerService) AddThingModelVariant(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {
 	ret := _m.Called(ctx, repo, tmID, opts)
 
 	if len(ret) == 0 {
-		panic("no return value specified for AddThingModelVariation")
+		panic("no return value specified for AddThingModelVariant")
 	}
 
 	var r0 error
@@ -43,43 +43,43 @@ func (_m *HandlerService) AddThingModelVariation(ctx context.Context, repo strin
 	return r0
 }
 
-// HandlerService_AddThingModelVariation_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariation'
-type HandlerService_AddThingModelVariation_Call struct {
+// HandlerService_AddThingModelVariant_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariant'
+type HandlerService_AddThingModelVariant_Call struct {
 	*mock.Call
 }
 
-// AddThingModelVariation is a helper method to define mock.On call
+// AddThingModelVariant is a helper method to define mock.On call
 //   - ctx context.Context
 //   - repo string
 //   - tmID string
 //   - opts commands.AddVariantOptions
-func (_e *HandlerService_Expecter) AddThingModelVariation(ctx interface{}, repo interface{}, tmID interface{}, opts interface{}) *HandlerService_AddThingModelVariation_Call {
-	return &HandlerService_AddThingModelVariation_Call{Call: _e.mock.On("AddThingModelVariation", ctx, repo, tmID, opts)}
+func (_e *HandlerService_Expecter) AddThingModelVariant(ctx interface{}, repo interface{}, tmID interface{}, opts interface{}) *HandlerService_AddThingModelVariant_Call {
+	return &HandlerService_AddThingModelVariant_Call{Call: _e.mock.On("AddThingModelVariant", ctx, repo, tmID, opts)}
 }
 
-func (_c *HandlerService_AddThingModelVariation_Call) Run(run func(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions)) *HandlerService_AddThingModelVariation_Call {
+func (_c *HandlerService_AddThingModelVariant_Call) Run(run func(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions)) *HandlerService_AddThingModelVariant_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(commands.AddVariantOptions))
 	})
 	return _c
 }
 
-func (_c *HandlerService_AddThingModelVariation_Call) Return(_a0 error) *HandlerService_AddThingModelVariation_Call {
+func (_c *HandlerService_AddThingModelVariant_Call) Return(_a0 error) *HandlerService_AddThingModelVariant_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *HandlerService_AddThingModelVariation_Call) RunAndReturn(run func(context.Context, string, string, commands.AddVariantOptions) error) *HandlerService_AddThingModelVariation_Call {
+func (_c *HandlerService_AddThingModelVariant_Call) RunAndReturn(run func(context.Context, string, string, commands.AddVariantOptions) error) *HandlerService_AddThingModelVariant_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// AddThingModelVariationBatch provides a mock function with given fields: ctx, repo, requests
-func (_m *HandlerService) AddThingModelVariationBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
+// AddThingModelVariantBatch provides a mock function with given fields: ctx, repo, requests
+func (_m *HandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
 	ret := _m.Called(ctx, repo, requests)
 
 	if len(ret) == 0 {
-		panic("no return value specified for AddThingModelVariationBatch")
+		panic("no return value specified for AddThingModelVariantBatch")
 	}
 
 	var r0 []commands.AddVariantBatchResult
@@ -94,32 +94,32 @@ func (_m *HandlerService) AddThingModelVariationBatch(ctx context.Context, repo 
 	return r0
 }
 
-// HandlerService_AddThingModelVariationBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariationBatch'
-type HandlerService_AddThingModelVariationBatch_Call struct {
+// HandlerService_AddThingModelVariantBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariantBatch'
+type HandlerService_AddThingModelVariantBatch_Call struct {
 	*mock.Call
 }
 
-// AddThingModelVariationBatch is a helper method to define mock.On call
+// AddThingModelVariantBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - repo string
 //   - requests []commands.AddVariantBatchRequest
-func (_e *HandlerService_Expecter) AddThingModelVariationBatch(ctx interface{}, repo interface{}, requests interface{}) *HandlerService_AddThingModelVariationBatch_Call {
-	return &HandlerService_AddThingModelVariationBatch_Call{Call: _e.mock.On("AddThingModelVariationBatch", ctx, repo, requests)}
+func (_e *HandlerService_Expecter) AddThingModelVariantBatch(ctx interface{}, repo interface{}, requests interface{}) *HandlerService_AddThingModelVariantBatch_Call {
+	return &HandlerService_AddThingModelVariantBatch_Call{Call: _e.mock.On("AddThingModelVariantBatch", ctx, repo, requests)}
 }
 
-func (_c *HandlerService_AddThingModelVariationBatch_Call) Run(run func(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest)) *HandlerService_AddThingModelVariationBatch_Call {
+func (_c *HandlerService_AddThingModelVariantBatch_Call) Run(run func(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest)) *HandlerService_AddThingModelVariantBatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].([]commands.AddVariantBatchRequest))
 	})
 	return _c
 }
 
-func (_c *HandlerService_AddThingModelVariationBatch_Call) Return(_a0 []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariationBatch_Call {
+func (_c *HandlerService_AddThingModelVariantBatch_Call) Return(_a0 []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *HandlerService_AddThingModelVariationBatch_Call) RunAndReturn(run func(context.Context, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariationBatch_Call {
+func (_c *HandlerService_AddThingModelVariantBatch_Call) RunAndReturn(run func(context.Context, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }

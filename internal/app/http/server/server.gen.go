@@ -104,9 +104,9 @@ type ServerInterface interface {
 	// Upload an attachment to a TM name
 	// (PUT /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName})
 	PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName TMName, attachmentFileName AttachmentFileName, params PutTMNameAttachmentParams)
-	// Add or create a variation for a Thing Model
-	// (POST /thing-models/variations)
-	AddThingModelVariation(w http.ResponseWriter, r *http.Request, params AddThingModelVariationParams)
+	// Add or create a variant for a Thing Model
+	// (POST /thing-models/variants)
+	AddThingModelVariant(w http.ResponseWriter, r *http.Request, params AddThingModelVariantParams)
 	// Delete a Thing Model by ID
 	// (DELETE /thing-models/{tmID})
 	DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmID TMID, params DeleteThingModelByIdParams)
@@ -1406,8 +1406,8 @@ func (siw *ServerInterfaceWrapper) PutTMNameAttachment(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// AddThingModelVariation operation middleware
-func (siw *ServerInterfaceWrapper) AddThingModelVariation(w http.ResponseWriter, r *http.Request) {
+// AddThingModelVariant operation middleware
+func (siw *ServerInterfaceWrapper) AddThingModelVariant(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
@@ -1415,7 +1415,7 @@ func (siw *ServerInterfaceWrapper) AddThingModelVariation(w http.ResponseWriter,
 	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
 
 	// Parameter object where we will unmarshal all parameters from the context
-	var params AddThingModelVariationParams
+	var params AddThingModelVariantParams
 
 	// ------------- Optional query parameter "repo" -------------
 
@@ -1450,7 +1450,7 @@ func (siw *ServerInterfaceWrapper) AddThingModelVariation(w http.ResponseWriter,
 	}
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AddThingModelVariation(w, r, params)
+		siw.Handler.AddThingModelVariant(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1907,7 +1907,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.DeleteThingModelById).Methods("DELETE")
 
-	r.HandleFunc(options.BaseURL+"/thing-models/variations", wrapper.AddThingModelVariation).Methods("POST")
+	r.HandleFunc(options.BaseURL+"/thing-models/variants", wrapper.AddThingModelVariant).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/repos/export", wrapper.GetExportedCatalog).Methods("GET")
 

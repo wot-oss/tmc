@@ -795,22 +795,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-  /thing-models/variations:
+  /thing-models/variants:
     post:
       tags:
         - thing-models
-      summary: Add or create a variation for a Thing Model
+      summary: Add or create a variant for a Thing Model
       description: |
-        Adds a variation link to a parent Thing Model.
+        Adds a variant link to a parent Thing Model.
 
-        Use `variant-id` to link an existing variation TMID,
+        Use `variant-id` to link an existing variant TMID,
         or provide `mpn` (plus optional `title` and `description`) to create a new
-        variation from the parent and link it.
+        variant from the parent and link it.
 
         This endpoint also supports batch requests by posting a JSON array of
         `{ tm-id, mpn, description, title }` objects, where only `tm-id`
         and `mpn` are required.
-      operationId: addThingModelVariation
+      operationId: addThingModelVariant
       parameters:
         - $ref: '#/components/parameters/RepoDisambiguator'
         - name: tm-id
@@ -821,13 +821,13 @@ paths:
             type: string
         - name: variant-id
           in: query
-          description: TMID of an existing variation Thing Model to link (single-object requests only)
+          description: TMID of an existing variant Thing Model to link (single-object requests only)
           required: false
           schema:
             type: string
         - name: with-attachments
           in: query
-          description: Whether to also link the attachments of the parent TM to the variation TM (defaults to false)
+          description: Whether to also link the attachments of the parent TM to the variant TM (defaults to false)
           required: false
           schema:
             type: boolean
@@ -1898,21 +1898,21 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/ImportThingModelResult'
-    AddThingModelVariationRequest:
+    AddThingModelVariantRequest:
       type: object
       properties:
         variant-id:
           type: string
-          description: TMID of an existing variation Thing Model to link
+          description: TMID of an existing variant Thing Model to link
         mpn:
           type: string
-          description: MPN for a new variation created from the parent Thing Model
+          description: MPN for a new variant created from the parent Thing Model
         title:
           type: string
-          description: Optional title override for a newly created variation
+          description: Optional title override for a newly created variant
         description:
           type: string
-          description: Optional description override for a newly created variation
+          description: Optional description override for a newly created variant
     AddVariantBatchRequest:
       type: object
       required:
@@ -1924,13 +1924,13 @@ components:
           description: TMID of the parent Thing Model
         mpn:
           type: string
-          description: MPN for the new variation
+          description: MPN for the new variant
         title:
           type: string
-          description: Optional title override for the new variation
+          description: Optional title override for the new variant
         description:
           type: string
-          description: Optional description override for the new variation
+          description: Optional description override for the new variant
     AddVariantBatchResult:
       type: object
       required:
@@ -2230,6 +2230,7 @@ components:
               'schema:name': 'siemens'
             'schema:mpn': 'POC1000'
             'hasVariant': []
+            'isVariantOf': ''
             'versions':
               - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
                 'digest': '2cd14601ef09'
@@ -2324,6 +2325,7 @@ components:
               'schema:name': 'siemens'
             'schema:mpn': 'POC1000'
             'hasVariant': []
+            'isVariantOf': ''
             'versions':
               - 'description': 'The Powercenter 1000 is a data transceiver for SENTRON circuit protection devices.'
                 'digest': '2cd14601ef09'
@@ -2370,6 +2372,7 @@ components:
               'schema:name': 'BarTech'
             'schema:mpn': 'BazLamp'
             'hasVariant': []
+            'isVariantOf': ''
             'versions':
                - 'description': 'The BarTech BazLamp is a modern smart floor lamp.'
                  'digest': '1fc13316b7d8'
