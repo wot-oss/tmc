@@ -632,7 +632,6 @@ func TestService_FetchAttachment(t *testing.T) {
 	attName := "README.md"
 	// given: repo returns an attachment
 	r := mocks.NewRepo(t)
-	r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 	r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent, nil).Once()
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 	// when: fetching an attachment
@@ -655,7 +654,6 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 	t.Run("with TM name attachment", func(t *testing.T) {
 		// given: repo with a README.md attachment on TM name and two TM IDs
 		r := mocks.NewRepo(t)
-		r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV2), attName).Return(attContent3, nil).Once()
@@ -711,7 +709,6 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 	t.Run("without TM name attachment", func(t *testing.T) {
 		// given: repo with a README.md attachment on two TM IDs, but not on TM name
 		r := mocks.NewRepo(t)
-		r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil, model.ErrAttachmentNotFound).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV2), attName).Return(attContent3, nil).Once()
@@ -765,7 +762,6 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 	t.Run("with one TMID attachment missing", func(t *testing.T) {
 		// given: repo with a README.md attachment on TM name and one of two TM IDs
 		r := mocks.NewRepo(t)
-		r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmidV1), attName).Return(attContent2, nil).Once()
 		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
@@ -811,7 +807,6 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 	t.Run("with both TMID attachments missing", func(t *testing.T) {
 		// given: repo with a README.md attachment on TM name but none of two TM IDs
 		r := mocks.NewRepo(t)
-		r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(attContent1, nil).Once()
 		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
@@ -855,7 +850,6 @@ func TestService_FetchAttachment_WithConcat(t *testing.T) {
 	t.Run("with all attachments missing", func(t *testing.T) {
 		// given: repo with no README.md attachment on TM name nor any of the TM IDs
 		r := mocks.NewRepo(t)
-		r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 		r.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil, model.ErrAttachmentNotFound).Once()
 		r.On("List", mock.Anything, &model.Filters{Name: inventoryName}).Return(model.SearchResult{
 			Entries: []model.FoundEntry{
@@ -904,7 +898,6 @@ func TestService_ImportAttachment(t *testing.T) {
 	attName := "README.md"
 	// given: a repo
 	r := mocks.NewRepo(t)
-	r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 	r.On("ImportAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), model.Attachment{
 		Name:      attName,
 		MediaType: "text/markdown",
@@ -923,7 +916,6 @@ func TestService_DeleteAttachment(t *testing.T) {
 	attName := "README.md"
 	// given: repo returns an attachment
 	r := mocks.NewRepo(t)
-	r.On("Index", mock.Anything).Return([]string{"a"}, []string{"b"}, []string{inventoryName}, nil).Once()
 	r.On("DeleteAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(inventoryName), attName).Return(nil).Once()
 	rMocks.MockReposGet(t, rMocks.CreateMockGetFunction(t, repo, r, nil))
 	// when: deleting an attachment
