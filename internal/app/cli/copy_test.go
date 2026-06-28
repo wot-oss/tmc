@@ -129,7 +129,6 @@ func TestCopy(t *testing.T) {
 		source.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
-		source.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Twice()
 		source.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), "README.md").Return(readmeContent, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), "CHANGELOG.md").Return(changelogContent, nil).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmID_1), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{Force: true}).
@@ -174,7 +173,6 @@ func TestCopy(t *testing.T) {
 		source.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
-		source.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Twice()
 		source.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), "README.md").Return(readmeContent, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), "CHANGELOG.md").Return(changelogContent, nil).Once()
 		expRes, impErr := repos.ImportResultFromError(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent, ExistingId: tmID_1})
@@ -216,7 +214,6 @@ func TestCopy(t *testing.T) {
 		source.On("Fetch", mock.Anything, tmID_1).Return(tmID_1, tmContent1, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_2).Return(tmID_2, tmContent2, nil).Once()
 		source.On("Fetch", mock.Anything, tmID_3).Return(tmID_3, tmContent3, nil).Once()
-		source.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Twice()
 		source.On("FetchAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), "README.md").Return(readmeContent, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), "CHANGELOG.md").Return(changelogContent, nil).Once()
 		expRes, impErr := repos.ImportResultFromError(&repos.ErrTMIDConflict{Type: repos.IdConflictSameContent, ExistingId: tmID_1})
@@ -316,7 +313,6 @@ func TestCopy(t *testing.T) {
 		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
-		source.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(nil, model.ErrAttachmentNotFound).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid, Message: "", Err: nil}, nil).Once()
@@ -369,7 +365,6 @@ func TestCopy(t *testing.T) {
 		var sp *model.Filters
 		source.On("List", mock.Anything, sp).Return(copySingleListRes, nil).Once()
 		source.On("Fetch", mock.Anything, tmid).Return(tmid, tmContent1, nil).Once()
-		source.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, nil).Once()
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(readmeContent, nil).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid, Message: "", Err: nil}, nil).Once()
