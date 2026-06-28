@@ -1,4 +1,4 @@
-arazzo: 1.0.0
+﻿arazzo: 1.0.0
 info:
   title: Thing Model Catalog - Author Attachments Workflow
   summary: Test workflows for managing author attachments
@@ -869,3 +869,51 @@ workflows:
       step2_5_upload_first_png_status: $steps.uploadPngAttachmentForFirstTM.outputs.status
       step3_1_first_png_fetch_status: $steps.requestPngAttachmentForFirstTM.outputs.status
       step3_2_second_png_fetch_status: $steps.requestPngAttachmentForSecondTM.outputs.status
+
+  - workflowId: exportingWorkflow
+    summary: Trigger and download export
+    description: |
+      1. Start export.
+      2. Download archive.
+
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: small
+
+    steps:
+      - stepId: startExport
+        description: startExport
+        operationId: exportCatalog
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 202 || $statusCode == 409
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: downloadExport
+        description: downloadExport
+        operationId: getExportedCatalog
+        successCriteria:
+          - condition: $statusCode == 200
+        onFailure:
+          - name: retryDownloadWhileExportIsPacking
+            type: retry
+            stepId: downloadExport
+            retryAfter: 15
+            retryLimit: 12
+            criteria:
+              - condition: $statusCode == 409
+        outputs:
+          status: $statusCode
+
+    outputs:
+      step1_start_export_status: $steps.startExport.outputs.status
+      step1_start_export_body: $steps.startExport.outputs.body
+      step2_download_export_status: $steps.downloadExport.outputs.status

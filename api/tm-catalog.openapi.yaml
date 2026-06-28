@@ -810,6 +810,12 @@ paths:
               schema:
                 type: string
                 format: binary
+        '409':
+          description: Conflict, export is not yet complete or has failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
         '500':
