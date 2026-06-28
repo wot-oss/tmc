@@ -1,4 +1,4 @@
-﻿arazzo: 1.0.0
+arazzo: 1.0.0
 info:
   title: Thing Model Catalog - Author Attachments Workflow
   summary: Test workflows for managing author attachments
@@ -709,3 +709,163 @@ workflows:
       step2_live_status: $steps.healthLive.outputs.status
       step3_ready_status: $steps.healthReady.outputs.status
       step4_startup_status: $steps.healthStartup.outputs.status
+
+  - workflowId: uiDashboardWorkflow
+    summary: Dashboard pagination and filtering bootstrap workflow
+    description: |
+      Simulates UI dashboard data loading:
+      1. Initial paginated inventory display
+      2. Filter settings fetch (authors, manufacturers, repos, protocol hints)
+      3. Attempt to request png attachment for listed TMs
+
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: small
+        page:
+          type: integer
+          default: 1
+        pageSize:
+          type: integer
+          default: 10
+        previewAttachmentName:
+          type: string
+          default: preview.png
+
+    steps:
+      - stepId: initialInventoryPage
+        description: initialInventoryPage
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: page
+            in: query
+            value: $inputs.page
+          - name: pageSize
+            in: query
+            value: $inputs.pageSize
+          - name: filter.latest
+            in: query
+            value: true
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          firstTMName: $response.body#/data/0/tmName
+          secondTMName: $response.body#/data/1/tmName
+          inventoryBody: $response.body#
+
+      - stepId: fetchAuthors
+        description: fetchAuthors
+        operationId: getAuthors
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: fetchManufacturers
+        description: fetchManufacturers
+        operationId: getManufacturers
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: fetchRepos
+        description: fetchRepos
+        operationId: getRepos
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: fetchProtocolHintsFromInventory
+        description: fetchProtocolHintsFromInventory
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: page
+            in: query
+            value: 1
+          - name: pageSize
+            in: query
+            value: 5
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: uploadPngAttachmentForFirstTM
+        description: uploadPngAttachmentForFirstTM
+        operationId: putTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.firstTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: true
+        requestBody:
+          contentType: text/plain
+          payload: preview image placeholder uploaded by uiDashboardWorkflow
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: requestPngAttachmentForFirstTM
+        description: requestPngAttachmentForFirstTM
+        operationId: getTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.firstTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200 || $statusCode == 404
+        outputs:
+          status: $statusCode
+
+      - stepId: requestPngAttachmentForSecondTM
+        description: requestPngAttachmentForSecondTM
+        operationId: getTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.secondTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200 || $statusCode == 404
+        outputs:
+          status: $statusCode
+
+    outputs:
+      step1_inventory_page: $steps.initialInventoryPage.outputs.inventoryBody
+      step2_1_authors: $steps.fetchAuthors.outputs.body
+      step2_2_manufacturers: $steps.fetchManufacturers.outputs.body
+      step2_3_repos: $steps.fetchRepos.outputs.body
+      step2_4_protocol_hints: $steps.fetchProtocolHintsFromInventory.outputs.body
+      step2_5_upload_first_png_status: $steps.uploadPngAttachmentForFirstTM.outputs.status
+      step3_1_first_png_fetch_status: $steps.requestPngAttachmentForFirstTM.outputs.status
+      step3_2_second_png_fetch_status: $steps.requestPngAttachmentForSecondTM.outputs.status
