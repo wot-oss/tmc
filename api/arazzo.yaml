@@ -1,0 +1,507 @@
+arazzo: 1.0.0
+info:
+  title: Thing Model Catalog - Author Attachments Workflow
+  summary: Test workflows for managing author attachments
+  version: 1.0.0
+  description: |
+    Test workflow for managing author attachments in the Thing Model Catalog.
+    This workflow tests the complete lifecycle of attachments: 
+    initial empty state, upload, verification, deletion, and final empty state.
+
+sourceDescriptions:
+  - name: tmc
+    url: http://localhost:8080
+    type: openapi
+
+workflows:
+  - workflowId: variantMpnLifecycleWorkflow
+    summary: Create and remove variant by MPN, then validate inventory relations
+    description: |
+      1. Query inventory by filter.mpn and verify target variant does not exist.
+      2. Create a new variant MPN for parent TM omnicorp/omnicorp/lightall.
+      3. Verify parent and variant entries expose hasVariant / isVariantOf relations.
+      4. Delete the created variant TM.
+      5. Verify the variant is gone and parent's hasVariant is cleared.
+      6. Create two variants in bulk.
+      7. Query inventory and verify the two bulk-created TMs are present.
+      8. Get both bulk-created variants by fetch name.
+      9. Fetch one bulk-created TM and inspect its title and description.
+      10. Verify the parent's hasVariant array after bulk creation.
+      11. Delete both bulk-created variant TMs.
+      12. Verify both bulk-created variants are gone from inventory.
+      13. Verify the parent's hasVariant array after bulk deletion.
+
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: small
+        parentFetchName:
+          type: string
+          default: omnicorp/omnicorp/lightall
+        parentTMName:
+          type: string
+          default: omnicorp/omnicorp/lightall
+        variantTMName:
+          type: string
+          default: omnicorp/omnicorp/1234newmpn5678
+        variantMpn:
+          type: string
+          default: 1234newmpn5678
+        bulkVariantOneTMName:
+          type: string
+          default: omnicorp/omnicorp/newmpn-bulk-1
+        bulkVariantTwoTMName:
+          type: string
+          default: omnicorp/omnicorp/newmpn-bulk-2
+        bulkVariantOneMpn:
+          type: string
+          default: newmpn-bulk-1
+        bulkVariantTwoMpn:
+          type: string
+          default: newmpn-bulk-2
+        bulkVariantMpnsFilter:
+          type: string
+          default: newmpn-bulk-1,newmpn-bulk-2
+        bulkVariantTitle:
+          type: string
+          default: test title
+        bulkVariantDescription:
+          type: string
+          default: test desc
+
+    steps:
+      - stepId: getInventoryFilteredByMpnBeforeCreate
+        description: getInventoryFilteredByMpnBeforeCreate
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.mpn
+            in: query
+            value: $inputs.variantMpn
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: verifyVariantMissingBeforeCreate
+        description: verifyVariantMissingBeforeCreate
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.variantTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 404
+        outputs:
+          status: $statusCode
+
+      - stepId: getParentByFetchName
+        description: getParentByFetchName
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.parentFetchName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          parentTMID: $response.body#/data/tmID
+          body: $response.body#
+
+      - stepId: createVariantFromParent
+        description: createVariantFromParent
+        operationId: addThingModelVariant
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        requestBody:
+          contentType: application/json
+          payload:
+            - tm-id: $steps.getParentByFetchName.outputs.parentTMID
+              mpn: $inputs.variantMpn
+        successCriteria:
+          - condition: $statusCode == 200 || $statusCode == 204
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: getVariantByFetchNameAfterCreate
+        description: getVariantByFetchNameAfterCreate
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.variantTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          variantTMID: $response.body#/data/tmID
+          variantVersionBody: $response.body#
+
+      - stepId: getParentEntryAfterCreate
+        description: getParentEntryAfterCreate
+        operationId: getInventoryByName
+        parameters:
+          - name: tmName
+            in: path
+            value: $inputs.parentTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          parentEntryBody: $response.body#
+          parentHasVariant: $response.body#/data/0/hasVariant
+
+      - stepId: getVariantEntryAfterCreate
+        description: getVariantEntryAfterCreate
+        operationId: getInventoryByName
+        parameters:
+          - name: tmName
+            in: path
+            value: $inputs.variantTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          variantEntryBody: $response.body#
+          variantIsVariantOf: $response.body#/data/0/isVariantOf
+
+      - stepId: deleteVariantTM
+        description: deleteVariantTM
+        operationId: deleteThingModelById
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.getVariantByFetchNameAfterCreate.outputs.variantTMID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: "true"
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: getInventoryFilteredByMpnAfterDelete
+        description: getInventoryFilteredByMpnAfterDelete
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.mpn
+            in: query
+            value: $inputs.variantMpn
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: verifyVariantMissingAfterDelete
+        description: verifyVariantMissingAfterDelete
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.variantTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 404
+        outputs:
+          status: $statusCode
+
+      - stepId: getParentEntryAfterDelete
+        description: getParentEntryAfterDelete
+        operationId: getInventoryByName
+        parameters:
+          - name: tmName
+            in: path
+            value: $inputs.parentTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          parentEntryBodyAfterDelete: $response.body#
+          parentHasVariantAfterDelete: $response.body#/data/0/hasVariant
+
+      - stepId: createBulkVariantsFromParent
+        description: createBulkVariantsFromParent
+        operationId: addThingModelVariant
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        requestBody:
+          contentType: application/json
+          payload:
+            - tm-id: $steps.getParentByFetchName.outputs.parentTMID
+              mpn: $inputs.bulkVariantOneMpn
+              title: $inputs.bulkVariantTitle
+              description: $inputs.bulkVariantDescription
+            - tm-id: $steps.getParentByFetchName.outputs.parentTMID
+              mpn: $inputs.bulkVariantTwoMpn
+              title: $inputs.bulkVariantTitle
+              description: $inputs.bulkVariantDescription
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: getBulkInventoryAfterCreate
+        description: getBulkInventoryAfterCreate
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.mpn
+            in: query
+            value: $inputs.bulkVariantMpnsFilter
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: getBulkVariantOneByFetchNameAfterCreate
+        description: getBulkVariantOneByFetchNameAfterCreate
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.bulkVariantOneTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          tmID: $response.body#/data/tmID
+          body: $response.body#
+
+      - stepId: getBulkVariantTwoByFetchNameAfterCreate
+        description: getBulkVariantTwoByFetchNameAfterCreate
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.bulkVariantTwoTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          tmID: $response.body#/data/tmID
+          body: $response.body#
+
+      - stepId: fetchBulkVariantOneThingModel
+        description: fetchBulkVariantOneThingModel
+        operationId: getThingModelById
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          title: $response.body#/title
+          description: $response.body#/description
+
+      - stepId: getParentEntryAfterBulkCreate
+        description: getParentEntryAfterBulkCreate
+        operationId: getInventoryByName
+        parameters:
+          - name: tmName
+            in: path
+            value: $inputs.parentTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          hasVariant: $response.body#/data/0/hasVariant
+
+      - stepId: deleteBulkVariantOneTM
+        description: deleteBulkVariantOneTM
+        operationId: deleteThingModelById
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: "true"
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: deleteBulkVariantTwoTM
+        description: deleteBulkVariantTwoTM
+        operationId: deleteThingModelById
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.getBulkVariantTwoByFetchNameAfterCreate.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: "true"
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: getBulkInventoryAfterDelete
+        description: getBulkInventoryAfterDelete
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.mpn
+            in: query
+            value: $inputs.bulkVariantMpnsFilter
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: verifyBulkVariantOneMissingAfterDelete
+        description: verifyBulkVariantOneMissingAfterDelete
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.bulkVariantOneTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 404
+        outputs:
+          status: $statusCode
+
+      - stepId: verifyBulkVariantTwoMissingAfterDelete
+        description: verifyBulkVariantTwoMissingAfterDelete
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $inputs.bulkVariantTwoTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 404
+        outputs:
+          status: $statusCode
+
+      - stepId: getParentEntryAfterBulkDelete
+        description: getParentEntryAfterBulkDelete
+        operationId: getInventoryByName
+        parameters:
+          - name: tmName
+            in: path
+            value: $inputs.parentTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          hasVariant: $response.body#/data/0/hasVariant
+
+    outputs:
+      step01_inventory_filter_before_status: $steps.getInventoryFilteredByMpnBeforeCreate.outputs.status
+      step01_inventory_filter_before_body: $steps.getInventoryFilteredByMpnBeforeCreate.outputs.body
+      step01_variant_missing_before_status: $steps.verifyVariantMissingBeforeCreate.outputs.status
+      step02_parent_lookup_status: $steps.getParentByFetchName.outputs.status
+      step02_parent_lookup_body: $steps.getParentByFetchName.outputs.body
+      step02_create_variant_status: $steps.createVariantFromParent.outputs.status
+      step02_create_variant_body: $steps.createVariantFromParent.outputs.body
+      step03_variant_lookup_status: $steps.getVariantByFetchNameAfterCreate.outputs.status
+      step03_variant_lookup_body: $steps.getVariantByFetchNameAfterCreate.outputs.variantVersionBody
+      step03_parent_entry_status: $steps.getParentEntryAfterCreate.outputs.status
+      step03_parent_entry_hasVariant: $steps.getParentEntryAfterCreate.outputs.parentHasVariant
+      step03_variant_entry_status: $steps.getVariantEntryAfterCreate.outputs.status
+      step03_variant_entry_isVariantOf: $steps.getVariantEntryAfterCreate.outputs.variantIsVariantOf
+      step04_delete_variant_status: $steps.deleteVariantTM.outputs.status
+      step05_inventory_filter_after_status: $steps.getInventoryFilteredByMpnAfterDelete.outputs.status
+      step05_inventory_filter_after_body: $steps.getInventoryFilteredByMpnAfterDelete.outputs.body
+      step05_variant_missing_after_status: $steps.verifyVariantMissingAfterDelete.outputs.status
+      step05_parent_entry_after_delete_status: $steps.getParentEntryAfterDelete.outputs.status
+      step05_parent_entry_after_delete_hasVariant: $steps.getParentEntryAfterDelete.outputs.parentHasVariantAfterDelete
+      step06_create_bulk_variants_status: $steps.createBulkVariantsFromParent.outputs.status
+      step06_create_bulk_variants_body: $steps.createBulkVariantsFromParent.outputs.body
+      step07_bulk_inventory_after_create_status: $steps.getBulkInventoryAfterCreate.outputs.status
+      step07_bulk_inventory_after_create_body: $steps.getBulkInventoryAfterCreate.outputs.body
+      step08_bulk_variant_one_lookup_status: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.status
+      step08_bulk_variant_one_lookup_body: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.body
+      step08_bulk_variant_two_lookup_status: $steps.getBulkVariantTwoByFetchNameAfterCreate.outputs.status
+      step08_bulk_variant_two_lookup_body: $steps.getBulkVariantTwoByFetchNameAfterCreate.outputs.body
+      step09_bulk_variant_one_fetch_status: $steps.fetchBulkVariantOneThingModel.outputs.status
+      step09_bulk_variant_one_fetch_body: $steps.fetchBulkVariantOneThingModel.outputs.body
+      step09_bulk_variant_one_fetch_title: $steps.fetchBulkVariantOneThingModel.outputs.title
+      step09_bulk_variant_one_fetch_description: $steps.fetchBulkVariantOneThingModel.outputs.description
+      step10_parent_entry_after_bulk_create_status: $steps.getParentEntryAfterBulkCreate.outputs.status
+      step10_parent_entry_after_bulk_create_hasVariant: $steps.getParentEntryAfterBulkCreate.outputs.hasVariant
+      step11_delete_bulk_variant_one_status: $steps.deleteBulkVariantOneTM.outputs.status
+      step11_delete_bulk_variant_two_status: $steps.deleteBulkVariantTwoTM.outputs.status
+      step12_bulk_inventory_after_delete_status: $steps.getBulkInventoryAfterDelete.outputs.status
+      step12_bulk_inventory_after_delete_body: $steps.getBulkInventoryAfterDelete.outputs.body
+      step12_bulk_variant_one_missing_after_delete_status: $steps.verifyBulkVariantOneMissingAfterDelete.outputs.status
+      step12_bulk_variant_two_missing_after_delete_status: $steps.verifyBulkVariantTwoMissingAfterDelete.outputs.status
+      step13_parent_entry_after_bulk_delete_status: $steps.getParentEntryAfterBulkDelete.outputs.status
+      step13_parent_entry_after_bulk_delete_hasVariant: $steps.getParentEntryAfterBulkDelete.outputs.hasVariant
