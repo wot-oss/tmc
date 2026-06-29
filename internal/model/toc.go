@@ -300,7 +300,7 @@ func (idx *Index) Insert(ctm *ThingModel) error {
 }
 
 func (idx *Index) InsertVariant(tmID string, variantID string) error {
-	_, err := ParseTMID(variantID)
+	variantTMID, err := ParseTMID(variantID)
 	if err != nil {
 		return err
 	}
@@ -315,6 +315,9 @@ func (idx *Index) InsertVariant(tmID string, variantID string) error {
 	e := idx.FindByName(parentID.Name)
 	if e == nil {
 		return ErrTMNameNotFound
+	}
+	if variantEntry := idx.FindByName(variantTMID.Name); variantEntry != nil {
+		variantEntry.IsVariantOf = tmID
 	}
 	if slices.ContainsFunc(e.Variants, func(v Variant) bool {
 		return v.VariantID == variantID
@@ -360,6 +363,9 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 	}
 	idxEntry = idx.FindByName(name)
 	if idxEntry != nil {
+		if idxEntry.IsVariantOf != "" {
+			idx.removeVariantFromParent(idxEntry.IsVariantOf, id)
+		}
 		idxEntry.Versions = slices.DeleteFunc(idxEntry.Versions, func(version *IndexVersion) bool {
 			fnd := version.TMID == id
 			if fnd {
@@ -384,6 +390,20 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 		}
 	}
 	return updated, "", nil
+}
+
+func (idx *Index) removeVariantFromParent(parentTMID string, variantTMID string) {
+	parentID, err := ParseTMID(parentTMID)
+	if err != nil {
+		return
+	}
+	parentEntry := idx.FindByName(parentID.Name)
+	if parentEntry == nil {
+		return
+	}
+	parentEntry.Variants = slices.DeleteFunc(parentEntry.Variants, func(v Variant) bool {
+		return v.VariantID == variantTMID
+	})
 }
 
 func (idx *Index) FindAttachmentContainer(ref AttachmentContainerRef) (*AttachmentContainer, *IndexEntry, error) {
