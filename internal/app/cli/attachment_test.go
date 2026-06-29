@@ -21,7 +21,6 @@ func TestAttachmentList(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmName := "author/manufacturer/mpn"
-		r.On("Index", ctx).Return([]string{"author"}, []string{"manufacturer"}, []string{"mpn"}, nil).Once()
 		r.On("List", ctx, &model.Filters{Name: tmName}).Return(
 			model.SearchResult{
 				Entries: []model.FoundEntry{
@@ -42,7 +41,6 @@ func TestAttachmentList(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmId := "author/manufacturer/mpn/v0.0.0-20240521143452-d662e089b3eb.tm.json"
-		r.On("Index", ctx).Return([]string{"author"}, []string{"manufacturer"}, []string{"author/manufacturer/mpn"}, nil).Once()
 		r.On("GetTMMetadata", ctx, tmId).Return([]model.FoundVersion{{
 			IndexVersion: &model.IndexVersion{
 				AttachmentContainer: model.AttachmentContainer{[]model.Attachment{
@@ -61,7 +59,6 @@ func TestAttachmentList(t *testing.T) {
 		restore, getOutput := testutils.ReplaceStdout()
 		defer restore()
 		tmName := "author/manufacturer/mpn"
-		r.On("Index", ctx).Return([]string{"author"}, []string{"manufacturer"}, []string{"mpn"}, nil).Once()
 		r.On("List", ctx, &model.Filters{Name: tmName}).Return(
 			model.SearchResult{
 				Entries: []model.FoundEntry{
@@ -98,14 +95,12 @@ func TestAttachmentImport(t *testing.T) {
 	attContent, err := os.ReadFile(attFile)
 	assert.NoError(t, err)
 	t.Run("with original file name", func(t *testing.T) {
-		r.On("Index", ctx).Return([]string{"author"}, []string{"manufacturer"}, []string{tmNameOrId}, nil).Once()
 		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: attName, MediaType: ""}, attContent, true).Return(nil).Once()
 		err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, AttachmentTypeTMName, attFile, "", "", true)
 		assert.NoError(t, err)
 	})
 
 	t.Run("with overwritten file name", func(t *testing.T) {
-		r.On("Index", ctx).Return([]string{"author"}, []string{"manufacturer"}, []string{tmNameOrId}, nil).Once()
 		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), model.Attachment{Name: "differentName.md", MediaType: ""}, attContent, true).Return(nil).Once()
 		err = AttachmentImport(ctx, model.NewDirSpec("somewhere"), tmNameOrId, AttachmentTypeTMName, attFile, "differentName.md", "", true)
 		assert.NoError(t, err)
@@ -123,7 +118,6 @@ func TestAttachmentFetch(t *testing.T) {
 	tmNameOrId := "author/manufacturer/mpn"
 	attName := "README.md"
 	attContent := []byte("attachment content")
-	r.On("Index", ctx).Return([]string{"author"}, []string{"manufacturer"}, []string{tmNameOrId}, nil).Once()
 	r.On("FetchAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), attName).Return(attContent, nil).Once()
 	err := AttachmentFetch(ctx, model.NewDirSpec("somewhere"), tmNameOrId, AttachmentTypeTMName, attName, false, "")
 	assert.NoError(t, err)
@@ -138,7 +132,6 @@ func TestAttachmentDelete(t *testing.T) {
 	ctx := context.Background()
 	tmNameOrId := "author/manufacturer/mpn"
 	attName := "README.md"
-	r.On("Index", ctx).Return([]string{"author"}, []string{"manufacturer"}, []string{tmNameOrId}, nil).Once()
 	r.On("DeleteAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmNameOrId), attName).Return(nil).Once()
 	err := AttachmentDelete(ctx, model.NewDirSpec("somewhere"), tmNameOrId, AttachmentTypeTMName, attName)
 	assert.NoError(t, err)
