@@ -372,6 +372,9 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 		if idxEntry.IsVariantOf != "" {
 			idx.removeVariantFromParent(idxEntry.IsVariantOf, id)
 		}
+		if len(idxEntry.Variants) > 0 {
+			idx.detachVariants(id, idxEntry)
+		}
 		idxEntry.Versions = slices.DeleteFunc(idxEntry.Versions, func(version *IndexVersion) bool {
 			fnd := version.TMID == id
 			if fnd {
@@ -396,6 +399,23 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 		}
 	}
 	return updated, "", nil
+}
+
+func (idx *Index) detachVariants(parentTMID string, parentEntry *IndexEntry) {
+	for _, v := range parentEntry.Variants {
+		variantTMID, err := ParseTMID(v.VariantID)
+		if err != nil {
+			continue
+		}
+		variantEntry := idx.FindByName(variantTMID.Name)
+		if variantEntry == nil {
+			continue
+		}
+		if variantEntry.IsVariantOf == parentTMID {
+			variantEntry.IsVariantOf = ""
+		}
+	}
+	parentEntry.Variants = nil
 }
 
 func (idx *Index) removeVariantFromParent(parentTMID string, variantTMID string) {
