@@ -176,7 +176,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 			if len(pathParts) > 2 {
 				namespaceFromPath = pathParts[2]
 			}
-		} else if pathParts[0] == "thing-models" && pathParts[1] == "variations" && r.Method == "POST" {
+		} else if pathParts[0] == "thing-models" && pathParts[1] == "variants" && r.Method == "POST" {
 			namespaceFromPath = ""
 		} else {
 			namespaceFromPath = pathParts[1]
@@ -224,7 +224,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 				namespaceFromScope := parts[2]
 				if namespaceFromPath == "" && r.Method == "POST" && pathParts[0] == "thing-models" {
 					if strings.HasSuffix(scope, ".write") {
-						if len(pathParts) > 1 && pathParts[1] == "variations" {
+						if len(pathParts) > 1 && pathParts[1] == "variants" {
 							extractAuthorManufacturer := func(id string) (string, string) {
 								parts := strings.Split(strings.TrimSpace(id), "/")
 								if len(parts) < 3 {

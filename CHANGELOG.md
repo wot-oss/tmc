@@ -13,7 +13,7 @@
 - Added `filter.latest` parameter to REST API `/inventory` listing
 - generating `authors.txt`, `manufacturers.txt`, and `mpns.txt` for improving static hosting (e.g. github, github pages)
 - `jwtScopesPrefix` flag to set default prefix for scopes authentication
-- support for storing and searching/filtering TMs with MPN variations/placeholders
+- support for storing/generating TMs with MPN variants
 - higher-level attachments import/fetch/delete/list in CLI
 - REST API: GET `/authors/{authorName}/.attachments/`, GET `/manufacturers/{authorName}/{manufacturerName}/.attachments/`, GET `/thing-models/.tmName/{tmName}/.attachments`, and GET `/thing-models/{tmID}/.attachments` to list attachments, which belong to the corresponding level (author/manufacturer/tmName/tmID, respectively)
 - REST API: GET `/authors/{authorName}/.attachments/{attachmentFileName}` and GET `/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName}` higher-level attachments fetch

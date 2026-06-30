@@ -109,15 +109,77 @@ tmc fetch siemens/siemens/poc1000:v1
 tmc fetch siemens/siemens/poc1000:v1.0.1
 ```
 
-### MPN variations
-When multiple product variants share the same Thing Model but differ only in certain characters of their MPN (e.g., mounting style, housing type), you can use placeholder syntax.
+### MPN variants
 
-```json
-"schema:mpn": "5SL6{{x1}}{{x2}}{{x3}}{{x4}}ME"
+Thing Model variants, which distinguish from each other only in mpns and, optionally, in title and description, can be added via CLI and REST.
+
+#### CLI: Add a single variant
+
+1. Add a new variant from parent TM using a new MPN:
+
+```bash
+tmc variant add --repo small --tm-id <parent-tm-id> --mpn newmpn-1
 ```
 
-matches `5SL64327ME`, `5SL61111ME`, `5SL6abcdME`.
-Each {{placeholder}} matches exactly one character. Matching is case-insensitive and works with search and with filters: `--filter.mpn 5SL61111ME`
+Link an existing TM as variant (no new TM is created):
+
+```bash
+tmc variant add --repo small --tm-id <parent-tm-id> --variant-id <existing-variant-tm-id>
+```
+
+Optional fields for creation, `--with-attachments` flag copies the attachments from parent TM to the created variant:
+
+```bash
+tmc variant add --repo small --tm-id <parent-tm-id> --mpn newmpn-1 --title "Variant title" --description "Variant description" --with-attachments
+```
+
+#### CLI: Bulk add variants
+
+Create a JSON file (example `variants.json`):
+
+```json
+[
+  {
+    "tm-id": "omnicorp/omnicorp/lightall/v2.0.0-20241008124326-f5550ca10767.tm.json",
+    "mpn": "newmpn-bulk-1",
+    "title": "Bulk Variant 1",
+    "description": "Bulk created variant"
+  },
+  {
+    "tm-id": "omnicorp/omnicorp/lightall/v2.0.0-20241008124326-f5550ca10767.tm.json",
+    "mpn": "newmpn-bulk-2",
+    "title": "Bulk Variant 2",
+    "description": "Bulk created variant"
+  }
+]
+```
+
+Run bulk creation:
+
+```bash
+tmc variant add-batch --repo small --json-file variants.json
+```
+
+#### Deletion TMs with variants
+
+When deleting a TM that has variants, the default behavior is:
+
+1. only the selected parent TM is deleted
+2. variants are kept untouched
+3. each variant of the deleted TM is dereferenced (`isVariantOf` is cleared)
+
+To delete the parent TM together with all its variants recursively, use `--with-variants`:
+
+```bash
+tmc delete --repo small --force=true --with-variants <parent-tm-id>
+```
+
+REST example:
+
+```bash
+curl -X DELETE "http://localhost:8080/thing-models/<parent-tm-id>?repo=small&force=true&with-variants=true"
+```
+
 
 ## Publish a Catalog to a Git Forge
 
