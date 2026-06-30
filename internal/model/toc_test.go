@@ -501,6 +501,57 @@ func TestIndex_InsertVariant(t *testing.T) {
 	assert.ErrorIs(t, err, ErrTMNotFound)
 }
 
+func TestIndex_InsertVariant_RejectsNestedVariants(t *testing.T) {
+	idx := &Index{}
+	grandParentID := "aut/man/base/v1.0.0-20231023121314-abcd12345678.tm.json"
+	parentVariantID := "aut/man/base-child/v1.0.0-20231023121314-abcd12345679.tm.json"
+	nestedVariantID := "aut/man/base-grandchild/v1.0.0-20231023121314-abcd12345680.tm.json"
+
+	err := idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "base",
+		Author:       SchemaAuthor{Name: "aut"},
+		ID:           grandParentID,
+		Description:  "base",
+	})
+	assert.NoError(t, err)
+
+	err = idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "base-child",
+		Author:       SchemaAuthor{Name: "aut"},
+		ID:           parentVariantID,
+		Description:  "variant",
+	})
+	assert.NoError(t, err)
+
+	err = idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "base-grandchild",
+		Author:       SchemaAuthor{Name: "aut"},
+		ID:           nestedVariantID,
+		Description:  "nested variant",
+	})
+	assert.NoError(t, err)
+
+	err = idx.InsertVariant(grandParentID, parentVariantID)
+	assert.NoError(t, err)
+
+	err = idx.InsertVariant(parentVariantID, nestedVariantID)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrVariantNestingNotAllowed)
+
+	parentEntry := idx.FindByName("aut/man/base-child")
+	if assert.NotNil(t, parentEntry) {
+		assert.Empty(t, parentEntry.Variants)
+	}
+
+	nestedEntry := idx.FindByName("aut/man/base-grandchild")
+	if assert.NotNil(t, nestedEntry) {
+		assert.Empty(t, nestedEntry.IsVariantOf)
+	}
+}
+
 func TestIndex_Delete(t *testing.T) {
 	tests := []struct {
 		name       string

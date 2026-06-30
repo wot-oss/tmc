@@ -304,6 +304,9 @@ func (idx *Index) InsertVariant(tmID string, variantID string) error {
 	if err != nil {
 		return err
 	}
+	if idx.FindByTMID(tmID) == nil {
+		return ErrTMNotFound
+	}
 	v := idx.FindByTMID(tmID)
 	if v == nil {
 		return ErrTMNotFound
@@ -315,6 +318,9 @@ func (idx *Index) InsertVariant(tmID string, variantID string) error {
 	e := idx.FindByName(parentID.Name)
 	if e == nil {
 		return ErrTMNameNotFound
+	}
+	if e.IsVariantOf != "" {
+		return ErrVariantNestingNotAllowed
 	}
 	if variantEntry := idx.FindByName(variantTMID.Name); variantEntry != nil {
 		variantEntry.IsVariantOf = tmID
