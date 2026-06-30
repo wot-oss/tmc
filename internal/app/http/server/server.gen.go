@@ -1503,6 +1503,14 @@ func (siw *ServerInterfaceWrapper) DeleteThingModelById(w http.ResponseWriter, r
 		return
 	}
 
+	// ------------- Optional query parameter "with-variants" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "with-variants", r.URL.Query(), &params.WithVariants)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "with-variants", Err: err})
+		return
+	}
+
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.DeleteThingModelById(w, r, tmID, params)
 	}))

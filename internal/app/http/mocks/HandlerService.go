@@ -357,17 +357,17 @@ func (_c *HandlerService_DeleteAttachment_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
-// DeleteThingModel provides a mock function with given fields: ctx, repo, tmID
-func (_m *HandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string) error {
-	ret := _m.Called(ctx, repo, tmID)
+// DeleteThingModel provides a mock function with given fields: ctx, repo, tmID, withVariants
+func (_m *HandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string, withVariants bool) error {
+	ret := _m.Called(ctx, repo, tmID, withVariants)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteThingModel")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, repo, tmID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) error); ok {
+		r0 = rf(ctx, repo, tmID, withVariants)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -384,13 +384,14 @@ type HandlerService_DeleteThingModel_Call struct {
 //   - ctx context.Context
 //   - repo string
 //   - tmID string
-func (_e *HandlerService_Expecter) DeleteThingModel(ctx interface{}, repo interface{}, tmID interface{}) *HandlerService_DeleteThingModel_Call {
-	return &HandlerService_DeleteThingModel_Call{Call: _e.mock.On("DeleteThingModel", ctx, repo, tmID)}
+//   - withVariants bool
+func (_e *HandlerService_Expecter) DeleteThingModel(ctx interface{}, repo interface{}, tmID interface{}, withVariants interface{}) *HandlerService_DeleteThingModel_Call {
+	return &HandlerService_DeleteThingModel_Call{Call: _e.mock.On("DeleteThingModel", ctx, repo, tmID, withVariants)}
 }
 
-func (_c *HandlerService_DeleteThingModel_Call) Run(run func(ctx context.Context, repo string, tmID string)) *HandlerService_DeleteThingModel_Call {
+func (_c *HandlerService_DeleteThingModel_Call) Run(run func(ctx context.Context, repo string, tmID string, withVariants bool)) *HandlerService_DeleteThingModel_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(bool))
 	})
 	return _c
 }
@@ -400,7 +401,7 @@ func (_c *HandlerService_DeleteThingModel_Call) Return(_a0 error) *HandlerServic
 	return _c
 }
 
-func (_c *HandlerService_DeleteThingModel_Call) RunAndReturn(run func(context.Context, string, string) error) *HandlerService_DeleteThingModel_Call {
+func (_c *HandlerService_DeleteThingModel_Call) RunAndReturn(run func(context.Context, string, string, bool) error) *HandlerService_DeleteThingModel_Call {
 	_c.Call.Return(run)
 	return _c
 }

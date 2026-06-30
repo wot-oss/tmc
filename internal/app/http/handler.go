@@ -370,7 +370,8 @@ func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err := h.Service.DeleteThingModel(r.Context(), convertRepoName(params.Repo), tmID)
+	withVariants := params.WithVariants != nil && *params.WithVariants
+	err := h.Service.DeleteThingModel(r.Context(), convertRepoName(params.Repo), tmID, withVariants)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return

@@ -354,6 +354,12 @@ paths:
           required: true
           schema:
             type: string
+        - name: with-variants
+          in: query
+          description: If true, deletes the TM with all its variants
+          required: false
+          schema:
+            type: boolean
       responses:
         '204':
           description: Successful operation

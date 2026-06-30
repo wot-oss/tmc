@@ -549,6 +549,9 @@ type DeleteThingModelByIdParams struct {
 
 	// Force flag to force the deletion. must be set to "true"
 	Force string `form:"force" json:"force"`
+
+	// WithVariants Whether to also delete variants if the deleted TM has variants (defaults to false)
+	WithVariants *bool `form:"with-variants,omitempty" json:"with-variants,omitempty"`
 }
 
 // GetThingModelByIdParams defines parameters for GetThingModelById.

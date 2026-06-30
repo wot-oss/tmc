@@ -1441,7 +1441,17 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with valid tmID", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(nil).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", tmID, false).Return(nil).Once()
+		// when: calling the route
+		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
+		// then: it returns status 204
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, 0, rec.Body.Len())
+	})
+
+	t.Run("with valid tmID and with-variants=true", func(t *testing.T) {
+		route := "/thing-models/" + tmID + "?force=true&with-variants=true"
+		hs.On("DeleteThingModel", mock.Anything, "", tmID, true).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 204
@@ -1452,7 +1462,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		route := "/thing-models/some-invalid-tm-id?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "", "some-invalid-tm-id").Return(model.ErrInvalidId).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", "some-invalid-tm-id", false).Return(model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 400 and json error as body
@@ -1461,7 +1471,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(model.ErrTMNotFound).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", tmID, false).Return(model.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body

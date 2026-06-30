@@ -7,8 +7,8 @@ import (
 	"github.com/wot-oss/tmc/internal/model"
 )
 
-func Delete(ctx context.Context, repo model.RepoSpec, id string) error {
-	err := commands.Delete(ctx, repo, id)
+func Delete(ctx context.Context, repo model.RepoSpec, id string, opts commands.DeleteOptions) error {
+	err := commands.Delete(ctx, repo, id, opts)
 	if err != nil {
 		Stderrf("Could not delete from repo: %v", err)
 		return err
