@@ -1,4 +1,4 @@
-﻿arazzo: 1.0.0
+arazzo: 1.0.0
 info:
   title: Thing Model Catalog - Author Attachments Workflow
   summary: Test workflows for managing author attachments
@@ -917,3 +917,209 @@ workflows:
       step1_start_export_status: $steps.startExport.outputs.status
       step1_start_export_body: $steps.startExport.outputs.body
       step2_download_export_status: $steps.downloadExport.outputs.status
+  
+
+  - workflowId: findingTMsWorkflow
+    summary: Find TMs by repository and author
+    description: |
+      Initial TM finding workflow:
+      1. Find a specific repository.
+      2. Find TMs in that specific repository.
+      3. Find TMs for a specific author in that repository.
+      4. Filter TMs by manufacturer omnicorp.
+      5. Locate the tmName and tmID of the first TM.
+      6. Fetch the first TM by name.
+      7. Fetch the first TM by tmID.
+      8. Search for text BazLamp.
+      9. Locate the tmName of the first search result.
+      10. Fetch the searched TM by name.
+
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: small
+        authorName:
+          type: string
+          default: omnicorp
+
+    steps:
+      - stepId: findRepo
+        description: findRepo
+        operationId: getRepos
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: findByRepo
+        description: findByRepo
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: findByAuthor
+        description: findByAuthor
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.author
+            in: query
+            value: $inputs.authorName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: filterByManufacturer
+        description: filterByManufacturer
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.manufacturer
+            in: query
+            value: omnicorp
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: locateFirstTM
+        description: locateFirstTM
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.manufacturer
+            in: query
+            value: omnicorp
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          firstTMName: $response.body#/data/0/tmName
+          firstTMID: $response.body#/data/0/versions/0/tmID
+
+      - stepId: fetchFirstTMByName
+        description: fetchFirstTMByName
+        operationId: getThingModelByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $steps.locateFirstTM.outputs.firstTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: fetchFirstTMByTMID
+        description: fetchFirstTMByTMID
+        operationId: getThingModelById
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateFirstTM.outputs.firstTMID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: searchBazLamp
+        description: searchBazLamp
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: search
+            in: query
+            value: BazLamp
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: locateSearchedTM
+        description: locateSearchedTM
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: search
+            in: query
+            value: BazLamp
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          searchedTMName: $response.body#/data/0/tmName
+
+      - stepId: fetchSearchedTMByName
+        description: fetchSearchedTMByName
+        operationId: getThingModelByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $steps.locateSearchedTM.outputs.searchedTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+    outputs:
+      step01_find_repo_status: $steps.findRepo.outputs.status
+      step01_find_repo_body: $steps.findRepo.outputs.body
+      step02_find_by_repo_status: $steps.findByRepo.outputs.status
+      step02_find_by_repo_body: $steps.findByRepo.outputs.body
+      step03_find_by_author_status: $steps.findByAuthor.outputs.status
+      step03_find_by_author_body: $steps.findByAuthor.outputs.body
+      step04_filter_by_manufacturer_status: $steps.filterByManufacturer.outputs.status
+      step04_filter_by_manufacturer_body: $steps.filterByManufacturer.outputs.body
+      step05_locate_first_tm_status: $steps.locateFirstTM.outputs.status
+      step05_locate_first_tm_body: $steps.locateFirstTM.outputs.body
+      step05_locate_first_tm_name: $steps.locateFirstTM.outputs.firstTMName
+      step05_locate_first_tm_id: $steps.locateFirstTM.outputs.firstTMID
+      step06_fetch_first_tm_by_name_status: $steps.fetchFirstTMByName.outputs.status
+      step06_fetch_first_tm_by_name_body: $steps.fetchFirstTMByName.outputs.body
+      step07_fetch_first_tm_by_tmid_status: $steps.fetchFirstTMByTMID.outputs.status
+      step07_fetch_first_tm_by_tmid_body: $steps.fetchFirstTMByTMID.outputs.body
+      step08_search_bazlamp_status: $steps.searchBazLamp.outputs.status
+      step08_search_bazlamp_body: $steps.searchBazLamp.outputs.body
+      step09_locate_searched_tm_status: $steps.locateSearchedTM.outputs.status
+      step09_locate_searched_tm_body: $steps.locateSearchedTM.outputs.body
+      step09_locate_searched_tm_name: $steps.locateSearchedTM.outputs.searchedTMName
+      step10_fetch_searched_tm_by_name_status: $steps.fetchSearchedTMByName.outputs.status
+      step10_fetch_searched_tm_by_name_body: $steps.fetchSearchedTMByName.outputs.body
+
