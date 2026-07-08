@@ -29,10 +29,10 @@ workflows:
       properties:
         authorName:
           type: string
-          default: test
+          default: omnicorp
         repoName:
           type: string
-          default: test
+          default: example-catalog
         attachmentFileName:
           type: string
           default: test.txt
@@ -150,7 +150,7 @@ workflows:
       properties:
         repoName:
           type: string
-          default: test
+          default: example-catalog
     
     steps:
       - stepId: deleteNonExistentAttachment
@@ -199,7 +199,7 @@ workflows:
       properties:
         repoName:
           type: string
-          default: small
+          default: example-catalog
         authorName:
           type: string
           default: mycompany
@@ -660,12 +660,6 @@ workflows:
       step7_1_verify_tmname_attachments_after_delete_body: $steps.verifyTMNameAttachmentsAfterDelete.outputs.debugResponseBody
       step7_2_verify_tm_deleted_status: $steps.verifyTMDeleted.outputs.debugStatusCode
       step7_2_verify_tm_deleted_body: $steps.verifyTMDeleted.outputs.debugResponseBody
-      # repo_lookup: $steps.findRepo.outputs.body
-      # located_tm_id: $steps.locateLatestTM.outputs.tmID
-      # list_tmname_attachments: $steps.listTMNameAttachments.outputs.body
-      # list_tmid_attachments: $steps.listTMIDAttachments.outputs.body
-      # list_author_attachments: $steps.listAuthorAttachments.outputs.body
-      # list_manufacturer_attachments: $steps.listManufacturerAttachments.outputs.body
 
   - workflowId: adminHealthcheckWorkflow
     summary: Inspect all health endpoints
@@ -723,7 +717,7 @@ workflows:
       properties:
         repoName:
           type: string
-          default: small
+          default: example-catalog
         page:
           type: integer
           default: 1
@@ -838,7 +832,7 @@ workflows:
             in: query
             value: $inputs.repoName
         successCriteria:
-          - condition: $statusCode == 200 || $statusCode == 404
+          - condition: $statusCode == 200
         outputs:
           status: $statusCode
 
@@ -856,7 +850,25 @@ workflows:
             in: query
             value: $inputs.repoName
         successCriteria:
-          - condition: $statusCode == 200 || $statusCode == 404
+          - condition: $statusCode == 404
+        outputs:
+          status: $statusCode
+
+      - stepId: deletePngAttachmentForFirstTM
+        description: deletePngAttachmentForFirstTM
+        operationId: deleteTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.firstTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 204
         outputs:
           status: $statusCode
 
@@ -869,6 +881,7 @@ workflows:
       step2_5_upload_first_png_status: $steps.uploadPngAttachmentForFirstTM.outputs.status
       step3_1_first_png_fetch_status: $steps.requestPngAttachmentForFirstTM.outputs.status
       step3_2_second_png_fetch_status: $steps.requestPngAttachmentForSecondTM.outputs.status
+      step4_1_delete_first_png_status: $steps.deletePngAttachmentForFirstTM.outputs.status
 
   - workflowId: exportingWorkflow
     summary: Trigger and download export
@@ -881,7 +894,7 @@ workflows:
       properties:
         repoName:
           type: string
-          default: small
+          default: example-catalog
 
     steps:
       - stepId: startExport
@@ -918,7 +931,6 @@ workflows:
       step1_start_export_body: $steps.startExport.outputs.body
       step2_download_export_status: $steps.downloadExport.outputs.status
   
-
   - workflowId: findingTMsWorkflow
     summary: Find TMs by repository and author
     description: |
@@ -939,7 +951,7 @@ workflows:
       properties:
         repoName:
           type: string
-          default: small
+          default: example-catalog
         authorName:
           type: string
           default: omnicorp
@@ -1074,7 +1086,7 @@ workflows:
             value: $inputs.repoName
           - name: search
             in: query
-            value: BazLamp
+            value: Lamp Thing
         successCriteria:
           - condition: $statusCode == 200
         outputs:

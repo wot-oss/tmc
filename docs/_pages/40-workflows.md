@@ -151,25 +151,27 @@ Arazzo workflows should be tested against a running TMC instance that serves the
 
 ### Prerequisites
 
-1. Configure a local repository named `example-catalog` (adjust the path as needed):
+1. Install [Arazzo CLI](https://github.com/strefethen/arazzo-cli) and make it available in your PATH.
+
+2. Configure a local repository named `example-catalog` (adjust the path as needed):
 
 ```bash
 tmc repo add --type file example-catalog ../example-catalog
 ```
 
-2. Start the TMC server using that repository:
+3. Start the TMC server using that repository:
 
 ```bash
 tmc serve --repo example-catalog
 ```
 
-3. In another terminal, run Arazzo from the `api` folder.
+4. In another terminal, run Arazzo from the `api` folder.
 
 ### Run a Single Workflow
 
 ```bash
 cd api
-./arazzo-cli-v0.2.2-windows-x86_64.exe run arazzo.yaml findingTMsWorkflow --openapi tm-catalog.openapi.yaml --json
+arazzo-cli run arazzo.yaml findingTMsWorkflow --openapi tm-catalog.openapi.yaml --json
 ```
 
 You can replace `findingTMsWorkflow` with any workflow ID present in `api/arazzo.yaml`.
