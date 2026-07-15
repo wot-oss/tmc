@@ -326,8 +326,8 @@ func (t *TmcRepo) Fetch(ctx context.Context, id string) (string, []byte, error) 
 	return t.fetchTM(ctx, reqUrl.String())
 }
 
-func (t *TmcRepo) Index(context.Context, ...string) error {
-	return nil // ignore request to update index as index updates are presumed to be handled by the underlying repo
+func (t *TmcRepo) Index(context.Context, ...string) (authorsList, manufacturersList, mpnsList []string, err error) {
+	return nil, nil, nil, nil // ignore request to update index as index updates are presumed to be handled by the underlying repo
 }
 
 func (t *TmcRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {

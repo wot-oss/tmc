@@ -11,7 +11,7 @@ import (
 )
 
 var attachmentFetchCmd = &cobra.Command{
-	Use:   "fetch <tm-name-or-id> <attachment-name>",
+	Use:   "fetch <identifier> <filename> -t <type>",
 	Short: "Fetch an attachment",
 	Long: `Fetch an attachment to a TM name or a TM ID.
 
@@ -42,7 +42,13 @@ func attachmentFetch(command *cobra.Command, args []string) {
 
 	concat, _ := command.Flags().GetBool("concat")
 	outputPath := command.Flag("output").Value.String()
-	err := cli.AttachmentFetch(context.Background(), spec, args[0], args[1], concat, outputPath)
+	attTypeStr := command.Flag("type").Value.String()
+	attType, err := parseAttachmentType(attTypeStr)
+	if err != nil {
+		cli.Stderrf("%v", err)
+		os.Exit(1)
+	}
+	err = cli.AttachmentFetch(context.Background(), spec, args[0], attType, args[1], concat, outputPath)
 	if err != nil {
 		cli.Stderrf("attachment fetch failed")
 		os.Exit(1)
@@ -54,6 +60,8 @@ func init() {
 	attachmentCmd.AddCommand(attachmentFetchCmd)
 	attachmentFetchCmd.Flags().BoolP("concat", "c", false, "Fetch a concatenation of the attachment to a TM name and homonymous attachments to all versions of the same")
 	attachmentFetchCmd.Flags().StringP("output", "o", "", "Write the fetched attachment to output folder instead of stdout")
+	attachmentFetchCmd.Flags().StringP("type", "t", "", "Type of attachment container: id, name, author, manufacturer")
+	attachmentFetchCmd.MarkFlagRequired("type")
 	_ = attachmentFetchCmd.MarkFlagDirname("output")
 
 }

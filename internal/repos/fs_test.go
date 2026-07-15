@@ -290,7 +290,8 @@ func TestFileRepo_Delete(t *testing.T) {
 				root: test.root,
 				spec: spec,
 			}
-			assert.NoError(t, r.Index(context.Background()))
+			_, _, _, err := r.Index(context.Background())
+			assert.NoError(t, err)
 
 			t.Run("invalid id", func(t *testing.T) {
 				err := r.Delete(context.Background(), "invalid-id")
@@ -347,42 +348,44 @@ func TestFileRepo_Index(t *testing.T) {
 	}
 
 	t.Run("single id/no index file", func(t *testing.T) {
-		err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, _, _, err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json")
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
 		zeroTime := time.Time{}
 		assert.True(t, idx.Meta.Created.After(zeroTime))
-		assert.Equal(t, 1, len(idx.Data))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
-		assert.Equal(t, 1, len(idx.Data[0].Versions))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json", idx.Data[0].Versions[0].TMID)
+		assert.Equal(t, 3, len(idx.Data))
+		assert.Equal(t, "omnicorp-tm-department", idx.Data[0].Name)
+		assert.Equal(t, "omnicorp-tm-department/omnicorp", idx.Data[1].Name)
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[2].Name)
+		assert.Equal(t, 1, len(idx.Data[2].Versions))
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json", idx.Data[2].Versions[0].TMID)
 
 		names := r.readNamesFile()
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp/subfolder"}, names)
 
 	})
 	t.Run("single id/existing index file", func(t *testing.T) {
-		err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, _, _, err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(idx.Data))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
-		assert.Equal(t, 2, len(idx.Data[0].Versions))
+		assert.Equal(t, 3, len(idx.Data))
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[2].Name)
+		assert.Equal(t, 2, len(idx.Data[2].Versions))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp/subfolder"}, names)
 	})
 
 	t.Run("full update/existing index file", func(t *testing.T) {
-		err := r.Index(context.Background())
+		_, _, _, err := r.Index(context.Background())
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(idx.Data))
+		assert.Equal(t, 4, len(idx.Data))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{
 			"omnicorp-tm-department/omnicorp/omnilamp",
@@ -402,12 +405,12 @@ func TestFileRepo_Index(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NoError(t, r.writeHelperTxtFile(nil, TmNamesFile))
 
-		err = r.Index(context.Background())
+		_, _, _, err = r.Index(context.Background())
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(idx.Data))
+		assert.Equal(t, 4, len(idx.Data))
 		names := r.readNamesFile()
 		assert.Equal(t, []string{
 			"omnicorp-tm-department/omnicorp/omnilamp",
@@ -421,7 +424,7 @@ func TestFileRepo_Index(t *testing.T) {
 		assert.NoError(t, os.MkdirAll(attDir, defaultDirPermissions))
 		assert.NoError(t, os.WriteFile(filepath.Join(attDir, "README.txt"), []byte("Read This, or Else"), defaultFilePermissions))
 
-		err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, _, _, err := r.Index(context.Background(), "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
@@ -446,20 +449,20 @@ func TestFileRepo_Index(t *testing.T) {
 		tmId22 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json"
 
 		// update index with unordered ID's
-		err = r.Index(context.Background(), tmId21, tmId12, tmId22, tmId13, tmId11)
+		_, _, _, err = r.Index(context.Background(), tmId21, tmId12, tmId22, tmId13, tmId11)
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex()
 		assert.NoError(t, err)
-		assert.Equal(t, 2, len(idx.Data))
+		assert.Equal(t, 4, len(idx.Data))
 
-		assert.Equal(t, tmName1, idx.Data[0].Name)
-		assert.Equal(t, tmId13, idx.Data[0].Versions[0].TMID)
-		assert.Equal(t, tmId12, idx.Data[0].Versions[1].TMID)
-		assert.Equal(t, tmId11, idx.Data[0].Versions[2].TMID)
-		assert.Equal(t, tmName2, idx.Data[1].Name)
-		assert.Equal(t, tmId22, idx.Data[1].Versions[0].TMID)
-		assert.Equal(t, tmId21, idx.Data[1].Versions[1].TMID)
+		assert.Equal(t, tmName1, idx.Data[2].Name)
+		assert.Equal(t, tmId13, idx.Data[2].Versions[0].TMID)
+		assert.Equal(t, tmId12, idx.Data[2].Versions[1].TMID)
+		assert.Equal(t, tmId11, idx.Data[2].Versions[2].TMID)
+		assert.Equal(t, tmName2, idx.Data[3].Name)
+		assert.Equal(t, tmId22, idx.Data[3].Versions[0].TMID)
+		assert.Equal(t, tmId21, idx.Data[3].Versions[1].TMID)
 	})
 }
 
@@ -504,12 +507,12 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				root: test.root,
 				spec: spec,
 			}
-			err := r.Index(context.Background())
+			_, _, _, err := r.Index(context.Background())
 			assert.NoError(t, err)
 
 			t.Run("non-existing id", func(t *testing.T) {
 				// when: deleting a non-existing id from index
-				err := r.Index(context.Background())
+				_, _, _, err := r.Index(context.Background())
 				index, err := r.readIndex()
 				assert.NoError(t, err)
 				// then: nothing changes
@@ -525,7 +528,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 			})
 			t.Run("existing id and file", func(t *testing.T) {
 				// when: updating index for TM that has not been removed from disk
-				err := r.Index(context.Background())
+				_, _, _, err := r.Index(context.Background())
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -544,7 +547,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				// given: a deleted TM file
 				_ = os.Remove(filepath.Join(r.root, "omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20240409155220-e414b33a9edf.tm.json"))
 				// when: updating index for the TM
-				err := r.Index(context.Background())
+				_, _, _, err := r.Index(context.Background())
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -564,7 +567,7 @@ func TestFileRepo_UpdateIndex_RemoveId(t *testing.T) {
 				id := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json"
 				assert.NoError(t, os.Remove(filepath.Join(r.root, id)))
 				// when: updating index for the id
-				err = r.Index(context.Background())
+				_, _, _, err = r.Index(context.Background())
 				assert.NoError(t, err)
 				index, err := r.readIndex()
 				assert.NoError(t, err)
@@ -626,7 +629,7 @@ func TestFileRepo_Index_Parallel(t *testing.T) {
 			date := firstDate.Add(time.Duration(v) * 1 * time.Second).Format(model.PseudoVersionTimestampFormat)
 			b := make([]byte, 6)
 			_, _ = rand.Read(b)
-			err := r.Index(context.Background(), fmt.Sprintf("author/manuf/mpn/v1.0.%d-%s-%x.tm.json", v, date, b))
+			_, _, _, err := r.Index(context.Background(), fmt.Sprintf("author/manuf/mpn/v1.0.%d-%s-%x.tm.json", v, date, b))
 			assert.NoError(t, err)
 			wg.Done()
 		}(i)
@@ -635,8 +638,8 @@ func TestFileRepo_Index_Parallel(t *testing.T) {
 	idx, err := r.readIndex()
 	assert.NoError(t, err)
 
-	assert.Equal(t, 1, len(idx.Data))
-	assert.Equal(t, N, len(idx.Data[0].Versions))
+	assert.Equal(t, 3, len(idx.Data))
+	assert.Equal(t, N, len(idx.Data[2].Versions))
 	names := r.readNamesFile()
 	assert.Equal(t, 1, len(names))
 }
@@ -740,7 +743,7 @@ func TestFileRepo_CheckIntegrity(t *testing.T) {
 			root: temp,
 			spec: spec,
 		}
-		_ = r.Index(context.Background())
+		_, _, _, _ = r.Index(context.Background())
 		// when checking the integrity
 		res, err := r.CheckIntegrity(context.Background(), nil)
 

@@ -100,7 +100,7 @@ func TestTmcRepo_UpdateIndex(t *testing.T) {
 	config, _ := createTmcRepoConfig([]byte(`{"loc":"http://example.com", "type":"tmc"}`))
 	r, err := NewTmcRepo(config, model.NewRepoSpec("nameless"))
 	assert.NoError(t, err)
-	err = r.Index(context.Background())
+	_, _, _, err = r.Index(context.Background())
 	assert.NoError(t, err)
 }
 

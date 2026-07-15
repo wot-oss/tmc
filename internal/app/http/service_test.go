@@ -600,7 +600,7 @@ func TestService_ImportThingModel(t *testing.T) {
 		}
 
 		r.On("Import", mock.Anything, mock.Anything, mock.Anything, repos.ImportOptions{}).Return(expRes, nil).Once()
-		r.On("Index", mock.Anything, "new-id").Return(nil)
+		r.On("Index", mock.Anything, "new-id").Return([]string{}, []string{}, []string{}, nil)
 		// when: importing ThingModel
 		res, err := underTest.ImportThingModel(context.Background(), "", tmContent, repos.ImportOptions{})
 		// then: it returns expected warning result

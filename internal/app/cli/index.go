@@ -14,7 +14,7 @@ func Index(ctx context.Context, spec model.RepoSpec) error {
 		return err
 	}
 
-	err = repo.Index(ctx)
+	_, _, _, err = repo.Index(ctx)
 
 	if err != nil {
 		Stderrf("could not create Index: %v", err)

@@ -439,6 +439,36 @@ func (_m *HandlerService) ListAuthors(ctx context.Context, filters *model.Filter
 	return r0, r1
 }
 
+// ListAuthorsAttachments provides a mock function with given fields: ctx, repo, authorName
+func (_m *HandlerService) ListAuthorsAttachments(ctx context.Context, repo string, authorName string) ([]model.FoundAttachment, error) {
+	ret := _m.Called(ctx, repo, authorName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAuthorsAttachments")
+	}
+
+	var r0 []model.FoundAttachment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]model.FoundAttachment, error)); ok {
+		return rf(ctx, repo, authorName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.FoundAttachment); ok {
+		r0 = rf(ctx, repo, authorName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.FoundAttachment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, repo, authorName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListInventory provides a mock function with given fields: ctx, repo, filters, offset, limit
 func (_m *HandlerService) ListInventory(ctx context.Context, repo string, filters *model.Filters, offset int, limit int) (*model.SearchResult, error) {
 	ret := _m.Called(ctx, repo, filters, offset, limit)
@@ -499,6 +529,36 @@ func (_m *HandlerService) ListManufacturers(ctx context.Context, filters *model.
 	return r0, r1
 }
 
+// ListManufacturersAttachments provides a mock function with given fields: ctx, repo, authorName, manufacturerName
+func (_m *HandlerService) ListManufacturersAttachments(ctx context.Context, repo string, authorName string, manufacturerName string) ([]model.FoundAttachment, error) {
+	ret := _m.Called(ctx, repo, authorName, manufacturerName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListManufacturersAttachments")
+	}
+
+	var r0 []model.FoundAttachment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) ([]model.FoundAttachment, error)); ok {
+		return rf(ctx, repo, authorName, manufacturerName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) []model.FoundAttachment); ok {
+		r0 = rf(ctx, repo, authorName, manufacturerName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.FoundAttachment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = rf(ctx, repo, authorName, manufacturerName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListMpns provides a mock function with given fields: ctx, filters
 func (_m *HandlerService) ListMpns(ctx context.Context, filters *model.Filters) ([]string, error) {
 	ret := _m.Called(ctx, filters)
@@ -552,6 +612,66 @@ func (_m *HandlerService) ListRepos(ctx context.Context) ([]model.RepoDescriptio
 
 	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
 		r1 = rf(ctx)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ListTMIDAttachmentsByID provides a mock function with given fields: ctx, repo, tmID
+func (_m *HandlerService) ListTMIDAttachmentsByID(ctx context.Context, repo string, tmID string) ([]model.FoundAttachment, error) {
+	ret := _m.Called(ctx, repo, tmID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListTMIDAttachmentsByID")
+	}
+
+	var r0 []model.FoundAttachment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]model.FoundAttachment, error)); ok {
+		return rf(ctx, repo, tmID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.FoundAttachment); ok {
+		r0 = rf(ctx, repo, tmID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.FoundAttachment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, repo, tmID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ListTMNameAttachmentsByName provides a mock function with given fields: ctx, repo, tmName
+func (_m *HandlerService) ListTMNameAttachmentsByName(ctx context.Context, repo string, tmName string) ([]model.FoundAttachment, error) {
+	ret := _m.Called(ctx, repo, tmName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListTMNameAttachmentsByName")
+	}
+
+	var r0 []model.FoundAttachment
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]model.FoundAttachment, error)); ok {
+		return rf(ctx, repo, tmName)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []model.FoundAttachment); ok {
+		r0 = rf(ctx, repo, tmName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]model.FoundAttachment)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, repo, tmName)
 	} else {
 		r1 = ret.Error(1)
 	}

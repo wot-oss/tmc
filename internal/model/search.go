@@ -39,6 +39,17 @@ type FoundEntry struct {
 	AttachmentContainer
 }
 
+func (e FoundEntry) IsAuthorOrManufacturerIndexEntry() bool {
+	parts := strings.Split(e.Name, "/")
+	if len(parts) == 1 {
+		return e.Author.Name == parts[0] && e.Manufacturer.Name == "" && e.Mpn == ""
+	}
+	if len(parts) == 2 {
+		return e.Author.Name == parts[0] && e.Manufacturer.Name == parts[1] && e.Mpn == ""
+	}
+	return false
+}
+
 type FoundVersion struct {
 	*IndexVersion
 	FoundIn FoundSource
@@ -154,7 +165,6 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 		if !matchesProtocolFilter(filters.Protocol, entry) {
 			return true
 		}
-
 		return false
 	}
 	sr.Entries = slices.DeleteFunc(sr.Entries, func(entry FoundEntry) bool {

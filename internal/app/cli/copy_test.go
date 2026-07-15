@@ -139,10 +139,10 @@ func TestCopy(t *testing.T) {
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmID_3, Message: "", Err: nil}, nil).Once()
 		target.On("ImportAttachment", mock.Anything, model.NewTMNameAttachmentContainerRef(copyListRes.Entries[0].Name), model.Attachment{Name: "README.md"}, readmeContent, true).Return(nil).Once()
 		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmID_3), model.Attachment{Name: "CHANGELOG.md"}, changelogContent, true).Return(nil).Once()
-		target.On("Index", mock.Anything, tmID_1, tmID_2, tmID_3).Return(nil)
-		target.On("Index", mock.Anything, tmID_1).Return(nil)
-		target.On("Index", mock.Anything, tmID_2).Return(nil)
-		target.On("Index", mock.Anything, tmID_3).Return(nil)
+		target.On("Index", mock.Anything, tmID_1, tmID_2, tmID_3).Return([]string{}, []string{}, []string{}, nil)
+		target.On("Index", mock.Anything, tmID_1).Return([]string{}, []string{}, []string{}, nil)
+		target.On("Index", mock.Anything, tmID_2).Return([]string{}, []string{}, []string{}, nil)
+		target.On("Index", mock.Anything, tmID_3).Return([]string{}, []string{}, []string{}, nil)
 
 		// when: copying from repo
 		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{Force: true}, OutputFormatPlain)
@@ -316,7 +316,7 @@ func TestCopy(t *testing.T) {
 		source.On("FetchAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), "README.md").Return(nil, model.ErrAttachmentNotFound).Once()
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid, Message: "", Err: nil}, nil).Once()
-		target.On("Index", mock.Anything, tmid).Return(nil).Twice()
+		target.On("Index", mock.Anything, tmid).Return([]string{}, []string{}, []string{}, nil).Twice()
 
 		// when: copying from repo
 		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{}, OutputFormatPlain)
@@ -369,7 +369,7 @@ func TestCopy(t *testing.T) {
 		target.On("Import", mock.Anything, model.MustParseTMID(tmid), utils.NormalizeLineEndings(tmContent1), repos.ImportOptions{}).
 			Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid, Message: "", Err: nil}, nil).Once()
 		target.On("ImportAttachment", mock.Anything, model.NewTMIDAttachmentContainerRef(tmid), model.Attachment{Name: "README.md", MediaType: "text/markdown"}, readmeContent, false).Return(os.ErrPermission).Once()
-		target.On("Index", mock.Anything, tmid).Return(nil).Twice()
+		target.On("Index", mock.Anything, tmid).Return([]string{}, []string{}, []string{}, nil).Twice()
 
 		// when: copying from repo
 		err := Copy(context.Background(), sourceSpec, targetSpec, nil, repos.ImportOptions{}, OutputFormatPlain)

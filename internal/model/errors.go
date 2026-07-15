@@ -6,9 +6,11 @@ import (
 )
 
 var (
-	ErrTMNotFound         *ErrNotFound
-	ErrTMNameNotFound     *ErrNotFound
-	ErrAttachmentNotFound *ErrNotFound
+	ErrAuthorNotFound       *ErrNotFound
+	ErrManufacturerNotFound *ErrNotFound
+	ErrTMNotFound           *ErrNotFound
+	ErrTMNameNotFound       *ErrNotFound
+	ErrAttachmentNotFound   *ErrNotFound
 )
 
 type ErrNotFound struct {
@@ -28,6 +30,8 @@ func NewErrNotFound(subject string) *ErrNotFound {
 }
 
 func init() {
+	ErrAuthorNotFound = NewErrNotFound("author")
+	ErrManufacturerNotFound = NewErrNotFound("manufacturer")
 	ErrTMNotFound = NewErrNotFound("TM")
 	ErrTMNameNotFound = NewErrNotFound("TM name")
 	ErrAttachmentNotFound = NewErrNotFound("attachment")

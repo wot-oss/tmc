@@ -12,6 +12,12 @@ import (
 
 func ImportAttachment(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, att model.Attachment, content []byte, force bool) error {
 	repo, err := repos.Get(spec)
+
+	if err != nil {
+		return err
+	}
+
+	err = CheckAttachmentRefByType(ctx, repo, ref)
 	if err != nil {
 		return err
 	}
@@ -24,6 +30,12 @@ func ImportAttachment(ctx context.Context, spec model.RepoSpec, ref model.Attach
 
 func DeleteAttachment(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string) error {
 	repo, err := repos.Get(spec)
+
+	err = CheckAttachmentRefByType(ctx, repo, ref)
+	if err != nil {
+		return err
+	}
+
 	if err != nil {
 		return err
 	}
@@ -33,6 +45,11 @@ func DeleteAttachment(ctx context.Context, spec model.RepoSpec, ref model.Attach
 }
 func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.AttachmentContainerRef, attachmentName string, concat bool) ([]byte, error) {
 	repo, err := repos.Get(spec)
+	if err != nil {
+		return nil, err
+	}
+
+	err = CheckAttachmentRefByType(ctx, repo, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -74,4 +91,26 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 		return nil, model.ErrAttachmentNotFound
 	}
 	return att, nil
+}
+
+func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef) error {
+	switch ref.Kind() {
+	case model.AttachmentContainerKindAuthor:
+		_, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}})
+		if err != nil {
+			return err
+		}
+	case model.AttachmentContainerKindManufacturer:
+		_, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}, Manufacturer: []string{ref.Manufacturer}})
+		if err != nil {
+			return err
+		}
+	case model.AttachmentContainerKindTMName:
+		// no need
+	case model.AttachmentContainerKindTMID:
+		// no need to check existence of TM ID as it will be checked when trying to import the attachment
+	default:
+		return errors.New("invalid attachment container type")
+	}
+	return nil
 }

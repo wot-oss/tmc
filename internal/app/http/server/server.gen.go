@@ -20,6 +20,18 @@ type ServerInterface interface {
 	// Get the contained authors of the inventory
 	// (GET /authors)
 	GetAuthors(w http.ResponseWriter, r *http.Request, params GetAuthorsParams)
+	// Get the list of attachments to authors
+	// (GET /authors/{authorName}/.attachments)
+	ListAuthorsAttachments(w http.ResponseWriter, r *http.Request, authorName string, params ListAuthorsAttachmentsParams)
+	// Delete an attachment to an author
+	// (DELETE /authors/{authorName}/.attachments/{attachmentFileName})
+	DeleteAuthorAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, attachmentFileName string, params DeleteAuthorAttachmentByNameParams)
+	// Get the actual content of an attachment to an author
+	// (GET /authors/{authorName}/.attachments/{attachmentFileName})
+	GetAuthorAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, attachmentFileName string, params GetAuthorAttachmentByNameParams)
+	// Upload an attachment to an author
+	// (PUT /authors/{authorName}/.attachments/{attachmentFileName})
+	PutAuthorAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, attachmentFileName string, params PutAuthorAttachmentByNameParams)
 	// Get the overall health of the service
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -53,6 +65,18 @@ type ServerInterface interface {
 	// Get the contained manufacturers of the inventory
 	// (GET /manufacturers)
 	GetManufacturers(w http.ResponseWriter, r *http.Request, params GetManufacturersParams)
+	// Get the list of attachments to manufacturers
+	// (GET /manufacturers/{authorName}/{manufacturerName}/.attachments)
+	ListManufacturersAttachments(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, params ListManufacturersAttachmentsParams)
+	// Delete an attachment to a manufacturer
+	// (DELETE /manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName})
+	DeleteManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, attachmentFileName string, params DeleteManufacturerAttachmentByNameParams)
+	// Get the actual content of an attachment to a manufacturer
+	// (GET /manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName})
+	GetManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, attachmentFileName string, params GetManufacturerAttachmentByNameParams)
+	// Upload an attachment to a manufacturer
+	// (PUT /manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName})
+	PutManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, manufacturerName string, attachmentFileName string, params PutManufacturerAttachmentByNameParams)
 	// Get the contained mpns (manufacturer part numbers) of the inventory
 	// (GET /mpns)
 	GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams)
@@ -71,6 +95,9 @@ type ServerInterface interface {
 	// Get the content of a Thing Model by fetch name
 	// (GET /thing-models/.latest/{fetchName})
 	GetThingModelByFetchName(w http.ResponseWriter, r *http.Request, fetchName FetchName, params GetThingModelByFetchNameParams)
+	// Get the list of attachments to a TM name
+	// (GET /thing-models/.tmName/{tmName}/.attachments)
+	ListTMNameAttachmentsByName(w http.ResponseWriter, r *http.Request, tmName string, params ListTMNameAttachmentsByNameParams)
 	// Delete an attachment to a TM name
 	// (DELETE /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName})
 	DeleteTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName TMName, attachmentFileName AttachmentFileName, params DeleteTMNameAttachmentParams)
@@ -86,6 +113,9 @@ type ServerInterface interface {
 	// Get the content of a Thing Model by its ID
 	// (GET /thing-models/{tmID})
 	GetThingModelById(w http.ResponseWriter, r *http.Request, tmID TMID, params GetThingModelByIdParams)
+	// Get the list of attachments to a Thing Model
+	// (GET /thing-models/{tmID}/.attachments)
+	ListThingModelAttachmentsById(w http.ResponseWriter, r *http.Request, tmID TMID, params ListThingModelAttachmentsByIdParams)
 	// Delete an attachment to a Thing Model
 	// (DELETE /thing-models/{tmID}/.attachments/{attachmentFileName})
 	DeleteThingModelAttachmentByName(w http.ResponseWriter, r *http.Request, tmID TMID, attachmentFileName AttachmentFileName, params DeleteThingModelAttachmentByNameParams)
@@ -189,6 +219,197 @@ func (siw *ServerInterfaceWrapper) GetAuthors(w http.ResponseWriter, r *http.Req
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetAuthors(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ListAuthorsAttachments operation middleware
+func (siw *ServerInterfaceWrapper) ListAuthorsAttachments(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListAuthorsAttachmentsParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListAuthorsAttachments(w, r, authorName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteAuthorAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) DeleteAuthorAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteAuthorAttachmentByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteAuthorAttachmentByName(w, r, authorName, attachmentFileName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetAuthorAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) GetAuthorAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetAuthorAttachmentByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetAuthorAttachmentByName(w, r, authorName, attachmentFileName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PutAuthorAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) PutAuthorAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PutAuthorAttachmentByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "force" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "force", r.URL.Query(), &params.Force)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutAuthorAttachmentByName(w, r, authorName, attachmentFileName, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -586,6 +807,233 @@ func (siw *ServerInterfaceWrapper) GetManufacturers(w http.ResponseWriter, r *ht
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// ListManufacturersAttachments operation middleware
+func (siw *ServerInterfaceWrapper) ListManufacturersAttachments(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "manufacturerName" -------------
+	var manufacturerName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "manufacturerName", mux.Vars(r)["manufacturerName"], &manufacturerName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "manufacturerName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListManufacturersAttachmentsParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListManufacturersAttachments(w, r, authorName, manufacturerName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// DeleteManufacturerAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) DeleteManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "manufacturerName" -------------
+	var manufacturerName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "manufacturerName", mux.Vars(r)["manufacturerName"], &manufacturerName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "manufacturerName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params DeleteManufacturerAttachmentByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteManufacturerAttachmentByName(w, r, authorName, manufacturerName, attachmentFileName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetManufacturerAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) GetManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "manufacturerName" -------------
+	var manufacturerName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "manufacturerName", mux.Vars(r)["manufacturerName"], &manufacturerName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "manufacturerName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetManufacturerAttachmentByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetManufacturerAttachmentByName(w, r, authorName, manufacturerName, attachmentFileName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// PutManufacturerAttachmentByName operation middleware
+func (siw *ServerInterfaceWrapper) PutManufacturerAttachmentByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "authorName" -------------
+	var authorName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "authorName", mux.Vars(r)["authorName"], &authorName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "authorName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "manufacturerName" -------------
+	var manufacturerName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "manufacturerName", mux.Vars(r)["manufacturerName"], &manufacturerName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "manufacturerName", Err: err})
+		return
+	}
+
+	// ------------- Path parameter "attachmentFileName" -------------
+	var attachmentFileName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "attachmentFileName", mux.Vars(r)["attachmentFileName"], &attachmentFileName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "attachmentFileName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params PutManufacturerAttachmentByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "force" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "force", r.URL.Query(), &params.Force)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.PutManufacturerAttachmentByName(w, r, authorName, manufacturerName, attachmentFileName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetMpns operation middleware
 func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -780,6 +1228,45 @@ func (siw *ServerInterfaceWrapper) GetThingModelByFetchName(w http.ResponseWrite
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetThingModelByFetchName(w, r, fetchName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ListTMNameAttachmentsByName operation middleware
+func (siw *ServerInterfaceWrapper) ListTMNameAttachmentsByName(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmName" -------------
+	var tmName string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmName", mux.Vars(r)["tmName"], &tmName, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmName", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListTMNameAttachmentsByNameParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListTMNameAttachmentsByName(w, r, tmName, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1041,6 +1528,45 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetThingModelById(w, r, tmID, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// ListThingModelAttachmentsById operation middleware
+func (siw *ServerInterfaceWrapper) ListThingModelAttachmentsById(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmID" -------------
+	var tmID TMID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmID", mux.Vars(r)["tmID"], &tmID, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmID", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListThingModelAttachmentsByIdParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListThingModelAttachmentsById(w, r, tmID, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1321,17 +1847,37 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models/.tmName/{tmName:.+}/.attachments/{attachmentFileName:.+}", wrapper.DeleteTMNameAttachment).Methods("DELETE")
 
+	r.HandleFunc(options.BaseURL+"/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName:.+}", wrapper.PutManufacturerAttachmentByName).Methods("PUT")
+
+	r.HandleFunc(options.BaseURL+"/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName:.+}", wrapper.GetManufacturerAttachmentByName).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName:.+}", wrapper.DeleteManufacturerAttachmentByName).Methods("DELETE")
+
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}/.attachments/{attachmentFileName:.+}", wrapper.PutTMIDAttachment).Methods("PUT")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}/.attachments/{attachmentFileName:.+}", wrapper.GetThingModelAttachmentByName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}/.attachments/{attachmentFileName:.+}", wrapper.DeleteThingModelAttachmentByName).Methods("DELETE")
 
+	r.HandleFunc(options.BaseURL+"/thing-models/.tmName/{tmName:.+}/.attachments", wrapper.ListTMNameAttachmentsByName).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/manufacturers/{authorName}/{manufacturerName}/.attachments", wrapper.ListManufacturersAttachments).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/authors/{authorName}/.attachments/{attachmentFileName:.+}", wrapper.PutAuthorAttachmentByName).Methods("PUT")
+
+	r.HandleFunc(options.BaseURL+"/authors/{authorName}/.attachments/{attachmentFileName:.+}", wrapper.GetAuthorAttachmentByName).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/authors/{authorName}/.attachments/{attachmentFileName:.+}", wrapper.DeleteAuthorAttachmentByName).Methods("DELETE")
+
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}/.attachments", wrapper.ListThingModelAttachmentsById).Methods("GET")
+
 	r.HandleFunc(options.BaseURL+"/thing-models/.latest/{fetchName:.+}", wrapper.GetThingModelByFetchName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/inventory/.tmName/{tmName:.+}", wrapper.GetInventoryByName).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/inventory/.latest/{fetchName:.+}", wrapper.GetInventoryByFetchName).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/authors/{authorName}/.attachments", wrapper.ListAuthorsAttachments).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.GetThingModelById).Methods("GET")
 

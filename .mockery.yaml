@@ -1,0 +1,32 @@
+# Enable the issue-845 fix
+issue-845-fix: True
+
+# Global mockery settings
+with-expecter: true
+
+# Packages configuration
+packages:
+  github.com/wot-oss/tmc/internal/app/http:
+    interfaces:
+      HandlerService:
+        config:
+          dir: "mocks"
+          mockname: "MockHandlerService"
+          filename: "mock_HandlerService.go"
+          outpkg: mocks
+  
+  github.com/wot-oss/tmc/internal/repos:
+    interfaces:
+      Repo:
+        config:
+          dir: "mocks"
+          mockname: "MockRepo"
+          filename: "mock_Repo.go"
+          outpkg: mocks
+      
+      S3Client:
+        config:
+          dir: "../testutils/s3mocks"
+          mockname: "MockS3Client"
+          filename: "mock_S3Client.go"
+          outpkg: s3mocks

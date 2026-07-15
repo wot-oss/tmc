@@ -124,7 +124,6 @@ func (r ImportResult) IsSuccessful() bool {
 	return r.Type == ImportResultOK || r.Type == ImportResultWarning
 }
 
-//go:generate mockery --name Repo --outpkg mocks --output mocks
 type Repo interface {
 	// Import writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
@@ -135,7 +134,7 @@ type Repo interface {
 	Fetch(ctx context.Context, id string) (string, []byte, error)
 	// Index updates repository's index file with data from given TM files. For ids that refer to non-existing files,
 	// removes those from index. Performs a full update if no updatedIds given
-	Index(ctx context.Context, updatedIds ...string) error
+	Index(ctx context.Context, updatedIds ...string) (authors, manufacturers, mpns []string, err error)
 	// CheckIntegrity checks the internal resources for integrity and consistency
 	CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error)
 	// List searches the catalog for TMs matching search parameters
