@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 )
 
@@ -34,7 +35,7 @@ func TestMapper_GetInventoryEntryIncludesVariants(t *testing.T) {
 	assert.Equal(t, "a-corp/eagle/bt1000/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntry.IsVariantOf)
 }
 
-func TestMapper_GetInventoryDataRemovesVariantChildrenFromParentHasVariant(t *testing.T) {
+func TestMapper_GetInventoryDataKeepsParentHasVariant(t *testing.T) {
 	mapper := NewMapper(context.Background())
 
 	entries := []model.FoundEntry{
@@ -63,17 +64,18 @@ func TestMapper_GetInventoryDataRemovesVariantChildrenFromParentHasVariant(t *te
 
 	if assert.Len(t, inventoryEntries, 2) {
 		assert.Equal(t, "a-corp/eagle/bt2000", inventoryEntries[0].TmName)
-		if assert.Len(t, inventoryEntries[0].HasVariant, 1) {
-			assert.Equal(t, "a-corp/eagle/bt2000-standalone/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntries[0].HasVariant[0].VariantId)
+		if assert.Len(t, inventoryEntries[0].HasVariant, 2) {
+			assert.Equal(t, "a-corp/eagle/bt2000-variant/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntries[0].HasVariant[0].VariantId)
+			assert.Equal(t, "a-corp/eagle/bt2000-standalone/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntries[0].HasVariant[1].VariantId)
 		}
 		assert.Equal(t, "a-corp/eagle/bt2000-variant", inventoryEntries[1].TmName)
 		assert.Equal(t, "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntries[1].IsVariantOf)
 	}
 }
 
-func TestMapper_GetVariantsReturnsNilWhenEmpty(t *testing.T) {
+func TestMapper_GetVariantsReturnsEmptySliceWhenEmpty(t *testing.T) {
 	mapper := NewMapper(context.Background())
 
-	assert.Nil(t, mapper.GetVariants(nil))
-	assert.Nil(t, mapper.GetVariants([]model.Variant{}))
+	assert.Equal(t, []server.Variant{}, mapper.GetVariants(nil))
+	assert.Equal(t, []server.Variant{}, mapper.GetVariants([]model.Variant{}))
 }

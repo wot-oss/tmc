@@ -814,8 +814,8 @@ paths:
         variant from the parent and link it.
 
         This endpoint also supports batch requests by posting a JSON array of
-        `{ tm-id, mpn, description, title }` objects, where only `tm-id`
-        and `mpn` are required.
+        `{ tm-id, variant-id }` objects to link existing variants, or
+        `{ tm-id, mpn, description, title }` objects to create-and-link variants.
       operationId: addThingModelVariant
       parameters:
         - $ref: '#/components/parameters/RepoDisambiguator'
@@ -1923,14 +1923,16 @@ components:
       type: object
       required:
         - tm-id
-        - mpn
       properties:
         tm-id:
           type: string
           description: TMID of the parent Thing Model
+        variant-id:
+          type: string
+          description: TMID of an existing variant Thing Model to link
         mpn:
           type: string
-          description: MPN for the new variant
+          description: MPN for the new variant to be created
         title:
           type: string
           description: Optional title override for the new variant

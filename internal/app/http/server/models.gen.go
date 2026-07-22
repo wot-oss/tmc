@@ -18,14 +18,17 @@ type AddVariantBatchRequest struct {
 	// Description Optional description override for the new variant
 	Description *string `json:"description,omitempty"`
 
-	// Mpn MPN for the new variant
-	Mpn string `json:"mpn"`
+	// Mpn MPN for the new variant to be created
+	Mpn *string `json:"mpn,omitempty"`
 
 	// Title Optional title override for the new variant
 	Title *string `json:"title,omitempty"`
 
 	// TmId TMID of the parent Thing Model
 	TmId string `json:"tm-id"`
+
+	// VariantId TMID of an existing variant Thing Model to link
+	VariantId *string `json:"variant-id,omitempty"`
 }
 
 // AddVariantBatchResult defines model for AddVariantBatchResult.
@@ -550,7 +553,7 @@ type DeleteThingModelByIdParams struct {
 	// Force flag to force the deletion. must be set to "true"
 	Force string `form:"force" json:"force"`
 
-	// WithVariants Whether to also delete variants if the deleted TM has variants (defaults to false)
+	// WithVariants If true, deletes the TM with all its variants
 	WithVariants *bool `form:"with-variants,omitempty" json:"with-variants,omitempty"`
 }
 
