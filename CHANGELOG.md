@@ -19,6 +19,7 @@
 - REST API: POST `/authors/{authorName}/.attachments/{attachmentFileName}` and POST `/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName}` higher-level attachments import
 - REST API: DELETE `/authors/{authorName}/.attachments/{attachmentFileName}` and DELETE `/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName}` higher-level attachments delete
 - Added `filter.changedSince` parameter to REST API `/inventory` listing and to CLI
+- Arazzo for e2e tests
 
 ### Changed
 

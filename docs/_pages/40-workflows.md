@@ -143,6 +143,45 @@ tmc serve
 ```
 An OpenAPI description of the API [is available][3] for ease of integration.
 
+## Test Arazzo Workflows
+
+Arazzo is an OpenAPI initiative for describing and executing multi-step API workflows. See the [Arazzo Specification](https://www.openapis.org/arazzo-specification).
+
+Running these workflows helps to verify end-to-end API behavior, catch integration issues across chained requests, and provide executable examples of common TMC interaction scenarios.
+
+[Tooling](https://github.com/OAI/Arazzo-Specification#tooling) built upon the spec offer validation, visualization, and other capabilities for working with Arazzo specifications.
+
+The repository contains Arazzo workflow definitions under `api/arazzo.yaml`.
+
+Arazzo workflows should be tested against a running TMC instance that serves the [example-catalog](https://github.com/wot-oss/example-catalog) repository.
+
+### Prerequisites
+
+1. Install [Arazzo CLI](https://github.com/strefethen/arazzo-cli) and make it available in your PATH.
+
+2. Configure a local repository named `example-catalog` (adjust the path as needed):
+
+```bash
+tmc repo add --type file example-catalog ../example-catalog
+```
+
+3. Start the TMC server using that repository:
+
+```bash
+tmc serve --repo example-catalog
+```
+
+4. In another terminal, run Arazzo from the `api` folder.
+
+### Run a Single Workflow
+
+```bash
+cd api
+arazzo-cli run arazzo.yaml findingTMsWorkflow --openapi tm-catalog.openapi.yaml --json
+```
+
+You can replace `findingTMsWorkflow` with any workflow ID present in `api/arazzo.yaml`.
+
 Once a catalog is exposed with `tmc serve`, it can be configured as a repository of type `tmc` on other clients. Users
 can push to a hosted catalog using the REST API, without using git workflow and hosting can happen on the edge within a
 product.
