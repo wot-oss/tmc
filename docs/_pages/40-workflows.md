@@ -145,6 +145,12 @@ An OpenAPI description of the API [is available][3] for ease of integration.
 
 ## Test Arazzo Workflows
 
+Arazzo is an OpenAPI initiative for describing and executing multi-step API workflows. See the [Arazzo Specification](https://www.openapis.org/arazzo-specification).
+
+Running these workflows helps to verify end-to-end API behavior, catch integration issues across chained requests, and provide executable examples of common TMC interaction scenarios.
+
+[Tooling](https://github.com/OAI/Arazzo-Specification#tooling) built upon the spec offer validation, visualization, and other capabilities for working with Arazzo specifications.
+
 The repository contains Arazzo workflow definitions under `api/arazzo.yaml`.
 
 Arazzo workflows should be tested against a running TMC instance that serves the [example-catalog](https://github.com/wot-oss/example-catalog) repository.
