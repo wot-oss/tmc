@@ -54,5 +54,5 @@ When a TM is added for a device, TMC creates metadata that contains the followin
 TMC uses the metadata information for providing search, querying and indexing purposes.
 
 [1]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
-[2]: ./30-concepts.md
+[2]: {{site.baseurl}}/concepts
 [3]: https://github.com/wot-oss/tmc/blob/278150599bd0f35db8c6b2d8a70c5525ffbec1a4/internal/commands/validate/tmc-mandatory.schema.json
