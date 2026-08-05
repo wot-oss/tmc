@@ -52,13 +52,13 @@ The fields are:
 
 These fields together build the mandatory part of TM name.
 
-You may also want to set the field `version/model` (https://www.w3.org/TR/wot-thing-description11/#versioninfo) to track 
+You may also want to set the field `version/model` (https://www.w3.org/TR/wot-thing-description11/#versioninfo) to track
 and communicate the extent of changes between versions of TMs with the same TM name.
 
 You can check if a TM can be imported by validating it beforehand:
 
 ```bash
-tmc validate my-tm.json 
+tmc validate my-tm.json
 ```
 
 Import a TM or a folder with multiple TMs into the catalog:
@@ -73,8 +73,8 @@ tmc import ./my-tms
 When importing a folder, the `import` command can be used with the `--with-attachments` flag to import attachments along with the TMs. An attachment is linked to a TM by placing it into a subfolder whose name exactly matches the TM's filename (including its extension).
 For example:
 
--  If your TM file is: `../example-catalog/.tmc/omniuser/omnicorp/senseall/v1.0.0-20241008124326-15af48381cf7.tm.json`
--  Then an attachment (e.g., `readme.md`) for this TM would be placed at: `../example-catalog/.tmc/omniuser/omnicorp/senseall/.attachments/v1.0.0-20241008124326-15af48381cf7.tm.json/readme.md`
+- If your TM file is: `../example-catalog/.tmc/omniuser/omnicorp/senseall/v1.0.0-20241008124326-15af48381cf7.tm.json`
+- Then an attachment (e.g., `readme.md`) for this TM would be placed at: `../example-catalog/.tmc/omniuser/omnicorp/senseall/.attachments/v1.0.0-20241008124326-15af48381cf7.tm.json/readme.md`
 
 ### Input Sanitization
 
@@ -103,6 +103,7 @@ tmc fetch siemens/siemens/poc1000/v1.0.1-20240407094932-5a3840060b05.tm.json
 
 You can fetch a specific version of a TM by fetching by ID as above, or you can fetch the latest TM that matches a given name and, optionally, a part of semantic version.  
 Examples:
+
 ```bash
 tmc fetch siemens/siemens/poc1000
 tmc fetch siemens/siemens/poc1000:v1
@@ -115,6 +116,7 @@ Initialize the directory where your file repository is located as a git reposito
 your git forge, like GitHub or GitLab.
 
 You may want to add the `*.lock` files to your `.gitignore`, but it's not mandatory
+
 ```bash
 echo "*.lock" >> .gitignore
 ```
@@ -138,9 +140,11 @@ curated list of TMs, without relying on a forge.
 ## Expose a Catalog for HTTP Clients
 
 To expose a catalog over HTTP, start a server:
+
 ```bash
 tmc serve
 ```
+
 An OpenAPI description of the API [is available][3] for ease of integration.
 
 ## Test Arazzo Workflows
@@ -199,18 +203,25 @@ docker run --rm --name tm-catalog -p 8080:8080 -v$(pwd):/thingmodels ghcr.io/wot
 In order to quickly getting started with S3, we recommend to use [localstack][6] (requires docker) and [awslocal][7] for local developments. Once installed:
 
 1. start localstack:
+
 ```bash
-localstack start
+lstk start
 ```
+
 2. create a bucket in s3 by running:
+
 ```bash
 awslocal s3api create-bucket --bucket tmc-bucket --region eu-central-1 --create-bucket-configuration LocationConstraint=eu-central-1
 ```
+
 3. copy the tmc into the newly created bucket:
+
 ```bash
 awslocal s3 cp <local_repo_folder> s3://tmc-bucket --recursive --endpoint-url=http://localhost:4566
 ```
+
 4. create the S3 repo configuration in config.json:
+
 ```json
 {
   "s3repo": {
@@ -218,64 +229,73 @@ awslocal s3 cp <local_repo_folder> s3://tmc-bucket --recursive --endpoint-url=ht
     "aws_bucket": "tmc-bucket",
     "aws_region": "eu-central-1",
     "aws_endpoint": "http://localhost:4566",
-    "aws_access_key_id":"some access key",
-    "aws_secret_access_key":"some secret",
+    "aws_access_key_id": "some access key",
+    "aws_secret_access_key": "some secret",
     "type": "s3"
   }
 }
 ```
+
 5. run tmc. the s3 repo should be accessible just as any other repo, you've been using before.
 
 ## JWT Validation for API Requests
 
-The `serve` command can be configured with the `--jwtValidation` flag to enforce security by requiring valid JWTs for incoming API requests. 
+The `serve` command can be configured with the `--jwtValidation` flag to enforce security by requiring valid JWTs for incoming API requests.
 
 ### Configuration
 
-1. **`--jwtValidation`** 
-  - Enables JWT-based access control for the API server.
+1. **`--jwtValidation`**
 
-2. **`--jwksURL=<url>`** 
-  - Specifies the JWKS URL to retrieve public keys for verifying JWT signatures.
-  - Example: `http://127.0.0.1:8100/.well-known/jwks.json`.
+- Enables JWT-based access control for the API server.
 
-3. **`--jwtServiceID=<serviceID>`** 
-  - String that represents the **audience** (`aud` claim) required in valid JWTs.
-  - Example: `"myServiceID"`.
+2. **`--jwksURL=<url>`**
+
+- Specifies the JWKS URL to retrieve public keys for verifying JWT signatures.
+- Example: `http://127.0.0.1:8100/.well-known/jwks.json`.
+
+3. **`--jwtServiceID=<serviceID>`**
+
+- String that represents the **audience** (`aud` claim) required in valid JWTs.
+- Example: `"myServiceID"`.
 
 ### Behavior with JWT Validation
 
 When the `--jwtValidation` flag is provided:
 
-#### 1. Bearer Token Requirement 
-- All incoming requests **must include a valid Bearer token** in the `Authorization` header. 
+#### 1. Bearer Token Requirement
 
-#### 2. JWKS Validation 
-- Incoming tokens are validated against the JSON Web Key Sets (JWKS) at the URL specified in `--jwksURL`. 
+- All incoming requests **must include a valid Bearer token** in the `Authorization` header.
+
+#### 2. JWKS Validation
+
+- Incoming tokens are validated against the JSON Web Key Sets (JWKS) at the URL specified in `--jwksURL`.
 - The server checks the following:
 - JWT signature is valid and matches the public key(s) defined in the JWKS.
 - JWT is issued by the **issuer URL** corresponding to `--jwksURL`.
 - JWT audience (`aud` claim) matches the value specified in `--jwtServiceID`.
 
-#### 3. Scope-Based Access Control 
-- The JWT must include a `scope` claim, which is an array of strings defining user permissions. 
-- Each scope string determines the user's access rights to specific endpoints, as defined in the **Scope Table** (explained below). 
+#### 3. Scope-Based Access Control
+
+- The JWT must include a `scope` claim, which is an array of strings defining user permissions.
+- Each scope string determines the user's access rights to specific endpoints, as defined in the **Scope Table** (explained below).
 - Example Scope Claim:
+
 ```json
 "scope":["tmc.ns.myNamespace.read","tmc.ns.myNamespace.write"]
 ```
+
 - Default Scopes Configuration: a set of default scopes can be defined in a separate JSON file, specified with the `--defaultScopesPath` flag. These scopes are automatically added to any user request, effectively extending the user's token scopes. This allows for defining baseline access that applies to all requests, regardless of the scopes present in the user's individual JWT.
 
 For example, a `default_scopes.json` file might look like this:
+
 ```json
 {
-  "scopes": [
-    "tmc.ns.*.read",
-    "tmc.ns.omnicorp.write"
-  ]
+  "scopes": ["tmc.ns.*.read", "tmc.ns.omnicorp.write"]
 }
 ```
+
 With this configuration, all users would implicitly gain `tmc.ns.*.read` (read access across all namespaces) and `tmc.ns.omnicorp.write` permissions, in addition to any scopes explicitly granted in their JWT. With a default configuration file, the catalog when run with `--jwtValidation` flag still requires a token, but the scopes array may be empty. In this case, the user's access will be limited solely to the endpoints defined in that default configuration file.
+
 - Additionally, the scope prefix can be configured by setting `--jwtScopesPrefix` flag. E.g., when set to `--jwtScopesPrefix "myScopePrefix"`, all scopes are expected to be `myScopePrefix.tmc.*`
 
 #### 4. Token Validation Details
@@ -293,6 +313,7 @@ The scope claim contains sufficient permissions for the requested endpoint.
 Requests without a valid Bearer token will result in an HTTP 401 Unauthorized error.
 
 #### 6. Scope Table
+
 <div style="overflow-x: auto; width: 100%;">
 <table style="border-collapse: collapse; width: 100%;">
   <thead>
@@ -469,7 +490,7 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 
 ### Overview
 
-`/resources/vegeta-load-tests.sh` script automates API load testing using [Vegeta](https://github.com/tsenart/vegeta). It fires configurable requests against one or more endpoints of a target TMC service, collects raw binary results, and generates a human-readable performance report. 
+`/resources/vegeta-load-tests.sh` script automates API load testing using [Vegeta](https://github.com/tsenart/vegeta). It fires configurable requests against one or more endpoints of a target TMC service, collects raw binary results, and generates a human-readable performance report.
 
 ---
 
@@ -481,41 +502,46 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 
 ### Options
 
-| Flag | Long Form | Description | Default |
-|------|-----------|-------------|---------|
-| `-r` | `--rate` | Request rate per second | `50` |
-| `-d` | `--duration` | Attack duration in seconds | `10` |
-| `-u` | `--url` | Base URL of the target service | `http://localhost:8080` |
-| `-w` | `--workers` | Number of concurrent Vegeta workers | `30` |
-| `-e` | `--endpoints` | Comma-separated list of endpoints to test | `inventory,repos,authors,manufacturers,mpns,healthz` |
-| `-t` | `--token` | Bearer token for authentication (optional) | *(none)* |
-| `-h` | `--help` | Display help message and exit | — |
+| Flag | Long Form     | Description                                | Default                                              |
+| ---- | ------------- | ------------------------------------------ | ---------------------------------------------------- |
+| `-r` | `--rate`      | Request rate per second                    | `50`                                                 |
+| `-d` | `--duration`  | Attack duration in seconds                 | `10`                                                 |
+| `-u` | `--url`       | Base URL of the target service             | `http://localhost:8080`                              |
+| `-w` | `--workers`   | Number of concurrent Vegeta workers        | `30`                                                 |
+| `-e` | `--endpoints` | Comma-separated list of endpoints to test  | `inventory,repos,authors,manufacturers,mpns,healthz` |
+| `-t` | `--token`     | Bearer token for authentication (optional) | _(none)_                                             |
+| `-h` | `--help`      | Display help message and exit              | —                                                    |
 
 ---
 
 ### Examples
 
 **Basic run with defaults:**
+
 ```bash
 ./vegeta-load-tests.sh
 ```
 
 **Custom rate, duration, and target URL:**
+
 ```bash
 ./vegeta-load-tests.sh -r 100 -d 20 -u http://my-tmc-service:8080
 ```
 
 **Test specific endpoints only:**
+
 ```bash
 ./vegeta-load-tests.sh -e repos,authors -r 75 -d 30
 ```
 
 **With Bearer token authentication:**
+
 ```bash
 ./vegeta-load-tests.sh -r 100 -d 20 -u http://my-tmc-service:8080 -t YOUR_BEARER_TOKEN
 ```
 
 **Full example with all options:**
+
 ```bash
 ./vegeta-load-tests.sh \
   -r 100 \
@@ -532,10 +558,10 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 
 After execution, all results are saved under the `tests/` directory:
 
-| File | Description |
-|------|-------------|
-| `tests/report_rate_<RATE>_workers_<WORKERS>.txt` | Human-readable summary report for all endpoints |
-| `tests/results_rate_<RATE>_workers_<WORKERS>_<endpoint>.bin` | Raw Vegeta binary results per endpoint |
+| File                                                         | Description                                     |
+| ------------------------------------------------------------ | ----------------------------------------------- |
+| `tests/report_rate_<RATE>_workers_<WORKERS>.txt`             | Human-readable summary report for all endpoints |
+| `tests/results_rate_<RATE>_workers_<WORKERS>_<endpoint>.bin` | Raw Vegeta binary results per endpoint          |
 
 > **Note:** Ensure that [Vegeta](https://github.com/tsenart/vegeta) is installed and available in your `$PATH` before running the script
 
