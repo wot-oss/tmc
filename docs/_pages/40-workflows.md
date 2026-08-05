@@ -200,7 +200,7 @@ docker run --rm --name tm-catalog -p 8080:8080 -v$(pwd):/thingmodels ghcr.io/wot
 
 ### Catalog as S3 bucket
 
-In order to quickly getting started with S3, we recommend to use [localstack][6] (requires docker) and [awslocal][7] for local developments. Once installed:
+In order to quickly get started with S3, we recommend to use [localstack][6] (requires docker) and [awslocal][7] for local developments. Once installed:
 
 1. start localstack:
 

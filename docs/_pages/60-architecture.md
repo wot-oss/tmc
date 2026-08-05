@@ -23,7 +23,7 @@ In productive deployments, you may want to apply authorization based on the name
 
 ## Devices and Thing Models
 
-Each author has a publishes TMs for their devices, where a device has TMs with different versions.
+Each author publishes TMs for their devices, where a device has TMs with different versions.
 Across one model part number (referred to as tmName), the TM versions get incremented as needed.
 For example, a typo fix can be a version increment or a new firmware can result in a different TM.
 TMC does not mandate a specific versioning scheme regarding how the content of the TM changes.
@@ -54,5 +54,5 @@ When a TM is added for a device, TMC creates metadata that contains the followin
 TMC uses the metadata information for providing search, querying and indexing purposes.
 
 [1]: https://github.com/wot-oss/tmc/blob/main/api/tm-catalog.openapi.yaml
-[2]: ./30-concepts.md
+[2]: {{site.baseurl}}/concepts
 [3]: https://github.com/wot-oss/tmc/blob/278150599bd0f35db8c6b2d8a70c5525ffbec1a4/internal/commands/validate/tmc-mandatory.schema.json
