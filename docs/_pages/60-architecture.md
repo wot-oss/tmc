@@ -23,7 +23,7 @@ In productive deployments, you may want to apply authorization based on the name
 
 ## Devices and Thing Models
 
-Each author has a publishes TMs for their devices, where a device has TMs with different versions.
+Each author publishes TMs for their devices, where a device has TMs with different versions.
 Across one model part number (referred to as tmName), the TM versions get incremented as needed.
 For example, a typo fix can be a version increment or a new firmware can result in a different TM.
 TMC does not mandate a specific versioning scheme regarding how the content of the TM changes.
