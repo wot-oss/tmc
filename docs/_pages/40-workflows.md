@@ -155,7 +155,7 @@ Running these workflows helps to verify end-to-end API behavior, catch integrati
 
 [Tooling](https://github.com/OAI/Arazzo-Specification#tooling) built upon the spec offer validation, visualization, and other capabilities for working with Arazzo specifications.
 
-The repository contains Arazzo workflow definitions under `api/arazzo.yaml`.
+The TMC repository contains Arazzo workflow definitions under [api/arazzo.yaml](https://github.com/wot-oss/tmc/blob/main/api/arazzo.yaml).
 
 Arazzo workflows should be tested against a running TMC instance that serves the [example-catalog](https://github.com/wot-oss/example-catalog) repository.
 
