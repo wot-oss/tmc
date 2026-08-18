@@ -4,7 +4,7 @@ permalink: /workflows
 title: Workflows
 ---
 
-Below you can find some typical workflows for using the TMC and example command lines. Refer to the detailed documentation of each
+Below you can find some typical workflows for using the TMC and example commands. Refer to the detailed documentation of each
 command for a complete list of available flags and arguments.
 
 ```bash
@@ -34,7 +34,7 @@ To view and modify the list of repositories in the config file, use command `rep
 ```bash
 tmc repo list
 tmc repo show my-catalog
-tmc repo toggle-enaled my-catalog
+tmc repo toggle-enabled my-catalog
 tmc repo remove my-catalog
 ```
 
@@ -153,7 +153,7 @@ Arazzo is an OpenAPI initiative for describing and executing multi-step API work
 
 Running these workflows helps to verify end-to-end API behavior, catch integration issues across chained requests, and provide executable examples of common TMC interaction scenarios.
 
-[Tooling](https://github.com/OAI/Arazzo-Specification#tooling) built upon the spec offer validation, visualization, and other capabilities for working with Arazzo specifications.
+[Tooling](https://github.com/OAI/Arazzo-Specification#tooling) built upon the spec offers validation, visualization, and other capabilities for working with Arazzo specifications.
 
 The repository contains Arazzo workflow definitions under `api/arazzo.yaml`.
 
@@ -187,7 +187,7 @@ arazzo-cli run arazzo.yaml findingTMsWorkflow --openapi tm-catalog.openapi.yaml 
 You can replace `findingTMsWorkflow` with any workflow ID present in `api/arazzo.yaml`.
 
 Once a catalog is exposed with `tmc serve`, it can be configured as a repository of type `tmc` on other clients. Users
-can push to a hosted catalog using the REST API, without using git workflow and hosting can happen on the edge within a
+can push to a hosted catalog using the REST API, without using a git workflow and hosting can happen on the edge within a
 product.
 
 To make things easier, we build a `tmc` [container image][4] which runs the cli as a server. That image doesn't
@@ -214,7 +214,7 @@ lstk start
 awslocal s3api create-bucket --bucket tmc-bucket --region eu-central-1 --create-bucket-configuration LocationConstraint=eu-central-1
 ```
 
-3. copy the tmc into the newly created bucket:
+3. copy the repository contents into the newly created bucket:
 
 ```bash
 awslocal s3 cp <local_repo_folder> s3://tmc-bucket --recursive --endpoint-url=http://localhost:4566
@@ -236,7 +236,7 @@ awslocal s3 cp <local_repo_folder> s3://tmc-bucket --recursive --endpoint-url=ht
 }
 ```
 
-5. run tmc. the s3 repo should be accessible just as any other repo, you've been using before.
+5. run `tmc`. The S3 repo should be accessible just as any other repo you've been using before.
 
 ## JWT Validation for API Requests
 
@@ -484,7 +484,7 @@ Requests without a valid Bearer token will result in an HTTP 401 Unauthorized er
 </table>
 </div>
 
-`*` can be used as a wildcard at the place of {namespace} in scopes to access all namespaces in tmc. (e.g., `tm.ns.*.read`)
+`*` can be used as a wildcard in place of {namespace} in scopes to access all namespaces in TMC. (e.g., `tmc.ns.*.read`)
 
 ## Load Test Script
 

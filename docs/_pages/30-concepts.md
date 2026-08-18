@@ -6,7 +6,7 @@ title: Concepts
 
 ## Glossary
 
-A short glossary of concepts and abbreviations used throughout Thing Model Catalog documentation and code
+A short glossary of concepts and abbreviations used throughout the Thing Model Catalog documentation and code.
 
 **TM** - Thing Model
 
@@ -52,13 +52,13 @@ You can still constrain the commands like `tmc list` or `tmc versions` to operat
 
 When you import TMs into a repository, they are given a generated ID, which is based on the key fields, optional 
 additional path (see `tmc help import`), timestamp, and a hash of the TM contents. See the [proposal][1] for details and 
-the reasoning behind.
+the reasoning behind it.
 If a TM already has an ID when it is imported, the original ID will be moved to a field `externalID` and can be restored 
 when the TM is fetched or exported from TMC. See `tmc help fetch` and `tmc help export`.
 
 The IDs given to TMs define the storage structure of the files in file-based repositories.
 
-Do *not* change the TM files inside the repository's directory structure except via TMC Binary, for this will cause the
+Do *not* change the TM files inside the repository's directory structure except via TMC Binary, as this will cause the
 index files to be out of sync. You can check if the index corresponds to the contents of a repository with `tmc check`.
 To repair a broken index, use `tmc index`.
 
