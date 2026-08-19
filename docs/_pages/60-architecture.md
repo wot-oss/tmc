@@ -12,14 +12,14 @@ Make sure to read the [concepts][2] page first.
 ## Inventory and Repositories
 
 A TMC allows managing an inventory (a catalog).
-This inventory can contain different repositories, which can be of different types such as file, http (git urls), TMC REST API, or AWS S3 buckets.
+This inventory can contain different repositories, which can be of different types such as file, http (git URLs), TMC REST API, or AWS S3 buckets.
 This allows repositories to be hosted by different parties, while a single TMC client managing them from one place.
 
 ## Authors and Namespaces
 
 A repository typically contains multiple authors of TMs, each separated by their namespace.
-An author can be the manufacturer of the device but not necessarily, i.e. one can write and serve TMs for other manufacturer's devices.
-In productive deployments, you may want to apply authorization based on the namespace.
+An author can be the manufacturer of the device but not necessarily, i.e. one can write and serve TMs for other manufacturers' devices.
+In production deployments, you may want to apply authorization based on the namespace.
 
 ## Devices and Thing Models
 
@@ -41,7 +41,7 @@ Each TM needs to contain the following top-level fields in addition to what is r
 
 In addition to a TM, a device can contain attachments such as images, manuals or even binaries.
 An attachment can be linked to a device or to a specific TM version.
-In the filesystem, an `.attachment` folder is created under the folder of the device.
+In the filesystem, an `.attachments` folder is created under the folder of the device.
 
 ## Device Metadata
 
@@ -49,7 +49,7 @@ When a TM is added for a device, TMC creates metadata that contains the followin
 
 - Repository of the TM
 - Author, manufacturer and MPN information
-- Links to the all known TM versions
+- Links to all known TM versions
 
 TMC uses the metadata information for providing search, querying and indexing purposes.
 

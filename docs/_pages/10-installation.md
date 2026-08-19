@@ -7,7 +7,7 @@ permalink: /installation
 ## Pre-compiled Binaries
 
 1. Download the latest [release][1] for your operating system and architecture
-2. Optionally rename to `tmc` to remove os/arch postfixes
+2. Optionally rename to `tmc` to remove OS/arch suffixes
 3. Give it execution rights and move to a folder that is in your `PATH`
 
 ## From Source
