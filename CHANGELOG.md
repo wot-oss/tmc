@@ -4,6 +4,16 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [v0.1.5]
+
+### Added
+
 - `docker` command to build a docker image for local deployment
 - REST API: jwt authentication based on JWT scopes array
 - REST API: jwt authentication default scopes for each token can be defined in a separate file using `--defaultScopesPath` flag
@@ -24,7 +34,7 @@
 ### Changed
 
 - default TmcVersion is set to `dev`
-- 
+
 ### Fixed
 
 ### Removed
