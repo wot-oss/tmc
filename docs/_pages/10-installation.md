@@ -13,7 +13,7 @@ permalink: /installation
 ## From Source
 
 ```bash
-go install github.com/wot-oss/tmc@v0.1.4
+go install github.com/wot-oss/tmc@v0.1.5
 ```
 
 > ##### TIP
