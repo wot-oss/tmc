@@ -518,7 +518,7 @@ func Test_DeleteThingModel(t *testing.T) {
 		tmid := "some-id"
 		r.On("Delete", mock.Anything, tmid).Return(nil).Once()
 		// when: deleting ThingModel
-		err := underTest.DeleteThingModel(context.Background(), "", tmid, false)
+		err := underTest.DeleteThingModel(context.Background(), "", tmid)
 		// then: it returns nil result
 		assert.NoError(t, err)
 	})
@@ -527,7 +527,7 @@ func Test_DeleteThingModel(t *testing.T) {
 		tmid := "some-id2"
 		r.On("Delete", mock.Anything, tmid).Return(model.ErrTMNotFound).Once()
 		// when: deleting ThingModel
-		err := underTest.DeleteThingModel(context.Background(), "someRepo", tmid, false)
+		err := underTest.DeleteThingModel(context.Background(), "someRepo", tmid)
 		// then: it returns error result
 		assert.ErrorIs(t, err, model.ErrTMNotFound)
 	})

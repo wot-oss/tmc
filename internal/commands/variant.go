@@ -10,13 +10,10 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	"github.com/google/uuid"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 )
-
-type variantAdder interface {
-	AddVariant(ctx context.Context, tmID string, variantID string) error
-}
 
 type AddVariantOptions struct {
 	VariantID       string
@@ -69,11 +66,18 @@ func AddVariant(ctx context.Context, spec model.RepoSpec, tmID string, opts AddV
 	return addVariantToRepo(ctx, repo, tmID, opts)
 }
 
-func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, requests []AddVariantBatchRequest) []AddVariantBatchResult {
+func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, familyTMID string, requests []AddVariantBatchRequest) []AddVariantBatchResult {
 	var results []AddVariantBatchResult
 	repo, err := repos.Get(spec)
 	if err != nil {
 		return []AddVariantBatchResult{{Error: fmt.Sprintf("failed to initialize repo: %v", err)}}
+	}
+	familyID := uuid.NewString()
+	if familyTMID != "" {
+		familyID, err = findFamilyByTMID(ctx, repo, familyTMID)
+		if err != nil {
+			return []AddVariantBatchResult{{Error: fmt.Sprintf("failed to resolve family: %v", err)}}
+		}
 	}
 
 	for _, req := range requests {
@@ -136,12 +140,14 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, requests []AddVa
 			}
 		}
 
-		variantAdder, _ := repo.(variantAdder)
-		err = variantAdder.AddVariant(ctx, tmID, variantID)
+		variantTMID, err := model.ParseTMID(variantID)
+		if err == nil {
+			err = repo.SetFamily(ctx, variantTMID.Name, familyID)
+		}
 		if err != nil {
 			results = append(results, AddVariantBatchResult{
 				TmID:  req.TmID,
-				Error: fmt.Sprintf("failed to link variant: %v", err),
+				Error: fmt.Sprintf("failed to assign variant family: %v", err),
 			})
 			continue
 		}
@@ -153,6 +159,33 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, requests []AddVa
 	}
 
 	return results
+}
+
+var errTMNotInFamily = errors.New("Thing Model is not part of a variant family")
+
+func findFamilyByTMID(ctx context.Context, repo repos.Repo, tmID string) (string, error) {
+	parsed, err := model.ParseTMID(tmID)
+	if err != nil {
+		return "", err
+	}
+	result, err := repo.List(ctx, &model.Filters{
+		Name:    parsed.Name,
+		Options: model.FilterOptions{NameFilterType: model.FullMatch},
+	})
+	if err != nil {
+		return "", err
+	}
+	for _, entry := range result.Entries {
+		for _, version := range entry.Versions {
+			if version.TMID == tmID {
+				if entry.FamilyID == "" {
+					return "", errTMNotInFamily
+				}
+				return entry.FamilyID, nil
+			}
+		}
+	}
+	return "", model.ErrTMNotFound
 }
 
 func addVariantToRepo(ctx context.Context, repo repos.Repo, tmID string, opts AddVariantOptions) error {
@@ -175,11 +208,6 @@ func addVariantToRepo(ctx context.Context, repo repos.Repo, tmID string, opts Ad
 		}
 	}
 
-	r, ok := repo.(variantAdder)
-	if !ok {
-		return repos.ErrNotSupported
-	}
-
 	variantID := opts.VariantID
 	if variantID == "" {
 		variantID, err = createVariantFromParent(ctx, repo, tmID, opts)
@@ -198,7 +226,19 @@ func addVariantToRepo(ctx context.Context, repo repos.Repo, tmID string, opts Ad
 		}
 	}
 
-	return r.AddVariant(ctx, tmID, variantID)
+	familyID, err := findFamilyByTMID(ctx, repo, tmID)
+	if errors.Is(err, errTMNotInFamily) {
+		familyID = uuid.NewString()
+		err = repo.SetFamily(ctx, parentTMID.Name, familyID)
+	}
+	if err != nil {
+		return err
+	}
+	variantTMID, err := model.ParseTMID(variantID)
+	if err != nil {
+		return err
+	}
+	return repo.SetFamily(ctx, variantTMID.Name, familyID)
 }
 
 func copyVariantAttachments(ctx context.Context, repo repos.Repo, parentTMID string, variantID string) error {

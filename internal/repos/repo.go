@@ -154,6 +154,7 @@ type Repo interface {
 	ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error
 	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
 	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
+	SetFamily(ctx context.Context, tmName string, familyID string) error
 }
 
 type ImportOptions struct {
@@ -161,6 +162,17 @@ type ImportOptions struct {
 	OptPath         string
 	IgnoreExisting  bool
 	WithAttachments bool
+}
+
+func setFamilyIndexUpdater(tmName, familyID string) indexUpdater {
+	return func(_ context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
+		entry := oldIndex.FindByName(tmName)
+		if entry == nil {
+			return nil, nil, 0, model.ErrTMNameNotFound
+		}
+		entry.FamilyID = familyID
+		return oldIndex, oldNames, 0, nil
+	}
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {

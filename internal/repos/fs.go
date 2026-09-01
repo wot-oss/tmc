@@ -387,7 +387,7 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 	return nil, model.ErrTMNotFound
 }
 
-func (f *FileRepo) AddVariant(ctx context.Context, tmID string, variantID string) error {
+func (f *FileRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err
@@ -399,7 +399,7 @@ func (f *FileRepo) AddVariant(ctx context.Context, tmID string, variantID string
 		return err
 	}
 
-	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForAddVariant(tmID, variantID))
+	_, _, _, _, err = f.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID))
 	return err
 }
 
@@ -816,21 +816,6 @@ func (f *FileRepo) indexUpdaterForImportAttachment(ref model.AttachmentContainer
 	}
 }
 
-func (f *FileRepo) indexUpdaterForAddVariant(tmID string, variantID string) indexUpdater {
-	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
-		select {
-		case <-ctx.Done():
-			return nil, nil, 0, ctx.Err()
-		default:
-		}
-		err := oldIndex.InsertVariant(tmID, variantID)
-		if err != nil {
-			return oldIndex, oldNames, 0, err
-		}
-		return oldIndex, oldNames, 1, nil
-	}
-}
-
 func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ []string) (*model.Index, []string, int, error) {
 	fileCount := 0
 	updatedAttContainers := make(map[model.AttachmentContainerRef]struct{})
@@ -862,7 +847,7 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 	if err != nil {
 		return nil, nil, 0, err
 	}
-	f.preserveVariants(oldIndex, newIndex)
+	f.preserveFamilies(oldIndex, newIndex)
 	err = f.reindexAttachments(updatedAttContainers, oldIndex, newIndex)
 	if err != nil {
 		return nil, nil, 0, err
@@ -871,7 +856,7 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 	return newIndex, names, fileCount, nil
 }
 
-func (f *FileRepo) preserveVariants(oldIndex *model.Index, newIndex *model.Index) {
+func (f *FileRepo) preserveFamilies(oldIndex *model.Index, newIndex *model.Index) {
 	if oldIndex == nil || newIndex == nil {
 		return
 	}
@@ -880,10 +865,10 @@ func (f *FileRepo) preserveVariants(oldIndex *model.Index, newIndex *model.Index
 			continue
 		}
 		oldEntry := oldIndex.FindByName(entry.Name)
-		if oldEntry == nil || len(oldEntry.Variants) == 0 {
+		if oldEntry == nil {
 			continue
 		}
-		entry.Variants = slices.Clone(oldEntry.Variants)
+		entry.FamilyID = oldEntry.FamilyID
 	}
 }
 

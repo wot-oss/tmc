@@ -165,6 +165,10 @@ func (h *HttpRepo) DeleteAttachment(ctx context.Context, container model.Attachm
 	return ErrNotSupported
 }
 
+func (h *HttpRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+	return ErrNotSupported
+}
+
 func (h *HttpRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
 	attDir, err := model.RelAttachmentsDir(container)
 	if err != nil {

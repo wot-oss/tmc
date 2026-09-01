@@ -49,19 +49,3 @@ func TestCollectProtocols(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"coap", "coaps", "https", "modbus+tcp", "modbus+tls", "opcua+tcp", "opcua+tls"}, protos)
 }
-
-func TestVariantReferenceUnmarshalJSON(t *testing.T) {
-	t.Run("string value", func(t *testing.T) {
-		parsed, err := ParseThingModel([]byte(`{
-			"id":"aut/man/mpn/v1.0.0-20260326150433-965fd7c3238b.tm.json",
-			"description":"desc",
-			"schema:manufacturer":{"schema:name":"man"},
-			"schema:mpn":"mpn",
-			"schema:author":{"schema:name":"aut"},
-			"schema:isVariantOf":"aut/man/parent/v1.0.0-20260326150433-965fd7c3238a.tm.json",
-			"version":{"model":"v1.0.0"}
-		}`))
-		assert.NoError(t, err)
-		assert.Equal(t, "aut/man/parent/v1.0.0-20260326150433-965fd7c3238a.tm.json", parsed.IsVariantOf)
-	})
-}

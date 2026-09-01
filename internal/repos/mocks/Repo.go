@@ -222,6 +222,18 @@ func (_c *Repo_DeleteAttachment_Call) RunAndReturn(run func(context.Context, mod
 	return _c
 }
 
+// SetFamily provides a mock function with given fields: ctx, tmName, familyID
+func (_m *Repo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+	ret := _m.Called(ctx, tmName, familyID)
+	if len(ret) == 0 {
+		panic("no return value specified for SetFamily")
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		return rf(ctx, tmName, familyID)
+	}
+	return ret.Error(0)
+}
+
 // Fetch provides a mock function with given fields: ctx, id
 func (_m *Repo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	ret := _m.Called(ctx, id)

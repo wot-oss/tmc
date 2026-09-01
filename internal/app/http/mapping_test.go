@@ -5,11 +5,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 )
 
-func TestMapper_GetInventoryEntryIncludesVariants(t *testing.T) {
+func TestMapper_GetInventoryEntryIncludesFamily(t *testing.T) {
 	mapper := NewMapper(context.Background())
 
 	entry := model.FoundEntry{
@@ -20,22 +19,18 @@ func TestMapper_GetInventoryEntryIncludesVariants(t *testing.T) {
 		Manufacturer: model.SchemaManufacturer{
 			Name: "eagle",
 		},
-		Mpn:         "bt2000",
-		IsVariantOf: "a-corp/eagle/bt1000/v1.0.0-20240108140117-243d1b462ccd.tm.json",
-		Variants: []model.Variant{
-			{VariantID: "a-corp/eagle/bt2000-variant.tm.jsonld"},
-		},
+		Mpn:      "bt2000",
+		FamilyID: "family-1",
 	}
 
 	inventoryEntry := mapper.GetInventoryEntry(entry)
 
-	if assert.Len(t, inventoryEntry.HasVariant, 1) {
-		assert.Equal(t, "a-corp/eagle/bt2000-variant.tm.jsonld", inventoryEntry.HasVariant[0].VariantId)
+	if assert.NotNil(t, inventoryEntry.Family) {
+		assert.Equal(t, "family-1", *inventoryEntry.Family)
 	}
-	assert.Equal(t, "a-corp/eagle/bt1000/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntry.IsVariantOf)
 }
 
-func TestMapper_GetInventoryDataKeepsParentHasVariant(t *testing.T) {
+func TestMapper_GetInventoryDataKeepsFamily(t *testing.T) {
 	mapper := NewMapper(context.Background())
 
 	entries := []model.FoundEntry{
@@ -47,15 +42,12 @@ func TestMapper_GetInventoryDataKeepsParentHasVariant(t *testing.T) {
 			Manufacturer: model.SchemaManufacturer{
 				Name: "eagle",
 			},
-			Mpn: "bt2000",
-			Variants: []model.Variant{
-				{VariantID: "a-corp/eagle/bt2000-variant/v1.0.0-20240108140117-243d1b462ccd.tm.json"},
-				{VariantID: "a-corp/eagle/bt2000-standalone/v1.0.0-20240108140117-243d1b462ccd.tm.json"},
-			},
+			Mpn:      "bt2000",
+			FamilyID: "family-1",
 		},
 		{
-			Name:        "a-corp/eagle/bt2000-variant",
-			IsVariantOf: "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccd.tm.json",
+			Name:     "a-corp/eagle/bt2000-variant",
+			FamilyID: "family-1",
 			Versions: []model.FoundVersion{{IndexVersion: &model.IndexVersion{TMID: "a-corp/eagle/bt2000-variant/v1.0.0-20240108140117-243d1b462ccd.tm.json"}}},
 		},
 	}
@@ -64,18 +56,13 @@ func TestMapper_GetInventoryDataKeepsParentHasVariant(t *testing.T) {
 
 	if assert.Len(t, inventoryEntries, 2) {
 		assert.Equal(t, "a-corp/eagle/bt2000", inventoryEntries[0].TmName)
-		if assert.Len(t, inventoryEntries[0].HasVariant, 2) {
-			assert.Equal(t, "a-corp/eagle/bt2000-variant/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntries[0].HasVariant[0].VariantId)
-			assert.Equal(t, "a-corp/eagle/bt2000-standalone/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntries[0].HasVariant[1].VariantId)
-		}
+		assert.Equal(t, "family-1", *inventoryEntries[0].Family)
 		assert.Equal(t, "a-corp/eagle/bt2000-variant", inventoryEntries[1].TmName)
-		assert.Equal(t, "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccd.tm.json", inventoryEntries[1].IsVariantOf)
+		assert.Equal(t, "family-1", *inventoryEntries[1].Family)
 	}
 }
 
-func TestMapper_GetVariantsReturnsEmptySliceWhenEmpty(t *testing.T) {
+func TestMapper_GetInventoryEntryOmitsEmptyFamily(t *testing.T) {
 	mapper := NewMapper(context.Background())
-
-	assert.Equal(t, []server.Variant{}, mapper.GetVariants(nil))
-	assert.Equal(t, []server.Variant{}, mapper.GetVariants([]model.Variant{}))
+	assert.Nil(t, mapper.GetInventoryEntry(model.FoundEntry{}).Family)
 }

@@ -26,9 +26,6 @@ type AddVariantBatchRequest struct {
 
 	// TmId TMID of the parent Thing Model
 	TmId string `json:"tm-id"`
-
-	// VariantId TMID of an existing variant Thing Model to link
-	VariantId *string `json:"variant-id,omitempty"`
 }
 
 // AddVariantBatchResult defines model for AddVariantBatchResult.
@@ -107,11 +104,10 @@ type InfoVersion struct {
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
 	Attachments *AttachmentsList `json:"attachments,omitempty"`
-	HasVariant  []Variant        `json:"hasVariant"`
 
-	// IsVariantOf TMID of the parent Thing Model if this entry is a variant, otherwise empty
-	IsVariantOf string               `json:"isVariantOf"`
-	Links       *InventoryEntryLinks `json:"links,omitempty"`
+	// Family Identifier shared by all Thing Models in the same variant family
+	Family *string              `json:"family,omitempty"`
+	Links  *InventoryEntryLinks `json:"links,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
 	// May be left empty when there is only a single repository served by the backend and thus there is not need for
@@ -243,12 +239,6 @@ type SearchMatch struct {
 // May be left empty when there is only a single repository served by the backend and thus there is not need for
 // disambiguation. See also '/repos'
 type SourceRepository = string
-
-// Variant defines model for Variant.
-type Variant struct {
-	// VariantId The TMID of the variant Thing Model
-	VariantId string `json:"variant-id"`
-}
 
 // AttachmentFileName defines model for AttachmentFileName.
 type AttachmentFileName = string
@@ -535,7 +525,7 @@ type AddThingModelVariantParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
 	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
 
-	// TmId TMID of the parent Thing Model. Required for single-object request bodies.
+	// TmId TMID of a member of the family to which new variants should be added
 	TmId *string `form:"tm-id,omitempty" json:"tm-id,omitempty"`
 
 	// VariantId TMID of an existing variant Thing Model to link (single-object requests only)
@@ -552,9 +542,6 @@ type DeleteThingModelByIdParams struct {
 
 	// Force flag to force the deletion. must be set to "true"
 	Force string `form:"force" json:"force"`
-
-	// WithVariants If true, deletes the TM with all its variants
-	WithVariants *bool `form:"with-variants,omitempty" json:"with-variants,omitempty"`
 }
 
 // GetThingModelByIdParams defines parameters for GetThingModelById.

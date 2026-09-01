@@ -370,8 +370,7 @@ func (h *TmcHandler) DeleteThingModelById(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	withVariants := params.WithVariants != nil && *params.WithVariants
-	err := h.Service.DeleteThingModel(r.Context(), convertRepoName(params.Repo), tmID, withVariants)
+	err := h.Service.DeleteThingModel(r.Context(), convertRepoName(params.Repo), tmID)
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -461,7 +460,7 @@ func (h *TmcHandler) AddThingModelVariant(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		results := h.Service.AddThingModelVariantBatch(r.Context(), convertRepoName(params.Repo), requests)
+		results := h.Service.AddThingModelVariantBatch(r.Context(), convertRepoName(params.Repo), tmID, requests)
 		HandleJsonResponse(w, r, http.StatusOK, results)
 		return
 	}

@@ -1201,6 +1201,30 @@ func Test_AddThingModelVariant(t *testing.T) {
 	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
+	t.Run("create a new family from a batch", func(t *testing.T) {
+		requests := []commands.AddVariantBatchRequest{{TmID: parentTMID, Mpn: "bt2000-a"}, {TmID: parentTMID, Mpn: "bt2000-b"}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", "", requests).Return([]commands.AddVariantBatchResult{}).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, "/thing-models/variants").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`[{"tm-id":"` + parentTMID + `","mpn":"bt2000-a"},{"tm-id":"` + parentTMID + `","mpn":"bt2000-b"}]`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("add a batch to an existing family", func(t *testing.T) {
+		requests := []commands.AddVariantBatchRequest{{TmID: parentTMID, Mpn: "bt2000-c"}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, requests).Return([]commands.AddVariantBatchResult{}).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`[{"tm-id":"` + parentTMID + `","mpn":"bt2000-c"}]`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
 	t.Run("link existing variant from query parameter", func(t *testing.T) {
 		routeWithVariant := route + "&variant-id=" + url.QueryEscape("a-corp/eagle/bt2000-special/v1.0.0-20240108140117-243d1b462ccd.tm.json")
 		hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
@@ -1441,17 +1465,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with valid tmID", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "", tmID, false).Return(nil).Once()
-		// when: calling the route
-		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
-		// then: it returns status 204
-		assert.Equal(t, http.StatusNoContent, rec.Code)
-		assert.Equal(t, 0, rec.Body.Len())
-	})
-
-	t.Run("with valid tmID and with-variants=true", func(t *testing.T) {
-		route := "/thing-models/" + tmID + "?force=true&with-variants=true"
-		hs.On("DeleteThingModel", mock.Anything, "", tmID, true).Return(nil).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(nil).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 204
@@ -1462,7 +1476,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 	t.Run("with invalid tmID", func(t *testing.T) {
 		// given: route with invalid tmID
 		route := "/thing-models/some-invalid-tm-id?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "", "some-invalid-tm-id", false).Return(model.ErrInvalidId).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", "some-invalid-tm-id").Return(model.ErrInvalidId).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 400 and json error as body
@@ -1471,7 +1485,7 @@ func Test_DeleteThingModelById(t *testing.T) {
 
 	t.Run("with not found error", func(t *testing.T) {
 		route := "/thing-models/" + tmID + "?force=true"
-		hs.On("DeleteThingModel", mock.Anything, "", tmID, false).Return(model.ErrTMNotFound).Once()
+		hs.On("DeleteThingModel", mock.Anything, "", tmID).Return(model.ErrTMNotFound).Once()
 		// when: calling the route
 		rec := testutils.NewRequest(http.MethodDelete, route).RunOnHandler(httpHandler)
 		// then: it returns status 404 and json error as body

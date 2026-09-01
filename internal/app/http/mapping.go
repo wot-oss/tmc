@@ -49,8 +49,9 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 	invEntry.SchemaAuthor.SchemaName = entry.Author.Name
 	invEntry.SchemaManufacturer.SchemaName = entry.Manufacturer.Name
 	invEntry.SchemaMpn = entry.Mpn
-	invEntry.IsVariantOf = entry.IsVariantOf
-	invEntry.HasVariant = m.GetVariants(entry.Variants)
+	if entry.FamilyID != "" {
+		invEntry.Family = &entry.FamilyID
+	}
 	invEntry.Versions = m.GetInventoryEntryVersions(entry.Versions)
 	if entry.FoundIn.RepoName != "" {
 		invEntry.Repo = &entry.FoundIn.RepoName
@@ -70,17 +71,6 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 	}
 
 	return invEntry
-}
-
-func (m *Mapper) GetVariants(variants []model.Variant) []server.Variant {
-	if len(variants) == 0 {
-		return []server.Variant{}
-	}
-	var mapped []server.Variant
-	for _, variant := range variants {
-		mapped = append(mapped, server.Variant{VariantId: variant.VariantID})
-	}
-	return mapped
 }
 
 func (m *Mapper) GetInventoryEntryVersions(versions []model.FoundVersion) []server.InventoryEntryVersion {

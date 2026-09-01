@@ -11,28 +11,29 @@ import (
 )
 
 type variantCall struct {
-	tmID      string
-	variantID string
+	tmName   string
+	familyID string
 }
 
 type stubVariantRepo struct {
-	fetchRaw      []byte
-	fetchErr      error
-	importErr     error
-	importResult  repos.ImportResult
-	indexErr      error
-	addVariantErr error
+	fetchRaw     []byte
+	fetchErr     error
+	importErr    error
+	importResult repos.ImportResult
+	indexErr     error
+	setFamilyErr error
+	listResult   model.SearchResult
 
 	lastFetchID   string
 	importedTMIDs []string
 	importedRaws  [][]byte
 	indexIDs      []string
-	variantCalls  []variantCall
+	familyCalls   []variantCall
 }
 
-func (s *stubVariantRepo) AddVariant(_ context.Context, tmID string, variantID string) error {
-	s.variantCalls = append(s.variantCalls, variantCall{tmID: tmID, variantID: variantID})
-	return s.addVariantErr
+func (s *stubVariantRepo) SetFamily(_ context.Context, tmName string, familyID string) error {
+	s.familyCalls = append(s.familyCalls, variantCall{tmName: tmName, familyID: familyID})
+	return s.setFamilyErr
 }
 
 func (s *stubVariantRepo) Import(_ context.Context, id model.TMID, raw []byte, _ repos.ImportOptions) (repos.ImportResult, error) {
@@ -66,7 +67,7 @@ func (s *stubVariantRepo) CheckIntegrity(_ context.Context, _ model.ResourceFilt
 }
 
 func (s *stubVariantRepo) List(_ context.Context, _ *model.Filters) (model.SearchResult, error) {
-	return model.SearchResult{}, nil
+	return s.listResult, nil
 }
 
 func (s *stubVariantRepo) Versions(_ context.Context, _ string) ([]model.FoundVersion, error) {
@@ -105,16 +106,25 @@ func (s *stubVariantRepo) DeleteAttachment(_ context.Context, _ model.Attachment
 	return nil
 }
 
+func searchResultWithTM(tmID, familyID string) model.SearchResult {
+	parsed, _ := model.ParseTMID(tmID)
+	return model.SearchResult{Entries: []model.FoundEntry{{
+		Name:     parsed.Name,
+		FamilyID: familyID,
+		Versions: []model.FoundVersion{{IndexVersion: &model.IndexVersion{TMID: tmID}}},
+	}}}
+}
+
 func TestAddVariantToRepo_WithExistingVariantID(t *testing.T) {
-	repo := &stubVariantRepo{}
 	parentTMID := "aut/man/mpn/v1.0.0-20260326150433-965fd7c3238b.tm.json"
 	variantTMID := "aut/man/mpn-variant/v1.0.0-20260326150433-965fd7c3238c.tm.json"
+	repo := &stubVariantRepo{listResult: searchResultWithTM(parentTMID, "family-1")}
 
 	err := addVariantToRepo(context.Background(), repo, parentTMID, AddVariantOptions{VariantID: variantTMID})
 	assert.NoError(t, err)
-	if assert.Len(t, repo.variantCalls, 1) {
-		assert.Equal(t, parentTMID, repo.variantCalls[0].tmID)
-		assert.Equal(t, variantTMID, repo.variantCalls[0].variantID)
+	if assert.Len(t, repo.familyCalls, 1) {
+		assert.Equal(t, "aut/man/mpn-variant", repo.familyCalls[0].tmName)
+		assert.Equal(t, "family-1", repo.familyCalls[0].familyID)
 	}
 	assert.Empty(t, repo.importedTMIDs)
 	assert.Empty(t, repo.indexIDs)
@@ -127,12 +137,13 @@ func TestAddVariantToRepo_WithExistingVariantID_MismatchedManufacturer(t *testin
 
 	err := addVariantToRepo(context.Background(), repo, parentTMID, AddVariantOptions{VariantID: variantTMID})
 	assert.ErrorContains(t, err, "variant-id must match parent tm-id author and manufacturer")
-	assert.Empty(t, repo.variantCalls)
+	assert.Empty(t, repo.familyCalls)
 	assert.Empty(t, repo.importedTMIDs)
 	assert.Empty(t, repo.indexIDs)
 }
 
 func TestAddVariantToRepo_CreateFromParent(t *testing.T) {
+	parentTMID := "mycompany/bartech/5mn512me/special/v0.0.1-20260326150433-965fd7c3238b.tm.json"
 	repo := &stubVariantRepo{fetchRaw: []byte(`{
 		"id":"mycompany/bartech/5mn512me/special/v0.0.1-20260326150433-965fd7c3238b.tm.json",
 		"description":"parent description",
@@ -140,8 +151,7 @@ func TestAddVariantToRepo_CreateFromParent(t *testing.T) {
 		"schema:mpn":"5mn512me",
 		"schema:author":{"schema:name":"mycompany"},
 		"version":{"model":"v0.0.1"}
-	}`)}
-	parentTMID := "mycompany/bartech/5mn512me/special/v0.0.1-20260326150433-965fd7c3238b.tm.json"
+	}`), listResult: searchResultWithTM(parentTMID, "")}
 
 	err := addVariantToRepo(context.Background(), repo, parentTMID, AddVariantOptions{
 		Mpn:         "5mn512mb",
@@ -179,9 +189,11 @@ func TestAddVariantToRepo_CreateFromParent(t *testing.T) {
 		if assert.Len(t, repo.indexIDs, 1) {
 			assert.Equal(t, importedID, repo.indexIDs[0])
 		}
-		if assert.Len(t, repo.variantCalls, 1) {
-			assert.Equal(t, parentTMID, repo.variantCalls[0].tmID)
-			assert.Equal(t, importedID, repo.variantCalls[0].variantID)
+		if assert.Len(t, repo.familyCalls, 2) {
+			assert.Equal(t, "mycompany/bartech/5mn512me/special", repo.familyCalls[0].tmName)
+			assert.Equal(t, "mycompany/bartech/5mn512mb/special", repo.familyCalls[1].tmName)
+			assert.NotEmpty(t, repo.familyCalls[0].familyID)
+			assert.Equal(t, repo.familyCalls[0].familyID, repo.familyCalls[1].familyID)
 		}
 	}
 }
@@ -195,6 +207,62 @@ func TestAddVariantToRepo_InvalidOptionCombination(t *testing.T) {
 		Mpn:       "mpn2",
 	})
 	assert.Error(t, err)
+}
+
+func TestAddVariantsBatchAssignsOneFamily(t *testing.T) {
+	parentTMID := "aut/man/mpn/v1.0.0-20260326150433-965fd7c3238b.tm.json"
+	repo := &stubVariantRepo{fetchRaw: []byte(`{
+		"id":"aut/man/mpn/v1.0.0-20260326150433-965fd7c3238b.tm.json",
+		"description":"source",
+		"schema:manufacturer":{"schema:name":"man"},
+		"schema:mpn":"mpn",
+		"schema:author":{"schema:name":"aut"},
+		"version":{"model":"v1.0.0"}
+	}`)}
+	originalGet := repos.Get
+	t.Cleanup(func() { repos.Get = originalGet })
+	repos.Get = func(model.RepoSpec) (repos.Repo, error) { return repo, nil }
+
+	results := AddVariantsBatch(context.Background(), model.EmptySpec, "", []AddVariantBatchRequest{
+		{TmID: parentTMID, Mpn: "variant-a"},
+		{TmID: parentTMID, Mpn: "variant-b"},
+	})
+
+	if assert.Len(t, results, 2) && assert.Len(t, repo.familyCalls, 2) {
+		assert.Empty(t, results[0].Error)
+		assert.Empty(t, results[1].Error)
+		assert.NotEmpty(t, repo.familyCalls[0].familyID)
+		assert.Equal(t, repo.familyCalls[0].familyID, repo.familyCalls[1].familyID)
+	}
+}
+
+func TestAddVariantsBatchReusesExistingFamily(t *testing.T) {
+	memberTMID := "aut/man/member/v1.0.0-20260326150433-965fd7c3238a.tm.json"
+	sourceTMID := "aut/man/source/v1.0.0-20260326150433-965fd7c3238b.tm.json"
+	repo := &stubVariantRepo{
+		fetchRaw: []byte(`{
+			"id":"aut/man/source/v1.0.0-20260326150433-965fd7c3238b.tm.json",
+			"description":"source",
+			"schema:manufacturer":{"schema:name":"man"},
+			"schema:mpn":"source",
+			"schema:author":{"schema:name":"aut"},
+			"version":{"model":"v1.0.0"}
+		}`),
+		listResult: searchResultWithTM(memberTMID, "family-1"),
+	}
+	originalGet := repos.Get
+	t.Cleanup(func() { repos.Get = originalGet })
+	repos.Get = func(model.RepoSpec) (repos.Repo, error) { return repo, nil }
+
+	results := AddVariantsBatch(context.Background(), model.EmptySpec, memberTMID, []AddVariantBatchRequest{{
+		TmID: sourceTMID,
+		Mpn:  "variant-a",
+	}})
+
+	if assert.Len(t, results, 1) && assert.Len(t, repo.familyCalls, 1) {
+		assert.Empty(t, results[0].Error)
+		assert.Equal(t, "family-1", repo.familyCalls[0].familyID)
+	}
 }
 
 func TestApplyVariantOverrides_UpdatesExpectedFields(t *testing.T) {

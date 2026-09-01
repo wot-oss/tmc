@@ -23,7 +23,6 @@ type ThingModel struct {
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
-	IsVariantOf  string             `json:"schema:isVariantOf,omitempty"`
 	Version      Version            `json:"version"`
 	protocols    []string
 	Links        `json:"links"`

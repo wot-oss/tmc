@@ -406,14 +406,14 @@ func (s *S3Repo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundV
 	return nil, model.ErrTMNotFound
 }
 
-func (s *S3Repo) AddVariant(ctx context.Context, tmID string, variantID string) error {
+func (s *S3Repo) SetFamily(ctx context.Context, tmName string, familyID string) error {
 	unlock, err := s.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
 		return err
 	}
 
-	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForAddVariant(tmID, variantID))
+	_, _, _, _, err = s.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID))
 	return err
 }
 
@@ -709,21 +709,6 @@ func (s *S3Repo) indexUpdaterForImportAttachment(ref model.AttachmentContainerRe
 	}
 }
 
-func (s *S3Repo) indexUpdaterForAddVariant(tmID string, variantID string) indexUpdater {
-	return func(ctx context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
-		select {
-		case <-ctx.Done():
-			return nil, nil, 0, ctx.Err()
-		default:
-		}
-		err := oldIndex.InsertVariant(tmID, variantID)
-		if err != nil {
-			return oldIndex, oldNames, 0, err
-		}
-		return oldIndex, oldNames, 1, nil
-	}
-}
-
 func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ []string) (*model.Index, []string, int, error) {
 	fileCount := 0
 	updatedAttContainers := make(map[model.AttachmentContainerRef]struct{})
@@ -758,7 +743,7 @@ func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ 
 	if err != nil {
 		return nil, nil, 0, err
 	}
-	s.preserveVariants(oldIndex, newIndex)
+	s.preserveFamilies(oldIndex, newIndex)
 	err = s.reindexAttachments(ctx, updatedAttContainers, oldIndex, newIndex)
 	if err != nil {
 		return nil, nil, 0, err
@@ -767,7 +752,7 @@ func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ 
 	return newIndex, names, fileCount, nil
 }
 
-func (s *S3Repo) preserveVariants(oldIndex *model.Index, newIndex *model.Index) {
+func (s *S3Repo) preserveFamilies(oldIndex *model.Index, newIndex *model.Index) {
 	if oldIndex == nil || newIndex == nil {
 		return
 	}
@@ -776,10 +761,10 @@ func (s *S3Repo) preserveVariants(oldIndex *model.Index, newIndex *model.Index) 
 			continue
 		}
 		oldEntry := oldIndex.FindByName(entry.Name)
-		if oldEntry == nil || len(oldEntry.Variants) == 0 {
+		if oldEntry == nil {
 			continue
 		}
-		entry.Variants = slices.Clone(oldEntry.Variants)
+		entry.FamilyID = oldEntry.FamilyID
 	}
 }
 

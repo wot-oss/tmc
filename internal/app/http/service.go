@@ -25,8 +25,8 @@ type HandlerService interface {
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
 	ImportThingModel(ctx context.Context, repo string, file []byte, opts repos.ImportOptions) (repos.ImportResult, error)
 	AddThingModelVariant(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error
-	AddThingModelVariantBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult
-	DeleteThingModel(ctx context.Context, repo string, tmID string, withVariants bool) error
+	AddThingModelVariantBatch(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult
+	DeleteThingModel(ctx context.Context, repo string, tmID string) error
 	ExportCatalog(ctx context.Context, repo string) ([]byte, error)
 	CheckHealth(ctx context.Context) error
 	CheckHealthLive(ctx context.Context) error
@@ -266,7 +266,7 @@ func (dhs *defaultHandlerService) AddThingModelVariant(ctx context.Context, repo
 	return err
 }
 
-func (dhs *defaultHandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
+func (dhs *defaultHandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		var results []commands.AddVariantBatchResult
@@ -278,15 +278,15 @@ func (dhs *defaultHandlerService) AddThingModelVariantBatch(ctx context.Context,
 		}
 		return results
 	}
-	return commands.AddVariantsBatch(ctx, spec, requests)
+	return commands.AddVariantsBatch(ctx, spec, familyTMID, requests)
 }
 
-func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string, withVariants bool) error {
+func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string) error {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
 		return err
 	}
-	err = commands.Delete(ctx, spec, tmID, commands.DeleteOptions{WithVariants: withVariants})
+	err = commands.Delete(ctx, spec, tmID)
 	return err
 }
 

@@ -104,7 +104,7 @@ type ServerInterface interface {
 	// Upload an attachment to a TM name
 	// (PUT /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName})
 	PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName TMName, attachmentFileName AttachmentFileName, params PutTMNameAttachmentParams)
-	// Add or create a variant for a Thing Model
+	// Create a family of Thing Model variants
 	// (POST /thing-models/variants)
 	AddThingModelVariant(w http.ResponseWriter, r *http.Request, params AddThingModelVariantParams)
 	// Delete a Thing Model by ID
@@ -1500,14 +1500,6 @@ func (siw *ServerInterfaceWrapper) DeleteThingModelById(w http.ResponseWriter, r
 	err = runtime.BindQueryParameter("form", true, true, "force", r.URL.Query(), &params.Force)
 	if err != nil {
 		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "force", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "with-variants" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "with-variants", r.URL.Query(), &params.WithVariants)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "with-variants", Err: err})
 		return
 	}
 

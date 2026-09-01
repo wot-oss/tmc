@@ -33,8 +33,7 @@ func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 		Manufacturer:        e.Manufacturer,
 		Mpn:                 e.Mpn,
 		Author:              e.Author,
-		IsVariantOf:         e.IsVariantOf,
-		Variants:            e.Variants,
+		FamilyID:            e.FamilyID,
 		Versions:            m.ToFoundVersions(e.Versions),
 		FoundIn:             m.foundIn,
 		AttachmentContainer: e.AttachmentContainer,
@@ -87,30 +86,22 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntries(entries []server.
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryEntry) FoundEntry {
+	familyID := ""
+	if e.Family != nil {
+		familyID = *e.Family
+	}
 	return FoundEntry{
 		Name:         e.TmName,
 		Manufacturer: SchemaManufacturer{Name: e.SchemaManufacturer.SchemaName},
 		Mpn:          e.SchemaMpn,
 		Author:       SchemaAuthor{Name: e.SchemaAuthor.SchemaName},
-		IsVariantOf:  e.IsVariantOf,
-		Variants:     m.ToVariants(e.HasVariant),
+		FamilyID:     familyID,
 		Versions:     m.ToFoundVersions(e.Versions),
 		AttachmentContainer: AttachmentContainer{
 			Attachments: m.ToFoundVersionAttachments(e.Attachments),
 		},
 		FoundIn: m.subRepoFoundSource(e.Repo),
 	}
-}
-
-func (m *InventoryResponseToSearchResultMapper) ToVariants(variants []server.Variant) []Variant {
-	if len(variants) == 0 {
-		return nil
-	}
-	var r []Variant
-	for _, variant := range variants {
-		r = append(r, Variant{VariantID: variant.VariantId})
-	}
-	return r
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundVersions(versions []server.InventoryEntryVersion) []FoundVersion {

@@ -34,9 +34,8 @@ type FoundEntry struct {
 	Manufacturer SchemaManufacturer
 	Mpn          string
 	Author       SchemaAuthor
-	IsVariantOf  string
+	FamilyID     string
 	Versions     []FoundVersion
-	Variants     []Variant
 	FoundIn      FoundSource
 	AttachmentContainer
 }

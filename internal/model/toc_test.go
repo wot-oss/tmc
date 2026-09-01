@@ -464,20 +464,11 @@ func TestIndex_Insert(t *testing.T) {
 	assert.Equal(t, 1, len(idx.Data[3].Versions))
 }
 
-func TestIndex_InsertVariant(t *testing.T) {
+func TestIndexEntryFamily(t *testing.T) {
 	idx := &Index{}
-	parentID := "aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"
 	variantID := "aut/man/mpn-variant/v1.0.0-20231023121314-qwerty1234ab.tm.json"
 
 	err := idx.Insert(&ThingModel{
-		Manufacturer: SchemaManufacturer{Name: "man"},
-		Mpn:          "mpn",
-		Author:       SchemaAuthor{Name: "aut"},
-		ID:           parentID,
-		Description:  "base",
-	})
-	assert.NoError(t, err)
-	err = idx.Insert(&ThingModel{
 		Manufacturer: SchemaManufacturer{Name: "man"},
 		Mpn:          "mpn-variant",
 		Author:       SchemaAuthor{Name: "aut"},
@@ -486,69 +477,10 @@ func TestIndex_InsertVariant(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	err = idx.InsertVariant(parentID, variantID)
-	assert.NoError(t, err)
-
-	e := idx.FindByName("aut/man/mpn")
-	assert.NotNil(t, e)
-	assert.Equal(t, []Variant{{VariantID: variantID}}, e.Variants)
-
-	err = idx.InsertVariant(parentID, variantID)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, len(e.Variants))
-
-	err = idx.InsertVariant("aut/man/missing/v1.0.0-20231023121314-qwerty1234ab.tm.json", variantID)
-	assert.ErrorIs(t, err, ErrTMNotFound)
-}
-
-func TestIndex_InsertVariant_RejectsNestedVariants(t *testing.T) {
-	idx := &Index{}
-	grandParentID := "aut/man/base/v1.0.0-20231023121314-abcd12345678.tm.json"
-	parentVariantID := "aut/man/base-child/v1.0.0-20231023121314-abcd12345679.tm.json"
-	nestedVariantID := "aut/man/base-grandchild/v1.0.0-20231023121314-abcd12345680.tm.json"
-
-	err := idx.Insert(&ThingModel{
-		Manufacturer: SchemaManufacturer{Name: "man"},
-		Mpn:          "base",
-		Author:       SchemaAuthor{Name: "aut"},
-		ID:           grandParentID,
-		Description:  "base",
-	})
-	assert.NoError(t, err)
-
-	err = idx.Insert(&ThingModel{
-		Manufacturer: SchemaManufacturer{Name: "man"},
-		Mpn:          "base-child",
-		Author:       SchemaAuthor{Name: "aut"},
-		ID:           parentVariantID,
-		Description:  "variant",
-	})
-	assert.NoError(t, err)
-
-	err = idx.Insert(&ThingModel{
-		Manufacturer: SchemaManufacturer{Name: "man"},
-		Mpn:          "base-grandchild",
-		Author:       SchemaAuthor{Name: "aut"},
-		ID:           nestedVariantID,
-		Description:  "nested variant",
-	})
-	assert.NoError(t, err)
-
-	err = idx.InsertVariant(grandParentID, parentVariantID)
-	assert.NoError(t, err)
-
-	err = idx.InsertVariant(parentVariantID, nestedVariantID)
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, ErrVariantNestingNotAllowed)
-
-	parentEntry := idx.FindByName("aut/man/base-child")
-	if assert.NotNil(t, parentEntry) {
-		assert.Empty(t, parentEntry.Variants)
-	}
-
-	nestedEntry := idx.FindByName("aut/man/base-grandchild")
-	if assert.NotNil(t, nestedEntry) {
-		assert.Empty(t, nestedEntry.IsVariantOf)
+	entry := idx.FindByName("aut/man/mpn-variant")
+	if assert.NotNil(t, entry) {
+		entry.FamilyID = "family-1"
+		assert.Equal(t, "family-1", idx.FindByName("aut/man/mpn-variant").FamilyID)
 	}
 }
 

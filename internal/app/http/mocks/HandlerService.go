@@ -74,17 +74,17 @@ func (_c *HandlerService_AddThingModelVariant_Call) RunAndReturn(run func(contex
 	return _c
 }
 
-// AddThingModelVariantBatch provides a mock function with given fields: ctx, repo, requests
-func (_m *HandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
-	ret := _m.Called(ctx, repo, requests)
+// AddThingModelVariantBatch provides a mock function with given fields: ctx, repo, familyTMID, requests
+func (_m *HandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
+	ret := _m.Called(ctx, repo, familyTMID, requests)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddThingModelVariantBatch")
 	}
 
 	var r0 []commands.AddVariantBatchResult
-	if rf, ok := ret.Get(0).(func(context.Context, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult); ok {
-		r0 = rf(ctx, repo, requests)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult); ok {
+		r0 = rf(ctx, repo, familyTMID, requests)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]commands.AddVariantBatchResult)
@@ -102,14 +102,15 @@ type HandlerService_AddThingModelVariantBatch_Call struct {
 // AddThingModelVariantBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - repo string
+//   - familyTMID string
 //   - requests []commands.AddVariantBatchRequest
-func (_e *HandlerService_Expecter) AddThingModelVariantBatch(ctx interface{}, repo interface{}, requests interface{}) *HandlerService_AddThingModelVariantBatch_Call {
-	return &HandlerService_AddThingModelVariantBatch_Call{Call: _e.mock.On("AddThingModelVariantBatch", ctx, repo, requests)}
+func (_e *HandlerService_Expecter) AddThingModelVariantBatch(ctx interface{}, repo interface{}, familyTMID interface{}, requests interface{}) *HandlerService_AddThingModelVariantBatch_Call {
+	return &HandlerService_AddThingModelVariantBatch_Call{Call: _e.mock.On("AddThingModelVariantBatch", ctx, repo, familyTMID, requests)}
 }
 
-func (_c *HandlerService_AddThingModelVariantBatch_Call) Run(run func(ctx context.Context, repo string, requests []commands.AddVariantBatchRequest)) *HandlerService_AddThingModelVariantBatch_Call {
+func (_c *HandlerService_AddThingModelVariantBatch_Call) Run(run func(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest)) *HandlerService_AddThingModelVariantBatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].([]commands.AddVariantBatchRequest))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].([]commands.AddVariantBatchRequest))
 	})
 	return _c
 }
@@ -119,7 +120,7 @@ func (_c *HandlerService_AddThingModelVariantBatch_Call) Return(_a0 []commands.A
 	return _c
 }
 
-func (_c *HandlerService_AddThingModelVariantBatch_Call) RunAndReturn(run func(context.Context, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
+func (_c *HandlerService_AddThingModelVariantBatch_Call) RunAndReturn(run func(context.Context, string, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -357,17 +358,17 @@ func (_c *HandlerService_DeleteAttachment_Call) RunAndReturn(run func(context.Co
 	return _c
 }
 
-// DeleteThingModel provides a mock function with given fields: ctx, repo, tmID, withVariants
-func (_m *HandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string, withVariants bool) error {
-	ret := _m.Called(ctx, repo, tmID, withVariants)
+// DeleteThingModel provides a mock function with given fields: ctx, repo, tmID
+func (_m *HandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string) error {
+	ret := _m.Called(ctx, repo, tmID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteThingModel")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) error); ok {
-		r0 = rf(ctx, repo, tmID, withVariants)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, repo, tmID)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -384,14 +385,13 @@ type HandlerService_DeleteThingModel_Call struct {
 //   - ctx context.Context
 //   - repo string
 //   - tmID string
-//   - withVariants bool
-func (_e *HandlerService_Expecter) DeleteThingModel(ctx interface{}, repo interface{}, tmID interface{}, withVariants interface{}) *HandlerService_DeleteThingModel_Call {
-	return &HandlerService_DeleteThingModel_Call{Call: _e.mock.On("DeleteThingModel", ctx, repo, tmID, withVariants)}
+func (_e *HandlerService_Expecter) DeleteThingModel(ctx interface{}, repo interface{}, tmID interface{}) *HandlerService_DeleteThingModel_Call {
+	return &HandlerService_DeleteThingModel_Call{Call: _e.mock.On("DeleteThingModel", ctx, repo, tmID)}
 }
 
-func (_c *HandlerService_DeleteThingModel_Call) Run(run func(ctx context.Context, repo string, tmID string, withVariants bool)) *HandlerService_DeleteThingModel_Call {
+func (_c *HandlerService_DeleteThingModel_Call) Run(run func(ctx context.Context, repo string, tmID string)) *HandlerService_DeleteThingModel_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(bool))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -401,7 +401,7 @@ func (_c *HandlerService_DeleteThingModel_Call) Return(_a0 error) *HandlerServic
 	return _c
 }
 
-func (_c *HandlerService_DeleteThingModel_Call) RunAndReturn(run func(context.Context, string, string, bool) error) *HandlerService_DeleteThingModel_Call {
+func (_c *HandlerService_DeleteThingModel_Call) RunAndReturn(run func(context.Context, string, string) error) *HandlerService_DeleteThingModel_Call {
 	_c.Call.Return(run)
 	return _c
 }
