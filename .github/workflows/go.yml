@@ -26,7 +26,7 @@ jobs:
       image: stoplight/spectral:6.11
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
       - name: Run spectral linting
         run: |
           echo 'extends: ["spectral:oas"]' > .spectral.yaml
@@ -40,10 +40,10 @@ jobs:
       code: ${{ steps.filter.outputs.code }}
       docs: ${{ steps.filter.outputs.docs }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         filters: |
@@ -72,36 +72,36 @@ jobs:
       contents: write
       
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v7
 
     - name: Set up Go
-      if: ${{ needs.changes.outputs.code == 'true' }}
-      uses: actions/setup-go@v4
+      if: ${{ startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' }}
+      uses: actions/setup-go@v7
       with:
-        go-version: '1.21'
+        go-version: '1.25'
         cache: false
         cache-dependency-path: |
           go.sum
           ${{ runner.os }}-${{ github.run_id }}
     
     - name: Install Goimports
-      if: ${{ needs.changes.outputs.code == 'true' }} 
+      if: ${{ startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' }} 
       run: go install golang.org/x/tools/cmd/goimports@latest
 
     - name: Check Golang imports order and formatting
-      if: ${{ needs.changes.outputs.code == 'true' }}
+      if: ${{ startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' }}
       run: goimports -l -w .
 
     - name: Test (Linux/macOS)
-      if: ${{ needs.changes.outputs.code == 'true' && (runner.os == 'Linux' || runner.os == 'macOS') }}
+      if: ${{ ( startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' ) && (runner.os == 'Linux' || runner.os == 'macOS') }}
       run: CGO_ENABLED=0 go test -v ./...
 
     - name: Test (win)
-      if: ${{ needs.changes.outputs.code == 'true' && runner.os == 'Windows' }}
+      if: ${{ ( startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' ) && runner.os == 'Windows' }}
       run: go test -v ./...
 
     - name: Compile (Linux/macOS)
-      if: ${{ needs.changes.outputs.code == 'true' && (runner.os == 'Linux' || runner.os == 'macOS') }}
+      if: ${{ ( startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' ) && (runner.os == 'Linux' || runner.os == 'macOS') }}
       run: |
         echo "FILE_NAME ${FILENAME_PREFIX}"
         export FILENAME_PREFIX=${FILENAME_PREFIX}
@@ -109,8 +109,16 @@ jobs:
         echo "TMC_VERSION ${TMC_VERSION}"       
         bash ./build/compile.sh
 
+    - name: Upload Linux binary for Arazzo tests
+      if: ${{ needs.changes.outputs.code == 'true' && runner.os == 'Linux' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: tmc-linux-binary
+        path: ${{ env.FILENAME_PREFIX }}-linux-amd64
+        if-no-files-found: error
+
     - name: Compile (win)
-      if: ${{ needs.changes.outputs.code == 'true' && runner.os == 'Windows' }}
+      if: ${{ ( startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' ) && runner.os == 'Windows' }}
       shell: powershell
       run: |
         echo "FILE_NAME $env:FILENAME_PREFIX"
@@ -120,32 +128,172 @@ jobs:
         bash ./build/compile.sh
 
     - name: List-Dependencies (Linux/macOS)
-      if: ${{ needs.changes.outputs.code == 'true' && (runner.os == 'Linux' || runner.os == 'macOS') }}
+      if: ${{ ( startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' ) && (runner.os == 'Linux' || runner.os == 'macOS') }}
       run: |
         export FILENAME_PREFIX=${FILENAME_PREFIX}
         bash ./build/list-dependencies.sh
     
     - name: List-Dependencies (win)
-      if: ${{ needs.changes.outputs.code == 'true' && runner.os == 'Windows' }}
+      if: ${{ ( startsWith(github.ref, 'refs/tags') || needs.changes.outputs.code == 'true' ) && runner.os == 'Windows' }}
       shell: powershell
       run: |
         bash -c "export FILENAME_PREFIX='$env:FILENAME_PREFIX' && ./build/list-dependencies.sh"
 
     - name: Release-Notes
-      if: ${{ needs.changes.outputs.code == 'true' && startsWith(github.ref, 'refs/tags') && (runner.os == 'Linux') }} 
+      if: ${{ startsWith(github.ref, 'refs/tags') && (runner.os == 'Linux') }} 
       run: |
         echo "Extracting release notes for version ${{github.ref}}"
         export VERSION=${{github.ref_name}}
         bash build/extract-release-notes.sh >> release-notes.md
 
     - name: Release
-      if: ${{ needs.changes.outputs.code == 'true' && startsWith(github.ref, 'refs/tags') && (runner.os == 'Linux') }}
-      uses: softprops/action-gh-release@v1
+      if: ${{ startsWith(github.ref, 'refs/tags') && (runner.os == 'Linux') }}
+      uses: softprops/action-gh-release@v3
       with:
         body_path: release-notes.md
         files: ${{ env.FILENAME_PREFIX }}*
         token: ${{ secrets.GITHUB_TOKEN }}
         
+  arazzo-tests:
+    needs: 
+      - build
+      - changes
+    if: ${{ needs.changes.outputs.code == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download Linux binary from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: tmc-linux-binary
+          path: ./bin
+      
+      - name: Download Arazzo CLI
+        run: |
+          ARAZZO_VERSION="0.2.2"
+          ARAZZO_URL="https://github.com/strefethen/arazzo-cli/releases/download/v${ARAZZO_VERSION}/arazzo-cli-v${ARAZZO_VERSION}-linux-x86_64"
+          cd api
+          
+          curl -fSL -o arazzo-cli "${ARAZZO_URL}" || { echo "Failed to download Arazzo CLI from ${ARAZZO_URL}"; exit 1; }
+          
+          chmod +x arazzo-cli
+          ./arazzo-cli --help
+      
+      - name: Start TMC Service
+        run: |
+          TMC_BIN="./bin/${{ env.FILENAME_PREFIX }}-linux-amd64"
+          chmod +x "${TMC_BIN}"
+
+          # Isolate HOME so repo config is deterministic in CI.
+          export HOME="${RUNNER_TEMP}/tmc-home"
+          mkdir -p "${HOME}"
+
+          EXAMPLE_CATALOG_DIR="${GITHUB_WORKSPACE}/example-catalog"
+          rm -rf "${EXAMPLE_CATALOG_DIR}"
+          git clone --depth 1 https://github.com/wot-oss/example-catalog.git "${EXAMPLE_CATALOG_DIR}"
+
+          "${TMC_BIN}" repo add example-catalog --type file "${EXAMPLE_CATALOG_DIR}"
+          "${TMC_BIN}" create-si
+          "${TMC_BIN}" serve --host 0.0.0.0 --port 8080 > "${RUNNER_TEMP}/tmc-service.log" 2>&1 &
+          echo "TMC_PID=$!" >> $GITHUB_ENV
+
+          # Wait for service to be ready
+          echo "Waiting for TMC service to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/healthz > /dev/null 2>&1; then
+              echo "TMC service is ready!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "TMC service failed to start"
+              cat "${RUNNER_TEMP}/tmc-service.log" || true
+              exit 1
+            fi
+            sleep 2
+          done
+      
+      - name: Run Arazzo Tests
+        working-directory: ./api
+        run: |
+          set +e
+    
+          chmod +x ./arazzo-cli
+    
+          # Define the workflows to test
+          workflows=(
+            "authorAttachmentsLifecycle"
+            "authorAttachmentsErrorHandling"
+            "addTMAndAttachmentsLifecycle"
+            "adminHealthcheckWorkflow"
+            "uiDashboardWorkflow"
+            "exportingWorkflow"
+            "findingTMsWorkflow"
+          )
+    
+          failed_count=0
+          passed_count=0
+    
+          echo "Running Arazzo API tests..."
+          echo "=================================================="
+    
+          for workflow in "${workflows[@]}"; do
+            echo ""
+            echo "Testing: $workflow"
+            if ./arazzo-cli run arazzo.yaml "$workflow" --openapi tm-catalog.openapi.yaml --json > "/tmp/${workflow}-result.json" 2>&1; then
+              echo "PASSED: $workflow"
+              ((passed_count++))
+            else
+              echo "FAILED: $workflow"
+              cat "/tmp/${workflow}-result.json"
+              ((failed_count++))
+            fi
+          done
+    
+          echo ""
+          echo "=================================================="
+          echo "Test Summary"
+          echo "=================================================="
+          echo "Passed: $passed_count"
+          echo "Failed: $failed_count"
+          echo "Total:  $((passed_count + failed_count))"
+    
+          # Generate summary report
+          echo "{" > arazzo-test-report.json
+          echo "  \"passed\": $passed_count," >> arazzo-test-report.json
+          echo "  \"failed\": $failed_count," >> arazzo-test-report.json
+          echo "  \"total\": $((passed_count + failed_count))," >> arazzo-test-report.json
+          echo "  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"" >> arazzo-test-report.json
+          echo "}" >> arazzo-test-report.json
+    
+          set -e  # Re-enable exit-on-error
+    
+          if [ $failed_count -gt 0 ]; then
+            exit 1
+          fi
+      - name: Upload Arazzo Test Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arazzo-test-report
+          path: api/arazzo-test-report.json
+
+      - name: Upload TMC Service Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tmc-service-log
+          path: ${{ runner.temp }}/tmc-service.log
+          if-no-files-found: warn
+      
+      - name: Stop TMC Service
+        if: always()
+        run: |
+          kill "$TMC_PID" || true
+
   docker:
     if: startsWith(github.ref, 'refs/tags') 
     needs: build
@@ -160,10 +308,10 @@ jobs:
       IMAGE_NAME: ${{ github.repository }}
       
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v7
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -171,15 +319,15 @@ jobs:
   
       - name: Extract metadata (tags, labels) for Docker
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Set up docker buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and push Docker images
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/Dockerfile

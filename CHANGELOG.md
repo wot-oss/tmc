@@ -4,6 +4,16 @@
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [v0.1.5]
+
+### Added
+
 - `docker` command to build a docker image for local deployment
 - REST API: jwt authentication based on JWT scopes array
 - REST API: jwt authentication default scopes for each token can be defined in a separate file using `--defaultScopesPath` flag
@@ -20,6 +30,7 @@
 - REST API: POST `/authors/{authorName}/.attachments/{attachmentFileName}` and POST `/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName}` higher-level attachments import
 - REST API: DELETE `/authors/{authorName}/.attachments/{attachmentFileName}` and DELETE `/manufacturers/{authorName}/{manufacturerName}/.attachments/{attachmentFileName}` higher-level attachments delete
 - Added `filter.changedSince` parameter to REST API `/inventory` listing and to CLI
+- Arazzo for e2e tests
 
 ### Changed
 

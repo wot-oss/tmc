@@ -96,14 +96,21 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef) error {
 	switch ref.Kind() {
 	case model.AttachmentContainerKindAuthor:
-		_, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}})
+		res, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}})
 		if err != nil {
 			return err
 		}
+		if len(res.Entries) == 0 {
+			return model.ErrAuthorNotFound
+		}
 	case model.AttachmentContainerKindManufacturer:
-		_, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}, Manufacturer: []string{ref.Manufacturer}})
+		author, manufacturer := extractAuthorAndManufacturer(ref)
+		res, err := repo.List(ctx, &model.Filters{Author: []string{author}, Manufacturer: []string{manufacturer}})
 		if err != nil {
 			return err
+		}
+		if len(res.Entries) == 0 {
+			return model.ErrManufacturerNotFound
 		}
 	case model.AttachmentContainerKindTMName:
 		// no need
@@ -113,4 +120,16 @@ func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.At
 		return errors.New("invalid attachment container type")
 	}
 	return nil
+}
+
+func extractAuthorAndManufacturer(ref model.AttachmentContainerRef) (string, string) {
+	author := ref.Author
+	manufacturer := ref.Manufacturer
+	if author == "" {
+		if a, m, ok := strings.Cut(manufacturer, "/"); ok {
+			author = a
+			manufacturer = m
+		}
+	}
+	return author, manufacturer
 }

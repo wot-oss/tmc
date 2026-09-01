@@ -14,321 +14,281 @@ sourceDescriptions:
     type: openapi
 
 workflows:
-  - workflowId: variantMpnLifecycleWorkflow
-    summary: Create and remove variant by MPN, then validate inventory relations
+  - workflowId: authorAttachmentsLifecycle
+    summary: Complete author attachments lifecycle test
     description: |
-      1. Query inventory by filter.mpn and verify target variant does not exist.
-      2. Create a new variant MPN for parent TM omnicorp/omnicorp/lightall.
-      3. Verify parent and variant entries expose hasVariant / isVariantOf relations.
-      4. Delete the parent TM with with-variants=true.
-      5. Verify the deleted parent TMID and created variant TM are gone from inventory.
-      6. Create two variants in bulk.
-      7. Query inventory and verify the two bulk-created TMs are present.
-      8. Get both bulk-created variants by fetch name.
-      9. Fetch one bulk-created TM and inspect its title and description.
-      10. Verify the parent's hasVariant array after bulk creation.
-      11. Delete the parent TM (without with-variants).
-      12. Verify the parent TM no longer exists.
-      13. Verify both variants still exist and have isVariantOf set to "".
-      14. Delete both bulk-created variant TMs.
-      15. Verify both bulk-created variants are gone from inventory.
-      16. Verify the parent's hasVariant array after bulk deletion.
+      Tests the full lifecycle of author attachments:
+      1. Verify no attachments exist initially
+      2. Upload an attachment
+      3. Verify the attachment appears in the list
+      4. Delete the attachment
+      5. Verify the attachment list is empty again
+
+    inputs:
+      type: object
+      properties:
+        authorName:
+          type: string
+          default: omnicorp
+        repoName:
+          type: string
+          default: example-catalog
+        attachmentFileName:
+          type: string
+          default: test.txt
+    
+    steps:
+      - stepId: verifyInitialEmptyState
+        operationId: listAuthorsAttachments
+        description: Verify that no attachments exist initially for the author
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          debugStatusCode: $statusCode
+          entireResponse: $response.body#
+
+      - stepId: uploadAttachment
+        operationId: putAuthorAttachmentByName
+        description: Upload a new attachment to the author
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.attachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        requestBody:
+          contentType: text/plain
+          payload: This is a test attachment content for the author.
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          debugStatusCode: $statusCode
+      - stepId: verifyAttachmentExists
+        operationId: listAuthorsAttachments
+        description: Verify that the uploaded attachment now appears in the list
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: deleteAttachment
+        operationId: deleteAuthorAttachmentByName
+        description: Delete the uploaded attachment
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.attachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          debugStatusCode: $statusCode
+      - stepId: verifyFinalEmptyState
+        operationId: listAuthorsAttachments
+        description: Verify that the attachments list is empty after deletion
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+    outputs:
+      step1_initial_list_status: $steps.verifyInitialEmptyState.outputs.debugStatusCode
+      step1_initial_list_headers: $steps.verifyInitialEmptyState.outputs.debugResponseHeaders
+      step1_initial_list_body: $steps.verifyInitialEmptyState.outputs.entireResponse
+      step2_upload_status: $steps.uploadAttachment.outputs.debugStatusCode
+      step2_upload_headers: $steps.uploadAttachment.outputs.debugResponseHeaders
+      step3_post_upload_list_status: $steps.verifyAttachmentExists.outputs.debugStatusCode
+      step3_post_upload_list_headers: $steps.verifyAttachmentExists.outputs.debugResponseHeaders
+      step3_post_upload_list_body: $steps.verifyAttachmentExists.outputs.debugResponseBody
+      step4_delete_status: $steps.deleteAttachment.outputs.debugStatusCode
+      step4_delete_headers: $steps.deleteAttachment.outputs.debugResponseHeaders
+      step5_final_list_status: $steps.verifyFinalEmptyState.outputs.debugStatusCode
+      step5_final_list_headers: $steps.verifyFinalEmptyState.outputs.debugResponseHeaders
+      step5_final_list_body: $steps.verifyFinalEmptyState.outputs.debugResponseBody
+
+  - workflowId: authorAttachmentsErrorHandling
+    summary: Test error scenarios for author attachments
+    description: |
+      Tests various error conditions:
+      1. Attempting to delete non-existent attachment
+      2. Attempting to get attachments for non-existent author
+    
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: example-catalog
+    
+    steps:
+      - stepId: deleteNonExistentAttachment
+        operationId: deleteAuthorAttachmentByName
+        description: Attempt to delete an attachment that doesn't exist
+        parameters:
+          - name: authorName
+            in: path
+            value: test
+          - name: attachmentFileName
+            in: path
+            value: nonexistent.txt
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 404
+
+      - stepId: getNonExistentAuthorAttachments
+        operationId: listAuthorsAttachments
+        description: Attempt to get attachments for a non-existent author
+        parameters:
+          - name: authorName
+            in: path
+            value: nonexistentauthor
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 404
+
+  - workflowId: addTMAndAttachmentsLifecycle
+    summary: Add TM, add attachments on all scopes, verify and clean up
+    description: |
+      Add TM (attachments) lifecycle:
+      1. Find repo
+      2. Add TM
+      3. Verify TM can be fetched
+      4. Add attachments for tmname, tmid, author, manufacturer
+      5. List attachments to verify
+      6. Delete attachments and TM
+      7. List again to verify
 
     inputs:
       type: object
       properties:
         repoName:
           type: string
-          default: small
-        parentFetchName:
+          default: example-catalog
+        authorName:
           type: string
-          default: omnicorp/omnicorp/lightall
-        parentTMName:
+          default: mycompany
+        manufacturerName:
           type: string
-          default: omnicorp/omnicorp/lightall
-        parent2FetchName:
+          default: bartech
+        mpnName:
           type: string
-          default: omnicorp/omnicorp/lightall
-        parent2TMName:
+          default: bazlamp
+        tmName:
           type: string
-          default: omnicorp/omnicorp/lightall
-        variantTMName:
+          default: mycompany/bartech/bazlamp
+        fetchName:
           type: string
-          default: omnicorp/omnicorp/1234newmpn5678
-        variantMpn:
+          default: mycompany/bartech/bazlamp
+        tmNameAttachmentFileName:
           type: string
-          default: 1234newmpn5678
-        bulkVariantOneTMName:
+          default: tmname-test.txt
+        tmIDAttachmentFileName:
           type: string
-          default: omnicorp/omnicorp/newmpn-bulk-1
-        bulkVariantTwoTMName:
+          default: tmid-test.txt
+        authorAttachmentFileName:
           type: string
-          default: omnicorp/omnicorp/newmpn-bulk-2
-        bulkVariantOneMpn:
+          default: author-test.txt
+        manufacturerAttachmentFileName:
           type: string
-          default: newmpn-bulk-1
-        bulkVariantTwoMpn:
-          type: string
-          default: newmpn-bulk-2
-        bulkVariantMpnsFilter:
-          type: string
-          default: newmpn-bulk-1,newmpn-bulk-2
-        bulkVariantTitle:
-          type: string
-          default: test title
-        bulkVariantDescription:
-          type: string
-          default: test desc
+          default: manufacturer-test.txt
 
     steps:
-      - stepId: getInventoryFilteredByMpnBeforeCreate
-        description: getInventoryFilteredByMpnBeforeCreate
-        operationId: getInventory
-        parameters:
-          - name: repo
-            in: query
-            value: $inputs.repoName
-          - name: filter.mpn
-            in: query
-            value: $inputs.variantMpn
+      - stepId: findRepo
+        description: findRepo
+        operationId: getRepos
         successCriteria:
           - condition: $statusCode == 200
         outputs:
           status: $statusCode
           body: $response.body#
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
-      - stepId: verifyVariantMissingBeforeCreate
-        description: verifyVariantMissingBeforeCreate
-        operationId: getInventoryByFetchName
+      - stepId: addTM
+        description: addTM
+        operationId: importThingModel
         parameters:
-          - name: fetchName
-            in: path
-            value: $inputs.variantTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 404
-        outputs:
-          status: $statusCode
-
-      - stepId: getParentByFetchName
-        description: getParentByFetchName
-        operationId: getInventoryByFetchName
-        parameters:
-          - name: fetchName
-            in: path
-            value: $inputs.parentFetchName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          parentTMID: $response.body#/data/tmID
-          body: $response.body#
-
-      - stepId: createVariantFromParent
-        description: createVariantFromParent
-        operationId: addThingModelVariant
-        parameters:
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        requestBody:
-          contentType: application/json
-          payload:
-            - tm-id: $steps.getParentByFetchName.outputs.parentTMID
-              mpn: $inputs.variantMpn
-        successCriteria:
-          - condition: $statusCode == 200 || $statusCode == 204
-        outputs:
-          status: $statusCode
-          body: $response.body#
-
-      - stepId: getVariantByFetchNameAfterCreate
-        description: getVariantByFetchNameAfterCreate
-        operationId: getInventoryByFetchName
-        parameters:
-          - name: fetchName
-            in: path
-            value: $inputs.variantTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          variantTMID: $response.body#/data/tmID
-          variantVersionBody: $response.body#
-
-      - stepId: getParentEntryAfterCreate
-        description: getParentEntryAfterCreate
-        operationId: getInventoryByName
-        parameters:
-          - name: tmName
-            in: path
-            value: $inputs.parentTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          parentEntryBody: $response.body#
-          parentHasVariant: $response.body#/data/0/hasVariant
-
-      - stepId: getVariantEntryAfterCreate
-        description: getVariantEntryAfterCreate
-        operationId: getInventoryByName
-        parameters:
-          - name: tmName
-            in: path
-            value: $inputs.variantTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          variantEntryBody: $response.body#
-          variantIsVariantOf: $response.body#/data/0/isVariantOf
-
-      - stepId: deleteParentTMWithVariants
-        description: deleteParentTMWithVariants
-        operationId: deleteThingModelById
-        parameters:
-          - name: tmID
-            in: path
-            value: $steps.getParentByFetchName.outputs.parentTMID
           - name: repo
             in: query
             value: $inputs.repoName
           - name: force
             in: query
-            value: "true"
-          - name: with-variants
-            in: query
-            value: "true"
-        successCriteria:
-          - condition: $statusCode == 204
-        outputs:
-          status: $statusCode
-
-      - stepId: getInventoryFilteredByMpnAfterCascadeDelete
-        description: getInventoryFilteredByMpnAfterCascadeDelete
-        operationId: getInventory
-        parameters:
-          - name: repo
-            in: query
-            value: $inputs.repoName
-          - name: filter.mpn
-            in: query
-            value: $inputs.variantMpn
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          body: $response.body#
-
-      - stepId: verifyVariantMissingAfterCascadeDelete
-        description: verifyVariantMissingAfterCascadeDelete
-        operationId: getInventoryByFetchName
-        parameters:
-          - name: fetchName
-            in: path
-            value: $inputs.variantTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 404
-        outputs:
-          status: $statusCode
-
-      - stepId: verifyParentMissingAfterCascadeDelete
-        description: verifyParentMissingAfterCascadeDelete
-        operationId: getThingModelById
-        parameters:
-          - name: tmID
-            in: path
-            value: $steps.getParentByFetchName.outputs.parentTMID
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 404
-        outputs:
-          status: $statusCode
-
-      - stepId: getParentByFetchNameForBulk
-        description: getParentByFetchNameForBulk
-        operationId: getInventoryByFetchName
-        parameters:
-          - name: fetchName
-            in: path
-            value: $inputs.parent2FetchName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          parentTMID: $response.body#/data/tmID
-          body: $response.body#
-
-      - stepId: createBulkVariantsFromParent
-        description: createBulkVariantsFromParent
-        operationId: addThingModelVariant
-        parameters:
-          - name: repo
-            in: query
-            value: $inputs.repoName
+            value: true
         requestBody:
           contentType: application/json
           payload:
-            - tm-id: $steps.getParentByFetchNameForBulk.outputs.parentTMID
-              mpn: $inputs.bulkVariantOneMpn
-              title: $inputs.bulkVariantTitle
-              description: $inputs.bulkVariantDescription
-            - tm-id: $steps.getParentByFetchNameForBulk.outputs.parentTMID
-              mpn: $inputs.bulkVariantTwoMpn
-              title: $inputs.bulkVariantTitle
-              description: $inputs.bulkVariantDescription
+            '@context':
+              - https://www.w3.org/2022/wot/td/v1.1
+              - schema:
+                  https://schema.org/
+            '@type': tm:ThingModel
+            title: BazLamp Smart
+            description: Arazzo generated TM used for lifecycle tests
+            schema:author:
+              schema:name: $inputs.authorName
+            schema:manufacturer:
+              schema:name: $inputs.manufacturerName
+            schema:mpn: $inputs.mpnName
+            version:
+              model: v0.0.1
+            properties:
+              status:
+                type: string
+                readOnly: true
+            actions:
+              toggle:
+                description: Turn the lamp on or off
         successCriteria:
-          - condition: $statusCode == 200
+          - condition: $statusCode == 201 || $statusCode == 409
         outputs:
           status: $statusCode
           body: $response.body#
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
-      - stepId: getBulkInventoryAfterCreate
-        description: getBulkInventoryAfterCreate
-        operationId: getInventory
-        parameters:
-          - name: repo
-            in: query
-            value: $inputs.repoName
-          - name: filter.mpn
-            in: query
-            value: $inputs.bulkVariantMpnsFilter
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          body: $response.body#
-
-      - stepId: getBulkVariantOneByFetchNameAfterCreate
-        description: getBulkVariantOneByFetchNameAfterCreate
+      - stepId: locateLatestTM
+        description: locateLatestTM
         operationId: getInventoryByFetchName
         parameters:
           - name: fetchName
             in: path
-            value: $inputs.bulkVariantOneTMName
+            value: $inputs.fetchName
           - name: repo
             in: query
             value: $inputs.repoName
@@ -338,31 +298,16 @@ workflows:
           status: $statusCode
           tmID: $response.body#/data/tmID
           body: $response.body#
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
-      - stepId: getBulkVariantTwoByFetchNameAfterCreate
-        description: getBulkVariantTwoByFetchNameAfterCreate
-        operationId: getInventoryByFetchName
-        parameters:
-          - name: fetchName
-            in: path
-            value: $inputs.bulkVariantTwoTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          tmID: $response.body#/data/tmID
-          body: $response.body#
-
-      - stepId: fetchBulkVariantOneThingModel
-        description: fetchBulkVariantOneThingModel
+      - stepId: getTMToVerify
+        description: getTMToVerify
         operationId: getThingModelById
         parameters:
           - name: tmID
             in: path
-            value: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.tmID
+            value: $steps.locateLatestTM.outputs.tmID
           - name: repo
             in: query
             value: $inputs.repoName
@@ -370,17 +315,123 @@ workflows:
           - condition: $statusCode == 200
         outputs:
           status: $statusCode
-          body: $response.body#
-          title: $response.body#/title
-          description: $response.body#/description
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
-      - stepId: getParentEntryAfterBulkCreate
-        description: getParentEntryAfterBulkCreate
-        operationId: getInventoryByName
+      - stepId: addTMNameAttachment
+        description: addTMNameAttachment
+        operationId: putTMNameAttachment
         parameters:
           - name: tmName
             in: path
-            value: $inputs.parent2TMName
+            value: $inputs.tmName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.tmNameAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: true
+        requestBody:
+          contentType: text/plain
+          payload: attachment created through tmName endpoint
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: addTMIDAttachment
+        description: addTMIDAttachment
+        operationId: putTMIDAttachment
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateLatestTM.outputs.tmID
+          - name: attachmentFileName
+            in: path
+            value: $inputs.tmIDAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: true
+        requestBody:
+          contentType: text/plain
+          payload: attachment created through tmID endpoint
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: addAuthorAttachment
+        description: addAuthorAttachment
+        operationId: putAuthorAttachmentByName
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.authorAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: true
+        requestBody:
+          contentType: text/plain
+          payload: attachment created through author endpoint
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: addManufacturerAttachment
+        description: addManufacturerAttachment
+        operationId: putManufacturerAttachmentByName
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: manufacturerName
+            in: path
+            value: $inputs.manufacturerName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.manufacturerAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: true
+        requestBody:
+          contentType: text/plain
+          payload: attachment created through manufacturer endpoint
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: listTMNameAttachments
+        description: listTMNameAttachments
+        operationId: listTMNameAttachmentsByName
+        parameters:
+          - name: tmName
+            in: path
+            value: $inputs.tmName
           - name: repo
             in: query
             value: $inputs.repoName
@@ -389,15 +440,152 @@ workflows:
         outputs:
           status: $statusCode
           body: $response.body#
-          hasVariant: $response.body#/data/0/hasVariant
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
-      - stepId: deleteParentAfterBulkCreate
-        description: deleteParentAfterBulkCreate
+      - stepId: listTMIDAttachments
+        description: listTMIDAttachments
+        operationId: listThingModelAttachmentsById
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateLatestTM.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: listAuthorAttachments
+        description: listAuthorAttachments
+        operationId: listAuthorsAttachments
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: listManufacturerAttachments
+        description: listManufacturerAttachments
+        operationId: listManufacturersAttachments
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: manufacturerName
+            in: path
+            value: $inputs.manufacturerName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: deleteTMNameAttachment
+        description: deleteTMNameAttachment
+        operationId: deleteTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $inputs.tmName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.tmNameAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: deleteTMIDAttachment
+        description: deleteTMIDAttachment
+        operationId: deleteThingModelAttachmentByName
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateLatestTM.outputs.tmID
+          - name: attachmentFileName
+            in: path
+            value: $inputs.tmIDAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: deleteAuthorAttachment
+        description: deleteAuthorAttachment
+        operationId: deleteAuthorAttachmentByName
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.authorAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: deleteManufacturerAttachment
+        description: deleteManufacturerAttachment
+        operationId: deleteManufacturerAttachmentByName
+        parameters:
+          - name: authorName
+            in: path
+            value: $inputs.authorName
+          - name: manufacturerName
+            in: path
+            value: $inputs.manufacturerName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.manufacturerAttachmentFileName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
+
+      - stepId: deleteTM
+        description: deleteTM
         operationId: deleteThingModelById
         parameters:
           - name: tmID
             in: path
-            value: $steps.getParentByFetchNameForBulk.outputs.parentTMID
+            value: $steps.locateLatestTM.outputs.tmID
           - name: repo
             in: query
             value: $inputs.repoName
@@ -407,204 +595,543 @@ workflows:
         successCriteria:
           - condition: $statusCode == 204
         outputs:
-          status: $statusCode
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
-      - stepId: verifyParentMissingAfterBulkParentDelete
-        description: verifyParentMissingAfterBulkParentDelete
-        operationId: getThingModelById
-        parameters:
-          - name: tmID
-            in: path
-            value: $steps.getParentByFetchNameForBulk.outputs.parentTMID
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 404
-        outputs:
-          status: $statusCode
-
-      - stepId: getBulkVariantOneEntryAfterParentDelete
-        description: getBulkVariantOneEntryAfterParentDelete
-        operationId: getInventoryByName
+      - stepId: verifyTMNameAttachmentsAfterDelete
+        description: verifyTMNameAttachmentsAfterDelete
+        operationId: listTMNameAttachmentsByName
         parameters:
           - name: tmName
             in: path
-            value: $inputs.bulkVariantOneTMName
+            value: $inputs.tmName
           - name: repo
             in: query
             value: $inputs.repoName
         successCriteria:
-          - condition: $statusCode == 200
-          - condition: $response.body#/data/0/isVariantOf == ""
+          - condition: $statusCode == 200 || $statusCode == 404
         outputs:
-          status: $statusCode
-          body: $response.body#
-          isVariantOf: $response.body#/data/0/isVariantOf
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
-      - stepId: getBulkVariantTwoEntryAfterParentDelete
-        description: getBulkVariantTwoEntryAfterParentDelete
-        operationId: getInventoryByName
-        parameters:
-          - name: tmName
-            in: path
-            value: $inputs.bulkVariantTwoTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-          - condition: $response.body#/data/0/isVariantOf == ""
-        outputs:
-          status: $statusCode
-          body: $response.body#
-          isVariantOf: $response.body#/data/0/isVariantOf
-
-      - stepId: deleteBulkVariantOneTM
-        description: deleteBulkVariantOneTM
-        operationId: deleteThingModelById
-        parameters:
-          - name: tmID
-            in: path
-            value: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.tmID
-          - name: repo
-            in: query
-            value: $inputs.repoName
-          - name: force
-            in: query
-            value: "true"
-        successCriteria:
-          - condition: $statusCode == 204
-        outputs:
-          status: $statusCode
-
-      - stepId: deleteBulkVariantTwoTM
-        description: deleteBulkVariantTwoTM
-        operationId: deleteThingModelById
-        parameters:
-          - name: tmID
-            in: path
-            value: $steps.getBulkVariantTwoByFetchNameAfterCreate.outputs.tmID
-          - name: repo
-            in: query
-            value: $inputs.repoName
-          - name: force
-            in: query
-            value: "true"
-        successCriteria:
-          - condition: $statusCode == 204
-        outputs:
-          status: $statusCode
-
-      - stepId: getBulkInventoryAfterDelete
-        description: getBulkInventoryAfterDelete
-        operationId: getInventory
-        parameters:
-          - name: repo
-            in: query
-            value: $inputs.repoName
-          - name: filter.mpn
-            in: query
-            value: $inputs.bulkVariantMpnsFilter
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          body: $response.body#
-
-      - stepId: verifyBulkVariantOneMissingAfterDelete
-        description: verifyBulkVariantOneMissingAfterDelete
+      - stepId: verifyTMDeleted
+        description: verifyTMDeleted
         operationId: getInventoryByFetchName
         parameters:
           - name: fetchName
             in: path
-            value: $inputs.bulkVariantOneTMName
+            value: $inputs.fetchName
           - name: repo
             in: query
             value: $inputs.repoName
         successCriteria:
-          - condition: $statusCode == 404
+          - condition: $statusCode == 404 || $statusCode == 200
         outputs:
-          status: $statusCode
-
-      - stepId: verifyBulkVariantTwoMissingAfterDelete
-        description: verifyBulkVariantTwoMissingAfterDelete
-        operationId: getInventoryByFetchName
-        parameters:
-          - name: fetchName
-            in: path
-            value: $inputs.bulkVariantTwoTMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 404
-        outputs:
-          status: $statusCode
-
-      - stepId: getParentEntryAfterBulkDelete
-        description: getParentEntryAfterBulkDelete
-        operationId: getInventoryByName
-        parameters:
-          - name: tmName
-            in: path
-            value: $inputs.parent2TMName
-          - name: repo
-            in: query
-            value: $inputs.repoName
-        successCriteria:
-          - condition: $statusCode == 200
-        outputs:
-          status: $statusCode
-          body: $response.body#
-          hasVariant: $response.body#/data/0/hasVariant
+          debugStatusCode: $statusCode
+          debugResponseBody: $response.body#
 
     outputs:
-      step01_inventory_filter_before_status: $steps.getInventoryFilteredByMpnBeforeCreate.outputs.status
-      step01_inventory_filter_before_body: $steps.getInventoryFilteredByMpnBeforeCreate.outputs.body
-      step01_variant_missing_before_status: $steps.verifyVariantMissingBeforeCreate.outputs.status
-      step02_parent_lookup_status: $steps.getParentByFetchName.outputs.status
-      step02_parent_lookup_body: $steps.getParentByFetchName.outputs.body
-      step02_create_variant_status: $steps.createVariantFromParent.outputs.status
-      step02_create_variant_body: $steps.createVariantFromParent.outputs.body
-      step03_variant_lookup_status: $steps.getVariantByFetchNameAfterCreate.outputs.status
-      step03_variant_lookup_body: $steps.getVariantByFetchNameAfterCreate.outputs.variantVersionBody
-      step03_parent_entry_status: $steps.getParentEntryAfterCreate.outputs.status
-      step03_parent_entry_hasVariant: $steps.getParentEntryAfterCreate.outputs.parentHasVariant
-      step03_variant_entry_status: $steps.getVariantEntryAfterCreate.outputs.status
-      step03_variant_entry_isVariantOf: $steps.getVariantEntryAfterCreate.outputs.variantIsVariantOf
-      step04_delete_parent_with_variants_status: $steps.deleteParentTMWithVariants.outputs.status
-      step05_inventory_filter_after_cascade_delete_status: $steps.getInventoryFilteredByMpnAfterCascadeDelete.outputs.status
-      step05_inventory_filter_after_cascade_delete_body: $steps.getInventoryFilteredByMpnAfterCascadeDelete.outputs.body
-      step05_variant_missing_after_cascade_delete_status: $steps.verifyVariantMissingAfterCascadeDelete.outputs.status
-      step05_parent_missing_after_cascade_delete_status: $steps.verifyParentMissingAfterCascadeDelete.outputs.status
-      step06_parent_lookup_for_bulk_status: $steps.getParentByFetchNameForBulk.outputs.status
-      step06_parent_lookup_for_bulk_body: $steps.getParentByFetchNameForBulk.outputs.body
-      step06_create_bulk_variants_status: $steps.createBulkVariantsFromParent.outputs.status
-      step06_create_bulk_variants_body: $steps.createBulkVariantsFromParent.outputs.body
-      step07_bulk_inventory_after_create_status: $steps.getBulkInventoryAfterCreate.outputs.status
-      step07_bulk_inventory_after_create_body: $steps.getBulkInventoryAfterCreate.outputs.body
-      step08_bulk_variant_one_lookup_status: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.status
-      step08_bulk_variant_one_lookup_body: $steps.getBulkVariantOneByFetchNameAfterCreate.outputs.body
-      step08_bulk_variant_two_lookup_status: $steps.getBulkVariantTwoByFetchNameAfterCreate.outputs.status
-      step08_bulk_variant_two_lookup_body: $steps.getBulkVariantTwoByFetchNameAfterCreate.outputs.body
-      step09_bulk_variant_one_fetch_status: $steps.fetchBulkVariantOneThingModel.outputs.status
-      step09_bulk_variant_one_fetch_body: $steps.fetchBulkVariantOneThingModel.outputs.body
-      step09_bulk_variant_one_fetch_title: $steps.fetchBulkVariantOneThingModel.outputs.title
-      step09_bulk_variant_one_fetch_description: $steps.fetchBulkVariantOneThingModel.outputs.description
-      step10_parent_entry_after_bulk_create_status: $steps.getParentEntryAfterBulkCreate.outputs.status
-      step10_parent_entry_after_bulk_create_hasVariant: $steps.getParentEntryAfterBulkCreate.outputs.hasVariant
-      step11_parent_delete_after_bulk_create_status: $steps.deleteParentAfterBulkCreate.outputs.status
-      step12_parent_missing_after_bulk_parent_delete_status: $steps.verifyParentMissingAfterBulkParentDelete.outputs.status
-      step13_bulk_variant_one_entry_after_parent_delete_status: $steps.getBulkVariantOneEntryAfterParentDelete.outputs.status
-      step13_bulk_variant_one_entry_after_parent_delete_isVariantOf: $steps.getBulkVariantOneEntryAfterParentDelete.outputs.isVariantOf
-      step13_bulk_variant_two_entry_after_parent_delete_status: $steps.getBulkVariantTwoEntryAfterParentDelete.outputs.status
-      step13_bulk_variant_two_entry_after_parent_delete_isVariantOf: $steps.getBulkVariantTwoEntryAfterParentDelete.outputs.isVariantOf
-      step14_delete_bulk_variant_one_status: $steps.deleteBulkVariantOneTM.outputs.status
-      step14_delete_bulk_variant_two_status: $steps.deleteBulkVariantTwoTM.outputs.status
-      step15_bulk_inventory_after_delete_status: $steps.getBulkInventoryAfterDelete.outputs.status
-      step15_bulk_inventory_after_delete_body: $steps.getBulkInventoryAfterDelete.outputs.body
-      step15_bulk_variant_one_missing_after_delete_status: $steps.verifyBulkVariantOneMissingAfterDelete.outputs.status
-      step15_bulk_variant_two_missing_after_delete_status: $steps.verifyBulkVariantTwoMissingAfterDelete.outputs.status
-      step16_parent_entry_after_bulk_delete_status: $steps.getParentEntryAfterBulkDelete.outputs.status
-      step16_parent_entry_after_bulk_delete_hasVariant: $steps.getParentEntryAfterBulkDelete.outputs.hasVariant
+      step1_find_repo_status: $steps.findRepo.outputs.debugStatusCode
+      step1_find_repo_body: $steps.findRepo.outputs.debugResponseBody
+      step2_add_tm_status: $steps.addTM.outputs.debugStatusCode
+      step2_add_tm_body: $steps.addTM.outputs.debugResponseBody
+      step3_1_locate_latest_tm_status: $steps.locateLatestTM.outputs.debugStatusCode
+      step3_1_locate_latest_tm_body: $steps.locateLatestTM.outputs.debugResponseBody
+      step3_2_get_tm_to_verify_status: $steps.getTMToVerify.outputs.debugStatusCode
+      step3_2_get_tm_to_verify_body: $steps.getTMToVerify.outputs.debugResponseBody
+      step4_1_add_tmname_attachment_status: $steps.addTMNameAttachment.outputs.debugStatusCode
+      step4_2_add_tmid_attachment_status: $steps.addTMIDAttachment.outputs.debugStatusCode
+      step4_3_add_author_attachment_status: $steps.addAuthorAttachment.outputs.debugStatusCode
+      step4_4_add_manufacturer_attachment_status: $steps.addManufacturerAttachment.outputs.debugStatusCode
+      step5_1_list_tmname_attachments_status: $steps.listTMNameAttachments.outputs.debugStatusCode
+      step5_1_list_tmname_attachments_body: $steps.listTMNameAttachments.outputs.debugResponseBody
+      step5_2_list_tmid_attachments_status: $steps.listTMIDAttachments.outputs.debugStatusCode
+      step5_2_list_tmid_attachments_body: $steps.listTMIDAttachments.outputs.debugResponseBody
+      step5_3_list_author_attachments_status: $steps.listAuthorAttachments.outputs.debugStatusCode
+      step5_3_list_author_attachments_body: $steps.listAuthorAttachments.outputs.debugResponseBody
+      step5_4_list_manufacturer_attachments_status: $steps.listManufacturerAttachments.outputs.debugStatusCode
+      step5_4_list_manufacturer_attachments_body: $steps.listManufacturerAttachments.outputs.debugResponseBody
+      step6_1_delete_tmname_attachment_status: $steps.deleteTMNameAttachment.outputs.debugStatusCode
+      step6_2_delete_tmid_attachment_status: $steps.deleteTMIDAttachment.outputs.debugStatusCode
+      step6_3_delete_author_attachment_status: $steps.deleteAuthorAttachment.outputs.debugStatusCode
+      step6_4_delete_manufacturer_attachment_status: $steps.deleteManufacturerAttachment.outputs.debugStatusCode
+      step6_5_delete_tm_status: $steps.deleteTM.outputs.debugStatusCode
+      step7_1_verify_tmname_attachments_after_delete_status: $steps.verifyTMNameAttachmentsAfterDelete.outputs.debugStatusCode
+      step7_1_verify_tmname_attachments_after_delete_body: $steps.verifyTMNameAttachmentsAfterDelete.outputs.debugResponseBody
+      step7_2_verify_tm_deleted_status: $steps.verifyTMDeleted.outputs.debugStatusCode
+      step7_2_verify_tm_deleted_body: $steps.verifyTMDeleted.outputs.debugResponseBody
+
+  - workflowId: adminHealthcheckWorkflow
+    summary: Inspect all health endpoints
+    description: Calls all health check endpoints and verifies healthy status.
+
+    steps:
+      - stepId: healthOverall
+        description: healthOverall
+        operationId: getHealth
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: healthLive
+        description: healthLive
+        operationId: getHealthLive
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: healthReady
+        description: healthReady
+        operationId: getHealthReady
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: healthStartup
+        description: healthStartup
+        operationId: getHealthStartup
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+    outputs:
+      step1_overall_status: $steps.healthOverall.outputs.status
+      step2_live_status: $steps.healthLive.outputs.status
+      step3_ready_status: $steps.healthReady.outputs.status
+      step4_startup_status: $steps.healthStartup.outputs.status
+
+  - workflowId: uiDashboardWorkflow
+    summary: Dashboard pagination and filtering bootstrap workflow
+    description: |
+      Simulates UI dashboard data loading:
+      1. Initial paginated inventory display
+      2. Filter settings fetch (authors, manufacturers, repos, protocol hints)
+      3. Attempt to request png attachment for listed TMs
+
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: example-catalog
+        page:
+          type: integer
+          default: 1
+        pageSize:
+          type: integer
+          default: 10
+        previewAttachmentName:
+          type: string
+          default: preview.png
+
+    steps:
+      - stepId: initialInventoryPage
+        description: initialInventoryPage
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: page
+            in: query
+            value: $inputs.page
+          - name: pageSize
+            in: query
+            value: $inputs.pageSize
+          - name: filter.latest
+            in: query
+            value: true
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          firstTMName: $response.body#/data/0/tmName
+          secondTMName: $response.body#/data/1/tmName
+          inventoryBody: $response.body#
+
+      - stepId: fetchAuthors
+        description: fetchAuthors
+        operationId: getAuthors
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: fetchManufacturers
+        description: fetchManufacturers
+        operationId: getManufacturers
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: fetchRepos
+        description: fetchRepos
+        operationId: getRepos
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: fetchProtocolHintsFromInventory
+        description: fetchProtocolHintsFromInventory
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: page
+            in: query
+            value: 1
+          - name: pageSize
+            in: query
+            value: 5
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          body: $response.body#
+
+      - stepId: uploadPngAttachmentForFirstTM
+        description: uploadPngAttachmentForFirstTM
+        operationId: putTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.firstTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: true
+        requestBody:
+          contentType: text/plain
+          payload: preview image placeholder uploaded by uiDashboardWorkflow
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+      - stepId: requestPngAttachmentForFirstTM
+        description: requestPngAttachmentForFirstTM
+        operationId: getTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.firstTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+
+      - stepId: requestPngAttachmentForSecondTM
+        description: requestPngAttachmentForSecondTM
+        operationId: getTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.secondTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 404
+        outputs:
+          status: $statusCode
+
+      - stepId: deletePngAttachmentForFirstTM
+        description: deletePngAttachmentForFirstTM
+        operationId: deleteTMNameAttachment
+        parameters:
+          - name: tmName
+            in: path
+            value: $steps.initialInventoryPage.outputs.firstTMName
+          - name: attachmentFileName
+            in: path
+            value: $inputs.previewAttachmentName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 204
+        outputs:
+          status: $statusCode
+
+    outputs:
+      step1_inventory_page: $steps.initialInventoryPage.outputs.inventoryBody
+      step2_1_authors: $steps.fetchAuthors.outputs.body
+      step2_2_manufacturers: $steps.fetchManufacturers.outputs.body
+      step2_3_repos: $steps.fetchRepos.outputs.body
+      step2_4_protocol_hints: $steps.fetchProtocolHintsFromInventory.outputs.body
+      step2_5_upload_first_png_status: $steps.uploadPngAttachmentForFirstTM.outputs.status
+      step3_1_first_png_fetch_status: $steps.requestPngAttachmentForFirstTM.outputs.status
+      step3_2_second_png_fetch_status: $steps.requestPngAttachmentForSecondTM.outputs.status
+      step4_1_delete_first_png_status: $steps.deletePngAttachmentForFirstTM.outputs.status
+
+  - workflowId: exportingWorkflow
+    summary: Trigger and download export
+    description: |
+      1. Start export.
+      2. Download archive.
+
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: example-catalog
+
+    steps:
+      - stepId: startExport
+        description: startExport
+        operationId: exportCatalog
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 202 || $statusCode == 409
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: downloadExport
+        description: downloadExport
+        operationId: getExportedCatalog
+        successCriteria:
+          - condition: $statusCode == 200
+        onFailure:
+          - name: retryDownloadWhileExportIsPacking
+            type: retry
+            stepId: downloadExport
+            retryAfter: 15
+            retryLimit: 12
+            criteria:
+              - condition: $statusCode == 409
+        outputs:
+          status: $statusCode
+
+    outputs:
+      step1_start_export_status: $steps.startExport.outputs.status
+      step1_start_export_body: $steps.startExport.outputs.body
+      step2_download_export_status: $steps.downloadExport.outputs.status
+  
+  - workflowId: findingTMsWorkflow
+    summary: Find TMs by repository and author
+    description: |
+      Initial TM finding workflow:
+      1. Find a specific repository.
+      2. Find TMs in that specific repository.
+      3. Find TMs for a specific author in that repository.
+      4. Filter TMs by manufacturer omnicorp.
+      5. Locate the tmName and tmID of the first TM.
+      6. Fetch the first TM by name.
+      7. Fetch the first TM by tmID.
+      8. Search for text BazLamp.
+      9. Locate the tmName of the first search result.
+      10. Fetch the searched TM by name.
+
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: example-catalog
+        authorName:
+          type: string
+          default: omnicorp
+
+    steps:
+      - stepId: findRepo
+        description: findRepo
+        operationId: getRepos
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: findByRepo
+        description: findByRepo
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: findByAuthor
+        description: findByAuthor
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.author
+            in: query
+            value: $inputs.authorName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: filterByManufacturer
+        description: filterByManufacturer
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.manufacturer
+            in: query
+            value: omnicorp
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: locateFirstTM
+        description: locateFirstTM
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.manufacturer
+            in: query
+            value: omnicorp
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          firstTMName: $response.body#/data/0/tmName
+          firstTMID: $response.body#/data/0/versions/0/tmID
+
+      - stepId: fetchFirstTMByName
+        description: fetchFirstTMByName
+        operationId: getThingModelByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $steps.locateFirstTM.outputs.firstTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: fetchFirstTMByTMID
+        description: fetchFirstTMByTMID
+        operationId: getThingModelById
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateFirstTM.outputs.firstTMID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: searchBazLamp
+        description: searchBazLamp
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: search
+            in: query
+            value: BazLamp
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+      - stepId: locateSearchedTM
+        description: locateSearchedTM
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: search
+            in: query
+            value: Lamp Thing
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+          searchedTMName: $response.body#/data/0/tmName
+
+      - stepId: fetchSearchedTMByName
+        description: fetchSearchedTMByName
+        operationId: getThingModelByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: $steps.locateSearchedTM.outputs.searchedTMName
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          status: $statusCode
+          body: $response.body#
+
+    outputs:
+      step01_find_repo_status: $steps.findRepo.outputs.status
+      step01_find_repo_body: $steps.findRepo.outputs.body
+      step02_find_by_repo_status: $steps.findByRepo.outputs.status
+      step02_find_by_repo_body: $steps.findByRepo.outputs.body
+      step03_find_by_author_status: $steps.findByAuthor.outputs.status
+      step03_find_by_author_body: $steps.findByAuthor.outputs.body
+      step04_filter_by_manufacturer_status: $steps.filterByManufacturer.outputs.status
+      step04_filter_by_manufacturer_body: $steps.filterByManufacturer.outputs.body
+      step05_locate_first_tm_status: $steps.locateFirstTM.outputs.status
+      step05_locate_first_tm_body: $steps.locateFirstTM.outputs.body
+      step05_locate_first_tm_name: $steps.locateFirstTM.outputs.firstTMName
+      step05_locate_first_tm_id: $steps.locateFirstTM.outputs.firstTMID
+      step06_fetch_first_tm_by_name_status: $steps.fetchFirstTMByName.outputs.status
+      step06_fetch_first_tm_by_name_body: $steps.fetchFirstTMByName.outputs.body
+      step07_fetch_first_tm_by_tmid_status: $steps.fetchFirstTMByTMID.outputs.status
+      step07_fetch_first_tm_by_tmid_body: $steps.fetchFirstTMByTMID.outputs.body
+      step08_search_bazlamp_status: $steps.searchBazLamp.outputs.status
+      step08_search_bazlamp_body: $steps.searchBazLamp.outputs.body
+      step09_locate_searched_tm_status: $steps.locateSearchedTM.outputs.status
+      step09_locate_searched_tm_body: $steps.locateSearchedTM.outputs.body
+      step09_locate_searched_tm_name: $steps.locateSearchedTM.outputs.searchedTMName
+      step10_fetch_searched_tm_by_name_status: $steps.fetchSearchedTMByName.outputs.status
+      step10_fetch_searched_tm_by_name_body: $steps.fetchSearchedTMByName.outputs.body
+
