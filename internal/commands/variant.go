@@ -72,13 +72,14 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, familyTMID strin
 	if err != nil {
 		return []AddVariantBatchResult{{Error: fmt.Sprintf("failed to initialize repo: %v", err)}}
 	}
-	familyID := uuid.NewString()
+	targetFamilyID := ""
 	if familyTMID != "" {
-		familyID, err = findFamilyByTMID(ctx, repo, familyTMID)
+		targetFamilyID, err = findFamilyByTMID(ctx, repo, familyTMID)
 		if err != nil {
 			return []AddVariantBatchResult{{Error: fmt.Sprintf("failed to resolve family: %v", err)}}
 		}
 	}
+	familyBySourceName := map[string]string{}
 
 	for _, req := range requests {
 		tmID := strings.TrimSpace(req.TmID)
@@ -90,7 +91,8 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, familyTMID strin
 			continue
 		}
 
-		if _, err := model.ParseTMID(tmID); err != nil {
+		parsedTMID, err := model.ParseTMID(tmID)
+		if err != nil {
 			results = append(results, AddVariantBatchResult{
 				TmID:  req.TmID,
 				Error: fmt.Sprintf("invalid tm-id: %v", err),
@@ -140,6 +142,18 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, familyTMID strin
 			}
 		}
 
+		familyID := targetFamilyID
+		if familyID == "" {
+			familyID, err = resolveSourceFamilyID(ctx, repo, tmID, parsedTMID.Name, familyBySourceName)
+			if err != nil {
+				results = append(results, AddVariantBatchResult{
+					TmID:  req.TmID,
+					Error: fmt.Sprintf("failed to resolve family: %v", err),
+				})
+				continue
+			}
+		}
+
 		variantTMID, err := model.ParseTMID(variantID)
 		if err == nil {
 			err = repo.SetFamily(ctx, variantTMID.Name, familyID)
@@ -162,6 +176,22 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, familyTMID strin
 }
 
 var errTMNotInFamily = errors.New("Thing Model is not part of a variant family")
+
+func resolveSourceFamilyID(ctx context.Context, repo repos.Repo, sourceTMID string, sourceName string, familyBySourceName map[string]string) (string, error) {
+	if familyID := familyBySourceName[sourceName]; familyID != "" {
+		return familyID, nil
+	}
+	familyID, err := findFamilyByTMID(ctx, repo, sourceTMID)
+	if errors.Is(err, errTMNotInFamily) {
+		familyID = uuid.NewString()
+		err = repo.SetFamily(ctx, sourceName, familyID)
+	}
+	if err != nil {
+		return "", err
+	}
+	familyBySourceName[sourceName] = familyID
+	return familyID, nil
+}
 
 func findFamilyByTMID(ctx context.Context, repo repos.Repo, tmID string) (string, error) {
 	parsed, err := model.ParseTMID(tmID)

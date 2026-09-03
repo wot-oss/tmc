@@ -17,12 +17,14 @@ type variantCall struct {
 
 type stubVariantRepo struct {
 	fetchRaw     []byte
+	fetchRaws    map[string][]byte
 	fetchErr     error
 	importErr    error
 	importResult repos.ImportResult
 	indexErr     error
 	setFamilyErr error
 	listResult   model.SearchResult
+	listResults  map[string]model.SearchResult
 
 	lastFetchID   string
 	importedTMIDs []string
@@ -54,6 +56,9 @@ func (s *stubVariantRepo) Import(_ context.Context, id model.TMID, raw []byte, _
 
 func (s *stubVariantRepo) Fetch(_ context.Context, id string) (string, []byte, error) {
 	s.lastFetchID = id
+	if raw, ok := s.fetchRaws[id]; ok {
+		return id, raw, s.fetchErr
+	}
 	return id, s.fetchRaw, s.fetchErr
 }
 
@@ -66,7 +71,12 @@ func (s *stubVariantRepo) CheckIntegrity(_ context.Context, _ model.ResourceFilt
 	return nil, nil
 }
 
-func (s *stubVariantRepo) List(_ context.Context, _ *model.Filters) (model.SearchResult, error) {
+func (s *stubVariantRepo) List(_ context.Context, filters *model.Filters) (model.SearchResult, error) {
+	if filters != nil && s.listResults != nil {
+		if result, ok := s.listResults[filters.Name]; ok {
+			return result, nil
+		}
+	}
 	return s.listResult, nil
 }
 
@@ -113,6 +123,17 @@ func searchResultWithTM(tmID, familyID string) model.SearchResult {
 		FamilyID: familyID,
 		Versions: []model.FoundVersion{{IndexVersion: &model.IndexVersion{TMID: tmID}}},
 	}}}
+}
+
+func rawThingModel(tmID, mpn string) []byte {
+	return []byte(`{
+		"id":"` + tmID + `",
+		"description":"source",
+		"schema:manufacturer":{"schema:name":"man"},
+		"schema:mpn":"` + mpn + `",
+		"schema:author":{"schema:name":"aut"},
+		"version":{"model":"v1.0.0"}
+	}`)
 }
 
 func TestAddVariantToRepo_WithExistingVariantID(t *testing.T) {
@@ -209,16 +230,39 @@ func TestAddVariantToRepo_InvalidOptionCombination(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestAddVariantsBatchAssignsOneFamily(t *testing.T) {
+func TestCreateVariantFromParent_MpnOnlyChangeGeneratesDifferentTMID(t *testing.T) {
+	parentTMID := "aut/man/source/v1.0.0-20260326150433-965fd7c3238b.tm.json"
+	parentRaw := rawThingModel(parentTMID, "source")
+	parentHash, _, err := CalculateFileDigest(parentRaw)
+	assert.NoError(t, err)
+	repo := &stubVariantRepo{fetchRaw: parentRaw}
+
+	variantID, err := createVariantFromParent(context.Background(), repo, parentTMID, AddVariantOptions{Mpn: "variant-a"})
+	assert.NoError(t, err)
+
+	parentID, err := model.ParseTMID(parentTMID)
+	assert.NoError(t, err)
+	variantTMID, err := model.ParseTMID(variantID)
+	assert.NoError(t, err)
+	assert.NotEqual(t, parentTMID, variantID)
+	assert.NotEqual(t, parentID.Name, variantTMID.Name)
+	assert.Equal(t, "aut/man/variant-a", variantTMID.Name)
+	assert.NotEqual(t, parentHash, variantTMID.Version.Hash)
+}
+
+func TestAddVariantsBatchAssignsOneFamilyForSameSource(t *testing.T) {
 	parentTMID := "aut/man/mpn/v1.0.0-20260326150433-965fd7c3238b.tm.json"
-	repo := &stubVariantRepo{fetchRaw: []byte(`{
+	repo := &stubVariantRepo{
+		fetchRaw: []byte(`{
 		"id":"aut/man/mpn/v1.0.0-20260326150433-965fd7c3238b.tm.json",
 		"description":"source",
 		"schema:manufacturer":{"schema:name":"man"},
 		"schema:mpn":"mpn",
 		"schema:author":{"schema:name":"aut"},
 		"version":{"model":"v1.0.0"}
-	}`)}
+	}`),
+		listResult: searchResultWithTM(parentTMID, ""),
+	}
 	originalGet := repos.Get
 	t.Cleanup(func() { repos.Get = originalGet })
 	repos.Get = func(model.RepoSpec) (repos.Repo, error) { return repo, nil }
@@ -228,11 +272,50 @@ func TestAddVariantsBatchAssignsOneFamily(t *testing.T) {
 		{TmID: parentTMID, Mpn: "variant-b"},
 	})
 
-	if assert.Len(t, results, 2) && assert.Len(t, repo.familyCalls, 2) {
+	if assert.Len(t, results, 2) && assert.Len(t, repo.familyCalls, 3) {
 		assert.Empty(t, results[0].Error)
 		assert.Empty(t, results[1].Error)
 		assert.NotEmpty(t, repo.familyCalls[0].familyID)
 		assert.Equal(t, repo.familyCalls[0].familyID, repo.familyCalls[1].familyID)
+		assert.Equal(t, repo.familyCalls[0].familyID, repo.familyCalls[2].familyID)
+		assert.Equal(t, "aut/man/mpn", repo.familyCalls[0].tmName)
+		assert.Equal(t, "aut/man/variant-a", repo.familyCalls[1].tmName)
+		assert.Equal(t, "aut/man/variant-b", repo.familyCalls[2].tmName)
+	}
+}
+
+func TestAddVariantsBatchCreatesSeparateFamiliesForDifferentSourcesWithoutFamilies(t *testing.T) {
+	sourceATMID := "aut/man/source-a/v1.0.0-20260326150433-965fd7c3238a.tm.json"
+	sourceBTMID := "aut/man/source-b/v1.0.0-20260326150433-965fd7c3238b.tm.json"
+	repo := &stubVariantRepo{
+		fetchRaws: map[string][]byte{
+			sourceATMID: rawThingModel(sourceATMID, "source-a"),
+			sourceBTMID: rawThingModel(sourceBTMID, "source-b"),
+		},
+		listResults: map[string]model.SearchResult{
+			"aut/man/source-a": searchResultWithTM(sourceATMID, ""),
+			"aut/man/source-b": searchResultWithTM(sourceBTMID, ""),
+		},
+	}
+	originalGet := repos.Get
+	t.Cleanup(func() { repos.Get = originalGet })
+	repos.Get = func(model.RepoSpec) (repos.Repo, error) { return repo, nil }
+
+	results := AddVariantsBatch(context.Background(), model.EmptySpec, "", []AddVariantBatchRequest{
+		{TmID: sourceATMID, Mpn: "variant-a"},
+		{TmID: sourceBTMID, Mpn: "variant-b"},
+	})
+
+	if assert.Len(t, results, 2) && assert.Len(t, repo.familyCalls, 4) {
+		assert.Empty(t, results[0].Error)
+		assert.Empty(t, results[1].Error)
+		assert.Equal(t, repo.familyCalls[0].familyID, repo.familyCalls[1].familyID)
+		assert.Equal(t, repo.familyCalls[2].familyID, repo.familyCalls[3].familyID)
+		assert.NotEqual(t, repo.familyCalls[0].familyID, repo.familyCalls[2].familyID)
+		assert.Equal(t, "aut/man/source-a", repo.familyCalls[0].tmName)
+		assert.Equal(t, "aut/man/variant-a", repo.familyCalls[1].tmName)
+		assert.Equal(t, "aut/man/source-b", repo.familyCalls[2].tmName)
+		assert.Equal(t, "aut/man/variant-b", repo.familyCalls[3].tmName)
 	}
 }
 
@@ -262,6 +345,35 @@ func TestAddVariantsBatchReusesExistingFamily(t *testing.T) {
 	if assert.Len(t, results, 1) && assert.Len(t, repo.familyCalls, 1) {
 		assert.Empty(t, results[0].Error)
 		assert.Equal(t, "family-1", repo.familyCalls[0].familyID)
+	}
+}
+
+func TestAddVariantsBatchReusesSourceFamilyWhenNoFamilyTMIDProvided(t *testing.T) {
+	sourceTMID := "aut/man/source/v1.0.0-20260326150433-965fd7c3238b.tm.json"
+	repo := &stubVariantRepo{
+		fetchRaw: []byte(`{
+			"id":"aut/man/source/v1.0.0-20260326150433-965fd7c3238b.tm.json",
+			"description":"source",
+			"schema:manufacturer":{"schema:name":"man"},
+			"schema:mpn":"source",
+			"schema:author":{"schema:name":"aut"},
+			"version":{"model":"v1.0.0"}
+		}`),
+		listResult: searchResultWithTM(sourceTMID, "family-1"),
+	}
+	originalGet := repos.Get
+	t.Cleanup(func() { repos.Get = originalGet })
+	repos.Get = func(model.RepoSpec) (repos.Repo, error) { return repo, nil }
+
+	results := AddVariantsBatch(context.Background(), model.EmptySpec, "", []AddVariantBatchRequest{{
+		TmID: sourceTMID,
+		Mpn:  "variant-c",
+	}})
+
+	if assert.Len(t, results, 1) && assert.Len(t, repo.familyCalls, 1) {
+		assert.Empty(t, results[0].Error)
+		assert.Equal(t, "family-1", repo.familyCalls[0].familyID)
+		assert.Equal(t, "aut/man/variant-c", repo.familyCalls[0].tmName)
 	}
 }
 

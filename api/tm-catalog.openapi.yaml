@@ -809,11 +809,10 @@ paths:
         - thing-models
       summary: Create a family of Thing Model variants
       description: |
-        Creates variants from the source TMIDs in the request body and groups all
-        successfully created variants into one family. When the `tm-id` query
-        parameter is provided, that Thing Model must already belong to a family
-        and the new variants are added to the same family. Otherwise, a new family
-        is created.
+        Creates variants from the source TMIDs in the request body and assigns
+        variant families. When the `tm-id` query parameter is provided, that Thing
+        Model all new variants are added to the same family. Otherwise, each request
+        creates a new family for that source Thing Model and its new variant.
       operationId: addThingModelVariant
       parameters:
         - $ref: '#/components/parameters/RepoDisambiguator'

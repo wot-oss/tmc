@@ -4,6 +4,9 @@
 
 ### Added
 
+- Managing mpn variations
+- Added `filter.family` parameter to REST API `/inventory` listing
+
 ### Changed
 
 ### Fixed
