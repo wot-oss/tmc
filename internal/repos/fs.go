@@ -387,6 +387,22 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 	return nil, model.ErrTMNotFound
 }
 
+func (f *FileRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+	err := f.checkRootValid()
+	if err != nil {
+		return err
+	}
+
+	unlock, err := f.lockIndex(ctx)
+	defer unlock()
+	if err != nil {
+		return err
+	}
+
+	_, _, _, _, err = f.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID))
+	return err
+}
+
 func (f *FileRepo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
 	err := f.checkRootValid()
 	if err != nil {
@@ -831,12 +847,29 @@ func (f *FileRepo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, 
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	f.preserveFamilies(oldIndex, newIndex)
 	err = f.reindexAttachments(updatedAttContainers, oldIndex, newIndex)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
 	return newIndex, names, fileCount, nil
+}
+
+func (f *FileRepo) preserveFamilies(oldIndex *model.Index, newIndex *model.Index) {
+	if oldIndex == nil || newIndex == nil {
+		return
+	}
+	for _, entry := range newIndex.Data {
+		if len(entry.Versions) == 0 {
+			continue
+		}
+		oldEntry := oldIndex.FindByName(entry.Name)
+		if oldEntry == nil {
+			continue
+		}
+		entry.FamilyID = oldEntry.FamilyID
+	}
 }
 
 func (f *FileRepo) reindexAttachments(containers map[model.AttachmentContainerRef]struct{}, oldIndex *model.Index, newIndex *model.Index) error {

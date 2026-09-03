@@ -12,6 +12,7 @@ func Delete(ctx context.Context, rSpec model.RepoSpec, id string) error {
 	if err != nil {
 		return err
 	}
+
 	err = r.Delete(ctx, id)
 	return err
 }

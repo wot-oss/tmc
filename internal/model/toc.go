@@ -63,6 +63,7 @@ type IndexEntry struct {
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer"`
 	Mpn          string             `json:"schema:mpn"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
+	FamilyID     string             `json:"family,omitempty"`
 	Versions     []*IndexVersion    `json:"versions"`
 	AttachmentContainer
 }

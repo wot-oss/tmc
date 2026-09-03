@@ -292,7 +292,7 @@ func Test_Inventory(t *testing.T) {
 		filterRoute := fmt.Sprintf("%s?filter.author=%s&filter.manufacturer=%s&filter.mpn=%s&filter.protocol=%s",
 			route, fAuthors, fMan, fMpn, fProtos)
 		// and given: filters, expected to be converted from request query parameters
-		expectedFilters := model.ToFilters(&fAuthors, &fMan, &fMpn, &fProtos, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
+		expectedFilters := model.ToFilters(&fAuthors, &fMan, &fMpn, &fProtos, nil, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListInventory", mock.Anything, "", expectedFilters, -1, -1).Return(&listResult1, nil).Once()
 
@@ -635,7 +635,7 @@ func Test_Authors(t *testing.T) {
 			route, fMan, fMpn)
 
 		// and given: filters, expected to be converted from request query parameters
-		expectedFilters := model.ToFilters(nil, &fMan, &fMpn, nil, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
+		expectedFilters := model.ToFilters(nil, &fMan, &fMpn, nil, nil, nil, nil, &model.FilterOptions{NameFilterType: model.PrefixMatch})
 
 		hs.On("ListAuthors", mock.Anything, expectedFilters).Return(authors, nil).Once()
 
@@ -1193,6 +1193,79 @@ func Test_ImportThingModel(t *testing.T) {
 		assertResponse500(t, rec, route)
 	})
 }
+
+func Test_AddThingModelVariant(t *testing.T) {
+	parentTMID := "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccc.tm.json"
+	route := "/thing-models/variants?tm-id=" + url.QueryEscape(parentTMID)
+
+	hs := mocks.NewHandlerService(t)
+	httpHandler := setupTestHttpHandler(hs)
+
+	t.Run("create a new family from a batch", func(t *testing.T) {
+		requests := []commands.AddVariantBatchRequest{{TmID: parentTMID, Mpn: "bt2000-a"}, {TmID: parentTMID, Mpn: "bt2000-b"}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", "", requests).Return([]commands.AddVariantBatchResult{}).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, "/thing-models/variants").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`[{"tm-id":"` + parentTMID + `","mpn":"bt2000-a"},{"tm-id":"` + parentTMID + `","mpn":"bt2000-b"}]`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("add a batch to an existing family", func(t *testing.T) {
+		requests := []commands.AddVariantBatchRequest{{TmID: parentTMID, Mpn: "bt2000-c"}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, requests).Return([]commands.AddVariantBatchResult{}).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`[{"tm-id":"` + parentTMID + `","mpn":"bt2000-c"}]`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("link existing variant from query parameter", func(t *testing.T) {
+		routeWithVariant := route + "&variant-id=" + url.QueryEscape("a-corp/eagle/bt2000-special/v1.0.0-20240108140117-243d1b462ccd.tm.json")
+		hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			VariantID: "a-corp/eagle/bt2000-special/v1.0.0-20240108140117-243d1b462ccd.tm.json",
+		}).Return(nil).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, routeWithVariant).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{}`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, 0, rec.Body.Len())
+	})
+
+	t.Run("create variant from mpn and body overrides", func(t *testing.T) {
+		hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			Mpn:         "bt2000-special",
+			Title:       "new title",
+			Description: "blablabla",
+		}).Return(nil).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"mpn":"bt2000-special","title":"new title","description":"blablabla"}`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		assert.Equal(t, 0, rec.Body.Len())
+	})
+
+	t.Run("fails without tm-id", func(t *testing.T) {
+		rec := testutils.NewRequest(http.MethodPost, "/thing-models/variants?variant-id=xzy.tm.jsonld").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"title":"new title","description":"blablabla"}`)).
+			RunOnHandler(httpHandler)
+
+		assertResponse400(t, rec, "/thing-models/variants?variant-id=xzy.tm.jsonld")
+	})
+}
+
 func Test_ImportAttachment(t *testing.T) {
 
 	attContent := []byte("# readme.md file")

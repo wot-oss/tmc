@@ -34,6 +34,7 @@ type FoundEntry struct {
 	Manufacturer SchemaManufacturer
 	Mpn          string
 	Author       SchemaAuthor
+	FamilyID     string
 	Versions     []FoundVersion
 	FoundIn      FoundSource
 	AttachmentContainer
@@ -120,6 +121,7 @@ type Filters struct {
 	Protocol     []string
 	Name         string
 	ChangedSince string
+	Family       string
 	Options      FilterOptions
 }
 
@@ -163,6 +165,10 @@ func (sr *SearchResult) Filter(filters *Filters) error {
 		}
 
 		if !matchesProtocolFilter(filters.Protocol, entry) {
+			return true
+		}
+
+		if !matchesFamilyFilter(filters.Family, entry) {
 			return true
 		}
 		return false
@@ -302,6 +308,13 @@ func matchesNameFilter(acceptedValue string, value string, options FilterOptions
 	}
 }
 
+func matchesFamilyFilter(family string, entry FoundEntry) bool {
+	if family == "" {
+		return true
+	}
+	return entry.FamilyID == family
+}
+
 func matchesFilter(acceptedValues []string, value string) bool {
 	if len(acceptedValues) == 0 {
 		return true
@@ -309,10 +322,10 @@ func matchesFilter(acceptedValues []string, value string) bool {
 	return slices.Contains(acceptedValues, utils.SanitizeName(value))
 }
 
-func ToFilters(author, manufacturer, mpn, protocol, name, changedSince *string, opts *FilterOptions) *Filters {
+func ToFilters(author, manufacturer, mpn, protocol, name, changedSince, family *string, opts *FilterOptions) *Filters {
 	var search *Filters
 	isSet := func(s *string) bool { return s != nil && *s != "" }
-	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(protocol) || isSet(name) || isSet(changedSince) {
+	if isSet(author) || isSet(manufacturer) || isSet(mpn) || isSet(protocol) || isSet(name) || isSet(changedSince) || isSet(family) {
 		search = &Filters{}
 		if isSet(author) {
 			search.Author = strings.Split(*author, DefaultListSeparator)
@@ -331,6 +344,9 @@ func ToFilters(author, manufacturer, mpn, protocol, name, changedSince *string, 
 		}
 		if isSet(changedSince) {
 			search.ChangedSince = *changedSince
+		}
+		if isSet(family) {
+			search.Family = *family
 		}
 		if opts != nil {
 			search.Options = *opts

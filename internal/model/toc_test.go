@@ -464,6 +464,26 @@ func TestIndex_Insert(t *testing.T) {
 	assert.Equal(t, 1, len(idx.Data[3].Versions))
 }
 
+func TestIndexEntryFamily(t *testing.T) {
+	idx := &Index{}
+	variantID := "aut/man/mpn-variant/v1.0.0-20231023121314-qwerty1234ab.tm.json"
+
+	err := idx.Insert(&ThingModel{
+		Manufacturer: SchemaManufacturer{Name: "man"},
+		Mpn:          "mpn-variant",
+		Author:       SchemaAuthor{Name: "aut"},
+		ID:           variantID,
+		Description:  "variant",
+	})
+	assert.NoError(t, err)
+
+	entry := idx.FindByName("aut/man/mpn-variant")
+	if assert.NotNil(t, entry) {
+		entry.FamilyID = "family-1"
+		assert.Equal(t, "family-1", idx.FindByName("aut/man/mpn-variant").FamilyID)
+	}
+}
+
 func TestIndex_Delete(t *testing.T) {
 	tests := []struct {
 		name       string

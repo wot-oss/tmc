@@ -13,6 +13,33 @@ const (
 	Names      GetCompletionsParamsKind = "names"
 )
 
+// AddVariantBatchRequest defines model for AddVariantBatchRequest.
+type AddVariantBatchRequest struct {
+	// Description Optional description override for the new variant
+	Description *string `json:"description,omitempty"`
+
+	// Mpn MPN for the new variant to be created
+	Mpn *string `json:"mpn,omitempty"`
+
+	// Title Optional title override for the new variant
+	Title *string `json:"title,omitempty"`
+
+	// TmId TMID of the parent Thing Model
+	TmId string `json:"tm-id"`
+}
+
+// AddVariantBatchResult defines model for AddVariantBatchResult.
+type AddVariantBatchResult struct {
+	// Error Error message if the operation failed (only present on failure)
+	Error *string `json:"error,omitempty"`
+
+	// TmId TMID of the parent Thing Model from the request
+	TmId string `json:"tm-id"`
+
+	// VariantId TMID of the created variant (only present on success)
+	VariantId *string `json:"variant-id,omitempty"`
+}
+
 // AttachmentLinks defines model for AttachmentLinks.
 type AttachmentLinks struct {
 	Content string `json:"content"`
@@ -76,8 +103,11 @@ type InfoVersion struct {
 
 // InventoryEntry defines model for InventoryEntry.
 type InventoryEntry struct {
-	Attachments *AttachmentsList     `json:"attachments,omitempty"`
-	Links       *InventoryEntryLinks `json:"links,omitempty"`
+	Attachments *AttachmentsList `json:"attachments,omitempty"`
+
+	// Family Identifier shared by all Thing Models in the same variant family
+	Family *string              `json:"family,omitempty"`
+	Links  *InventoryEntryLinks `json:"links,omitempty"`
 
 	// Repo The name of the source repository where the inventory entry or version resides.
 	// May be left empty when there is only a single repository served by the backend and thus there is not need for
@@ -328,6 +358,10 @@ type GetInventoryParams struct {
 	// Also, providing only YYYY, or YYYYMM, or YYYYMMDD, etc. is accepted, and the missing time parts are automatically filled with zeros, resulting in filtering for changes since the provided date with a precision corresponding to the provided time parts. For example, `?filter.changedSince=202601` will filter for entries changed since January 1st, 2026, 00:00:00.
 	FilterChangedSince *string `form:"filter.changedSince,omitempty" json:"filter.changedSince,omitempty"`
 
+	// FilterFamily Filters the inventory to return only the entries that belong to the specified family.
+	// If this filter is present in the URL (e.g., `?filter.family=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), only the entries that belong to that family will be returned.
+	FilterFamily *string `form:"filter.family,omitempty" json:"filter.family,omitempty"`
+
 	// Page Page number for pagination (starting from 1)
 	//
 	// - If `pageSize` is provided along with `page`, both values are used for pagination.
@@ -487,6 +521,24 @@ type PutTMNameAttachmentParams struct {
 	Force *ForceImport `form:"force,omitempty" json:"force,omitempty"`
 }
 
+// AddThingModelVariantJSONBody defines parameters for AddThingModelVariant.
+type AddThingModelVariantJSONBody = []AddVariantBatchRequest
+
+// AddThingModelVariantParams defines parameters for AddThingModelVariant.
+type AddThingModelVariantParams struct {
+	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
+	Repo *RepoDisambiguator `form:"repo,omitempty" json:"repo,omitempty"`
+
+	// TmId TMID of a member of the family to which new variants should be added
+	TmId *string `form:"tm-id,omitempty" json:"tm-id,omitempty"`
+
+	// VariantId TMID of an existing variant Thing Model to link (single-object requests only)
+	VariantId *string `form:"variant-id,omitempty" json:"variant-id,omitempty"`
+
+	// WithAttachments Whether to also link the attachments of the parent TM to the variant TM (defaults to false)
+	WithAttachments *bool `form:"with-attachments,omitempty" json:"with-attachments,omitempty"`
+}
+
 // DeleteThingModelByIdParams defines parameters for DeleteThingModelById.
 type DeleteThingModelByIdParams struct {
 	// Repo Source/target repository name. The parameter is required when repository is ambiguous. See '/repos'
@@ -534,3 +586,6 @@ type PutTMIDAttachmentParams struct {
 
 // ImportThingModelJSONRequestBody defines body for ImportThingModel for application/json ContentType.
 type ImportThingModelJSONRequestBody = ImportThingModelJSONBody
+
+// AddThingModelVariantJSONRequestBody defines body for AddThingModelVariant for application/json ContentType.
+type AddThingModelVariantJSONRequestBody = AddThingModelVariantJSONBody

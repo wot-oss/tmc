@@ -406,6 +406,17 @@ func (s *S3Repo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundV
 	return nil, model.ErrTMNotFound
 }
 
+func (s *S3Repo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+	unlock, err := s.lockIndex(ctx)
+	defer unlock()
+	if err != nil {
+		return err
+	}
+
+	_, _, _, _, err = s.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID))
+	return err
+}
+
 func (s *S3Repo) ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error {
 	unlock, err := s.lockIndex(ctx)
 	defer unlock()
@@ -732,12 +743,29 @@ func (s *S3Repo) fullIndexRebuild(ctx context.Context, oldIndex *model.Index, _ 
 	if err != nil {
 		return nil, nil, 0, err
 	}
+	s.preserveFamilies(oldIndex, newIndex)
 	err = s.reindexAttachments(ctx, updatedAttContainers, oldIndex, newIndex)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
 	return newIndex, names, fileCount, nil
+}
+
+func (s *S3Repo) preserveFamilies(oldIndex *model.Index, newIndex *model.Index) {
+	if oldIndex == nil || newIndex == nil {
+		return
+	}
+	for _, entry := range newIndex.Data {
+		if len(entry.Versions) == 0 {
+			continue
+		}
+		oldEntry := oldIndex.FindByName(entry.Name)
+		if oldEntry == nil {
+			continue
+		}
+		entry.FamilyID = oldEntry.FamilyID
+	}
 }
 
 func (s *S3Repo) reindexAttachments(ctx context.Context, containers map[model.AttachmentContainerRef]struct{}, oldIndex *model.Index, newIndex *model.Index) error {

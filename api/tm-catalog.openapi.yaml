@@ -97,6 +97,14 @@ paths:
           schema:
             type: string
           example: '20260101000000'
+        - name: 'filter.family'
+          in: query
+          description: |
+            Filters the inventory to return only the entries that belong to the specified family.
+            If this filter is present in the URL (e.g., `?filter.family=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), only the entries that belong to that family will be returned.
+          schema:
+            type: string
+          example: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
         - name: 'page'
           in: query
           description: |
@@ -785,6 +793,82 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '409':
           description: Conflict, Thing Model already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /thing-models/variants:
+    post:
+      tags:
+        - thing-models
+      summary: Create a family of Thing Model variants
+      description: |
+        Creates variants from the source TMIDs in the request body and assigns
+        variant families. When the `tm-id` query parameter is provided, that Thing
+        Model all new variants are added to the same family. Otherwise, each request
+        creates a new family for that source Thing Model and its new variant.
+      operationId: addThingModelVariant
+      parameters:
+        - $ref: '#/components/parameters/RepoDisambiguator'
+        - name: tm-id
+          in: query
+          description: TMID of a member of the family to which new variants should be added
+          required: false
+          schema:
+            type: string
+        - name: variant-id
+          in: query
+          description: TMID of an existing variant Thing Model to link (single-object requests only)
+          required: false
+          schema:
+            type: string
+        - name: with-attachments
+          in: query
+          description: Whether to also link the attachments of the parent TM to the variant TM (defaults to false)
+          required: false
+          schema:
+            type: boolean
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/AddVariantBatchRequest'
+      responses:
+        '200':
+          description: Operation completed
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddVariantBatchResult'
+        '204':
+          description: Successful operation
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
           content:
             application/json:
               schema:
@@ -1679,10 +1763,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InventoryEntryVersion'
+        family:
+          type: string
+          description: Identifier shared by all Thing Models in the same variant family
+          example: '01K3M9Z2V6P4HR8J1G5S7Q0XNC'
         links:
           $ref: '#/components/schemas/InventoryEntryLinks'
         attachments:
-          $ref: "#/components/schemas/AttachmentsList"
+          $ref: "#/components/schemas/AttachmentsList"    
     InventoryEntryVersionResponse:
       type: object
       required:
@@ -1802,6 +1890,52 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/ImportThingModelResult'
+    AddThingModelVariantRequest:
+      type: object
+      properties:
+        variant-id:
+          type: string
+          description: TMID of an existing variant Thing Model to link
+        mpn:
+          type: string
+          description: MPN for a new variant created from the parent Thing Model
+        title:
+          type: string
+          description: Optional title override for a newly created variant
+        description:
+          type: string
+          description: Optional description override for a newly created variant
+    AddVariantBatchRequest:
+      type: object
+      required:
+        - tm-id
+      properties:
+        tm-id:
+          type: string
+          description: TMID of the parent Thing Model
+        mpn:
+          type: string
+          description: MPN for the new variant to be created
+        title:
+          type: string
+          description: Optional title override for the new variant
+        description:
+          type: string
+          description: Optional description override for the new variant
+    AddVariantBatchResult:
+      type: object
+      required:
+        - tm-id
+      properties:
+        tm-id:
+          type: string
+          description: TMID of the parent Thing Model from the request
+        variant-id:
+          type: string
+          description: TMID of the created variant (only present on success)
+        error:
+          type: string
+          description: Error message if the operation failed (only present on failure)
     AuthorsResponse:
       type: object
       required:
