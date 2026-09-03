@@ -413,6 +413,9 @@ func addFilters(u *url.URL, search *model.Filters) {
 		if search.ChangedSince != "" {
 			vals.Set("filter.changedSince", search.ChangedSince)
 		}
+		if search.Family != "" {
+			vals.Set("filter.family", search.Family)
+		}
 		u.RawQuery = vals.Encode()
 	}
 	appendQueryArray(u, "filter.author", search.Author)

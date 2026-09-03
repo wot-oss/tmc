@@ -358,6 +358,10 @@ type GetInventoryParams struct {
 	// Also, providing only YYYY, or YYYYMM, or YYYYMMDD, etc. is accepted, and the missing time parts are automatically filled with zeros, resulting in filtering for changes since the provided date with a precision corresponding to the provided time parts. For example, `?filter.changedSince=202601` will filter for entries changed since January 1st, 2026, 00:00:00.
 	FilterChangedSince *string `form:"filter.changedSince,omitempty" json:"filter.changedSince,omitempty"`
 
+	// FilterFamily Filters the inventory to return only the entries that belong to the specified family.
+	// If this filter is present in the URL (e.g., `?filter.family=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), only the entries that belong to that family will be returned.
+	FilterFamily *string `form:"filter.family,omitempty" json:"filter.family,omitempty"`
+
 	// Page Page number for pagination (starting from 1)
 	//
 	// - If `pageSize` is provided along with `page`, both values are used for pagination.

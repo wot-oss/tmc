@@ -97,6 +97,14 @@ paths:
           schema:
             type: string
           example: '20260101000000'
+        - name: 'filter.family'
+          in: query
+          description: |
+            Filters the inventory to return only the entries that belong to the specified family.
+            If this filter is present in the URL (e.g., `?filter.family=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), only the entries that belong to that family will be returned.
+          schema:
+            type: string
+          example: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
         - name: 'page'
           in: query
           description: |

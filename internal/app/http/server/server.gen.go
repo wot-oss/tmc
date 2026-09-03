@@ -579,6 +579,14 @@ func (siw *ServerInterfaceWrapper) GetInventory(w http.ResponseWriter, r *http.R
 		return
 	}
 
+	// ------------- Optional query parameter "filter.family" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.family", r.URL.Query(), &params.FilterFamily)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.family", Err: err})
+		return
+	}
+
 	// ------------- Optional query parameter "page" -------------
 
 	err = runtime.BindQueryParameter("form", true, false, "page", r.URL.Query(), &params.Page)
