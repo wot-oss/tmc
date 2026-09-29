@@ -569,9 +569,8 @@ func findAttachmentContainer(index *model.Index, ref model.AttachmentContainerRe
 			soleVersion: len(e.Versions) == 1,
 		}, nil
 	}
-	// k==model.AttachmentContainerKindTMName -> return inventory entry's attachments
 	return &attachmentsContainer{
-		attachments: e.Attachments,
+		attachments: c.Attachments,
 		soleVersion: false,
 	}, nil
 }
@@ -654,7 +653,6 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (index
 	var manufacturers []string
 	var mpns []string
 	var protocols []string
-
 	start := time.Now()
 
 	oldNames := f.readNamesFile()
@@ -957,11 +955,11 @@ func (f *FileRepo) readNamesFile() []string {
 	lines, _ := utils.ReadFileLines(filepath.Join(f.root, RepoConfDir, TmNamesFile))
 	return lines
 }
+
 func (f *FileRepo) writeHelperTxtFile(names []string, fileName string) error {
-	slices.Sort(names)
-	names = slices.Compact(names)
-	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, fileName), defaultFilePermissions)
+	return utils.AtomicWriteFile(filepath.Join(f.root, RepoConfDir, fileName), helperTxtFileContent(names), defaultFilePermissions)
 }
+
 func (f *FileRepo) readIgnoreFile() (*ignore.GitIgnore, error) {
 	ignoreFileName := filepath.Join(f.root, RepoConfDir, TmIgnoreFile)
 	_, err := os.Stat(ignoreFileName)

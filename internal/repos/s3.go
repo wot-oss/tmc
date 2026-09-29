@@ -1096,9 +1096,7 @@ func (s *S3Repo) readNamesFile(ctx context.Context) []string {
 }
 
 func (s *S3Repo) writeHelperTxtFile(ctx context.Context, names []string, fileName string) error {
-	slices.Sort(names)
-	names = slices.Compact(names)
-	return s3WriteFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, fileName), names)
+	return s3WriteObject(ctx, s.client, s.bucket, path.Join(RepoConfDir, fileName), helperTxtFileContent(names))
 }
 
 func (s *S3Repo) readIgnoreFile(ctx context.Context) (*ignore.GitIgnore, error) {

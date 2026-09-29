@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -62,6 +63,15 @@ const (
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
+
+// helperTxtFileContent sorts and deduplicates the names, drops empty ones and joins them without a trailing newline
+func helperTxtFileContent(names []string) []byte {
+	names = slices.Clone(names)
+	slices.Sort(names)
+	names = slices.Compact(names)
+	names = slices.DeleteFunc(names, func(s string) bool { return strings.TrimSpace(s) == "" })
+	return []byte(strings.Join(names, "\n"))
+}
 
 var repoDefaultIgnore = []string{
 	"# ignore any top-level files",
