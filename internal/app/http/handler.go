@@ -455,6 +455,21 @@ func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params serv
 	HandleJsonResponse(w, r, http.StatusOK, resp)
 }
 
+func (h *TmcHandler) GetProtocols(w http.ResponseWriter, r *http.Request, params server.GetProtocolsParams) {
+
+	filters := convertParams(params)
+
+	protocols, err := h.Service.ListProtocols(r.Context(), filters)
+
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	resp := toProtocolsResponse(protocols)
+	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
 func (h *TmcHandler) GetRepos(w http.ResponseWriter, r *http.Request) {
 	rs, err := h.Service.ListRepos(r.Context())
 

@@ -348,6 +348,13 @@ func toMpnsResponse(mpns []string) server.MpnsResponse {
 	return resp
 }
 
+func toProtocolsResponse(protocols []string) server.ProtocolsResponse {
+	resp := server.ProtocolsResponse{
+		Data: protocols,
+	}
+	return resp
+}
+
 func toReposResponse(repos []model.RepoDescription) server.ReposResponse {
 	rds := []server.RepoDescription{}
 	for _, r := range repos {

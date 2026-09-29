@@ -131,7 +131,7 @@ func (f *FileRepo) Delete(ctx context.Context, id string) error {
 	}
 	_ = rmEmptyDirs(dir, f.root)
 
-	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForIds(id))
+	_, _, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForIds(id))
 	return err
 }
 
@@ -257,23 +257,23 @@ func (f *FileRepo) Fetch(ctx context.Context, id string) (string, []byte, error)
 	return actualId, b, err
 }
 
-func (f *FileRepo) Index(ctx context.Context, ids ...string) (authorsList, manufacturersList, mpnsList []string, err error) {
+func (f *FileRepo) Index(ctx context.Context, ids ...string) (authorsList, manufacturersList, mpnsList, protocolsList []string, err error) {
 	err = f.checkRootValid()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	unlock, err := f.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if len(ids) == 0 {
-		_, aut, man, mpns, err := f.updateIndex(ctx, f.fullIndexRebuild)
-		return aut, man, mpns, err
+		_, aut, man, mpns, protocols, err := f.updateIndex(ctx, f.fullIndexRebuild)
+		return aut, man, mpns, protocols, err
 	}
-	_, aut, man, mpns, err := f.updateIndex(ctx, f.indexUpdaterForIds(ids...))
-	return aut, man, mpns, err
+	_, aut, man, mpns, protocols, err := f.updateIndex(ctx, f.indexUpdaterForIds(ids...))
+	return aut, man, mpns, protocols, err
 }
 
 func (f *FileRepo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
@@ -421,7 +421,7 @@ func (f *FileRepo) ImportAttachment(ctx context.Context, container model.Attachm
 		return err
 	}
 
-	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(container, attachment, content))
+	_, _, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForImportAttachment(container, attachment, content))
 	if err != nil {
 		return err
 	}
@@ -513,7 +513,7 @@ func (f *FileRepo) DeleteAttachment(ctx context.Context, ref model.AttachmentCon
 		return err
 	}
 
-	_, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ref, attachmentName))
+	_, _, _, _, _, err = f.updateIndex(ctx, f.indexUpdaterForDeleteAttachment(ref, attachmentName))
 	if err != nil {
 		return err
 	}
@@ -569,9 +569,8 @@ func findAttachmentContainer(index *model.Index, ref model.AttachmentContainerRe
 			soleVersion: len(e.Versions) == 1,
 		}, nil
 	}
-	// k==model.AttachmentContainerKindTMName -> return inventory entry's attachments
 	return &attachmentsContainer{
-		attachments: e.Attachments,
+		attachments: c.Attachments,
 		soleVersion: false,
 	}, nil
 }
@@ -648,11 +647,12 @@ func makeAbs(dir string) (string, error) {
 	}
 }
 
-func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (index *model.Index, authorsList, manufacturersList, mpnsList []string, err error) {
+func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (index *model.Index, authorsList, manufacturersList, mpnsList, protocolsList []string, err error) {
 	// Prepare data collection for logging stats
 	var authors []string
 	var manufacturers []string
 	var mpns []string
+	var protocols []string
 	start := time.Now()
 
 	oldNames := f.readNamesFile()
@@ -666,7 +666,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (index
 
 	newIndex, names, fileCount, err := updater(ctx, oldIndex, oldNames)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 
 	newIndex.Sort()
@@ -678,7 +678,7 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (index
 	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
 	err = utils.AtomicWriteFile(f.indexFilename(), newIndexJson, defaultFilePermissions)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	for _, d := range newIndex.Data {
 		if !slices.Contains(authors, d.Author.Name) {
@@ -690,28 +690,39 @@ func (f *FileRepo) updateIndex(ctx context.Context, updater indexUpdater) (index
 		if !slices.Contains(mpns, d.Mpn) {
 			mpns = append(mpns, d.Mpn)
 		}
+		for _, version := range d.Versions {
+			for _, protocol := range version.Protocols {
+				if !slices.Contains(protocols, protocol) {
+					protocols = append(protocols, protocol)
+				}
+			}
+		}
 	}
 	err = f.writeHelperTxtFile(names, TmNamesFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	err = f.writeHelperTxtFile(authors, TmAuthorsFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	err = f.writeHelperTxtFile(manufacturers, TmManufacturersFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	err = f.writeHelperTxtFile(mpns, TmMpnsFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
+	}
+	err = f.writeHelperTxtFile(protocols, TmProtocolsFile)
+	if err != nil {
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 
 	msg := fmt.Sprintf("Updated index with %d records in %s ", fileCount, duration.String())
 	utils.GetLogger(ctx, "FileRepo").Debug(msg)
 
-	return newIndex, authors, manufacturers, mpns, nil
+	return newIndex, authors, manufacturers, mpns, protocols, nil
 }
 
 type indexUpdater func(ctx context.Context, oldIndex *model.Index, oldNames []string) (newIndex *model.Index, newNames []string, updatedFileCount int, err error)
@@ -944,11 +955,11 @@ func (f *FileRepo) readNamesFile() []string {
 	lines, _ := utils.ReadFileLines(filepath.Join(f.root, RepoConfDir, TmNamesFile))
 	return lines
 }
+
 func (f *FileRepo) writeHelperTxtFile(names []string, fileName string) error {
-	slices.Sort(names)
-	names = slices.Compact(names)
-	return utils.WriteFileLines(names, filepath.Join(f.root, RepoConfDir, fileName), defaultFilePermissions)
+	return utils.AtomicWriteFile(filepath.Join(f.root, RepoConfDir, fileName), helperTxtFileContent(names), defaultFilePermissions)
 }
+
 func (f *FileRepo) readIgnoreFile() (*ignore.GitIgnore, error) {
 	ignoreFileName := filepath.Join(f.root, RepoConfDir, TmIgnoreFile)
 	_, err := os.Stat(ignoreFileName)

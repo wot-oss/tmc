@@ -208,7 +208,7 @@ func (s *S3Repo) Delete(ctx context.Context, id string) error {
 		}
 	}
 
-	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForIds(id))
+	_, _, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForIds(id))
 	return err
 }
 
@@ -287,20 +287,20 @@ func (s *S3Repo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	return actualId, b, err
 }
 
-func (s *S3Repo) Index(ctx context.Context, ids ...string) (authors, manufacturers, mpns []string, err error) {
+func (s *S3Repo) Index(ctx context.Context, ids ...string) (authors, manufacturers, mpns, protocols []string, err error) {
 
 	unlock, err := s.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if len(ids) == 0 {
-		_, aut, man, mpns, err := s.updateIndex(ctx, s.fullIndexRebuild)
-		return aut, man, mpns, err
+		_, aut, man, mpns, protocols, err := s.updateIndex(ctx, s.fullIndexRebuild)
+		return aut, man, mpns, protocols, err
 	}
-	_, aut, man, mpns, err := s.updateIndex(ctx, s.indexUpdaterForIds(ids...))
-	return aut, man, mpns, err
+	_, aut, man, mpns, protocols, err := s.updateIndex(ctx, s.indexUpdaterForIds(ids...))
+	return aut, man, mpns, protocols, err
 }
 
 func (s *S3Repo) CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error) {
@@ -431,7 +431,7 @@ func (s *S3Repo) ImportAttachment(ctx context.Context, container model.Attachmen
 		return err
 	}
 
-	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForImportAttachment(container, attachment, content))
+	_, _, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForImportAttachment(container, attachment, content))
 	if err != nil {
 		return err
 	}
@@ -514,7 +514,7 @@ func (s *S3Repo) DeleteAttachment(ctx context.Context, ref model.AttachmentConta
 		return err
 	}
 
-	_, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForDeleteAttachment(ref, attachmentName))
+	_, _, _, _, _, err = s.updateIndex(ctx, s.indexUpdaterForDeleteAttachment(ref, attachmentName))
 	if err != nil {
 		return err
 	}
@@ -551,11 +551,12 @@ func (s *S3Repo) getAttachmentsDir(ref model.AttachmentContainerRef) (string, er
 	return model.RelAttachmentsDir(ref)
 }
 
-func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (index *model.Index, authorsList, manufacturersList, mpnsList []string, err error) {
+func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (index *model.Index, authorsList, manufacturersList, mpnsList, protocolsList []string, err error) {
 	// Prepare data collection for logging stats
 	var authors []string
 	var manufacturers []string
 	var mpns []string
+	var protocols []string
 	start := time.Now()
 
 	oldNames := s.readNamesFile(ctx)
@@ -569,7 +570,7 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (index *
 
 	newIndex, names, fileCount, err := updater(ctx, oldIndex, oldNames)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 
 	newIndex.Sort()
@@ -580,7 +581,7 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (index *
 	newIndexJson, _ := json.MarshalIndent(newIndex, "", "  ")
 	err = s3WriteObject(ctx, s.client, s.bucket, s.indexFilename(), newIndexJson)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	for _, d := range newIndex.Data {
 		if !slices.Contains(authors, d.Author.Name) {
@@ -592,28 +593,39 @@ func (s *S3Repo) updateIndex(ctx context.Context, updater indexUpdater) (index *
 		if !slices.Contains(mpns, d.Mpn) {
 			mpns = append(mpns, d.Mpn)
 		}
+		for _, version := range d.Versions {
+			for _, protocol := range version.Protocols {
+				if !slices.Contains(protocols, protocol) {
+					protocols = append(protocols, protocol)
+				}
+			}
+		}
 	}
 	err = s.writeHelperTxtFile(ctx, names, TmNamesFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	err = s.writeHelperTxtFile(ctx, authors, TmAuthorsFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	err = s.writeHelperTxtFile(ctx, manufacturers, TmManufacturersFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 	err = s.writeHelperTxtFile(ctx, mpns, TmMpnsFile)
 	if err != nil {
-		return nil, authors, manufacturers, mpns, err
+		return nil, authors, manufacturers, mpns, protocols, err
+	}
+	err = s.writeHelperTxtFile(ctx, protocols, TmProtocolsFile)
+	if err != nil {
+		return nil, authors, manufacturers, mpns, protocols, err
 	}
 
 	msg := fmt.Sprintf("Updated index with %d records in %s ", fileCount, duration.String())
 	utils.GetLogger(ctx, "S3Repo").Debug(msg)
 
-	return newIndex, authors, manufacturers, mpns, nil
+	return newIndex, authors, manufacturers, mpns, protocols, nil
 }
 
 func (s *S3Repo) indexUpdaterForIds(ids ...string) indexUpdater {
@@ -1084,9 +1096,7 @@ func (s *S3Repo) readNamesFile(ctx context.Context) []string {
 }
 
 func (s *S3Repo) writeHelperTxtFile(ctx context.Context, names []string, fileName string) error {
-	slices.Sort(names)
-	names = slices.Compact(names)
-	return s3WriteFileLines(ctx, s.client, s.bucket, path.Join(RepoConfDir, fileName), names)
+	return s3WriteObject(ctx, s.client, s.bucket, path.Join(RepoConfDir, fileName), helperTxtFileContent(names))
 }
 
 func (s *S3Repo) readIgnoreFile(ctx context.Context) (*ignore.GitIgnore, error) {

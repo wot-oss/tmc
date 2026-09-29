@@ -4,6 +4,9 @@
 
 ### Added
 
+- generating `protocols.txt`
+- REST API: GET `/protocols` to list the protocols supported by TMs in the repository
+
 ### Changed
 
 ### Fixed

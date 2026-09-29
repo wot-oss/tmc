@@ -10,23 +10,23 @@ packages:
     interfaces:
       HandlerService:
         config:
-          dir: "mocks"
-          mockname: "MockHandlerService"
-          filename: "mock_HandlerService.go"
+          dir: "internal/app/http/mocks"
+          mockname: "HandlerService"
+          filename: "HandlerService.go"
           outpkg: mocks
   
   github.com/wot-oss/tmc/internal/repos:
     interfaces:
       Repo:
         config:
-          dir: "mocks"
-          mockname: "MockRepo"
-          filename: "mock_Repo.go"
+          dir: "internal/repos/mocks"
+          mockname: "Repo"
+          filename: "Repo.go"
           outpkg: mocks
       
       S3Client:
         config:
-          dir: "../testutils/s3mocks"
-          mockname: "MockS3Client"
-          filename: "mock_S3Client.go"
+          dir: "internal/testutils/s3mocks"
+          mockname: "S3Client"
+          filename: "S3Client.go"
           outpkg: s3mocks

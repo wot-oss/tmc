@@ -175,6 +175,11 @@ type MpnsResponse struct {
 	Data []string `json:"data"`
 }
 
+// ProtocolsResponse defines model for ProtocolsResponse.
+type ProtocolsResponse struct {
+	Data []string `json:"data"`
+}
+
 // RepoDescription defines model for RepoDescription.
 type RepoDescription struct {
 	Description *string `json:"description,omitempty"`
@@ -425,6 +430,21 @@ type GetMpnsParams struct {
 	// which support at least one of the given URL protocol schemes with an exact match.
 	// The filter works additive to other filters.
 	FilterProtocol *string `form:"filter.protocol,omitempty" json:"filter.protocol,omitempty"`
+}
+
+// GetProtocolsParams defines parameters for GetProtocols.
+type GetProtocolsParams struct {
+	// FilterAuthor Filters the protocols according to whether they belong to at least one of the given authors with an exact match.
+	// The filter works additive to other filters.
+	FilterAuthor *string `form:"filter.author,omitempty" json:"filter.author,omitempty"`
+
+	// FilterManufacturer Filters the protocols according to whether they belong to at least one of the given manufacturers with an exact match.
+	// The filter works additive to other filters.
+	FilterManufacturer *string `form:"filter.manufacturer,omitempty" json:"filter.manufacturer,omitempty"`
+
+	// FilterMpn Filters the protocols according to whether they belong to at least one of the given MPNs with an exact match.
+	// The filter works additive to other filters.
+	FilterMpn *string `form:"filter.mpn,omitempty" json:"filter.mpn,omitempty"`
 }
 
 // ExportCatalogParams defines parameters for ExportCatalog.

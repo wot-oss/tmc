@@ -15,6 +15,14 @@ type S3Client struct {
 	mock.Mock
 }
 
+type S3Client_Expecter struct {
+	mock *mock.Mock
+}
+
+func (_m *S3Client) EXPECT() *S3Client_Expecter {
+	return &S3Client_Expecter{mock: &_m.Mock}
+}
+
 // CopyObject provides a mock function with given fields: ctx, params, optFns
 func (_m *S3Client) CopyObject(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options)) (*s3.CopyObjectOutput, error) {
 	_va := make([]interface{}, len(optFns))
@@ -50,6 +58,43 @@ func (_m *S3Client) CopyObject(ctx context.Context, params *s3.CopyObjectInput, 
 	}
 
 	return r0, r1
+}
+
+// S3Client_CopyObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CopyObject'
+type S3Client_CopyObject_Call struct {
+	*mock.Call
+}
+
+// CopyObject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *s3.CopyObjectInput
+//   - optFns ...func(*s3.Options)
+func (_e *S3Client_Expecter) CopyObject(ctx interface{}, params interface{}, optFns ...interface{}) *S3Client_CopyObject_Call {
+	return &S3Client_CopyObject_Call{Call: _e.mock.On("CopyObject",
+		append([]interface{}{ctx, params}, optFns...)...)}
+}
+
+func (_c *S3Client_CopyObject_Call) Run(run func(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options))) *S3Client_CopyObject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]func(*s3.Options), len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*s3.Options))
+			}
+		}
+		run(args[0].(context.Context), args[1].(*s3.CopyObjectInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *S3Client_CopyObject_Call) Return(_a0 *s3.CopyObjectOutput, _a1 error) *S3Client_CopyObject_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *S3Client_CopyObject_Call) RunAndReturn(run func(context.Context, *s3.CopyObjectInput, ...func(*s3.Options)) (*s3.CopyObjectOutput, error)) *S3Client_CopyObject_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // DeleteObject provides a mock function with given fields: ctx, params, optFns
@@ -89,6 +134,43 @@ func (_m *S3Client) DeleteObject(ctx context.Context, params *s3.DeleteObjectInp
 	return r0, r1
 }
 
+// S3Client_DeleteObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteObject'
+type S3Client_DeleteObject_Call struct {
+	*mock.Call
+}
+
+// DeleteObject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *s3.DeleteObjectInput
+//   - optFns ...func(*s3.Options)
+func (_e *S3Client_Expecter) DeleteObject(ctx interface{}, params interface{}, optFns ...interface{}) *S3Client_DeleteObject_Call {
+	return &S3Client_DeleteObject_Call{Call: _e.mock.On("DeleteObject",
+		append([]interface{}{ctx, params}, optFns...)...)}
+}
+
+func (_c *S3Client_DeleteObject_Call) Run(run func(ctx context.Context, params *s3.DeleteObjectInput, optFns ...func(*s3.Options))) *S3Client_DeleteObject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]func(*s3.Options), len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*s3.Options))
+			}
+		}
+		run(args[0].(context.Context), args[1].(*s3.DeleteObjectInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *S3Client_DeleteObject_Call) Return(_a0 *s3.DeleteObjectOutput, _a1 error) *S3Client_DeleteObject_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *S3Client_DeleteObject_Call) RunAndReturn(run func(context.Context, *s3.DeleteObjectInput, ...func(*s3.Options)) (*s3.DeleteObjectOutput, error)) *S3Client_DeleteObject_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteObjects provides a mock function with given fields: ctx, params, optFns
 func (_m *S3Client) DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error) {
 	_va := make([]interface{}, len(optFns))
@@ -124,6 +206,43 @@ func (_m *S3Client) DeleteObjects(ctx context.Context, params *s3.DeleteObjectsI
 	}
 
 	return r0, r1
+}
+
+// S3Client_DeleteObjects_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteObjects'
+type S3Client_DeleteObjects_Call struct {
+	*mock.Call
+}
+
+// DeleteObjects is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *s3.DeleteObjectsInput
+//   - optFns ...func(*s3.Options)
+func (_e *S3Client_Expecter) DeleteObjects(ctx interface{}, params interface{}, optFns ...interface{}) *S3Client_DeleteObjects_Call {
+	return &S3Client_DeleteObjects_Call{Call: _e.mock.On("DeleteObjects",
+		append([]interface{}{ctx, params}, optFns...)...)}
+}
+
+func (_c *S3Client_DeleteObjects_Call) Run(run func(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options))) *S3Client_DeleteObjects_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]func(*s3.Options), len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*s3.Options))
+			}
+		}
+		run(args[0].(context.Context), args[1].(*s3.DeleteObjectsInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *S3Client_DeleteObjects_Call) Return(_a0 *s3.DeleteObjectsOutput, _a1 error) *S3Client_DeleteObjects_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *S3Client_DeleteObjects_Call) RunAndReturn(run func(context.Context, *s3.DeleteObjectsInput, ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)) *S3Client_DeleteObjects_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // GetObject provides a mock function with given fields: ctx, params, optFns
@@ -163,6 +282,43 @@ func (_m *S3Client) GetObject(ctx context.Context, params *s3.GetObjectInput, op
 	return r0, r1
 }
 
+// S3Client_GetObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetObject'
+type S3Client_GetObject_Call struct {
+	*mock.Call
+}
+
+// GetObject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *s3.GetObjectInput
+//   - optFns ...func(*s3.Options)
+func (_e *S3Client_Expecter) GetObject(ctx interface{}, params interface{}, optFns ...interface{}) *S3Client_GetObject_Call {
+	return &S3Client_GetObject_Call{Call: _e.mock.On("GetObject",
+		append([]interface{}{ctx, params}, optFns...)...)}
+}
+
+func (_c *S3Client_GetObject_Call) Run(run func(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options))) *S3Client_GetObject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]func(*s3.Options), len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*s3.Options))
+			}
+		}
+		run(args[0].(context.Context), args[1].(*s3.GetObjectInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *S3Client_GetObject_Call) Return(_a0 *s3.GetObjectOutput, _a1 error) *S3Client_GetObject_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *S3Client_GetObject_Call) RunAndReturn(run func(context.Context, *s3.GetObjectInput, ...func(*s3.Options)) (*s3.GetObjectOutput, error)) *S3Client_GetObject_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // HeadObject provides a mock function with given fields: ctx, params, optFns
 func (_m *S3Client) HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
 	_va := make([]interface{}, len(optFns))
@@ -198,6 +354,43 @@ func (_m *S3Client) HeadObject(ctx context.Context, params *s3.HeadObjectInput, 
 	}
 
 	return r0, r1
+}
+
+// S3Client_HeadObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HeadObject'
+type S3Client_HeadObject_Call struct {
+	*mock.Call
+}
+
+// HeadObject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *s3.HeadObjectInput
+//   - optFns ...func(*s3.Options)
+func (_e *S3Client_Expecter) HeadObject(ctx interface{}, params interface{}, optFns ...interface{}) *S3Client_HeadObject_Call {
+	return &S3Client_HeadObject_Call{Call: _e.mock.On("HeadObject",
+		append([]interface{}{ctx, params}, optFns...)...)}
+}
+
+func (_c *S3Client_HeadObject_Call) Run(run func(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options))) *S3Client_HeadObject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]func(*s3.Options), len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*s3.Options))
+			}
+		}
+		run(args[0].(context.Context), args[1].(*s3.HeadObjectInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *S3Client_HeadObject_Call) Return(_a0 *s3.HeadObjectOutput, _a1 error) *S3Client_HeadObject_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *S3Client_HeadObject_Call) RunAndReturn(run func(context.Context, *s3.HeadObjectInput, ...func(*s3.Options)) (*s3.HeadObjectOutput, error)) *S3Client_HeadObject_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // ListObjectsV2 provides a mock function with given fields: ctx, params, optFns
@@ -237,6 +430,43 @@ func (_m *S3Client) ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2I
 	return r0, r1
 }
 
+// S3Client_ListObjectsV2_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListObjectsV2'
+type S3Client_ListObjectsV2_Call struct {
+	*mock.Call
+}
+
+// ListObjectsV2 is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *s3.ListObjectsV2Input
+//   - optFns ...func(*s3.Options)
+func (_e *S3Client_Expecter) ListObjectsV2(ctx interface{}, params interface{}, optFns ...interface{}) *S3Client_ListObjectsV2_Call {
+	return &S3Client_ListObjectsV2_Call{Call: _e.mock.On("ListObjectsV2",
+		append([]interface{}{ctx, params}, optFns...)...)}
+}
+
+func (_c *S3Client_ListObjectsV2_Call) Run(run func(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options))) *S3Client_ListObjectsV2_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]func(*s3.Options), len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*s3.Options))
+			}
+		}
+		run(args[0].(context.Context), args[1].(*s3.ListObjectsV2Input), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *S3Client_ListObjectsV2_Call) Return(_a0 *s3.ListObjectsV2Output, _a1 error) *S3Client_ListObjectsV2_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *S3Client_ListObjectsV2_Call) RunAndReturn(run func(context.Context, *s3.ListObjectsV2Input, ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)) *S3Client_ListObjectsV2_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Options provides a mock function with no fields
 func (_m *S3Client) Options() s3.Options {
 	ret := _m.Called()
@@ -253,6 +483,33 @@ func (_m *S3Client) Options() s3.Options {
 	}
 
 	return r0
+}
+
+// S3Client_Options_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Options'
+type S3Client_Options_Call struct {
+	*mock.Call
+}
+
+// Options is a helper method to define mock.On call
+func (_e *S3Client_Expecter) Options() *S3Client_Options_Call {
+	return &S3Client_Options_Call{Call: _e.mock.On("Options")}
+}
+
+func (_c *S3Client_Options_Call) Run(run func()) *S3Client_Options_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *S3Client_Options_Call) Return(_a0 s3.Options) *S3Client_Options_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *S3Client_Options_Call) RunAndReturn(run func() s3.Options) *S3Client_Options_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // PutObject provides a mock function with given fields: ctx, params, optFns
@@ -290,6 +547,43 @@ func (_m *S3Client) PutObject(ctx context.Context, params *s3.PutObjectInput, op
 	}
 
 	return r0, r1
+}
+
+// S3Client_PutObject_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PutObject'
+type S3Client_PutObject_Call struct {
+	*mock.Call
+}
+
+// PutObject is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *s3.PutObjectInput
+//   - optFns ...func(*s3.Options)
+func (_e *S3Client_Expecter) PutObject(ctx interface{}, params interface{}, optFns ...interface{}) *S3Client_PutObject_Call {
+	return &S3Client_PutObject_Call{Call: _e.mock.On("PutObject",
+		append([]interface{}{ctx, params}, optFns...)...)}
+}
+
+func (_c *S3Client_PutObject_Call) Run(run func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options))) *S3Client_PutObject_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]func(*s3.Options), len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(func(*s3.Options))
+			}
+		}
+		run(args[0].(context.Context), args[1].(*s3.PutObjectInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *S3Client_PutObject_Call) Return(_a0 *s3.PutObjectOutput, _a1 error) *S3Client_PutObject_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *S3Client_PutObject_Call) RunAndReturn(run func(context.Context, *s3.PutObjectInput, ...func(*s3.Options)) (*s3.PutObjectOutput, error)) *S3Client_PutObject_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // NewS3Client creates a new instance of S3Client. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

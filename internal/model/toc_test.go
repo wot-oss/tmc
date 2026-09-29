@@ -419,7 +419,7 @@ func TestIndex_Insert(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-	assert.Equal(t, 3, len(idx.Data))
+	assert.Equal(t, 1, len(idx.Data))
 	assert.Equal(t, "aut/man/mpn", idx.Data[0].Name)
 	assert.Equal(t, 1, len(idx.Data[0].Versions))
 	err = idx.InsertAttachments(NewTMIDAttachmentContainerRef("aut/man/mpn/v1.2.5-20231023121314-abcd12345678.tm.json"), Attachment{Name: "README.md", MediaType: "Message/markdown"}, Attachment{Name: "User Guide.pdf", MediaType: "application/pdf"})
@@ -446,7 +446,7 @@ func TestIndex_Insert(t *testing.T) {
 		Description:  "descr",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, 3, len(idx.Data))
+	assert.Equal(t, 1, len(idx.Data))
 	assert.Equal(t, 2, len(idx.Data[0].Versions))
 
 	err = idx.Insert(&ThingModel{
@@ -458,10 +458,10 @@ func TestIndex_Insert(t *testing.T) {
 		Description:  "descr",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, 4, len(idx.Data))
-	assert.Equal(t, "aut/man/mpn/opt", idx.Data[3].Name)
+	assert.Equal(t, 2, len(idx.Data))
+	assert.Equal(t, "aut/man/mpn/opt", idx.Data[1].Name)
 	assert.Equal(t, 2, len(idx.Data[0].Versions))
-	assert.Equal(t, 1, len(idx.Data[3].Versions))
+	assert.Equal(t, 1, len(idx.Data[1].Versions))
 }
 
 func TestIndex_Delete(t *testing.T) {

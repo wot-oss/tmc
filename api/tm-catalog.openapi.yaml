@@ -1449,6 +1449,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /protocols:
+    get:
+      tags:
+        - protocols
+      summary: Get the list of all supported protocols, supported by the inventory entries.
+      description: Get the list of all supported protocols,  supported by the inventory entries.
+      operationId: getProtocols
+      parameters:
+        - name: 'filter.author'
+          in: query
+          description: |
+            Filters the protocols according to whether they belong to at least one of the given authors with an exact match.   
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: 'JohnDoe,JaneSmith'
+        - name: 'filter.manufacturer'
+          in: query
+          description: |
+            Filters the protocols according to whether they belong to at least one of the given manufacturers with an exact match.   
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: 'BarTech,siemens'
+        - name: 'filter.mpn'
+          in: query
+          description: |
+            Filters the protocols according to whether they belong to at least one of the given MPNs with an exact match.   
+            The filter works additive to other filters.
+          schema:
+            type: string
+          example: 'MPN123,MPN456'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProtocolsResponse'
+              examples:
+                protocols:
+                  $ref: '#/components/examples/ProtocolsResponseExample'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /repos:
     get:
       tags:
@@ -1861,6 +1911,15 @@ components:
           type: array
           items:
             type: string
+    ProtocolsResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            type: string
     ReposResponse:
       type: object
       required:
@@ -2250,6 +2309,10 @@ components:
         data:
           - 'BazLamp'
           - 'POC1000'
+    ProtocolsResponseExample:
+      value:
+        data:
+          - 'modbus+tcp'
     ReposResponseExample:
       value:
         data:
