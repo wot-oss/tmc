@@ -27,7 +27,6 @@ func init() {
 
 func executeDelete(cmd *cobra.Command, args []string) {
 	force := cmd.Flag("force").Value.String()
-
 	spec := RepoSpecFromFlags(cmd)
 
 	if force != "true" {

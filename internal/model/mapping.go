@@ -33,6 +33,7 @@ func (m *IndexToSearchResultMapper) ToFoundEntry(e *IndexEntry) FoundEntry {
 		Manufacturer:        e.Manufacturer,
 		Mpn:                 e.Mpn,
 		Author:              e.Author,
+		FamilyID:            e.FamilyID,
 		Versions:            m.ToFoundVersions(e.Versions),
 		FoundIn:             m.foundIn,
 		AttachmentContainer: e.AttachmentContainer,
@@ -85,11 +86,16 @@ func (m *InventoryResponseToSearchResultMapper) ToFoundEntries(entries []server.
 }
 
 func (m *InventoryResponseToSearchResultMapper) ToFoundEntry(e server.InventoryEntry) FoundEntry {
+	familyID := ""
+	if e.Family != nil {
+		familyID = *e.Family
+	}
 	return FoundEntry{
 		Name:         e.TmName,
 		Manufacturer: SchemaManufacturer{Name: e.SchemaManufacturer.SchemaName},
 		Mpn:          e.SchemaMpn,
 		Author:       SchemaAuthor{Name: e.SchemaAuthor.SchemaName},
+		FamilyID:     familyID,
 		Versions:     m.ToFoundVersions(e.Versions),
 		AttachmentContainer: AttachmentContainer{
 			Attachments: m.ToFoundVersionAttachments(e.Attachments),

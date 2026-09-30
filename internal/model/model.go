@@ -19,6 +19,7 @@ import (
 type ThingModel struct {
 	ID           string             `json:"id,omitempty"`
 	Description  string             `json:"description"`
+	Title        string             `json:"title,omitempty"`
 	Manufacturer SchemaManufacturer `json:"schema:manufacturer" validate:"required"`
 	Mpn          string             `json:"schema:mpn" validate:"required"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`

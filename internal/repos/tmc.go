@@ -69,6 +69,10 @@ func getContainerPath(ref model.AttachmentContainerRef) string {
 	}
 }
 
+func (t *TmcRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+	return ErrNotSupported
+}
+
 func (t *TmcRepo) DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error {
 	reqUrl := t.parsedRoot.JoinPath("thing-models", getContainerPath(container), model.AttachmentsDir, attachmentName)
 	t.addRepoParam(reqUrl)
@@ -408,6 +412,9 @@ func addFilters(u *url.URL, search *model.Filters) {
 		vals.Set("filter.name", search.Name)
 		if search.ChangedSince != "" {
 			vals.Set("filter.changedSince", search.ChangedSince)
+		}
+		if search.Family != "" {
+			vals.Set("filter.family", search.Family)
 		}
 		u.RawQuery = vals.Encode()
 	}

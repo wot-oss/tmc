@@ -381,6 +381,9 @@ func Test_Authorization_Scopes(t *testing.T) {
 				authorized       bool
 			}{
 				{"POST", "/thing-models", []byte("{\"schema:author\":{\"schema:name\":\"a-corp\"}}"), http.StatusOK, true},
+				{"POST", "/thing-models/variants?tm-id=a-corp/eagle/bt2000/v1.0.0.tm.json&variant-id=a-corp/eagle/bt2000-special/v1.0.0.tm.json", []byte("{}"), http.StatusOK, true},
+				{"POST", "/thing-models/variants?tm-id=a-corp/eagle/bt2000/v1.0.0.tm.json&variant-id=b-corp/frog/bt3000-special/v1.0.0.tm.json", []byte("{}"), http.StatusUnauthorized, false},
+				{"POST", "/thing-models/variants?tm-id=b-corp/frog/bt3000/v1.0.0.tm.json&variant-id=b-corp/frog/bt3000-special/v1.0.0.tm.json", []byte("{}"), http.StatusUnauthorized, false},
 				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false},
 			},
 		},

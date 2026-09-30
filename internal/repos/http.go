@@ -165,6 +165,10 @@ func (h *HttpRepo) DeleteAttachment(ctx context.Context, container model.Attachm
 	return ErrNotSupported
 }
 
+func (h *HttpRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+	return ErrNotSupported
+}
+
 func (h *HttpRepo) FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error) {
 	attDir, err := model.RelAttachmentsDir(container)
 	if err != nil {
@@ -178,7 +182,7 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []stri
 	switch kind {
 	case CompletionKindNames:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(ctx, model.ToFilters(nil, nil, nil, nil, &namePrefix, nil,
+		sr, err := h.List(ctx, model.ToFilters(nil, nil, nil, nil, &namePrefix, nil, nil,
 			&model.FilterOptions{NameFilterType: model.PrefixMatch}))
 		if err != nil {
 			return nil, err
@@ -206,7 +210,7 @@ func (h *HttpRepo) ListCompletions(ctx context.Context, kind string, args []stri
 		return vs, nil
 	case CompletionKindNamesOrIds:
 		namePrefix, seg := longestPath(toComplete)
-		sr, err := h.List(ctx, model.ToFilters(nil, nil, nil, nil, &namePrefix, nil,
+		sr, err := h.List(ctx, model.ToFilters(nil, nil, nil, nil, &namePrefix, nil, nil,
 			&model.FilterOptions{NameFilterType: model.PrefixMatch}))
 		if err != nil {
 			return nil, err

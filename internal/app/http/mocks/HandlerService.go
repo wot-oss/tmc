@@ -5,6 +5,8 @@ package mocks
 import (
 	context "context"
 
+	commands "github.com/wot-oss/tmc/internal/commands"
+
 	mock "github.com/stretchr/testify/mock"
 	model "github.com/wot-oss/tmc/internal/model"
 	repos "github.com/wot-oss/tmc/internal/repos"
@@ -21,6 +23,106 @@ type HandlerService_Expecter struct {
 
 func (_m *HandlerService) EXPECT() *HandlerService_Expecter {
 	return &HandlerService_Expecter{mock: &_m.Mock}
+}
+
+// AddThingModelVariant provides a mock function with given fields: ctx, repo, tmID, opts
+func (_m *HandlerService) AddThingModelVariant(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {
+	ret := _m.Called(ctx, repo, tmID, opts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddThingModelVariant")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, commands.AddVariantOptions) error); ok {
+		r0 = rf(ctx, repo, tmID, opts)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// HandlerService_AddThingModelVariant_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariant'
+type HandlerService_AddThingModelVariant_Call struct {
+	*mock.Call
+}
+
+// AddThingModelVariant is a helper method to define mock.On call
+//   - ctx context.Context
+//   - repo string
+//   - tmID string
+//   - opts commands.AddVariantOptions
+func (_e *HandlerService_Expecter) AddThingModelVariant(ctx interface{}, repo interface{}, tmID interface{}, opts interface{}) *HandlerService_AddThingModelVariant_Call {
+	return &HandlerService_AddThingModelVariant_Call{Call: _e.mock.On("AddThingModelVariant", ctx, repo, tmID, opts)}
+}
+
+func (_c *HandlerService_AddThingModelVariant_Call) Run(run func(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions)) *HandlerService_AddThingModelVariant_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(commands.AddVariantOptions))
+	})
+	return _c
+}
+
+func (_c *HandlerService_AddThingModelVariant_Call) Return(_a0 error) *HandlerService_AddThingModelVariant_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *HandlerService_AddThingModelVariant_Call) RunAndReturn(run func(context.Context, string, string, commands.AddVariantOptions) error) *HandlerService_AddThingModelVariant_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddThingModelVariantBatch provides a mock function with given fields: ctx, repo, familyTMID, requests
+func (_m *HandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
+	ret := _m.Called(ctx, repo, familyTMID, requests)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddThingModelVariantBatch")
+	}
+
+	var r0 []commands.AddVariantBatchResult
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult); ok {
+		r0 = rf(ctx, repo, familyTMID, requests)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]commands.AddVariantBatchResult)
+		}
+	}
+
+	return r0
+}
+
+// HandlerService_AddThingModelVariantBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariantBatch'
+type HandlerService_AddThingModelVariantBatch_Call struct {
+	*mock.Call
+}
+
+// AddThingModelVariantBatch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - repo string
+//   - familyTMID string
+//   - requests []commands.AddVariantBatchRequest
+func (_e *HandlerService_Expecter) AddThingModelVariantBatch(ctx interface{}, repo interface{}, familyTMID interface{}, requests interface{}) *HandlerService_AddThingModelVariantBatch_Call {
+	return &HandlerService_AddThingModelVariantBatch_Call{Call: _e.mock.On("AddThingModelVariantBatch", ctx, repo, familyTMID, requests)}
+}
+
+func (_c *HandlerService_AddThingModelVariantBatch_Call) Run(run func(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest)) *HandlerService_AddThingModelVariantBatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].([]commands.AddVariantBatchRequest))
+	})
+	return _c
+}
+
+func (_c *HandlerService_AddThingModelVariantBatch_Call) Return(_a0 []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *HandlerService_AddThingModelVariantBatch_Call) RunAndReturn(run func(context.Context, string, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
+	_c.Call.Return(run)
+	return _c
 }
 
 // CheckHealth provides a mock function with given fields: ctx
