@@ -123,7 +123,7 @@ func AddVariantsBatch(ctx context.Context, spec model.RepoSpec, familyTMID strin
 			continue
 		}
 
-		_, _, _, err = repo.Index(ctx, variantID)
+		_, _, _, _, err = repo.Index(ctx, variantID)
 		if err != nil {
 			results = append(results, AddVariantBatchResult{
 				TmID:  req.TmID,
@@ -244,7 +244,7 @@ func addVariantToRepo(ctx context.Context, repo repos.Repo, tmID string, opts Ad
 		if err != nil {
 			return err
 		}
-		_, _, _, err = repo.Index(ctx, variantID)
+		_, _, _, _, err = repo.Index(ctx, variantID)
 		if err != nil {
 			return err
 		}

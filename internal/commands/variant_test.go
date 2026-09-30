@@ -62,9 +62,9 @@ func (s *stubVariantRepo) Fetch(_ context.Context, id string) (string, []byte, e
 	return id, s.fetchRaw, s.fetchErr
 }
 
-func (s *stubVariantRepo) Index(_ context.Context, updatedIDs ...string) ([]string, []string, []string, error) {
+func (s *stubVariantRepo) Index(_ context.Context, updatedIDs ...string) ([]string, []string, []string, []string, error) {
 	s.indexIDs = append(s.indexIDs, updatedIDs...)
-	return nil, nil, nil, s.indexErr
+	return nil, nil, nil, nil, s.indexErr
 }
 
 func (s *stubVariantRepo) CheckIntegrity(_ context.Context, _ model.ResourceFilter) ([]model.CheckResult, error) {

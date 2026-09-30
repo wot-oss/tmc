@@ -6,6 +6,8 @@
 
 - Managing mpn variations
 - Added `filter.family` parameter to REST API `/inventory` listing
+- generating `protocols.txt`
+- REST API: GET `/protocols` to list the protocols supported by TMs in the repository
 
 ### Changed
 

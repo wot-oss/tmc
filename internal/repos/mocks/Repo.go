@@ -222,18 +222,6 @@ func (_c *Repo_DeleteAttachment_Call) RunAndReturn(run func(context.Context, mod
 	return _c
 }
 
-// SetFamily provides a mock function with given fields: ctx, tmName, familyID
-func (_m *Repo) SetFamily(ctx context.Context, tmName string, familyID string) error {
-	ret := _m.Called(ctx, tmName, familyID)
-	if len(ret) == 0 {
-		panic("no return value specified for SetFamily")
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		return rf(ctx, tmName, familyID)
-	}
-	return ret.Error(0)
-}
-
 // Fetch provides a mock function with given fields: ctx, id
 func (_m *Repo) Fetch(ctx context.Context, id string) (string, []byte, error) {
 	ret := _m.Called(ctx, id)
@@ -529,7 +517,7 @@ func (_c *Repo_ImportAttachment_Call) RunAndReturn(run func(context.Context, mod
 }
 
 // Index provides a mock function with given fields: ctx, updatedIds
-func (_m *Repo) Index(ctx context.Context, updatedIds ...string) ([]string, []string, []string, error) {
+func (_m *Repo) Index(ctx context.Context, updatedIds ...string) ([]string, []string, []string, []string, error) {
 	_va := make([]interface{}, len(updatedIds))
 	for _i := range updatedIds {
 		_va[_i] = updatedIds[_i]
@@ -546,8 +534,9 @@ func (_m *Repo) Index(ctx context.Context, updatedIds ...string) ([]string, []st
 	var r0 []string
 	var r1 []string
 	var r2 []string
-	var r3 error
-	if rf, ok := ret.Get(0).(func(context.Context, ...string) ([]string, []string, []string, error)); ok {
+	var r3 []string
+	var r4 error
+	if rf, ok := ret.Get(0).(func(context.Context, ...string) ([]string, []string, []string, []string, error)); ok {
 		return rf(ctx, updatedIds...)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, ...string) []string); ok {
@@ -574,13 +563,21 @@ func (_m *Repo) Index(ctx context.Context, updatedIds ...string) ([]string, []st
 		}
 	}
 
-	if rf, ok := ret.Get(3).(func(context.Context, ...string) error); ok {
+	if rf, ok := ret.Get(3).(func(context.Context, ...string) []string); ok {
 		r3 = rf(ctx, updatedIds...)
 	} else {
-		r3 = ret.Error(3)
+		if ret.Get(3) != nil {
+			r3 = ret.Get(3).([]string)
+		}
 	}
 
-	return r0, r1, r2, r3
+	if rf, ok := ret.Get(4).(func(context.Context, ...string) error); ok {
+		r4 = rf(ctx, updatedIds...)
+	} else {
+		r4 = ret.Error(4)
+	}
+
+	return r0, r1, r2, r3, r4
 }
 
 // Repo_Index_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Index'
@@ -609,12 +606,12 @@ func (_c *Repo_Index_Call) Run(run func(ctx context.Context, updatedIds ...strin
 	return _c
 }
 
-func (_c *Repo_Index_Call) Return(authors []string, manufacturers []string, mpns []string, err error) *Repo_Index_Call {
-	_c.Call.Return(authors, manufacturers, mpns, err)
+func (_c *Repo_Index_Call) Return(authors []string, manufacturers []string, mpns []string, protocols []string, err error) *Repo_Index_Call {
+	_c.Call.Return(authors, manufacturers, mpns, protocols, err)
 	return _c
 }
 
-func (_c *Repo_Index_Call) RunAndReturn(run func(context.Context, ...string) ([]string, []string, []string, error)) *Repo_Index_Call {
+func (_c *Repo_Index_Call) RunAndReturn(run func(context.Context, ...string) ([]string, []string, []string, []string, error)) *Repo_Index_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -733,6 +730,54 @@ func (_c *Repo_ListCompletions_Call) Return(_a0 []string, _a1 error) *Repo_ListC
 }
 
 func (_c *Repo_ListCompletions_Call) RunAndReturn(run func(context.Context, string, []string, string) ([]string, error)) *Repo_ListCompletions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetFamily provides a mock function with given fields: ctx, tmName, familyID
+func (_m *Repo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+	ret := _m.Called(ctx, tmName, familyID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetFamily")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, tmName, familyID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// Repo_SetFamily_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetFamily'
+type Repo_SetFamily_Call struct {
+	*mock.Call
+}
+
+// SetFamily is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tmName string
+//   - familyID string
+func (_e *Repo_Expecter) SetFamily(ctx interface{}, tmName interface{}, familyID interface{}) *Repo_SetFamily_Call {
+	return &Repo_SetFamily_Call{Call: _e.mock.On("SetFamily", ctx, tmName, familyID)}
+}
+
+func (_c *Repo_SetFamily_Call) Run(run func(ctx context.Context, tmName string, familyID string)) *Repo_SetFamily_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *Repo_SetFamily_Call) Return(_a0 error) *Repo_SetFamily_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Repo_SetFamily_Call) RunAndReturn(run func(context.Context, string, string) error) *Repo_SetFamily_Call {
 	_c.Call.Return(run)
 	return _c
 }

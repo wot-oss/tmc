@@ -1359,6 +1359,65 @@ func (_c *HandlerService_ListMpns_Call) RunAndReturn(run func(context.Context, *
 	return _c
 }
 
+// ListProtocols provides a mock function with given fields: ctx, filters
+func (_m *HandlerService) ListProtocols(ctx context.Context, filters *model.Filters) ([]string, error) {
+	ret := _m.Called(ctx, filters)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListProtocols")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) ([]string, error)); ok {
+		return rf(ctx, filters)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *model.Filters) []string); ok {
+		r0 = rf(ctx, filters)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *model.Filters) error); ok {
+		r1 = rf(ctx, filters)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// HandlerService_ListProtocols_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListProtocols'
+type HandlerService_ListProtocols_Call struct {
+	*mock.Call
+}
+
+// ListProtocols is a helper method to define mock.On call
+//   - ctx context.Context
+//   - filters *model.Filters
+func (_e *HandlerService_Expecter) ListProtocols(ctx interface{}, filters interface{}) *HandlerService_ListProtocols_Call {
+	return &HandlerService_ListProtocols_Call{Call: _e.mock.On("ListProtocols", ctx, filters)}
+}
+
+func (_c *HandlerService_ListProtocols_Call) Run(run func(ctx context.Context, filters *model.Filters)) *HandlerService_ListProtocols_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*model.Filters))
+	})
+	return _c
+}
+
+func (_c *HandlerService_ListProtocols_Call) Return(_a0 []string, _a1 error) *HandlerService_ListProtocols_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *HandlerService_ListProtocols_Call) RunAndReturn(run func(context.Context, *model.Filters) ([]string, error)) *HandlerService_ListProtocols_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListRepos provides a mock function with given fields: ctx
 func (_m *HandlerService) ListRepos(ctx context.Context) ([]model.RepoDescription, error) {
 	ret := _m.Called(ctx)

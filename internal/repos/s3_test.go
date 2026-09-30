@@ -377,7 +377,7 @@ func TestS3Repo_Delete(t *testing.T) {
 	r := S3Repo{bucket: bucket, client: c}
 	ctx := context.Background()
 	// and given: the repo has an index
-	_, _, _, err := r.Index(ctx)
+	_, _, _, _, err := r.Index(ctx)
 	assert.NoError(t, err)
 
 	t.Run("invalid id", func(t *testing.T) {
@@ -445,7 +445,7 @@ func TestS3Repo_Index(t *testing.T) {
 
 	t.Run("single id/no index file", func(t *testing.T) {
 		// when: index the repo with a single id
-		_, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json")
+		_, _, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is created
@@ -454,11 +454,11 @@ func TestS3Repo_Index(t *testing.T) {
 		zeroTime := time.Time{}
 		assert.True(t, idx.Meta.Created.After(zeroTime))
 		// and then: index contains one ThingModel
-		assert.Equal(t, 3, len(idx.Data))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[2].Name)
+		assert.Equal(t, 1, len(idx.Data))
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
 		// and then: the ThingModel contains one version
-		assert.Equal(t, 1, len(idx.Data[2].Versions))
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json", idx.Data[2].Versions[0].TMID)
+		assert.Equal(t, 1, len(idx.Data[0].Versions))
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v0.0.0-20240409155220-80424c65e4e6.tm.json", idx.Data[0].Versions[0].TMID)
 		// and then: the names file is created
 		names := r.readNamesFile(ctx)
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp/subfolder"}, names)
@@ -466,19 +466,17 @@ func TestS3Repo_Index(t *testing.T) {
 
 	t.Run("single id/existing index file", func(t *testing.T) {
 		// when: index the repo with another version
-		_, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, _, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
 		idx, err := r.readIndex(ctx)
 		assert.NoError(t, err)
 		// and then: index contains one ThingModel
-		assert.Equal(t, 3, len(idx.Data))
-		assert.Equal(t, "omnicorp-tm-department", idx.Data[0].Name)
-		assert.Equal(t, "omnicorp-tm-department/omnicorp", idx.Data[1].Name)
-		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[2].Name)
+		assert.Equal(t, 1, len(idx.Data))
+		assert.Equal(t, "omnicorp-tm-department/omnicorp/omnilamp/subfolder", idx.Data[0].Name)
 		// and then: the ThingModel contains two versions
-		assert.Equal(t, 2, len(idx.Data[2].Versions))
+		assert.Equal(t, 2, len(idx.Data[0].Versions))
 		// and then: the names file is readable
 		names := r.readNamesFile(ctx)
 		assert.Equal(t, []string{"omnicorp-tm-department/omnicorp/omnilamp/subfolder"}, names)
@@ -486,14 +484,14 @@ func TestS3Repo_Index(t *testing.T) {
 
 	t.Run("full update/existing index file", func(t *testing.T) {
 		// when: full index the repo with all found ThingModels in the repo
-		_, _, _, err := r.Index(ctx)
+		_, _, _, _, err := r.Index(ctx)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
 		idx, err := r.readIndex(ctx)
 		assert.NoError(t, err)
 		// and then: index contains now two ThingModels
-		assert.Equal(t, 4, len(idx.Data))
+		assert.Equal(t, 2, len(idx.Data))
 		// and then: the names file is readable
 		names := r.readNamesFile(ctx)
 		assert.Equal(t, []string{
@@ -516,14 +514,14 @@ func TestS3Repo_Index(t *testing.T) {
 		assert.NoError(t, r.writeHelperTxtFile(ctx, nil, ""))
 
 		// when: full index the repo with all found ThingModels in the repo
-		_, _, _, err = r.Index(ctx)
+		_, _, _, _, err = r.Index(ctx)
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
 		idx, err := r.readIndex(ctx)
 		assert.NoError(t, err)
 		// and then: index contains now two ThingModels
-		assert.Equal(t, 4, len(idx.Data))
+		assert.Equal(t, 2, len(idx.Data))
 		names := r.readNamesFile(ctx)
 		assert.Equal(t, []string{
 			"omnicorp-tm-department/omnicorp/omnilamp",
@@ -537,7 +535,7 @@ func TestS3Repo_Index(t *testing.T) {
 		assert.NoError(t, os.WriteFile(attPath, []byte("Read This, or Else"), defaultFilePermissions))
 
 		// when: index the repo with a single id
-		_, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
+		_, _, _, _, err := r.Index(ctx, "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json")
 		// then: there is no error
 		assert.NoError(t, err)
 		// and then: the index is readable
@@ -564,20 +562,20 @@ func TestS3Repo_Index(t *testing.T) {
 		tmId22 := "omnicorp-tm-department/omnicorp/omnilamp/subfolder/v3.2.1-20240409155220-3f779458e453.tm.json"
 
 		// update index with unordered ID's
-		_, _, _, err = r.Index(ctx, tmId21, tmId12, tmId22, tmId13, tmId11)
+		_, _, _, _, err = r.Index(ctx, tmId21, tmId12, tmId22, tmId13, tmId11)
 		assert.NoError(t, err)
 
 		idx, err := r.readIndex(ctx)
 		assert.NoError(t, err)
-		assert.Equal(t, 4, len(idx.Data))
+		assert.Equal(t, 2, len(idx.Data))
 
-		assert.Equal(t, tmName1, idx.Data[2].Name)
-		assert.Equal(t, tmId13, idx.Data[2].Versions[0].TMID)
-		assert.Equal(t, tmId12, idx.Data[2].Versions[1].TMID)
-		assert.Equal(t, tmId11, idx.Data[2].Versions[2].TMID)
-		assert.Equal(t, tmName2, idx.Data[3].Name)
-		assert.Equal(t, tmId22, idx.Data[3].Versions[0].TMID)
-		assert.Equal(t, tmId21, idx.Data[3].Versions[1].TMID)
+		assert.Equal(t, tmName1, idx.Data[0].Name)
+		assert.Equal(t, tmId13, idx.Data[0].Versions[0].TMID)
+		assert.Equal(t, tmId12, idx.Data[0].Versions[1].TMID)
+		assert.Equal(t, tmId11, idx.Data[0].Versions[2].TMID)
+		assert.Equal(t, tmName2, idx.Data[1].Name)
+		assert.Equal(t, tmId22, idx.Data[1].Versions[0].TMID)
+		assert.Equal(t, tmId21, idx.Data[1].Versions[1].TMID)
 	})
 }
 
@@ -780,7 +778,7 @@ func TestS3Repo_CheckIntegrity(t *testing.T) {
 
 		// given: a clean repository with index
 		r := S3Repo{bucket: bucket, client: c}
-		_, _, _, _ = r.Index(ctx)
+		_, _, _, _, _ = r.Index(ctx)
 
 		// when checking the integrity
 		res, err := r.CheckIntegrity(ctx, nil)
