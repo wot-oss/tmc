@@ -160,6 +160,17 @@ func getScopesFromToken(token *jwt.Token, signingKey []byte) ([]string, error) {
 	}
 }
 
+// extractNamespaceFromScope returns the <namespace> segment of a scope in the format
+// "[<prefix>.]tmc.ns.<namespace>.<operation>". The configured scopes prefix is stripped
+// first, so the segment index is the same whether or not a prefix is in use.
+func extractNamespaceFromScope(scope string) (string, bool) {
+	parts := strings.Split(strings.TrimPrefix(scope, scopesPrefix), ".")
+	if len(parts) < 4 {
+		return "", false
+	}
+	return parts[2], true
+}
+
 func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	pathParts := strings.Split(r.URL.Path[1:], "/")
 	namespaceFromPath := ""
@@ -187,9 +198,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 				return true, nil
 			}
 			if strings.HasPrefix(scope, scopesPrefix+"tmc.ns.") && strings.HasSuffix(scope, ".read") {
-				parts := strings.Split(scope, ".")
-				if len(parts) >= 4 {
-					namespace := parts[2]
+				if namespace, ok := extractNamespaceFromScope(scope); ok {
 					allowedNamespaces = append(allowedNamespaces, namespace)
 				}
 			}
@@ -216,9 +225,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 			return true, nil
 		}
 		if strings.HasPrefix(scope, scopesPrefix+"tmc.ns.") {
-			parts := strings.Split(scope, ".")
-			if len(parts) >= 4 {
-				namespaceFromScope := parts[2]
+			if namespaceFromScope, ok := extractNamespaceFromScope(scope); ok {
 				if namespaceFromPath == "" && r.Method == "POST" && pathParts[0] == "thing-models" {
 					if strings.HasSuffix(scope, ".write") {
 						tmbody, err := io.ReadAll(r.Body)

@@ -8,10 +8,12 @@ import (
 	"net/http"
 	httpt "net/http/httptest"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	httptmc "github.com/wot-oss/tmc/internal/app/http"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 )
 
@@ -487,6 +489,164 @@ func Test_Authorization_Scopes(t *testing.T) {
 			if out.Result().StatusCode != req.expectedStatus || authorized != req.authorized {
 				t.Fatalf("[%s] Unexpected result for request: %s %s\nExpected status: %d, Authorized: %v\nGot status: %d, Authorized: %v",
 					tt.name, req.method, req.endpoint, req.expectedStatus, req.authorized, out.Result().StatusCode, authorized)
+			}
+		}
+	}
+}
+
+// Covers namespace extraction when a scopes prefix is configured. The namespace must be
+// read from the segment after "tmc.ns." regardless of the (possibly dotted) prefix.
+func Test_Authorization_ScopesWithPrefix(t *testing.T) {
+	keyA, _ := rsa.GenerateKey(rand.Reader, 1024)
+	futureDate := time.Now().Add(24 * time.Hour).Unix()
+	pastDate := time.Now().Add(-24 * time.Hour).Unix()
+	jwtServiceID = "some-service-id"
+
+	previousPrefix := scopesPrefix
+	defer func() { scopesPrefix = previousPrefix }()
+
+	type request struct {
+		method, endpoint string
+		body             []byte
+		expectedStatus   int
+		authorized       bool
+		// expected namespaces placed in the request context for GET /inventory; nil = not checked
+		namespaces []string
+	}
+
+	tests := []struct {
+		name     string
+		prefix   string
+		scope    []string
+		requests []request
+	}{
+		{
+			name:   "prefixed ns a-corp read",
+			prefix: "myapp.",
+			scope:  []string{"myapp.tmc.ns.a-corp.read"},
+			requests: []request{
+				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusOK, true, nil},
+				{"GET", "/thing-models/.latest/a-corp/eagle/bt2000", nil, http.StatusOK, true, nil},
+				{"GET", "/thing-models/b-corp/frog/bt3000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false, nil},
+				// regression: namespace was resolved to the literal "ns" segment
+				{"GET", "/thing-models/ns/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false, nil},
+				{"GET", "/inventory", nil, http.StatusOK, true, []string{"a-corp"}},
+				{"POST", "/thing-models", []byte("{\"schema:author\":{\"schema:name\":\"a-corp\"}}"), http.StatusUnauthorized, false, nil},
+			},
+		},
+		{
+			name:   "prefixed ns a-corp write",
+			prefix: "myapp.",
+			scope:  []string{"myapp.tmc.ns.a-corp.write"},
+			requests: []request{
+				{"POST", "/thing-models", []byte("{\"schema:author\":{\"schema:name\":\"a-corp\"}}"), http.StatusOK, true, nil},
+				{"POST", "/thing-models", []byte("{\"schema:author\":{\"schema:name\":\"b-corp\"}}"), http.StatusUnauthorized, false, nil},
+				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false, nil},
+			},
+		},
+		{
+			name:   "prefixed ns a-corp attachments.delete",
+			prefix: "myapp.",
+			scope:  []string{"myapp.tmc.ns.a-corp.attachments.delete"},
+			requests: []request{
+				{"DELETE", "/thing-models/a-corp/.attachments/att123", nil, http.StatusOK, true, nil},
+				{"DELETE", "/thing-models/b-corp/.attachments/att123", nil, http.StatusUnauthorized, false, nil},
+			},
+		},
+		{
+			name:   "prefixed ns a-corp thingmodels.delete",
+			prefix: "myapp.",
+			scope:  []string{"myapp.tmc.ns.a-corp.thingmodels.delete"},
+			requests: []request{
+				{"DELETE", "/thing-models/a-corp/eagle", nil, http.StatusOK, true, nil},
+				{"DELETE", "/thing-models/b-corp/frog", nil, http.StatusUnauthorized, false, nil},
+			},
+		},
+		{
+			name:   "prefixed ns wildcard read",
+			prefix: "myapp.",
+			scope:  []string{"myapp.tmc.ns.*.read"},
+			requests: []request{
+				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusOK, true, nil},
+				{"GET", "/thing-models/b-corp/frog/bt3000/v1.0.0.tm.json", nil, http.StatusOK, true, nil},
+				{"GET", "/inventory", nil, http.StatusOK, true, []string{"*"}},
+			},
+		},
+		{
+			name:   "prefixed malformed ns scope without namespace",
+			prefix: "myapp.",
+			scope:  []string{"myapp.tmc.ns.read"},
+			requests: []request{
+				{"GET", "/thing-models/ns/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false, nil},
+				{"GET", "/inventory", nil, http.StatusUnauthorized, false, nil},
+			},
+		},
+		{
+			name:   "prefixed admin",
+			prefix: "myapp.",
+			scope:  []string{"myapp.tmc.admin"},
+			requests: []request{
+				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusOK, true, nil},
+				{"GET", "/inventory", nil, http.StatusOK, true, nil},
+			},
+		},
+		{
+			name:   "unprefixed scope rejected when prefix is configured",
+			prefix: "myapp.",
+			scope:  []string{"tmc.ns.a-corp.read"},
+			requests: []request{
+				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false, nil},
+			},
+		},
+		{
+			name:   "dotted prefix ns a-corp read",
+			prefix: "com.example.",
+			scope:  []string{"com.example.tmc.ns.a-corp.read"},
+			requests: []request{
+				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusOK, true, nil},
+				{"GET", "/thing-models/example/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false, nil},
+				{"GET", "/inventory", nil, http.StatusOK, true, []string{"a-corp"}},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		scopesPrefix = tt.prefix
+		tokenString := newToken(jwt.MapClaims{"aud": jwtServiceID, "nbf": pastDate, "exp": futureDate, "scope": tt.scope}, keyA)
+
+		extractBearerToken = func(r *http.Request) (string, error) {
+			return tokenString, nil
+		}
+		jwksKeyFunc = func(*jwt.Token) (any, error) {
+			return &keyA.PublicKey, nil
+		}
+
+		for _, req := range tt.requests {
+			authorized := false
+			var namespacesInContext []string
+			wrappedHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				authorized = true
+				namespacesInContext, _ = r.Context().Value(httptmc.ContextKeyBearerAuthNamespaces).([]string)
+			})
+			protected := jwtValidationMiddleware(wrappedHandler)
+
+			out := httpt.NewRecorder()
+			var httpReq *http.Request
+			if req.body != nil {
+				httpReq = httpt.NewRequest(req.method, req.endpoint, bytes.NewReader(req.body))
+			} else {
+				httpReq = httpt.NewRequest(req.method, req.endpoint, nil)
+			}
+			httpReq = httpReq.WithContext(context.WithValue(httpReq.Context(), server.BearerAuthScopes, []string{}))
+			protected.ServeHTTP(out, httpReq)
+
+			if out.Result().StatusCode != req.expectedStatus || authorized != req.authorized {
+				t.Fatalf("[%s] Unexpected result for request: %s %s\nExpected status: %d, Authorized: %v\nGot status: %d, Authorized: %v",
+					tt.name, req.method, req.endpoint, req.expectedStatus, req.authorized, out.Result().StatusCode, authorized)
+			}
+			if req.namespaces != nil && !slices.Equal(namespacesInContext, req.namespaces) {
+				t.Fatalf("[%s] Unexpected namespaces in context for request: %s %s\nExpected: %v\nGot: %v",
+					tt.name, req.method, req.endpoint, req.namespaces, namespacesInContext)
 			}
 		}
 	}
