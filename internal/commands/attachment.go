@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/model"
@@ -95,18 +94,23 @@ func AttachmentFetch(ctx context.Context, spec model.RepoSpec, ref model.Attachm
 }
 
 func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.AttachmentContainerRef) error {
-	authors, manufacturers, _, err := repo.Index(ctx)
-	if err != nil {
-		return err
-	}
 	switch ref.Kind() {
 	case model.AttachmentContainerKindAuthor:
-		if !slices.Contains(authors, ref.Author) {
-			return errors.New("author not found in repo")
+		res, err := repo.List(ctx, &model.Filters{Author: []string{ref.Author}})
+		if err != nil {
+			return err
+		}
+		if len(res.Entries) == 0 {
+			return model.ErrAuthorNotFound
 		}
 	case model.AttachmentContainerKindManufacturer:
-		if !slices.Contains(authors, strings.Split(ref.Manufacturer, "/")[0]) || !slices.Contains(manufacturers, strings.Split(ref.Manufacturer, "/")[1]) {
-			return errors.New("manufacturer not found in repo")
+		author, manufacturer := extractAuthorAndManufacturer(ref)
+		res, err := repo.List(ctx, &model.Filters{Author: []string{author}, Manufacturer: []string{manufacturer}})
+		if err != nil {
+			return err
+		}
+		if len(res.Entries) == 0 {
+			return model.ErrManufacturerNotFound
 		}
 	case model.AttachmentContainerKindTMName:
 		// no need
@@ -115,8 +119,17 @@ func CheckAttachmentRefByType(ctx context.Context, repo repos.Repo, ref model.At
 	default:
 		return errors.New("invalid attachment container type")
 	}
-	if err != nil {
-		return err
-	}
 	return nil
+}
+
+func extractAuthorAndManufacturer(ref model.AttachmentContainerRef) (string, string) {
+	author := ref.Author
+	manufacturer := ref.Manufacturer
+	if author == "" {
+		if a, m, ok := strings.Cut(manufacturer, "/"); ok {
+			author = a
+			manufacturer = m
+		}
+	}
+	return author, manufacturer
 }

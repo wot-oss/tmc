@@ -33,7 +33,18 @@ func ListAttachments(ctx context.Context, spec model.RepoSpec, identifier string
 		}
 	case model.AttachmentContainerKindAuthor, model.AttachmentContainerKindManufacturer, model.AttachmentContainerKindTMName:
 		var res model.SearchResult
-		res, err, _ = List(ctx, spec, &model.Filters{Name: identifier})
+		filters := &model.Filters{}
+		switch ref.Kind() {
+		case model.AttachmentContainerKindAuthor:
+			filters.Author = []string{ref.Author}
+		case model.AttachmentContainerKindManufacturer:
+			author, manufacturer := extractAuthorAndManufacturer(ref)
+			filters.Author = []string{author}
+			filters.Manufacturer = []string{manufacturer}
+		case model.AttachmentContainerKindTMName:
+			filters.Name = identifier
+		}
+		res, err, _ = List(ctx, spec, filters)
 		for _, m := range res.Entries {
 			for _, a := range m.Attachments {
 				atts = append(atts, model.FoundAttachment{

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -55,12 +56,22 @@ const (
 	TmAuthorsFile             = "authors.txt"
 	TmManufacturersFile       = "manufacturers.txt"
 	TmMpnsFile                = "mpns.txt"
+	TmProtocolsFile           = "protocols.txt"
 	TmIgnoreFile              = ".tmcignore"
 
 	maxIndexingBatchSize = math.MaxInt
 )
 
 var ValidRepoNameRegex = regexp.MustCompile("^[a-zA-Z0-9][\\w\\-_:]*$")
+
+// helperTxtFileContent sorts and deduplicates the names, drops empty ones and joins them without a trailing newline
+func helperTxtFileContent(names []string) []byte {
+	names = slices.Clone(names)
+	slices.Sort(names)
+	names = slices.Compact(names)
+	names = slices.DeleteFunc(names, func(s string) bool { return strings.TrimSpace(s) == "" })
+	return []byte(strings.Join(names, "\n"))
+}
 
 var repoDefaultIgnore = []string{
 	"# ignore any top-level files",
@@ -134,7 +145,7 @@ type Repo interface {
 	Fetch(ctx context.Context, id string) (string, []byte, error)
 	// Index updates repository's index file with data from given TM files. For ids that refer to non-existing files,
 	// removes those from index. Performs a full update if no updatedIds given
-	Index(ctx context.Context, updatedIds ...string) (authors, manufacturers, mpns []string, err error)
+	Index(ctx context.Context, updatedIds ...string) (authors, manufacturers, mpns, protocols []string, err error)
 	// CheckIntegrity checks the internal resources for integrity and consistency
 	CheckIntegrity(ctx context.Context, filter model.ResourceFilter) (results []model.CheckResult, err error)
 	// List searches the catalog for TMs matching search parameters

@@ -77,6 +77,9 @@ type ServerInterface interface {
 	// Get the contained mpns (manufacturer part numbers) of the inventory
 	// (GET /mpns)
 	GetMpns(w http.ResponseWriter, r *http.Request, params GetMpnsParams)
+	// Get the list of all supported protocols, supported by the inventory entries.
+	// (GET /protocols)
+	GetProtocols(w http.ResponseWriter, r *http.Request, params GetProtocolsParams)
 	// Get the list of repositories
 	// (GET /repos)
 	GetRepos(w http.ResponseWriter, r *http.Request)
@@ -1047,6 +1050,52 @@ func (siw *ServerInterfaceWrapper) GetMpns(w http.ResponseWriter, r *http.Reques
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GetProtocols operation middleware
+func (siw *ServerInterfaceWrapper) GetProtocols(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetProtocolsParams
+
+	// ------------- Optional query parameter "filter.author" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.author", r.URL.Query(), &params.FilterAuthor)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.author", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "filter.manufacturer" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.manufacturer", r.URL.Query(), &params.FilterManufacturer)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.manufacturer", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "filter.mpn" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "filter.mpn", r.URL.Query(), &params.FilterMpn)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "filter.mpn", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProtocols(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
 // GetRepos operation middleware
 func (siw *ServerInterfaceWrapper) GetRepos(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1865,6 +1914,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/thing-models", wrapper.ImportThingModel).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/repos", wrapper.GetRepos).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/protocols", wrapper.GetProtocols).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/mpns", wrapper.GetMpns).Methods("GET")
 

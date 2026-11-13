@@ -102,6 +102,11 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errTitle = Error400Title
 		errDetail = ErrorSearchIndexNotFoundDetail
 		errStatus = http.StatusBadRequest
+	case errors.Is(err, model.ErrAuthorNotFound),
+		errors.Is(err, model.ErrManufacturerNotFound):
+		errTitle = Error404Title
+		errDetail = err.Error()
+		errStatus = http.StatusNotFound
 	case errors.Is(err, repos.ErrAmbiguous):
 		errTitle = Error400Title
 		errDetail = ErrorRepoAmbiguousDetail
@@ -339,6 +344,13 @@ func toManufacturersResponse(manufacturers []string) server.ManufacturersRespons
 func toMpnsResponse(mpns []string) server.MpnsResponse {
 	resp := server.MpnsResponse{
 		Data: mpns,
+	}
+	return resp
+}
+
+func toProtocolsResponse(protocols []string) server.ProtocolsResponse {
+	resp := server.ProtocolsResponse{
+		Data: protocols,
 	}
 	return resp
 }

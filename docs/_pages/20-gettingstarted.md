@@ -4,7 +4,7 @@ permalink: /gettingstarted
 title: Getting Started
 ---
 
-The `tmc` helps you to interact with a Thing Model catalog, which may be hosted on any git forge like GitHub or create your own catalog in a git repository of your choosing.
+The `tmc` tool helps you interact with a Thing Model catalog, which may be hosted on any git forge like GitHub or create your own catalog in a git repository of your choosing.
 
 To integrate publicly available and your own private Thing Models into your product, the `tmc` can be run as a server, exposing a REST API that can be protected with JWT tokens.
 
@@ -37,7 +37,7 @@ tmc repo add -t http example https://raw.githubusercontent.com/wot-oss/example-c
 tmc list
 ```
 
-The listed names are formatted as follows
+The listed names are formatted as follows:
 
 ```
 <author>/<manufacturer>/<model>[/<optional-path>]
@@ -94,7 +94,7 @@ tmc fetch omnicorp/omnicorp/lightall-mk2 -o .
 
 ## Host Your Own Catalog
 
-If you want to host a catalog for your organization or project you should create (See [Create a Repository][4]) and populate (See [Import Thing Models][5]) a repository 
+If you want to host a catalog for your organization or project you should create (see [Create a Repository][4]) and populate (see [Import Thing Models][5]) a repository 
 and then host it using one of the two options:
 
 1. [A simple read-only catalog hosted by your favorite git forge][1]
@@ -103,7 +103,12 @@ and then host it using one of the two options:
 You can configure those as a repo of type `http` or `tmc`, respectively.
 The figure below also demonstrates different ways to use the TMC or TMs hosted by a TMC instance.
 
-![Thing Model Catalog Usage Methods]({{site.baseurl}}/media/usage.png)
+<img src="{{site.baseurl}}/media/usage.png" alt="Thing Model Catalog Usage Methods" style="max-width: 60%;" />
+
+> ##### TIP
+>
+> We recommend you continue with the workflows page to learn about more advanced usage patterns of the TMC.
+{: .block-tip }
 
 [1]: ./workflows#publish-a-catalog-to-a-git-forge
 [2]: ./workflows#expose-a-catalog-for-http-clients

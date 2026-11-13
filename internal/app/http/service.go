@@ -20,6 +20,7 @@ type HandlerService interface {
 	ListAuthors(ctx context.Context, filters *model.Filters) ([]string, error)
 	ListManufacturers(ctx context.Context, filters *model.Filters) ([]string, error)
 	ListMpns(ctx context.Context, filters *model.Filters) ([]string, error)
+	ListProtocols(ctx context.Context, filters *model.Filters) ([]string, error)
 	FindInventoryEntries(ctx context.Context, repo string, name string) ([]model.FoundEntry, error)
 	FetchThingModel(ctx context.Context, repo, tmID string, restoreId bool) ([]byte, error)
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
@@ -174,6 +175,29 @@ func (dhs *defaultHandlerService) ListMpns(ctx context.Context, filters *model.F
 	return mpns, nil
 }
 
+func (dhs *defaultHandlerService) ListProtocols(ctx context.Context, filters *model.Filters) ([]string, error) {
+	protocols := []string{}
+
+	res, err := dhs.ListInventory(ctx, "", filters, 0, 0)
+	if err != nil {
+		return protocols, err
+	}
+
+	check := map[string]bool{}
+	for _, entry := range res.Entries {
+		for _, version := range entry.Versions {
+			for _, protocol := range version.Protocols {
+				if !check[protocol] {
+					check[protocol] = true
+					protocols = append(protocols, protocol)
+				}
+			}
+		}
+	}
+	sort.Strings(protocols)
+	return protocols, nil
+}
+
 func (dhs *defaultHandlerService) ListRepos(ctx context.Context) ([]model.RepoDescription, error) {
 	ds, err := repos.GetDescriptions(ctx, dhs.serveRepo)
 	slices.SortFunc(ds, func(a, b model.RepoDescription) int {
@@ -246,7 +270,7 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 		return res, err
 	}
 	if res.IsSuccessful() {
-		_, _, _, err = repo.Index(ctx, res.TmID)
+		_, _, _, _, err = repo.Index(ctx, res.TmID)
 		if err != nil {
 			return repos.ImportResultFromError(err)
 		}

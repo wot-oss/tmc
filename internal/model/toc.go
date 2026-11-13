@@ -9,32 +9,19 @@ import (
 )
 
 type Index struct {
-	Meta                    IndexMeta     `json:"meta"`
-	Data                    []*IndexEntry `json:"data"`
+	Meta IndexMeta     `json:"meta"`
+	Data []*IndexEntry `json:"data"`
+	// AuthorAttachments and ManufacturerAttachments hold attachments of authors resp. manufacturers.
+	// Those are no index entries of their own and must never appear in Data.
+	AuthorAttachments       map[string]*AttachmentContainer `json:"authorAttachments,omitempty"`
+	ManufacturerAttachments map[string]*AttachmentContainer `json:"manufacturerAttachments,omitempty"`
 	dataByName              map[string]*IndexEntry
-	authorAttachments       map[string]*IndexEntry
-	manufacturerAttachments map[string]*IndexEntry
 }
 
 func (idx *Index) reindexData() {
 	idx.dataByName = make(map[string]*IndexEntry)
-	idx.authorAttachments = make(map[string]*IndexEntry)
-	idx.manufacturerAttachments = make(map[string]*IndexEntry)
 	for _, v := range idx.Data {
 		idx.dataByName[v.Name] = v
-		parts := strings.Split(v.Name, "/")
-		if len(parts) >= 1 {
-			authorName := parts[0]
-			if _, exists := idx.authorAttachments[authorName]; !exists {
-				idx.authorAttachments[authorName] = v
-			}
-		}
-		if len(parts) >= 2 {
-			manufacturerName := parts[0] + "/" + parts[1]
-			if _, exists := idx.manufacturerAttachments[manufacturerName]; !exists {
-				idx.manufacturerAttachments[manufacturerName] = v
-			}
-		}
 	}
 }
 
@@ -159,6 +146,7 @@ func (idx *Index) IsEmpty() bool {
 }
 
 func (idx *Index) Sort() {
+	idx.dropEmptyAttachmentContainers()
 	if idx.IsEmpty() {
 		return
 	}
@@ -176,6 +164,23 @@ func (idx *Index) Sort() {
 	})
 }
 
+// dropEmptyAttachmentContainers removes author/manufacturer containers without attachments so that they don't bloat the persisted index
+func (idx *Index) dropEmptyAttachmentContainers() {
+	for _, m := range []map[string]*AttachmentContainer{idx.AuthorAttachments, idx.ManufacturerAttachments} {
+		for k, c := range m {
+			if c == nil || len(c.Attachments) == 0 {
+				delete(m, k)
+			}
+		}
+	}
+	if len(idx.AuthorAttachments) == 0 {
+		idx.AuthorAttachments = nil
+	}
+	if len(idx.ManufacturerAttachments) == 0 {
+		idx.ManufacturerAttachments = nil
+	}
+}
+
 // FindByName searches by TM name and returns a pointer to the IndexEntry if found
 func (idx *Index) FindByName(name string) *IndexEntry {
 	if idx.dataByName == nil {
@@ -184,18 +189,46 @@ func (idx *Index) FindByName(name string) *IndexEntry {
 	return idx.dataByName[name]
 }
 
-func (idx *Index) findByAuthor(author string) *IndexEntry {
-	if idx.authorAttachments == nil {
-		idx.reindexData()
+// hasNamePrefix reports whether any indexed TM name starts with the given path prefix
+func (idx *Index) hasNamePrefix(prefix string) bool {
+	for _, e := range idx.Data {
+		if strings.HasPrefix(e.Name, prefix+"/") {
+			return true
+		}
 	}
-	return idx.authorAttachments[author]
+	return false
 }
 
-func (idx *Index) findByManufacturer(manufacturer string) *IndexEntry {
-	if idx.manufacturerAttachments == nil {
-		idx.reindexData()
+// findByAuthor returns the attachment container of the author, creating it on the fly if the author exists in the index
+func (idx *Index) findByAuthor(author string) *AttachmentContainer {
+	if c, ok := idx.AuthorAttachments[author]; ok {
+		return c
 	}
-	return idx.manufacturerAttachments[manufacturer]
+	if author == "" || !idx.hasNamePrefix(author) {
+		return nil
+	}
+	c := &AttachmentContainer{}
+	if idx.AuthorAttachments == nil {
+		idx.AuthorAttachments = make(map[string]*AttachmentContainer)
+	}
+	idx.AuthorAttachments[author] = c
+	return c
+}
+
+// findByManufacturer returns the attachment container of the manufacturer, creating it on the fly if the manufacturer exists in the index
+func (idx *Index) findByManufacturer(manufacturer string) *AttachmentContainer {
+	if c, ok := idx.ManufacturerAttachments[manufacturer]; ok {
+		return c
+	}
+	if manufacturer == "" || !idx.hasNamePrefix(manufacturer) {
+		return nil
+	}
+	c := &AttachmentContainer{}
+	if idx.ManufacturerAttachments == nil {
+		idx.ManufacturerAttachments = make(map[string]*AttachmentContainer)
+	}
+	idx.ManufacturerAttachments[manufacturer] = c
+	return c
 }
 
 // FindByTMID searches by TM name and returns a pointer to the IndexVersion if found.
@@ -235,32 +268,6 @@ func (idx *Index) Insert(ctm *ThingModel) error {
 		}
 		idx.Data = append(idx.Data, idxEntry)
 		idx.dataByName[idxEntry.Name] = idxEntry
-	}
-	parts := strings.Split(tmid.Name, "/")
-	if len(parts) >= 1 {
-		authorName := parts[0]
-		idxEntry := idx.findByAuthor(authorName)
-		if idxEntry == nil {
-			idxEntry = &IndexEntry{
-				Name:   parts[0],
-				Author: SchemaAuthor{Name: parts[0]},
-			}
-			idx.Data = append(idx.Data, idxEntry)
-			idx.authorAttachments[idxEntry.Name] = idxEntry
-		}
-	}
-	if len(parts) >= 2 {
-		manufacturerName := parts[0] + "/" + parts[1]
-		idxEntry := idx.findByManufacturer(manufacturerName)
-		if idxEntry == nil {
-			idxEntry = &IndexEntry{
-				Name:         parts[0] + "/" + parts[1],
-				Author:       SchemaAuthor{Name: parts[0]},
-				Manufacturer: SchemaManufacturer{Name: parts[1]},
-			}
-			idx.Data = append(idx.Data, idxEntry)
-			idx.manufacturerAttachments[idxEntry.Name] = idxEntry
-		}
 	}
 	// TODO: check if id already exists?
 	// Append version information to entry
@@ -338,12 +345,6 @@ func (idx *Index) Delete(id string) (updated bool, deletedName string, err error
 			if _, exists := idx.dataByName[name]; exists {
 				delete(idx.dataByName, name)
 			}
-			if _, exists := idx.authorAttachments[name]; exists {
-				delete(idx.authorAttachments, name)
-			}
-			if _, exists := idx.manufacturerAttachments[name]; exists {
-				delete(idx.manufacturerAttachments, name)
-			}
 			return updated, name, nil
 		}
 	}
@@ -357,9 +358,17 @@ func (idx *Index) FindAttachmentContainer(ref AttachmentContainerRef) (*Attachme
 	case AttachmentContainerKindInvalid:
 		return nil, nil, ErrInvalidIdOrName
 	case AttachmentContainerKindAuthor:
-		indexEntry = idx.findByAuthor(ref.Author)
+		c := idx.findByAuthor(ref.Author)
+		if c == nil {
+			return nil, nil, ErrAuthorNotFound
+		}
+		return c, nil, nil
 	case AttachmentContainerKindManufacturer:
-		indexEntry = idx.findByManufacturer(ref.Manufacturer)
+		c := idx.findByManufacturer(ref.Manufacturer)
+		if c == nil {
+			return nil, nil, ErrManufacturerNotFound
+		}
+		return c, nil, nil
 	case AttachmentContainerKindTMID:
 		id, err := ParseTMID(ref.TMID)
 		if err != nil {
@@ -375,15 +384,10 @@ func (idx *Index) FindAttachmentContainer(ref AttachmentContainerRef) (*Attachme
 	}
 
 	if indexEntry == nil {
-		if ref.Kind() == AttachmentContainerKindAuthor {
-			return nil, nil, ErrAuthorNotFound
-		} else if ref.Kind() == AttachmentContainerKindManufacturer {
-			return nil, nil, ErrManufacturerNotFound
-		} else if ref.Kind() == AttachmentContainerKindTMID {
+		if k == AttachmentContainerKindTMID {
 			return nil, nil, ErrTMNotFound
-		} else {
-			return nil, nil, ErrTMNameNotFound
 		}
+		return nil, nil, ErrTMNameNotFound
 	}
 	versions := indexEntry.Versions
 	if k == AttachmentContainerKindTMID {

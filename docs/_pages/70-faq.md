@@ -25,7 +25,7 @@ independent lists of versions. You can then select the right TM for you based on
 for the TM name, etc.
 
 Note that you can achieve the same effect when importing multiple TMs from a directory, if you prepare the folder
-structure accordingly and use the `--opt-tree` flag. I.e. if you have prepared the following files:
+structure accordingly and use the `--opt-tree` flag. That is, if you have prepared the following files:
 
 ```bash
 $ find . -type f
