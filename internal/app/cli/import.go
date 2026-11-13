@@ -71,7 +71,7 @@ func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model
 	}()
 	successfulIds := getSuccessfulIds(res)
 	if len(successfulIds) > 0 {
-		_, _, _, indexErr := repo.Index(ctx, successfulIds...)
+		_, _, _, _, indexErr := repo.Index(ctx, successfulIds...)
 		if indexErr != nil {
 			Stderrf("Cannot create index: %v", indexErr)
 			return res, indexErr
@@ -109,13 +109,14 @@ func (p *ImportExecutor) importDirectory(ctx context.Context, absDirname string,
 
 		res, err := p.importFile(ctx, path, repo, fileOpts)
 		if opts.WithAttachments {
-			var tmId model.TMID
+			var idForAttachments string
 			var tmConflictErr *repos.ErrTMIDConflict
-			if errors.As(err, &tmConflictErr) {
-				tmId, err = model.ParseTMID(tmConflictErr.ExistingId)
-				uuidToTmNameMap[filepath.Base(path)] = tmId.Name
+			if errors.As(res.Err, &tmConflictErr) {
+				idForAttachments = tmConflictErr.ExistingId
 			} else {
-				tmId, err = model.ParseTMID(res.TmID)
+				idForAttachments = res.TmID
+			}
+			if tmId, parseErr := model.ParseTMID(idForAttachments); parseErr == nil {
 				uuidToTmNameMap[filepath.Base(path)] = tmId.Name
 			}
 		}
