@@ -11,6 +11,8 @@
 
 ### Fixed
 
+- namespace scopes (`tmc.ns.<namespace>.<operation>`) were evaluated against the wrong segment when `jwtScopesPrefix` is set
+
 ### Removed
 
 ## [v0.1.5]
