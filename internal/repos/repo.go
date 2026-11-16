@@ -135,6 +135,17 @@ func (r ImportResult) IsSuccessful() bool {
 	return r.Type == ImportResultOK || r.Type == ImportResultWarning
 }
 
+func (r ImportResult) IndexId() string {
+	if r.IsSuccessful() {
+		return r.TmID
+	}
+	var cErr *ErrTMIDConflict
+	if errors.As(r.Err, &cErr) {
+		return cErr.ExistingId
+	}
+	return ""
+}
+
 type Repo interface {
 	// Import writes the Thing Model file into the path under root that corresponds to id.
 	// Returns ErrTMIDConflict if the same file is already stored with a different timestamp or
