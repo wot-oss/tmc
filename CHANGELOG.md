@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- importing a TM updates the index and the generated helper files (`tmnames.txt`, `authors.txt`, `manufacturers.txt`, `mpns.txt`, `protocols.txt`), so that missing or outdated files are created/refreshed
 - namespace scopes (`tmc.ns.<namespace>.<operation>`) were evaluated against the wrong segment when `jwtScopesPrefix` is set
 
 ### Removed
