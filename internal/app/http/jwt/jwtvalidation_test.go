@@ -371,6 +371,9 @@ func Test_Authorization_Scopes(t *testing.T) {
 				{"GET", "/thing-models/.latest/a-corp/eagle/bt2000", nil, http.StatusOK, true},
 				{"POST", "/thing-models", nil, http.StatusUnauthorized, false},
 				{"GET", "/inventory", nil, http.StatusOK, true},
+				{"GET", "/authors", nil, http.StatusOK, true},
+				{"GET", "/manufacturers", nil, http.StatusOK, true},
+				{"GET", "/mpns", nil, http.StatusOK, true},
 			},
 		},
 		{
@@ -384,6 +387,9 @@ func Test_Authorization_Scopes(t *testing.T) {
 			}{
 				{"POST", "/thing-models", []byte("{\"schema:author\":{\"schema:name\":\"a-corp\"}}"), http.StatusOK, true},
 				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false},
+				{"GET", "/authors", nil, http.StatusUnauthorized, false},
+				{"GET", "/manufacturers", nil, http.StatusUnauthorized, false},
+				{"GET", "/mpns", nil, http.StatusUnauthorized, false},
 			},
 		},
 		{

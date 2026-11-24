@@ -1860,3 +1860,69 @@ func createPaginatedSearchResult(fullResult model.SearchResult, offset, limit in
 		TotalCount:  fullResult.TotalCount,
 	}
 }
+
+func TestRestrictToNamespaces(t *testing.T) {
+	t.Run("non-author filter gets namespaces as author", func(t *testing.T) {
+		filters, ok := restrictToNamespaces(&model.Filters{Mpn: []string{"BAR-UNIQUE-MPN"}}, []string{"foo"})
+		assert.True(t, ok)
+		assert.Equal(t, []string{"foo"}, filters.Author)
+		assert.Equal(t, []string{"BAR-UNIQUE-MPN"}, filters.Mpn)
+	})
+	t.Run("nil filters get namespaces as author", func(t *testing.T) {
+		filters, ok := restrictToNamespaces(nil, []string{"foo"})
+		assert.True(t, ok)
+		assert.Equal(t, []string{"foo"}, filters.Author)
+	})
+	t.Run("author is intersected", func(t *testing.T) {
+		filters, ok := restrictToNamespaces(&model.Filters{Author: []string{"foo", "bar"}}, []string{"foo"})
+		assert.True(t, ok)
+		assert.Equal(t, []string{"foo"}, filters.Author)
+	})
+	t.Run("disjoint author is denied", func(t *testing.T) {
+		_, ok := restrictToNamespaces(&model.Filters{Author: []string{"bar"}}, []string{"foo"})
+		assert.False(t, ok)
+	})
+	t.Run("wildcard leaves filters untouched", func(t *testing.T) {
+		filters, ok := restrictToNamespaces(nil, []string{"*"})
+		assert.True(t, ok)
+		assert.Nil(t, filters)
+	})
+}
+
+func Test_ListingsRestrictedToTokenNamespaces(t *testing.T) {
+	hs := mocks.NewHandlerService(t)
+	handler := NewTmcHandler(hs, TmcHandlerOptions{JWTValidation: true})
+	restricted := func(route string, namespaces ...string) *http.Request {
+		req := httptest.NewRequest(http.MethodGet, route, nil)
+		return req.WithContext(context.WithValue(req.Context(), ContextKeyBearerAuthNamespaces, namespaces))
+	}
+
+	t.Run("authors without filters are limited to the namespace", func(t *testing.T) {
+		hs.On("ListAuthors", mock.Anything, &model.Filters{Author: []string{"foo"}}).Return([]string{"foo"}, nil).Once()
+		rec := httptest.NewRecorder()
+		handler.GetAuthors(rec, restricted("/authors", "foo"), server.GetAuthorsParams{})
+		assertResponse200(t, rec)
+		var resp server.AuthorsResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &resp)
+		assert.Equal(t, []string{"foo"}, resp.Data)
+	})
+	t.Run("mpns of another namespace return empty without calling the service", func(t *testing.T) {
+		author := "bar"
+		rec := httptest.NewRecorder()
+		handler.GetMpns(rec, restricted("/mpns", "foo"), server.GetMpnsParams{FilterAuthor: &author})
+		assertResponse200(t, rec)
+		var resp server.MpnsResponse
+		assertUnmarshalResponse(t, rec.Body.Bytes(), &resp)
+		assert.Empty(t, resp.Data)
+	})
+	t.Run("manufacturers and mpns are limited to the namespace", func(t *testing.T) {
+		hs.On("ListManufacturers", mock.Anything, &model.Filters{Author: []string{"foo"}}).Return([]string{"FooCorp"}, nil).Once()
+		hs.On("ListMpns", mock.Anything, &model.Filters{Author: []string{"foo"}}).Return([]string{"FOO-MPN-1"}, nil).Once()
+		rec := httptest.NewRecorder()
+		handler.GetManufacturers(rec, restricted("/manufacturers", "foo"), server.GetManufacturersParams{})
+		assertResponse200(t, rec)
+		rec = httptest.NewRecorder()
+		handler.GetMpns(rec, restricted("/mpns", "foo"), server.GetMpnsParams{})
+		assertResponse200(t, rec)
+	})
+}

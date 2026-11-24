@@ -171,10 +171,14 @@ func extractNamespaceFromScope(scope string) (string, bool) {
 	return parts[2], true
 }
 
+func isNamespaceFilteredListing(resource string) bool {
+	return resource == "inventory" || resource == "authors" || resource == "manufacturers" || resource == "mpns"
+}
+
 func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	pathParts := strings.Split(r.URL.Path[1:], "/")
 	namespaceFromPath := ""
-	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" || pathParts[0] == "mpns" || pathParts[0] == ".completions" {
+	if pathParts[0] == ".completions" {
 		return true, nil
 	}
 	if len(scopesFromWhitelist) > 0 {
@@ -191,7 +195,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 		}
 	}
 
-	if pathParts[0] == "inventory" && r.Method == "GET" {
+	if isNamespaceFilteredListing(pathParts[0]) && r.Method == "GET" {
 		var allowedNamespaces []string
 		for _, scope := range scopes {
 			if scope == scopesPrefix+"tmc.admin" {
