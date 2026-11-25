@@ -577,6 +577,8 @@ func TestService_ImportThingModel(t *testing.T) {
 			Err:     cErr,
 		}
 		r.On("Import", mock.Anything, mock.Anything, mock.Anything, repos.ImportOptions{}).Return(expRes, nil).Once()
+		// and given: the existing TM is indexed to refresh the index and the helper files
+		r.On("Index", mock.Anything, "existing-id").Return([]string{}, []string{}, []string{}, []string{}, nil).Once()
 		// when: importing ThingModel
 		res, err := underTest.ImportThingModel(context.Background(), "", tmContent, repos.ImportOptions{})
 		// then: it returns empty tmID
