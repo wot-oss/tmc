@@ -9,6 +9,8 @@
 
 ### Changed
 
+- building latest docker image for the main branch
+
 ### Fixed
 
 - namespace scopes (`tmc.ns.<namespace>.<operation>`) were evaluated against the wrong segment when `jwtScopesPrefix` is set
