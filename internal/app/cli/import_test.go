@@ -72,14 +72,17 @@ func TestImportExecutor_Import(t *testing.T) {
 			return time.Date(2023, time.November, 11, 12, 32, 43, 0, time.UTC)
 		}
 		e := NewImportExecutor(now)
+		existingId := "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231109120000-98b3fbd291f4.tm.json"
 		cErr := &repos.ErrTMIDConflict{Type: repos.IdConflictSameContent,
-			ExistingId: "omnicorp-tm-department/omnicorp/omnilamp/v3.2.1-20231110123243-98b3fbd291f4.tm.json"}
+			ExistingId: existingId}
 		r.On("Import", mock.Anything, tmid2, mock.Anything, repos.ImportOptions{}).Return(repos.ImportResult{
 			Type:    repos.ImportResultError,
 			TmID:    "",
 			Message: cErr.Error(),
 			Err:     cErr,
 		}, cErr)
+		r.On("Index", mock.Anything, existingId).Return([]string{}, []string{}, []string{}, []string{}, nil)
+
 		res, err := e.Import(context.Background(), "../../../test/data/import/omnilamp-versioned.json", model.NewRepoSpec("repo"), false, repos.ImportOptions{}, OutputFormatPlain)
 		assert.Error(t, err)
 		if assert.Len(t, res, 1) {
@@ -312,7 +315,7 @@ func TestImportExecutor_Import_Directory(t *testing.T) {
 		tmid2 := model.MustParseTMID("omnicorp-tm-department/omnicorp/omnilamp/v0.0.0-20231110123244-575dfac219e2.tm.json")
 		r.On("Import", mock.Anything, tmid2, mock.Anything, opts).Return(repos.ImportResult{Type: repos.ImportResultOK, TmID: tmid2.String()}, nil)
 		r.On("Index", mock.Anything).Return([]string{}, []string{}, []string{}, []string{}, nil)
-		r.On("Index", mock.Anything, tmid2.String()).Return([]string{}, []string{}, []string{}, []string{}, nil)
+		r.On("Index", mock.Anything, cErr.ExistingId, tmid2.String()).Return([]string{}, []string{}, []string{}, []string{}, nil)
 		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid1.Name), model.Attachment{Name: "test.svg", MediaType: "image/svg+xml"}, mock.Anything, mock.Anything).Return(nil)
 		r.On("ImportAttachment", ctx, model.NewTMNameAttachmentContainerRef(tmid2.Name), model.Attachment{Name: "test.txt", MediaType: "text/plain; charset=utf-8"}, mock.Anything, mock.Anything).Return(nil)
 		res, err := e.Import(context.Background(), "../../../test/data/import_attachments/subfolder_with_attachments", repoSpec, false, opts, OutputFormatPlain)

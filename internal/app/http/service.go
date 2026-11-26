@@ -292,17 +292,15 @@ func (dhs *defaultHandlerService) ImportThingModel(ctx context.Context, repoName
 		return repos.ImportResultFromError(err)
 	}
 	res, err := commands.NewImportCommand(time.Now).ImportFile(ctx, file, repo, opts)
-	if err != nil {
-		return res, err
-	}
-	if res.IsSuccessful() {
-		_, _, _, _, err = repo.Index(ctx, res.TmID)
-		if err != nil {
-			return repos.ImportResultFromError(err)
+	// index also when the TM already exists, so that the index and the helper files get refreshed in any case
+	if id := res.IndexId(); id != "" {
+		_, _, _, _, indexErr := repo.Index(ctx, id)
+		if indexErr != nil && err == nil {
+			return repos.ImportResultFromError(indexErr)
 		}
 	}
 
-	return res, nil
+	return res, err
 }
 
 func (dhs *defaultHandlerService) AddThingModelVariant(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error {

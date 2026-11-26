@@ -8,6 +8,7 @@ import (
 	"mime"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/wot-oss/tmc/internal/commands"
@@ -69,9 +70,9 @@ func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model
 			}
 		}
 	}()
-	successfulIds := getSuccessfulIds(res)
-	if len(successfulIds) > 0 {
-		_, _, _, _, indexErr := repo.Index(ctx, successfulIds...)
+	idsToIndex := getIdsToIndex(res)
+	if len(idsToIndex) > 0 {
+		_, _, _, _, indexErr := repo.Index(ctx, idsToIndex...)
 		if indexErr != nil {
 			Stderrf("Cannot create index: %v", indexErr)
 			return res, indexErr
@@ -80,11 +81,12 @@ func (p *ImportExecutor) Import(ctx context.Context, filename string, spec model
 	return res, err
 }
 
-func getSuccessfulIds(res []repos.ImportResult) []string {
+func getIdsToIndex(res []repos.ImportResult) []string {
 	var r []string
 	for _, pr := range res {
-		if pr.IsSuccessful() {
-			r = append(r, pr.TmID)
+		id := pr.IndexId()
+		if id != "" && !slices.Contains(r, id) {
+			r = append(r, id)
 		}
 	}
 	return r
