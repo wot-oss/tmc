@@ -86,44 +86,14 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 		offset = -1
 		limit = -1
 	}
-	if h.Options.JWTValidation {
-		namespaces := extractNamespacesFromContext(r.Context())
-		if namespaces != nil {
-			if filters == nil {
-				filters = &model.Filters{}
-				if !slices.Contains(namespaces, "*") {
-					filters.Author = namespaces
-				} else {
-					filters = nil
-				}
-			} else if filters.Author != nil {
-				authorSet := make(map[string]struct{})
-				for _, a := range filters.Author {
-					authorSet[a] = struct{}{}
-				}
-				var intersection []string
-				if slices.Contains(namespaces, "*") {
-					for _, a := range filters.Author {
-						intersection = append(intersection, a)
-					}
-				} else {
-					for _, ns := range namespaces {
-						if _, exists := authorSet[ns]; exists {
-							intersection = append(intersection, ns)
-						}
-					}
-				}
-				if len(intersection) == 0 {
-					resp := toInventoryResponse(h.createContext(r), model.SearchResult{
-						LastUpdated: time.Now(),
-						Entries:     []model.FoundEntry{},
-					}, page, pageSize)
-					HandleJsonResponse(w, r, http.StatusOK, resp)
-					return
-				}
-				filters.Author = intersection
-			}
-		}
+	filters, allowed := h.restrictFiltersToTokenNamespaces(r, filters)
+	if !allowed {
+		resp := toInventoryResponse(h.createContext(r), model.SearchResult{
+			LastUpdated: time.Now(),
+			Entries:     []model.FoundEntry{},
+		}, page, pageSize)
+		HandleJsonResponse(w, r, http.StatusOK, resp)
+		return
 	}
 	repo := convertRepoName(params.Repo)
 	var search string
@@ -159,6 +129,40 @@ func (h *TmcHandler) GetInventory(w http.ResponseWriter, r *http.Request, params
 	ctx := h.createContext(r)
 	resp := toInventoryResponse(ctx, *inv, page, pageSize)
 	HandleJsonResponse(w, r, http.StatusOK, resp)
+}
+
+func (h *TmcHandler) restrictFiltersToTokenNamespaces(r *http.Request, filters *model.Filters) (*model.Filters, bool) {
+	if !h.Options.JWTValidation {
+		return filters, true
+	}
+	namespaces := extractNamespacesFromContext(r.Context())
+	if namespaces == nil {
+		return filters, true
+	}
+	return restrictToNamespaces(filters, namespaces)
+}
+
+// restrictToNamespaces constrains filters.Author to the allowed namespaces, regardless of
+// which other filters are set. It returns false if no allowed namespace remains.
+func restrictToNamespaces(filters *model.Filters, namespaces []string) (*model.Filters, bool) {
+	if slices.Contains(namespaces, "*") {
+		return filters, true
+	}
+	if filters == nil {
+		filters = &model.Filters{}
+	}
+	if len(filters.Author) == 0 {
+		filters.Author = namespaces
+		return filters, true
+	}
+	var intersection []string
+	for _, ns := range namespaces {
+		if slices.Contains(filters.Author, ns) {
+			intersection = append(intersection, ns)
+		}
+	}
+	filters.Author = intersection
+	return filters, len(intersection) > 0
 }
 
 func filterLatestVersions(inv *model.SearchResult) *model.SearchResult {
@@ -413,6 +417,11 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {
 
 	filters := convertParams(params)
+	filters, allowed := h.restrictFiltersToTokenNamespaces(r, filters)
+	if !allowed {
+		HandleJsonResponse(w, r, http.StatusOK, toAuthorsResponse([]string{}))
+		return
+	}
 
 	authors, err := h.Service.ListAuthors(r.Context(), filters)
 
@@ -428,6 +437,11 @@ func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params s
 func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, params server.GetManufacturersParams) {
 
 	filters := convertParams(params)
+	filters, allowed := h.restrictFiltersToTokenNamespaces(r, filters)
+	if !allowed {
+		HandleJsonResponse(w, r, http.StatusOK, toManufacturersResponse([]string{}))
+		return
+	}
 
 	mans, err := h.Service.ListManufacturers(r.Context(), filters)
 
@@ -443,6 +457,11 @@ func (h *TmcHandler) GetManufacturers(w http.ResponseWriter, r *http.Request, pa
 func (h *TmcHandler) GetMpns(w http.ResponseWriter, r *http.Request, params server.GetMpnsParams) {
 
 	filters := convertParams(params)
+	filters, allowed := h.restrictFiltersToTokenNamespaces(r, filters)
+	if !allowed {
+		HandleJsonResponse(w, r, http.StatusOK, toMpnsResponse([]string{}))
+		return
+	}
 
 	mpns, err := h.Service.ListMpns(r.Context(), filters)
 

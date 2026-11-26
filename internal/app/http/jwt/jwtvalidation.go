@@ -171,10 +171,38 @@ func extractNamespaceFromScope(scope string) (string, bool) {
 	return parts[2], true
 }
 
+func isNamespaceFilteredListing(resource string) bool {
+	return resource == "inventory" || resource == "authors" || resource == "manufacturers" || resource == "mpns"
+}
+
+// isAttachmentResource reports whether resource is a top-level path whose first path
+// segment after it is the namespace (author) and which hosts attachments.
+func isAttachmentResource(resource string) bool {
+	return resource == "authors" || resource == "manufacturers" || resource == "mpns"
+}
+
+// hasAttachmentsSegment reports whether the path addresses an attachment, i.e. contains an
+// ".attachments" segment after the resource and namespace, e.g.
+// thing-models/<author>/<mfr>/<mpn>/<version>/.attachments/<file> or authors/<author>/.attachments/<file>.
+func hasAttachmentsSegment(pathParts []string) bool {
+	for _, part := range pathParts[min(2, len(pathParts)):] {
+		if part == ".attachments" {
+			return true
+		}
+	}
+	return false
+}
+
+// isCollectionPath reports whether the path addresses the top-level collection itself (e.g. /authors),
+// as opposed to a namespaced resource below it.
+func isCollectionPath(pathParts []string) bool {
+	return len(pathParts) == 1 || (len(pathParts) == 2 && pathParts[1] == "")
+}
+
 func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 	pathParts := strings.Split(r.URL.Path[1:], "/")
 	namespaceFromPath := ""
-	if pathParts[0] == "authors" || pathParts[0] == "manufacturers" || pathParts[0] == "mpns" || pathParts[0] == ".completions" {
+	if pathParts[0] == ".completions" {
 		return true, nil
 	}
 	if len(scopesFromWhitelist) > 0 {
@@ -191,7 +219,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 		}
 	}
 
-	if pathParts[0] == "inventory" && r.Method == "GET" {
+	if isNamespaceFilteredListing(pathParts[0]) && isCollectionPath(pathParts) && r.Method == "GET" {
 		var allowedNamespaces []string
 		for _, scope := range scopes {
 			if scope == scopesPrefix+"tmc.admin" {
@@ -248,14 +276,14 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 						}
 					}
 				}
-				if (strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") && (pathParts[0] == "thing-models" || pathParts[0] == "inventory") {
+				if (strings.EqualFold(utils.SanitizeName(namespaceFromPath), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*") && (pathParts[0] == "thing-models" || pathParts[0] == "inventory" || isAttachmentResource(pathParts[0])) {
 					if strings.HasSuffix(scope, ".read") && r.Method == "GET" {
 						return true, nil
 					} else if strings.HasSuffix(scope, ".write") && (r.Method == "POST" || r.Method == "PUT") {
 						return true, nil
-					} else if strings.HasSuffix(scope, "attachments.delete") && r.Method == "DELETE" && (pathParts[2] == ".attachments" || pathParts[3] == ".attachments") {
+					} else if strings.HasSuffix(scope, "attachments.delete") && r.Method == "DELETE" && hasAttachmentsSegment(pathParts) {
 						return true, nil
-					} else if strings.HasSuffix(scope, "thingmodels.delete") && r.Method == "DELETE" && pathParts[0] == "thing-models" {
+					} else if strings.HasSuffix(scope, "thingmodels.delete") && r.Method == "DELETE" && pathParts[0] == "thing-models" && !hasAttachmentsSegment(pathParts) {
 						return true, nil
 					}
 				}
