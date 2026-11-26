@@ -3,6 +3,7 @@ package http
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/wot-oss/tmc/internal/app/http/server"
+	"github.com/wot-oss/tmc/internal/commands"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
 	"github.com/wot-oss/tmc/internal/utils"
@@ -381,8 +383,6 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 
 	defer r.Body.Close()
 	b, err := io.ReadAll(r.Body)
-	err = r.Body.Close()
-
 	if err != nil {
 		HandleErrorResponse(w, r, err)
 		return
@@ -391,7 +391,6 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
 		return
 	}
-
 	opts := repos.ImportOptions{}
 	opts.Force = convertForceParam(p.Force)
 	if p.OptPath != nil {
@@ -408,6 +407,123 @@ func (h *TmcHandler) ImportThingModel(w http.ResponseWriter, r *http.Request, p 
 
 	HandleJsonResponse(w, r, http.StatusCreated, resp)
 
+}
+
+// POST /thing-models/{tmID} adds one or more variants to a Thing Model.
+func (h *TmcHandler) AddThingModelVariant(w http.ResponseWriter, r *http.Request, tmID server.TMID, params server.AddThingModelVariantParams) {
+	contentType := r.Header.Get(HeaderContentType)
+
+	if contentType != MimeJSON {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "Invalid Content-Type header: %s", contentType))
+		return
+	}
+
+	if _, err := model.ParseTMID(tmID); err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	defer r.Body.Close()
+	b, err := io.ReadAll(r.Body)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	b = bytes.TrimSpace(b)
+	if len(b) == 0 {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "Empty request body"))
+		return
+	}
+	if !json.Valid(b) || b[0] != '{' {
+		HandleErrorResponse(w, r, NewBadRequestError(nil, "request body must be a variant object or a batch object with familyName and variants"))
+		return
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(b, &fields); err != nil {
+		HandleErrorResponse(w, r, NewBadRequestError(err, "invalid request body: %v", err))
+		return
+	}
+	if raw, provided := fields["familyName"]; provided {
+		var name *string
+		if err := json.Unmarshal(raw, &name); err != nil {
+			HandleErrorResponse(w, r, NewBadRequestError(err, "invalid familyName: %v", err))
+			return
+		}
+		if name == nil || strings.TrimSpace(*name) == "" {
+			HandleErrorResponse(w, r, model.ErrFamilyNameRequired)
+			return
+		}
+	}
+	if _, batch := fields["variants"]; batch {
+		var request commands.AddVariantsBatchRequest
+		decoder := json.NewDecoder(bytes.NewReader(b))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&request); err != nil {
+			HandleErrorResponse(w, r, NewBadRequestError(err, "invalid request body: %v", err))
+			return
+		}
+		if len(request.Variants) == 0 {
+			HandleErrorResponse(w, r, NewBadRequestError(nil, "batch cannot be empty"))
+			return
+		}
+		if params.WithAttachments != nil && *params.WithAttachments {
+			for i := range request.Variants {
+				request.Variants[i].WithAttachments = true
+			}
+		}
+		results, err := h.Service.AddThingModelVariantBatch(r.Context(), convertRepoName(params.Repo), tmID, request)
+		if err != nil {
+			HandleErrorResponse(w, r, err)
+			return
+		}
+		HandleJsonResponse(w, r, http.StatusOK, results)
+		return
+	}
+
+	var req commands.AddVariantRequest
+	decoder := json.NewDecoder(bytes.NewReader(b))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
+		HandleErrorResponse(w, r, NewBadRequestError(err, "invalid request body: %v", err))
+		return
+	}
+	variantID := strings.TrimSpace(req.VariantID)
+
+	err = h.Service.AddThingModelVariant(r.Context(), convertRepoName(params.Repo), tmID, commands.AddVariantOptions{
+		FamilyName:      req.FamilyName,
+		VariantID:       variantID,
+		Mpn:             strings.TrimSpace(req.Mpn),
+		Description:     req.Description,
+		Title:           req.Title,
+		WithAttachments: req.WithAttachments || (params.WithAttachments != nil && *params.WithAttachments),
+	})
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	_, _ = w.Write(nil)
+}
+
+func (h *TmcHandler) GetFamilies(w http.ResponseWriter, r *http.Request, params server.GetFamiliesParams) {
+	var filters *model.Filters
+	if h.Options.JWTValidation {
+		namespaces := extractNamespacesFromContext(r.Context())
+		if namespaces != nil && !slices.Contains(namespaces, "*") {
+			filters = &model.Filters{Author: namespaces}
+		}
+	}
+	lines, err := h.Service.ListFamilies(r.Context(), convertRepoName(params.Repo), filters)
+	if err != nil {
+		HandleErrorResponse(w, r, err)
+		return
+	}
+	body := strings.Join(lines, "\n")
+	if len(lines) > 0 {
+		body += "\n"
+	}
+	HandleByteResponse(w, r, http.StatusOK, MimeText, []byte(body))
 }
 
 func (h *TmcHandler) GetAuthors(w http.ResponseWriter, r *http.Request, params server.GetAuthorsParams) {

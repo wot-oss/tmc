@@ -191,7 +191,7 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 		}
 	}
 
-	if pathParts[0] == "inventory" && r.Method == "GET" {
+	if (pathParts[0] == "inventory" || pathParts[0] == "family") && r.Method == "GET" {
 		var allowedNamespaces []string
 		for _, scope := range scopes {
 			if scope == scopesPrefix+"tmc.admin" {
@@ -230,13 +230,13 @@ func getAuthStatus(r *http.Request, scopes []string) (bool, error) {
 					if strings.HasSuffix(scope, ".write") {
 						tmbody, err := io.ReadAll(r.Body)
 						if err != nil {
-							panic(err)
+							return false, fmt.Errorf("failed to read request body: %v", err)
 						}
 						r.Body = io.NopCloser(bytes.NewReader(tmbody))
 						var tm model.ThingModel
 						err = json.Unmarshal(tmbody, &tm)
 						if err != nil {
-							panic(err)
+							return false, fmt.Errorf("invalid request body: %v", err)
 						}
 						fmt.Println(utils.SanitizeName(tm.Author.Name))
 						if strings.EqualFold(utils.SanitizeName(tm.Author.Name), utils.SanitizeName(namespaceFromScope)) || namespaceFromScope == "*" {

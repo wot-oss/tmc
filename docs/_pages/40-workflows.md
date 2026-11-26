@@ -110,6 +110,127 @@ tmc fetch siemens/siemens/poc1000:v1
 tmc fetch siemens/siemens/poc1000:v1.0.1
 ```
 
+### MPN variants
+
+Thing Model variants, which distinguish from each other only in mpns and, optionally, in title and description, can be added via CLI and REST.
+
+#### CLI: Add a single variant
+
+1. Add a new variant from parent TM using a new MPN:
+
+```bash
+tmc variant add --repo small --tm-id <parent-tm-id> --family-name "Lightall" --mpn newmpn-1
+```
+
+Link an existing TM as variant (no new TM is created):
+
+```bash
+tmc variant add --repo small --tm-id <parent-tm-id> --family-name "Lightall" --variant-id <existing-variant-tm-id>
+```
+
+If the parent already belongs to a named family, omit `--family-name` to reuse
+that name:
+
+```bash
+tmc variant add --repo small --tm-id <parent-tm-id> --mpn newmpn-2
+```
+
+Optional fields for creation, `--with-attachments` flag copies the attachments from parent TM to the created variant:
+
+```bash
+tmc variant add --repo small --tm-id <parent-tm-id> --family-name "Lightall" --mpn newmpn-1 --title "Variant title" --description "Variant description" --with-attachments
+```
+
+#### CLI: Bulk add variants
+
+Create a JSON file (example `variants.json`). All variants use the same parent,
+specified once with `--tm-id`. The file contains `familyName` when creating a
+family and a non-empty `variants` array:
+
+```json
+{
+  "familyName": "Lightall",
+  "variants": [
+    {
+      "mpn": "newmpn-bulk-1",
+      "title": "Bulk Variant 1",
+      "description": "Bulk created variant"
+    },
+    {
+      "mpn": "newmpn-bulk-2",
+      "title": "Bulk Variant 2",
+      "description": "Bulk created variant"
+    }
+  ]
+}
+```
+
+Run bulk creation:
+
+```bash
+tmc variant add-batch --repo small --tm-id <parent-tm-id> --json-file variants.json
+```
+
+#### REST: Add one or more variants
+
+Send `POST /thing-models/{tmID}` with `Content-Type: application/json`, where
+`{tmID}` is the parent for every variant. The body is either a single variant
+or a batch wrapper with a non-empty `variants` array. Include `familyName` when
+creating a family; omit it to reuse an existing family's name:
+
+```json
+{"familyName": "Lightall", "mpn": "newmpn-1", "title": "Variant title"}
+```
+
+```json
+{"familyName": "Lightall", "variants": [{"mpn": "newmpn-1"}, {"mpn": "newmpn-2"}]}
+```
+
+```json
+{"variants": [{"mpn": "newmpn-3"}, {"mpn": "newmpn-4"}]}
+```
+
+Each object accepts either `mpn` to create a variant from the parent, or
+`variant-id` to link an existing TM with the same author and manufacturer.
+`title` and `description` are only allowed when creating a variant.
+Use `?with-attachments=true` to copy the parent's attachments to every newly
+created variant, or `"with-attachments": true` on individual objects.
+
+All variants join the parent's family; one is created if the parent has none.
+When provided, the family name must be non-blank and match an existing family's
+name exactly (including case and whitespace). A different name returns `409 Conflict` before
+any variants are created, for both single requests and entire batches.
+An existing family with an ID but no name is also rejected with `409` and must
+be named separately through repository maintenance before uploading variants;
+variant uploads never name or rename an existing family.
+Missing `familyName` for a new family, or an explicitly blank `familyName`,
+returns `400 Bad Request`.
+
+A single request returns `204 No Content`. A batch returns `200 OK` with one
+result per item in request order, containing the path parent's `tm-id` and either
+`variant-id` or `error`. After family validation succeeds, individual variant
+failures do not stop the rest of the batch.
+The former `/thing-models/variants?tm-id=...` endpoint and per-item source
+`tm-id` fields are no longer supported. Bare-array batch bodies are also rejected.
+
+Inventory entries belonging to a family expose `familyId` and `familyName`
+(the previous inventory key `family` is replaced by `familyId`). Entries not
+belonging to a family omit both fields. The `filter.family` query parameter
+continues to filter by family ID.
+
+#### REST: List families
+
+`GET /family` returns `text/plain`, with one distinct family per line, sorted by
+name and ID:
+
+```text
+Lightall:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+Use `?repo=<repository>` to select a repository. Namespace read permissions limit
+the list to families visible to the caller. An empty list returns an empty body;
+legacy unnamed families appear as `:familyID`.
+
 ## Publish a Catalog to a Git Forge
 
 Initialize the directory where your file repository is located as a git repository and use the git workflows to commit and push it to

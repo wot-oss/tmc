@@ -89,6 +89,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	switch true {
 	// handle sentinel errors with errors.Is()
 	case errors.Is(err, model.ErrInvalidId),
+		errors.Is(err, model.ErrFamilyNameRequired),
 		errors.Is(err, model.ErrInvalidIdOrName),
 		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
@@ -112,6 +113,11 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errDetail = ErrorRepoAmbiguousDetail
 		errStatus = http.StatusBadRequest
 	case errors.Is(err, repos.ErrAttachmentExists):
+		errTitle = Error409Title
+		errDetail = err.Error()
+		errStatus = http.StatusConflict
+	case errors.Is(err, model.ErrFamilyNameConflict),
+		errors.Is(err, model.ErrFamilyUnnamed):
 		errTitle = Error409Title
 		errDetail = err.Error()
 		errStatus = http.StatusConflict
@@ -256,6 +262,7 @@ func convertParams(params any) *model.Filters {
 	var filterProtocol *string
 	var filterName *string
 	var filterChangedSince *string
+	var filterFamily *string
 
 	if invParams, ok := params.(server.GetInventoryParams); ok {
 		filterAuthor = invParams.FilterAuthor
@@ -264,6 +271,7 @@ func convertParams(params any) *model.Filters {
 		filterProtocol = invParams.FilterProtocol
 		filterName = invParams.FilterName
 		filterChangedSince = invParams.FilterChangedSince
+		filterFamily = invParams.FilterFamily
 	} else if authorsParams, ok := params.(server.GetAuthorsParams); ok {
 		filterManufacturer = authorsParams.FilterManufacturer
 		filterMpn = authorsParams.FilterMpn
@@ -278,7 +286,7 @@ func convertParams(params any) *model.Filters {
 		filterProtocol = mpnsParams.FilterProtocol
 	}
 
-	return model.ToFilters(filterAuthor, filterManufacturer, filterMpn, filterProtocol, filterName, filterChangedSince,
+	return model.ToFilters(filterAuthor, filterManufacturer, filterMpn, filterProtocol, filterName, filterChangedSince, filterFamily,
 		&model.FilterOptions{NameFilterType: model.PrefixMatch})
 }
 

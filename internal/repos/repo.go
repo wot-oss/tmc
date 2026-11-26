@@ -176,6 +176,7 @@ type Repo interface {
 	ImportAttachment(ctx context.Context, container model.AttachmentContainerRef, attachment model.Attachment, content []byte, force bool) error
 	FetchAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) ([]byte, error)
 	DeleteAttachment(ctx context.Context, container model.AttachmentContainerRef, attachmentName string) error
+	SetFamily(ctx context.Context, tmName string, familyID string, familyName string) error
 }
 
 type ImportOptions struct {
@@ -183,6 +184,34 @@ type ImportOptions struct {
 	OptPath         string
 	IgnoreExisting  bool
 	WithAttachments bool
+}
+
+func setFamilyIndexUpdater(tmName, familyID, familyName string) indexUpdater {
+	return func(_ context.Context, oldIndex *model.Index, oldNames []string) (*model.Index, []string, int, error) {
+		if strings.TrimSpace(familyID) == "" {
+			return nil, nil, 0, errors.New("family ID must not be empty")
+		}
+		if strings.TrimSpace(familyName) == "" {
+			return nil, nil, 0, model.ErrFamilyNameRequired
+		}
+		entry := oldIndex.FindByName(tmName)
+		if entry == nil {
+			return nil, nil, 0, model.ErrTMNameNotFound
+		}
+		for _, member := range oldIndex.Data {
+			if member.FamilyID == familyID && member.FamilyName != "" && member.FamilyName != familyName {
+				return nil, nil, 0, fmt.Errorf("%w: family %s is named %q, not %q", model.ErrFamilyNameConflict, familyID, member.FamilyName, familyName)
+			}
+		}
+		for _, member := range oldIndex.Data {
+			if member.FamilyID == familyID {
+				member.FamilyName = familyName
+			}
+		}
+		entry.FamilyID = familyID
+		entry.FamilyName = familyName
+		return oldIndex, oldNames, 0, nil
+	}
 }
 
 var Get = func(spec model.RepoSpec) (Repo, error) {

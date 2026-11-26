@@ -97,6 +97,14 @@ paths:
           schema:
             type: string
           example: '20260101000000'
+        - name: 'filter.family'
+          in: query
+          description: |
+            Filters the inventory to return only the entries that belong to the specified family.
+            If this filter is present in the URL (e.g., `?filter.family=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`), only the entries that belong to that family will be returned.
+          schema:
+            type: string
+          example: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
         - name: 'page'
           in: query
           description: |
@@ -325,6 +333,76 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '404':
           description: Content of the Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - thing-models
+      summary: Create a family of Thing Model variants
+      description: |
+        Adds a single variant object or a batch object containing a variants array to the Thing Model
+        identified by the path TMID. Each object either links an existing variant
+        via `variant-id` or creates one from this parent via `mpn`.
+        All variants join the parent's family, creating it if needed.
+        familyName is required when the parent has no family. Otherwise, the
+        existing family's name is reused; if supplied, familyName must match it exactly.
+        A mismatched name or an existing unnamed family rejects the entire request
+        with 409 before any variants are created. Unnamed families must be named separately.
+        Per-item source TMIDs are not supported. Batch results are returned in
+        request order and failures do not prevent subsequent items from being processed.
+      operationId: addThingModelVariant
+      parameters:
+        - $ref: '#/components/parameters/RepoDisambiguator'
+        - $ref: '#/components/parameters/TMID'
+        - name: with-attachments
+          in: query
+          description: Whether to copy the parent's attachments to all newly created variants (defaults to false)
+          required: false
+          schema:
+            type: boolean
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/AddThingModelVariantRequest'
+                - $ref: '#/components/schemas/AddVariantsBatchRequest'
+      responses:
+        '200':
+          description: Batch operation completed with a result for each variant
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AddVariantBatchResult'
+        '204':
+          description: Single variant successfully added
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Thing Model not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict
           content:
             application/json:
               schema:
@@ -789,6 +867,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /family:
+    get:
+      tags:
+        - inventory
+      summary: List existing variant families
+      description: |
+        Returns distinct families visible to the caller, sorted by name and ID.
+        Each line is familyName:familyID, followed by a newline.
+        Legacy unnamed families have an empty name before the colon.
+        An empty catalog returns an empty body.
+      operationId: getFamilies
+      parameters:
+        - $ref: '#/components/parameters/RepoConstraint'
+      responses:
+        '200':
+          description: Existing families, one per line
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                Lightall:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+        '400':
+          description: Invalid repository selection
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '500':
           description: Internal error
           content:
@@ -1729,10 +1843,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/InventoryEntryVersion'
+        familyId:
+          type: string
+          description: Identifier shared by all Thing Models in the same variant family
+        familyName:
+          type: string
+          description: Name shared by all Thing Models in the same variant family
+          example: '01K3M9Z2V6P4HR8J1G5S7Q0XNC'
         links:
           $ref: '#/components/schemas/InventoryEntryLinks'
         attachments:
-          $ref: "#/components/schemas/AttachmentsList"
+          $ref: "#/components/schemas/AttachmentsList"    
     InventoryEntryVersionResponse:
       type: object
       required:
@@ -1852,6 +1973,82 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/ImportThingModelResult'
+    AddThingModelVariantRequest:
+      type: object
+      additionalProperties: false
+      oneOf:
+        - required: [variant-id]
+        - required: [mpn]
+      properties:
+        familyName:
+          type: string
+          minLength: 1
+          description: Required for a new family; if supplied for an existing family, must match its name exactly
+        variant-id:
+          type: string
+          description: TMID of an existing variant Thing Model to link
+        mpn:
+          type: string
+          description: MPN for a new variant created from the parent Thing Model
+        title:
+          type: string
+          description: Optional title override for a newly created variant
+        description:
+          type: string
+          description: Optional description override for a newly created variant
+        with-attachments:
+          type: boolean
+          description: Whether to copy the parent's attachments to this newly created variant (defaults to false)
+    AddVariantsBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [variants]
+      properties:
+        familyName:
+          type: string
+          minLength: 1
+          description: Required for a new family; if supplied for an existing family, must match its name exactly
+        variants:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/VariantRequest'
+    VariantRequest:
+      type: object
+      additionalProperties: false
+      oneOf:
+        - required: [variant-id]
+        - required: [mpn]
+      properties:
+        variant-id:
+          type: string
+          description: TMID of an existing variant Thing Model to link
+        mpn:
+          type: string
+          description: MPN for a new variant created from the parent Thing Model
+        title:
+          type: string
+          description: Optional title override for a newly created variant
+        description:
+          type: string
+          description: Optional description override for a newly created variant
+        with-attachments:
+          type: boolean
+          description: Whether to copy the parent's attachments to this newly created variant (defaults to false)
+    AddVariantBatchResult:
+      type: object
+      required:
+        - tm-id
+      properties:
+        tm-id:
+          type: string
+          description: TMID of the parent Thing Model from the path
+        variant-id:
+          type: string
+          description: TMID of the created or linked variant (only present on success)
+        error:
+          type: string
+          description: Error message if the operation failed (only present on failure)
     AuthorsResponse:
       type: object
       required:

@@ -49,6 +49,10 @@ func (m *Mapper) GetInventoryEntry(entry model.FoundEntry) server.InventoryEntry
 	invEntry.SchemaAuthor.SchemaName = entry.Author.Name
 	invEntry.SchemaManufacturer.SchemaName = entry.Manufacturer.Name
 	invEntry.SchemaMpn = entry.Mpn
+	if entry.FamilyID != "" {
+		invEntry.FamilyId = &entry.FamilyID
+		invEntry.FamilyName = &entry.FamilyName
+	}
 	invEntry.Versions = m.GetInventoryEntryVersions(entry.Versions)
 	if entry.FoundIn.RepoName != "" {
 		invEntry.Repo = &entry.FoundIn.RepoName

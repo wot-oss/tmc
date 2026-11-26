@@ -1135,3 +1135,185 @@ workflows:
       step10_fetch_searched_tm_by_name_status: $steps.fetchSearchedTMByName.outputs.status
       step10_fetch_searched_tm_by_name_body: $steps.fetchSearchedTMByName.outputs.body
 
+  - workflowId: variantsAndFamiliesLifecycle
+    summary: Complete lifecycle test for Thing Model variants and families
+    description: |
+      Tests parent creation, adding single variant with familyName, batch variant creation, family validation errors (409 / 400), listing families, and family inventory filtering.
+    inputs:
+      type: object
+      properties:
+        repoName:
+          type: string
+          default: example-catalog
+        authorName:
+          type: string
+          default: omnicorp
+        manufacturerName:
+          type: string
+          default: bartech
+        mpnParent:
+          type: string
+          default: parent-lamp
+        familyName:
+          type: string
+          default: Lightall
+    steps:
+      - stepId: importParentTM
+        description: Import parent Thing Model
+        operationId: importThingModel
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: force
+            in: query
+            value: true
+        requestBody:
+          contentType: application/json
+          payload:
+            '@context':
+              - https://www.w3.org/2022/wot/td/v1.1
+              - schema:
+                  https://schema.org/
+            '@type': tm:ThingModel
+            title: Parent Lamp
+            description: Parent TM for variant and family testing
+            schema:author:
+              schema:name: $inputs.authorName
+            schema:manufacturer:
+              schema:name: $inputs.manufacturerName
+            schema:mpn: $inputs.mpnParent
+            version:
+              model: v1.0.0
+        successCriteria:
+          - condition: $statusCode == 201 || $statusCode == 409
+        outputs:
+          status: $statusCode
+
+      - stepId: locateParentTM
+        description: Locate parent TM ID
+        operationId: getInventoryByFetchName
+        parameters:
+          - name: fetchName
+            in: path
+            value: omnicorp/bartech/parent-lamp
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          tmID: $response.body#/data/tmID
+
+      - stepId: addSingleVariantWithFamily
+        description: Add single variant with explicit familyName and attachments copy
+        operationId: addThingModelVariant
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateParentTM.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: with-attachments
+            in: query
+            value: true
+        requestBody:
+          contentType: application/json
+          payload:
+            familyName: $inputs.familyName
+            mpn: newmpn-1
+            title: Variant 1 Title
+        successCriteria:
+          - condition: $statusCode == 204 || $statusCode == 409
+
+      - stepId: addBatchVariants
+        description: Add batch variants wrapper
+        operationId: addThingModelVariant
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateParentTM.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        requestBody:
+          contentType: application/json
+          payload:
+            familyName: $inputs.familyName
+            variants:
+              - mpn: newmpn-2
+                title: Variant 2 Title
+              - mpn: newmpn-3
+                title: Variant 3 Title
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          batchResponse: $response.body#
+
+      - stepId: testConflictFamilyName
+        description: Test 409 Conflict when providing mismatched familyName
+        operationId: addThingModelVariant
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateParentTM.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        requestBody:
+          contentType: application/json
+          payload:
+            familyName: WrongFamilyName
+            mpn: conflict-mpn
+        successCriteria:
+          - condition: $statusCode == 409
+
+      - stepId: testBadRequestBlankFamily
+        description: Test 400 Bad Request when providing blank familyName
+        operationId: addThingModelVariant
+        parameters:
+          - name: tmID
+            in: path
+            value: $steps.locateParentTM.outputs.tmID
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        requestBody:
+          contentType: application/json
+          payload:
+            familyName: '   '
+            mpn: blank-mpn
+        successCriteria:
+          - condition: $statusCode == 400
+
+      - stepId: listFamilies
+        description: List families in repository
+        operationId: getFamilies
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          familiesList: $response.body#
+
+      - stepId: filterInventoryByFamily
+        description: Filter inventory by family ID
+        operationId: getInventory
+        parameters:
+          - name: repo
+            in: query
+            value: $inputs.repoName
+          - name: filter.family
+            in: query
+            value: 431ba6fc-6c31-4c1b-8763-5560bdb4315e
+        successCriteria:
+          - condition: $statusCode == 200
+        outputs:
+          filteredInventory: $response.body#
+
+    outputs:
+      families: $steps.listFamilies.outputs.familiesList
+      inventoryFiltered: $steps.filterInventoryByFamily.outputs.filteredInventory
