@@ -15,6 +15,7 @@ import (
 )
 
 type HandlerService interface {
+	ListFamilies(ctx context.Context, repo string, filters *model.Filters) ([]string, error)
 	ListInventory(ctx context.Context, repo string, filters *model.Filters, offset, limit int) (*model.SearchResult, error)
 	SearchInventory(ctx context.Context, repo, query string, offset, limit int) (*model.SearchResult, error)
 	ListAuthors(ctx context.Context, filters *model.Filters) ([]string, error)
@@ -26,7 +27,7 @@ type HandlerService interface {
 	FetchLatestThingModel(ctx context.Context, repo, fetchName string, restoreId bool) ([]byte, error)
 	ImportThingModel(ctx context.Context, repo string, file []byte, opts repos.ImportOptions) (repos.ImportResult, error)
 	AddThingModelVariant(ctx context.Context, repo string, tmID string, opts commands.AddVariantOptions) error
-	AddThingModelVariantBatch(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult
+	AddThingModelVariantBatch(ctx context.Context, repo string, tmID string, request commands.AddVariantsBatchRequest) ([]commands.AddVariantBatchResult, error)
 	DeleteThingModel(ctx context.Context, repo string, tmID string) error
 	ExportCatalog(ctx context.Context, repo string) ([]byte, error)
 	CheckHealth(ctx context.Context) error
@@ -55,6 +56,29 @@ func NewDefaultHandlerService(servedRepo model.RepoSpec) (*defaultHandlerService
 		serveRepo: servedRepo,
 	}
 	return dhs, nil
+}
+
+func (dhs *defaultHandlerService) ListFamilies(ctx context.Context, repo string, filters *model.Filters) ([]string, error) {
+	inventory, err := dhs.ListInventory(ctx, repo, filters, -1, -1)
+	if err != nil {
+		return nil, err
+	}
+	namesByID := make(map[string]string)
+	for _, entry := range inventory.Entries {
+		if entry.FamilyID == "" {
+			continue
+		}
+		if name, exists := namesByID[entry.FamilyID]; exists && name != entry.FamilyName {
+			return nil, fmt.Errorf("inconsistent names for family %s: %q and %q", entry.FamilyID, name, entry.FamilyName)
+		}
+		namesByID[entry.FamilyID] = entry.FamilyName
+	}
+	lines := make([]string, 0, len(namesByID))
+	for id, name := range namesByID {
+		lines = append(lines, name+":"+id)
+	}
+	sort.Strings(lines)
+	return lines, nil
 }
 
 func (dhs *defaultHandlerService) ListInventory(ctx context.Context, repo string, filters *model.Filters, offset, limit int) (*model.SearchResult, error) {
@@ -290,19 +314,12 @@ func (dhs *defaultHandlerService) AddThingModelVariant(ctx context.Context, repo
 	return err
 }
 
-func (dhs *defaultHandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
+func (dhs *defaultHandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, tmID string, request commands.AddVariantsBatchRequest) ([]commands.AddVariantBatchResult, error) {
 	spec, err := dhs.inferTargetRepo(ctx, repo)
 	if err != nil {
-		var results []commands.AddVariantBatchResult
-		for _, req := range requests {
-			results = append(results, commands.AddVariantBatchResult{
-				TmID:  req.TmID,
-				Error: fmt.Sprintf("failed to infer repo: %v", err),
-			})
-		}
-		return results
+		return nil, err
 	}
-	return commands.AddVariantsBatch(ctx, spec, familyTMID, requests)
+	return commands.AddVariantsBatch(ctx, spec, tmID, request)
 }
 
 func (dhs *defaultHandlerService) DeleteThingModel(ctx context.Context, repo string, tmID string) error {

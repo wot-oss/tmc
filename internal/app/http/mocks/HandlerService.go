@@ -74,24 +74,34 @@ func (_c *HandlerService_AddThingModelVariant_Call) RunAndReturn(run func(contex
 	return _c
 }
 
-// AddThingModelVariantBatch provides a mock function with given fields: ctx, repo, familyTMID, requests
-func (_m *HandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult {
-	ret := _m.Called(ctx, repo, familyTMID, requests)
+// AddThingModelVariantBatch provides a mock function with given fields: ctx, repo, tmID, request
+func (_m *HandlerService) AddThingModelVariantBatch(ctx context.Context, repo string, tmID string, request commands.AddVariantsBatchRequest) ([]commands.AddVariantBatchResult, error) {
+	ret := _m.Called(ctx, repo, tmID, request)
 
 	if len(ret) == 0 {
 		panic("no return value specified for AddThingModelVariantBatch")
 	}
 
 	var r0 []commands.AddVariantBatchResult
-	if rf, ok := ret.Get(0).(func(context.Context, string, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult); ok {
-		r0 = rf(ctx, repo, familyTMID, requests)
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, commands.AddVariantsBatchRequest) ([]commands.AddVariantBatchResult, error)); ok {
+		return rf(ctx, repo, tmID, request)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, commands.AddVariantsBatchRequest) []commands.AddVariantBatchResult); ok {
+		r0 = rf(ctx, repo, tmID, request)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]commands.AddVariantBatchResult)
 		}
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, commands.AddVariantsBatchRequest) error); ok {
+		r1 = rf(ctx, repo, tmID, request)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // HandlerService_AddThingModelVariantBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddThingModelVariantBatch'
@@ -102,25 +112,25 @@ type HandlerService_AddThingModelVariantBatch_Call struct {
 // AddThingModelVariantBatch is a helper method to define mock.On call
 //   - ctx context.Context
 //   - repo string
-//   - familyTMID string
-//   - requests []commands.AddVariantBatchRequest
-func (_e *HandlerService_Expecter) AddThingModelVariantBatch(ctx interface{}, repo interface{}, familyTMID interface{}, requests interface{}) *HandlerService_AddThingModelVariantBatch_Call {
-	return &HandlerService_AddThingModelVariantBatch_Call{Call: _e.mock.On("AddThingModelVariantBatch", ctx, repo, familyTMID, requests)}
+//   - tmID string
+//   - request commands.AddVariantsBatchRequest
+func (_e *HandlerService_Expecter) AddThingModelVariantBatch(ctx interface{}, repo interface{}, tmID interface{}, request interface{}) *HandlerService_AddThingModelVariantBatch_Call {
+	return &HandlerService_AddThingModelVariantBatch_Call{Call: _e.mock.On("AddThingModelVariantBatch", ctx, repo, tmID, request)}
 }
 
-func (_c *HandlerService_AddThingModelVariantBatch_Call) Run(run func(ctx context.Context, repo string, familyTMID string, requests []commands.AddVariantBatchRequest)) *HandlerService_AddThingModelVariantBatch_Call {
+func (_c *HandlerService_AddThingModelVariantBatch_Call) Run(run func(ctx context.Context, repo string, tmID string, request commands.AddVariantsBatchRequest)) *HandlerService_AddThingModelVariantBatch_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].([]commands.AddVariantBatchRequest))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(commands.AddVariantsBatchRequest))
 	})
 	return _c
 }
 
-func (_c *HandlerService_AddThingModelVariantBatch_Call) Return(_a0 []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
-	_c.Call.Return(_a0)
+func (_c *HandlerService_AddThingModelVariantBatch_Call) Return(_a0 []commands.AddVariantBatchResult, _a1 error) *HandlerService_AddThingModelVariantBatch_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *HandlerService_AddThingModelVariantBatch_Call) RunAndReturn(run func(context.Context, string, string, []commands.AddVariantBatchRequest) []commands.AddVariantBatchResult) *HandlerService_AddThingModelVariantBatch_Call {
+func (_c *HandlerService_AddThingModelVariantBatch_Call) RunAndReturn(run func(context.Context, string, string, commands.AddVariantsBatchRequest) ([]commands.AddVariantBatchResult, error)) *HandlerService_AddThingModelVariantBatch_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1114,6 +1124,66 @@ func (_c *HandlerService_ListAuthorsAttachments_Call) Return(_a0 []model.FoundAt
 }
 
 func (_c *HandlerService_ListAuthorsAttachments_Call) RunAndReturn(run func(context.Context, string, string) ([]model.FoundAttachment, error)) *HandlerService_ListAuthorsAttachments_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListFamilies provides a mock function with given fields: ctx, repo, filters
+func (_m *HandlerService) ListFamilies(ctx context.Context, repo string, filters *model.Filters) ([]string, error) {
+	ret := _m.Called(ctx, repo, filters)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListFamilies")
+	}
+
+	var r0 []string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters) ([]string, error)); ok {
+		return rf(ctx, repo, filters)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, *model.Filters) []string); ok {
+		r0 = rf(ctx, repo, filters)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, *model.Filters) error); ok {
+		r1 = rf(ctx, repo, filters)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// HandlerService_ListFamilies_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListFamilies'
+type HandlerService_ListFamilies_Call struct {
+	*mock.Call
+}
+
+// ListFamilies is a helper method to define mock.On call
+//   - ctx context.Context
+//   - repo string
+//   - filters *model.Filters
+func (_e *HandlerService_Expecter) ListFamilies(ctx interface{}, repo interface{}, filters interface{}) *HandlerService_ListFamilies_Call {
+	return &HandlerService_ListFamilies_Call{Call: _e.mock.On("ListFamilies", ctx, repo, filters)}
+}
+
+func (_c *HandlerService_ListFamilies_Call) Run(run func(ctx context.Context, repo string, filters *model.Filters)) *HandlerService_ListFamilies_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(*model.Filters))
+	})
+	return _c
+}
+
+func (_c *HandlerService_ListFamilies_Call) Return(_a0 []string, _a1 error) *HandlerService_ListFamilies_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *HandlerService_ListFamilies_Call) RunAndReturn(run func(context.Context, string, *model.Filters) ([]string, error)) *HandlerService_ListFamilies_Call {
 	_c.Call.Return(run)
 	return _c
 }

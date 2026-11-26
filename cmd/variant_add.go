@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 )
 
 var variantAddCmd = &cobra.Command{
-	Use:   "add --tm-id <tm-id> [--variant-id <variant-id> --with-attachments | --mpn <mpn> [--description <description>] [--title <title>] [--with-attachments]]",
+	Use:   "add --tm-id <tm-id> [--family-name <name>] [--variant-id <variant-id> --with-attachments | --mpn <mpn> [--description <description>] [--title <title>] [--with-attachments]]",
 	Short: "Add a variant to an index entry",
 	Long:  `Either link an existing variant TMID with --variant-id, or create a new variant from the parent Thing Model with --mpn (optional --description and --title) and link it. Optionally, include attachments from the parent TM with --with-attachments.`,
 	Args:  cobra.NoArgs,
@@ -27,8 +28,10 @@ func addVariant(command *cobra.Command, _ []string) {
 	mpn, _ := command.Flags().GetString("mpn")
 	description, _ := command.Flags().GetString("description")
 	title, _ := command.Flags().GetString("title")
+	familyName, _ := command.Flags().GetString("family-name")
 
 	opts := commands.AddVariantOptions{
+		FamilyName:      familyName,
 		VariantID:       variantID,
 		Mpn:             mpn,
 		Description:     description,
@@ -59,6 +62,7 @@ func addVariant(command *cobra.Command, _ []string) {
 func init() {
 	AddRepoDisambiguatorFlags(variantAddCmd)
 	variantAddCmd.Flags().String("tm-id", "", "TMID of the parent Thing Model")
+	variantAddCmd.Flags().String("family-name", "", "Name for a new family; if supplied for an existing family, it must match")
 	variantAddCmd.Flags().String("variant-id", "", "TMID of an existing variant Thing Model to link")
 	variantAddCmd.Flags().String("mpn", "", "MPN for a new variant created from the parent Thing Model")
 	variantAddCmd.Flags().String("description", "", "Optional description override for a newly created variant")
@@ -68,20 +72,23 @@ func init() {
 	variantCmd.AddCommand(variantAddCmd)
 
 	AddRepoDisambiguatorFlags(variantAddBatchCmd)
+	variantAddBatchCmd.Flags().String("tm-id", "", "TMID of the parent Thing Model for all variants")
 	variantAddBatchCmd.Flags().String("json-file", "", "Path to JSON file with variants")
+	variantAddBatchCmd.MarkFlagRequired("tm-id")
 	variantCmd.AddCommand(variantAddBatchCmd)
 }
 
 var variantAddBatchCmd = &cobra.Command{
-	Use:   "add-batch --json-file <file>",
-	Short: "Add multiple variants to Thing Models from JSON",
-	Long:  `Add multiple variants from a JSON file. Each variant requires tm-id and mpn, with optional description, title, and attachments.`,
+	Use:   "add-batch --tm-id <tm-id> --json-file <file>",
+	Short: "Add multiple variants to one Thing Model from JSON",
+	Long:  `Add multiple variants to the parent specified by --tm-id. The JSON file contains a variants array and, for a new family, familyName. Each variant provides either variant-id or mpn, with optional description, title, and with-attachments for creation.`,
 	Args:  cobra.NoArgs,
 	Run:   addVariantBatch,
 }
 
 func addVariantBatch(command *cobra.Command, _ []string) {
 	spec := RepoSpecFromFlags(command)
+	tmID, _ := command.Flags().GetString("tm-id")
 
 	jsonFile, _ := command.Flags().GetString("json-file")
 
@@ -99,13 +106,19 @@ func addVariantBatch(command *cobra.Command, _ []string) {
 		os.Exit(1)
 	}
 
-	var requests []commands.AddVariantBatchRequest
-	if err := json.Unmarshal(jsonData, &requests); err != nil {
+	var request commands.AddVariantsBatchRequest
+	if !json.Valid(jsonData) {
+		cli.Stderrf("failed to parse JSON: invalid JSON document")
+		os.Exit(1)
+	}
+	decoder := json.NewDecoder(bytes.NewReader(jsonData))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&request); err != nil {
 		cli.Stderrf("failed to parse JSON: %v", err)
 		os.Exit(1)
 	}
 
-	if len(requests) == 0 {
+	if len(request.Variants) == 0 {
 		cli.Stderrf("no variants provided in JSON")
 		os.Exit(1)
 	}
@@ -114,19 +127,18 @@ func addVariantBatch(command *cobra.Command, _ []string) {
 	successCount := 0
 	failureCount := 0
 
-	for _, req := range requests {
-		opts := commands.AddVariantOptions{
-			Mpn:             req.Mpn,
-			Description:     req.Description,
-			Title:           req.Title,
-			WithAttachments: req.WithAttachments,
-		}
-		err := cli.VariantAdd(ctx, spec, req.TmID, opts)
-		if err != nil {
+	results, err := commands.AddVariantsBatch(ctx, spec, tmID, request)
+	if err != nil {
+		cli.Stderrf("variant batch add failed: %v", err)
+		os.Exit(1)
+	}
+	for _, result := range results {
+		if result.Error != "" {
 			failureCount++
+			cli.Stderrf("Could not add variant to %s: %s", tmID, result.Error)
 		} else {
 			successCount++
-			fmt.Printf("Successfully added variant for %s\n", req.TmID)
+			fmt.Printf("Successfully added variant %s for %s\n", result.VariantID, tmID)
 		}
 	}
 

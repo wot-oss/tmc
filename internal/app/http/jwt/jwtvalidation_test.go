@@ -369,6 +369,7 @@ func Test_Authorization_Scopes(t *testing.T) {
 				{"GET", "/thing-models/.latest/a-corp/eagle/bt2000", nil, http.StatusOK, true},
 				{"POST", "/thing-models", nil, http.StatusUnauthorized, false},
 				{"GET", "/inventory", nil, http.StatusOK, true},
+				{"GET", "/family", nil, http.StatusOK, true},
 			},
 		},
 		{
@@ -381,10 +382,13 @@ func Test_Authorization_Scopes(t *testing.T) {
 				authorized       bool
 			}{
 				{"POST", "/thing-models", []byte("{\"schema:author\":{\"schema:name\":\"a-corp\"}}"), http.StatusOK, true},
-				{"POST", "/thing-models/variants?tm-id=a-corp/eagle/bt2000/v1.0.0.tm.json&variant-id=a-corp/eagle/bt2000-special/v1.0.0.tm.json", []byte("{}"), http.StatusOK, true},
-				{"POST", "/thing-models/variants?tm-id=a-corp/eagle/bt2000/v1.0.0.tm.json&variant-id=b-corp/frog/bt3000-special/v1.0.0.tm.json", []byte("{}"), http.StatusUnauthorized, false},
-				{"POST", "/thing-models/variants?tm-id=b-corp/frog/bt3000/v1.0.0.tm.json&variant-id=b-corp/frog/bt3000-special/v1.0.0.tm.json", []byte("{}"), http.StatusUnauthorized, false},
+				{"POST", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", []byte(`{"familyName":"Eagle","variant-id":"a-corp/eagle/bt2000-special/v1.0.0.tm.json"}`), http.StatusOK, true},
+				{"POST", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", []byte(`{"familyName":"Eagle","variants":[{"mpn":"variant-a"},{"mpn":"variant-b"}]}`), http.StatusOK, true},
+				{"POST", "/thing-models/b-corp/frog/bt3000/v1.0.0.tm.json", []byte(`{"familyName":"Eagle","mpn":"variant-a"}`), http.StatusUnauthorized, false},
+				{"POST", "/thing-models/b-corp/frog/bt3000/v1.0.0.tm.json", []byte(`{"familyName":"Eagle","variants":[{"mpn":"variant-a"}]}`), http.StatusUnauthorized, false},
+				{"POST", "/thing-models/variants?tm-id=a-corp/eagle/bt2000/v1.0.0.tm.json", []byte(`[{"mpn":"variant-a"}]`), http.StatusUnauthorized, false},
 				{"GET", "/thing-models/a-corp/eagle/bt2000/v1.0.0.tm.json", nil, http.StatusUnauthorized, false},
+				{"GET", "/family", nil, http.StatusUnauthorized, false},
 			},
 		},
 		{

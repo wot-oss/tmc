@@ -165,7 +165,7 @@ func (h *HttpRepo) DeleteAttachment(ctx context.Context, container model.Attachm
 	return ErrNotSupported
 }
 
-func (h *HttpRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+func (h *HttpRepo) SetFamily(ctx context.Context, tmName string, familyID string, familyName string) error {
 	return ErrNotSupported
 }
 

@@ -69,7 +69,7 @@ func getContainerPath(ref model.AttachmentContainerRef) string {
 	}
 }
 
-func (t *TmcRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+func (t *TmcRepo) SetFamily(ctx context.Context, tmName string, familyID string, familyName string) error {
 	return ErrNotSupported
 }
 

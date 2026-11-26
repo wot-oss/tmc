@@ -1,11 +1,18 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
+)
+
+var (
+	ErrFamilyNameRequired = errors.New("familyName must not be empty")
+	ErrFamilyNameConflict = errors.New("familyName does not match the existing family")
+	ErrFamilyUnnamed      = errors.New("existing family must be named separately before adding variants")
 )
 
 type Index struct {
@@ -51,6 +58,7 @@ type IndexEntry struct {
 	Mpn          string             `json:"schema:mpn"`
 	Author       SchemaAuthor       `json:"schema:author" validate:"required"`
 	FamilyID     string             `json:"family,omitempty"`
+	FamilyName   string             `json:"familyName,omitempty"`
 	Versions     []*IndexVersion    `json:"versions"`
 	AttachmentContainer
 }

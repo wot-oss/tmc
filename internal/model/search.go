@@ -35,6 +35,7 @@ type FoundEntry struct {
 	Mpn          string
 	Author       SchemaAuthor
 	FamilyID     string
+	FamilyName   string
 	Versions     []FoundVersion
 	FoundIn      FoundSource
 	AttachmentContainer

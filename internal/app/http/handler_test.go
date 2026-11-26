@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/wot-oss/tmc/internal/app/http/server"
 	"github.com/wot-oss/tmc/internal/model"
 	"github.com/wot-oss/tmc/internal/repos"
@@ -1196,30 +1197,35 @@ func Test_ImportThingModel(t *testing.T) {
 
 func Test_AddThingModelVariant(t *testing.T) {
 	parentTMID := "a-corp/eagle/bt2000/v1.0.0-20240108140117-243d1b462ccc.tm.json"
-	route := "/thing-models/variants?tm-id=" + url.QueryEscape(parentTMID)
+	route := "/thing-models/" + parentTMID
 
 	hs := mocks.NewHandlerService(t)
 	httpHandler := setupTestHttpHandler(hs)
 
-	t.Run("create a new family from a batch", func(t *testing.T) {
-		requests := []commands.AddVariantBatchRequest{{TmID: parentTMID, Mpn: "bt2000-a"}, {TmID: parentTMID, Mpn: "bt2000-b"}}
-		hs.On("AddThingModelVariantBatch", mock.Anything, "", "", requests).Return([]commands.AddVariantBatchResult{}).Once()
-
-		rec := testutils.NewRequest(http.MethodPost, "/thing-models/variants").
-			WithHeader(HeaderContentType, MimeJSON).
-			WithBody([]byte(`[{"tm-id":"` + parentTMID + `","mpn":"bt2000-a"},{"tm-id":"` + parentTMID + `","mpn":"bt2000-b"}]`)).
-			RunOnHandler(httpHandler)
-
-		assert.Equal(t, http.StatusOK, rec.Code)
-	})
-
-	t.Run("add a batch to an existing family", func(t *testing.T) {
-		requests := []commands.AddVariantBatchRequest{{TmID: parentTMID, Mpn: "bt2000-c"}}
-		hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, requests).Return([]commands.AddVariantBatchResult{}).Once()
+	t.Run("create a batch from the path parent", func(t *testing.T) {
+		requests := commands.AddVariantsBatchRequest{FamilyName: "Eagle", Variants: []commands.AddVariantBatchRequest{{Mpn: "bt2000-a"}, {Mpn: "bt2000-b"}}}
+		results := []commands.AddVariantBatchResult{
+			{TmID: parentTMID, VariantID: "variant-a"},
+			{TmID: parentTMID, Error: "variant creation failed"},
+		}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, requests).Return(results, nil).Once()
 
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
-			WithBody([]byte(`[{"tm-id":"` + parentTMID + `","mpn":"bt2000-c"}]`)).
+			WithBody([]byte(`{"familyName":"Eagle","variants":[{"mpn":"bt2000-a"},{"mpn":"bt2000-b"}]}`)).
+			RunOnHandler(httpHandler)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.JSONEq(t, `[{"tm-id":"`+parentTMID+`","variant-id":"variant-a"},{"tm-id":"`+parentTMID+`","error":"variant creation failed"}]`, rec.Body.String())
+	})
+
+	t.Run("batch forwards attachment query flag to every item", func(t *testing.T) {
+		requests := commands.AddVariantsBatchRequest{FamilyName: "Eagle", Variants: []commands.AddVariantBatchRequest{{Mpn: "bt2000-c", WithAttachments: true}, {Mpn: "bt2000-d", WithAttachments: true}}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, requests).Return([]commands.AddVariantBatchResult{}, nil).Once()
+
+		rec := testutils.NewRequest(http.MethodPost, route+"?with-attachments=true").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"familyName":"Eagle","variants":[{"mpn":"bt2000-c"},{"mpn":"bt2000-d"}]}`)).
 			RunOnHandler(httpHandler)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
@@ -1227,6 +1233,7 @@ func Test_AddThingModelVariant(t *testing.T) {
 
 	t.Run("create variant from mpn and body overrides", func(t *testing.T) {
 		hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			FamilyName:  "Eagle",
 			Mpn:         "bt2000-special",
 			Title:       "new title",
 			Description: "blablabla",
@@ -1234,12 +1241,222 @@ func Test_AddThingModelVariant(t *testing.T) {
 
 		rec := testutils.NewRequest(http.MethodPost, route).
 			WithHeader(HeaderContentType, MimeJSON).
-			WithBody([]byte(`{"mpn":"bt2000-special","title":"new title","description":"blablabla"}`)).
+			WithBody([]byte(`{"familyName":"Eagle","mpn":"bt2000-special","title":"new title","description":"blablabla"}`)).
 			RunOnHandler(httpHandler)
 
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 		assert.Equal(t, 0, rec.Body.Len())
 	})
+
+	t.Run("link an existing variant", func(t *testing.T) {
+		variantID := "a-corp/eagle/bt2000-linked/v1.0.0-20240108140117-243d1b462ccd.tm.json"
+		hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			FamilyName: "Eagle",
+			VariantID:  variantID,
+		}).Return(nil).Once()
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"familyName":"Eagle","variant-id":"` + variantID + `"}`)).
+			RunOnHandler(httpHandler)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+
+	t.Run("batch supports existing variants and per-item attachments", func(t *testing.T) {
+		variantID := "a-corp/eagle/bt2000-linked/v1.0.0-20240108140117-243d1b462ccd.tm.json"
+		requests := commands.AddVariantsBatchRequest{FamilyName: "Eagle", Variants: []commands.AddVariantBatchRequest{
+			{VariantID: variantID},
+			{Mpn: "bt2000-new", WithAttachments: true},
+		}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "target", parentTMID, requests).Return([]commands.AddVariantBatchResult{}, nil).Once()
+		rec := testutils.NewRequest(http.MethodPost, route+"?repo=target").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"familyName":"Eagle","variants":[{"variant-id":"` + variantID + `"},{"mpn":"bt2000-new","with-attachments":true}]}`)).
+			RunOnHandler(httpHandler)
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("single creation forwards attachment flag", func(t *testing.T) {
+		hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			FamilyName: "Eagle",
+			Mpn:        "bt2000-attached", WithAttachments: true,
+		}).Return(nil).Once()
+		rec := testutils.NewRequest(http.MethodPost, route+"?with-attachments=true").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"familyName":"Eagle","mpn":"bt2000-attached"}`)).
+			RunOnHandler(httpHandler)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+
+	t.Run("query cannot override the path parent", func(t *testing.T) {
+		requests := commands.AddVariantsBatchRequest{FamilyName: "Eagle", Variants: []commands.AddVariantBatchRequest{{Mpn: "path-parent-only"}}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, requests).Return([]commands.AddVariantBatchResult{}, nil).Once()
+		rec := testutils.NewRequest(http.MethodPost, route+"?tm-id=another-parent").
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"familyName":"Eagle","variants":[{"mpn":"path-parent-only"}]}`)).
+			RunOnHandler(httpHandler)
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	for _, body := range []string{
+		`[]`,
+		`null`,
+		`"not an object"`,
+		`[`,
+		`{"mpn":"a"} {"mpn":"b"}`,
+		`[{"tm-id":"` + parentTMID + `","mpn":"a"}]`,
+		`[{"mpn":"a"},{"tm-id":"another/source","mpn":"b"}]`,
+		`{"tm-id":"` + parentTMID + `","mpn":"a"}`,
+		`{"familyName":"  ","mpn":"a"}`,
+		`{"familyName":null,"mpn":"a"}`,
+		`{"familyName":"","mpn":"a"}`,
+		`{"familyName":" ","variants":[{"mpn":"a"}]}`,
+		`{"familyName":"Eagle","variants":[]}`,
+		`{"familyName":"Eagle","variants":null}`,
+		`{"familyName":"Eagle","variants":[{"tm-id":"another/source","mpn":"a"}]}`,
+		`{"familyName":"Eagle","variants":[{"familyName":"Other","mpn":"a"}]}`,
+		`{"familyName":"Eagle","mpn":"a","variants":[{"mpn":"b"}]}`,
+	} {
+		t.Run("reject invalid or legacy body "+body, func(t *testing.T) {
+			rec := testutils.NewRequest(http.MethodPost, route).
+				WithHeader(HeaderContentType, MimeJSON).
+				WithBody([]byte(body)).
+				RunOnHandler(httpHandler)
+			assertResponse400(t, rec, route)
+		})
+	}
+
+	t.Run("single forwards omitted family name", func(t *testing.T) {
+		hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+			Mpn: "existing-family-single",
+		}).Return(nil).Once()
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"mpn":"existing-family-single"}`)).
+			RunOnHandler(httpHandler)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+	t.Run("batch forwards omitted family name", func(t *testing.T) {
+		request := commands.AddVariantsBatchRequest{Variants: []commands.AddVariantBatchRequest{{Mpn: "existing-family-batch"}}}
+		hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, request).Return([]commands.AddVariantBatchResult{}, nil).Once()
+		rec := testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`{"variants":[{"mpn":"existing-family-batch"}]}`)).
+			RunOnHandler(httpHandler)
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	for _, familyErr := range []error{model.ErrFamilyNameConflict, model.ErrFamilyUnnamed} {
+		t.Run("single rejects "+familyErr.Error(), func(t *testing.T) {
+			hs.On("AddThingModelVariant", mock.Anything, "", parentTMID, commands.AddVariantOptions{
+				FamilyName: "Wrong name", Mpn: "a",
+			}).Return(familyErr).Once()
+			rec := testutils.NewRequest(http.MethodPost, route).
+				WithHeader(HeaderContentType, MimeJSON).
+				WithBody([]byte(`{"familyName":"Wrong name","mpn":"a"}`)).
+				RunOnHandler(httpHandler)
+			assert.Equal(t, http.StatusConflict, rec.Code)
+			assert.Contains(t, rec.Body.String(), familyErr.Error())
+		})
+		t.Run("batch rejects "+familyErr.Error(), func(t *testing.T) {
+			request := commands.AddVariantsBatchRequest{FamilyName: "Wrong name", Variants: []commands.AddVariantBatchRequest{{Mpn: "a"}, {Mpn: "b"}}}
+			hs.On("AddThingModelVariantBatch", mock.Anything, "", parentTMID, request).Return(nil, familyErr).Once()
+			rec := testutils.NewRequest(http.MethodPost, route).
+				WithHeader(HeaderContentType, MimeJSON).
+				WithBody([]byte(`{"familyName":"Wrong name","variants":[{"mpn":"a"},{"mpn":"b"}]}`)).
+				RunOnHandler(httpHandler)
+			assert.Equal(t, http.StatusConflict, rec.Code)
+			assert.Contains(t, rec.Body.String(), familyErr.Error())
+		})
+	}
+
+	t.Run("reject old variants route", func(t *testing.T) {
+		rec := testutils.NewRequest(http.MethodPost, "/thing-models/variants?tm-id="+url.QueryEscape(parentTMID)).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(`[{"mpn":"bt2000-a"}]`)).
+			RunOnHandler(httpHandler)
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+}
+
+func TestVariantFamilyUploadAndInventory(t *testing.T) {
+	ctx := context.Background()
+	spec := model.NewDirSpec(t.TempDir())
+	repo, err := repos.Get(spec)
+	require.NoError(t, err)
+	parentTMID := "aut/man/source/v1.0.0-20260326150433-965fd7c3238b.tm.json"
+	id, err := model.ParseTMID(parentTMID)
+	require.NoError(t, err)
+	raw := []byte(`{
+		"id":"` + parentTMID + `",
+		"schema:author":{"schema:name":"aut"},
+		"schema:manufacturer":{"schema:name":"man"},
+		"schema:mpn":"source",
+		"version":{"model":"v1.0.0"}
+	}`)
+	_, err = repo.Import(ctx, id, raw, repos.ImportOptions{})
+	require.NoError(t, err)
+	_, _, _, _, err = repo.Index(ctx, parentTMID)
+	require.NoError(t, err)
+	service, err := NewDefaultHandlerService(spec)
+	require.NoError(t, err)
+	handler := setupTestHttpHandler(service)
+	route := "/thing-models/" + parentTMID
+
+	post := func(body string) *httptest.ResponseRecorder {
+		return testutils.NewRequest(http.MethodPost, route).
+			WithHeader(HeaderContentType, MimeJSON).
+			WithBody([]byte(body)).
+			RunOnHandler(handler)
+	}
+	for _, body := range []string{
+		`{"mpn":"missing-single"}`,
+		`{"variants":[{"mpn":"missing-batch"}]}`,
+	} {
+		rec := post(body)
+		assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
+	}
+	rec := post(`{"familyName":"Eagle","mpn":"single"}`)
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	rec = post(`{"mpn":"existing-single"}`)
+	require.Equal(t, http.StatusNoContent, rec.Code, rec.Body.String())
+	rec = post(`{"variants":[{"mpn":"batch-a"},{"mpn":"batch-b"}]}`)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var results []commands.AddVariantBatchResult
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &results))
+	require.Len(t, results, 2)
+	for _, result := range results {
+		require.Empty(t, result.Error)
+		require.NotEmpty(t, result.VariantID)
+	}
+
+	for _, body := range []string{
+		`{"familyName":"Different","mpn":"rejected-single"}`,
+		`{"familyName":"Different","variants":[{"mpn":"rejected-a"},{"mpn":"rejected-b"}]}`,
+	} {
+		rec = post(body)
+		assert.Equal(t, http.StatusConflict, rec.Code, rec.Body.String())
+	}
+
+	rec = testutils.NewRequest(http.MethodGet, "/inventory").RunOnHandler(handler)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	var inventory server.InventoryResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &inventory))
+	require.Len(t, inventory.Data, 5)
+	require.NotNil(t, inventory.Data[0].FamilyId)
+	familyID := *inventory.Data[0].FamilyId
+	assert.NotEmpty(t, familyID)
+	for _, entry := range inventory.Data {
+		require.NotNil(t, entry.FamilyId)
+		require.NotNil(t, entry.FamilyName)
+		assert.Equal(t, familyID, *entry.FamilyId)
+		assert.Equal(t, "Eagle", *entry.FamilyName)
+		assert.NotContains(t, entry.TmName, "rejected")
+		assert.NotContains(t, entry.TmName, "missing")
+	}
+	rec = testutils.NewRequest(http.MethodGet, "/family").RunOnHandler(handler)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	assert.Equal(t, MimeText, rec.Header().Get(HeaderContentType))
+	assert.Equal(t, "Eagle:"+familyID+"\n", rec.Body.String())
 }
 
 func Test_ImportAttachment(t *testing.T) {

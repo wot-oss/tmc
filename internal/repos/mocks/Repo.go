@@ -734,17 +734,17 @@ func (_c *Repo_ListCompletions_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
-// SetFamily provides a mock function with given fields: ctx, tmName, familyID
-func (_m *Repo) SetFamily(ctx context.Context, tmName string, familyID string) error {
-	ret := _m.Called(ctx, tmName, familyID)
+// SetFamily provides a mock function with given fields: ctx, tmName, familyID, familyName
+func (_m *Repo) SetFamily(ctx context.Context, tmName string, familyID string, familyName string) error {
+	ret := _m.Called(ctx, tmName, familyID, familyName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetFamily")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
-		r0 = rf(ctx, tmName, familyID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(ctx, tmName, familyID, familyName)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -761,13 +761,14 @@ type Repo_SetFamily_Call struct {
 //   - ctx context.Context
 //   - tmName string
 //   - familyID string
-func (_e *Repo_Expecter) SetFamily(ctx interface{}, tmName interface{}, familyID interface{}) *Repo_SetFamily_Call {
-	return &Repo_SetFamily_Call{Call: _e.mock.On("SetFamily", ctx, tmName, familyID)}
+//   - familyName string
+func (_e *Repo_Expecter) SetFamily(ctx interface{}, tmName interface{}, familyID interface{}, familyName interface{}) *Repo_SetFamily_Call {
+	return &Repo_SetFamily_Call{Call: _e.mock.On("SetFamily", ctx, tmName, familyID, familyName)}
 }
 
-func (_c *Repo_SetFamily_Call) Run(run func(ctx context.Context, tmName string, familyID string)) *Repo_SetFamily_Call {
+func (_c *Repo_SetFamily_Call) Run(run func(ctx context.Context, tmName string, familyID string, familyName string)) *Repo_SetFamily_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
 	})
 	return _c
 }
@@ -777,7 +778,7 @@ func (_c *Repo_SetFamily_Call) Return(_a0 error) *Repo_SetFamily_Call {
 	return _c
 }
 
-func (_c *Repo_SetFamily_Call) RunAndReturn(run func(context.Context, string, string) error) *Repo_SetFamily_Call {
+func (_c *Repo_SetFamily_Call) RunAndReturn(run func(context.Context, string, string, string) error) *Repo_SetFamily_Call {
 	_c.Call.Return(run)
 	return _c
 }

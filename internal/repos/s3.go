@@ -406,14 +406,14 @@ func (s *S3Repo) GetTMMetadata(ctx context.Context, tmID string) ([]model.FoundV
 	return nil, model.ErrTMNotFound
 }
 
-func (s *S3Repo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+func (s *S3Repo) SetFamily(ctx context.Context, tmName string, familyID string, familyName string) error {
 	unlock, err := s.lockIndex(ctx)
 	defer unlock()
 	if err != nil {
 		return err
 	}
 
-	_, _, _, _, _, err = s.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID))
+	_, _, _, _, _, err = s.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID, familyName))
 	return err
 }
 
@@ -777,6 +777,7 @@ func (s *S3Repo) preserveFamilies(oldIndex *model.Index, newIndex *model.Index) 
 			continue
 		}
 		entry.FamilyID = oldEntry.FamilyID
+		entry.FamilyName = oldEntry.FamilyName
 	}
 }
 

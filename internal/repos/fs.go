@@ -387,7 +387,7 @@ func (f *FileRepo) GetTMMetadata(ctx context.Context, tmID string) ([]model.Foun
 	return nil, model.ErrTMNotFound
 }
 
-func (f *FileRepo) SetFamily(ctx context.Context, tmName string, familyID string) error {
+func (f *FileRepo) SetFamily(ctx context.Context, tmName string, familyID string, familyName string) error {
 	err := f.checkRootValid()
 	if err != nil {
 		return err
@@ -399,7 +399,7 @@ func (f *FileRepo) SetFamily(ctx context.Context, tmName string, familyID string
 		return err
 	}
 
-	_, _, _, _, _, err = f.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID))
+	_, _, _, _, _, err = f.updateIndex(ctx, setFamilyIndexUpdater(tmName, familyID, familyName))
 	return err
 }
 
@@ -880,6 +880,7 @@ func (f *FileRepo) preserveFamilies(oldIndex *model.Index, newIndex *model.Index
 			continue
 		}
 		entry.FamilyID = oldEntry.FamilyID
+		entry.FamilyName = oldEntry.FamilyName
 	}
 }
 

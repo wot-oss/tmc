@@ -89,6 +89,7 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	switch true {
 	// handle sentinel errors with errors.Is()
 	case errors.Is(err, model.ErrInvalidId),
+		errors.Is(err, model.ErrFamilyNameRequired),
 		errors.Is(err, model.ErrInvalidIdOrName),
 		errors.Is(err, model.ErrInvalidFetchName),
 		errors.Is(err, commands.ErrTMNameTooLong),
@@ -112,6 +113,11 @@ func HandleErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 		errDetail = ErrorRepoAmbiguousDetail
 		errStatus = http.StatusBadRequest
 	case errors.Is(err, repos.ErrAttachmentExists):
+		errTitle = Error409Title
+		errDetail = err.Error()
+		errStatus = http.StatusConflict
+	case errors.Is(err, model.ErrFamilyNameConflict),
+		errors.Is(err, model.ErrFamilyUnnamed):
 		errTitle = Error409Title
 		errDetail = err.Error()
 		errStatus = http.StatusConflict

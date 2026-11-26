@@ -32,6 +32,9 @@ type ServerInterface interface {
 	// Upload an attachment to an author
 	// (PUT /authors/{authorName}/.attachments/{attachmentFileName})
 	PutAuthorAttachmentByName(w http.ResponseWriter, r *http.Request, authorName string, attachmentFileName string, params PutAuthorAttachmentByNameParams)
+	// List existing variant families
+	// (GET /family)
+	GetFamilies(w http.ResponseWriter, r *http.Request, params GetFamiliesParams)
 	// Get the overall health of the service
 	// (GET /healthz)
 	GetHealth(w http.ResponseWriter, r *http.Request)
@@ -107,15 +110,15 @@ type ServerInterface interface {
 	// Upload an attachment to a TM name
 	// (PUT /thing-models/.tmName/{tmName}/.attachments/{attachmentFileName})
 	PutTMNameAttachment(w http.ResponseWriter, r *http.Request, tmName TMName, attachmentFileName AttachmentFileName, params PutTMNameAttachmentParams)
-	// Create a family of Thing Model variants
-	// (POST /thing-models/variants)
-	AddThingModelVariant(w http.ResponseWriter, r *http.Request, params AddThingModelVariantParams)
 	// Delete a Thing Model by ID
 	// (DELETE /thing-models/{tmID})
 	DeleteThingModelById(w http.ResponseWriter, r *http.Request, tmID TMID, params DeleteThingModelByIdParams)
 	// Get the content of a Thing Model by its ID
 	// (GET /thing-models/{tmID})
 	GetThingModelById(w http.ResponseWriter, r *http.Request, tmID TMID, params GetThingModelByIdParams)
+	// Add one or more variants to a Thing Model
+	// (POST /thing-models/{tmID})
+	AddThingModelVariant(w http.ResponseWriter, r *http.Request, tmID TMID, params AddThingModelVariantParams)
 	// Get the list of attachments to a Thing Model
 	// (GET /thing-models/{tmID}/.attachments)
 	ListThingModelAttachmentsById(w http.ResponseWriter, r *http.Request, tmID TMID, params ListThingModelAttachmentsByIdParams)
@@ -413,6 +416,36 @@ func (siw *ServerInterfaceWrapper) PutAuthorAttachmentByName(w http.ResponseWrit
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.PutAuthorAttachmentByName(w, r, authorName, attachmentFileName, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetFamilies operation middleware
+func (siw *ServerInterfaceWrapper) GetFamilies(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetFamiliesParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetFamilies(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1463,52 +1496,6 @@ func (siw *ServerInterfaceWrapper) PutTMNameAttachment(w http.ResponseWriter, r 
 	handler.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// AddThingModelVariant operation middleware
-func (siw *ServerInterfaceWrapper) AddThingModelVariant(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-
-	var err error
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	// Parameter object where we will unmarshal all parameters from the context
-	var params AddThingModelVariantParams
-
-	// ------------- Optional query parameter "repo" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "tm-id" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "tm-id", r.URL.Query(), &params.TmId)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tm-id", Err: err})
-		return
-	}
-
-	// ------------- Optional query parameter "with-attachments" -------------
-
-	err = runtime.BindQueryParameter("form", true, false, "with-attachments", r.URL.Query(), &params.WithAttachments)
-	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "with-attachments", Err: err})
-		return
-	}
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.AddThingModelVariant(w, r, params)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r.WithContext(ctx))
-}
-
 // DeleteThingModelById operation middleware
 func (siw *ServerInterfaceWrapper) DeleteThingModelById(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -1601,6 +1588,53 @@ func (siw *ServerInterfaceWrapper) GetThingModelById(w http.ResponseWriter, r *h
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetThingModelById(w, r, tmID, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// AddThingModelVariant operation middleware
+func (siw *ServerInterfaceWrapper) AddThingModelVariant(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "tmID" -------------
+	var tmID TMID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "tmID", mux.Vars(r)["tmID"], &tmID, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "tmID", Err: err})
+		return
+	}
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params AddThingModelVariantParams
+
+	// ------------- Optional query parameter "repo" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "repo", r.URL.Query(), &params.Repo)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "repo", Err: err})
+		return
+	}
+
+	// ------------- Optional query parameter "with-attachments" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "with-attachments", r.URL.Query(), &params.WithAttachments)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "with-attachments", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.AddThingModelVariant(w, r, tmID, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1956,7 +1990,7 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 
 	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.DeleteThingModelById).Methods("DELETE")
 
-	r.HandleFunc(options.BaseURL+"/thing-models/variants", wrapper.AddThingModelVariant).Methods("POST")
+	r.HandleFunc(options.BaseURL+"/thing-models/{tmID:.+}", wrapper.AddThingModelVariant).Methods("POST")
 
 	r.HandleFunc(options.BaseURL+"/repos/export", wrapper.GetExportedCatalog).Methods("GET")
 
@@ -1985,6 +2019,8 @@ func HandlerWithOptions(si ServerInterface, options GorillaServerOptions) http.H
 	r.HandleFunc(options.BaseURL+"/info", wrapper.GetInfo).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/healthz", wrapper.GetHealth).Methods("GET")
+
+	r.HandleFunc(options.BaseURL+"/family", wrapper.GetFamilies).Methods("GET")
 
 	r.HandleFunc(options.BaseURL+"/authors", wrapper.GetAuthors).Methods("GET")
 
