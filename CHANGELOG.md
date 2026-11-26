@@ -9,6 +9,8 @@
 
 ### Changed
 
+- building latest docker image for the main branch
+
 ### Fixed
 
 - importing a TM updates the index and the generated helper files (`tmnames.txt`, `authors.txt`, `manufacturers.txt`, `mpns.txt`, `protocols.txt`), so that missing or outdated files are created/refreshed
